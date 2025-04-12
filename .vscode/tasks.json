@@ -1,0 +1,50 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Launch Server",
+            "command": "spacetime start",
+            "type": "shell",
+            "args": [],
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "group": "build",
+            "isBackground": true
+        },
+        {
+            "label": "Build with ST",
+            "command": "spacetime build",
+            "type": "shell",
+            "problemMatcher": []
+        },
+        {
+            "label": "Publish to Local ST",
+            "command": "spacetime publish -c solarance-beginnings",
+            "type": "shell",
+            "problemMatcher": []
+        },
+        {
+            "label": "Clear ST Database",
+            "command": "spacetime publish solarance-beginnings --delete-data",
+            "type": "shell",
+            "problemMatcher": []
+        },
+        {
+            "label": "See ST Logs",
+            "command": "spacetime logs solarance-beginnings",
+            "type": "shell",
+            "problemMatcher": []
+        },
+        {
+            "label": "Generate Client Bindings",
+            "command": "spacetime generate --lang rust --out-dir ../solarance-rust-test/src/module_bindings",
+            "type": "shell",
+            "problemMatcher": []
+        }
+    ]
+}
