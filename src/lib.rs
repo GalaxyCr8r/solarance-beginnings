@@ -33,6 +33,14 @@ pub fn identity_disconnected(_ctx: &ReducerContext) {
 }
 
 #[spacetimedb::reducer]
+pub fn server_only(ctx: &ReducerContext){
+    if ctx.sender != ctx.identity() {
+        panic!("This reducer can only be called by SpacetimeDB!");
+    }
+    log::info!("I'm a server!");
+}
+
+#[spacetimedb::reducer]
 pub fn add_person(ctx: &ReducerContext, name: String) {
     ctx.db.person().insert(Person { name, identity: ctx.sender, last_view: MapView::GalacticSystem });
 }

@@ -35,6 +35,12 @@
             "problemMatcher": []
         },
         {
+            "label": "List all ST Database",
+            "command": "spacetime list",
+            "type": "shell",
+            "problemMatcher": []
+        },
+        {
             "label": "See ST Logs",
             "command": "spacetime logs solarance-beginnings",
             "type": "shell",
