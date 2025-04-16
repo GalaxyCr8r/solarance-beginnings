@@ -13,13 +13,21 @@ pub struct StellarTransform {
     rotation_radians: f32,
 }
 
+#[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
+pub enum StellarObjectKinds {
+    Ship,
+    Asteroid,
+    Station,
+}
+
 #[spacetimedb::table(name = stellar_object, public)]
 pub struct StellarObject {
     #[primary_key]
     #[auto_inc]
     id: u64,
+    pub kind: StellarObjectKinds,
     #[index(btree)]
-    sector_id: u64,
+    sector_id: u64, // Foreign key to a Sector
 }
 
 #[spacetimedb::table(name = stellar_object_internal)]
