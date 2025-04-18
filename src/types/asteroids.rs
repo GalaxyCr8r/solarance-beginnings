@@ -1,4 +1,6 @@
-use spacetimedb::{Identity, ReducerContext, SpacetimeType, Table, table
+use spacetimedb::{Identity, ReducerContext, SpacetimeType, Table, table};
+
+use super::economy::ResourceType;
 
 #[table(name = asteroid, public)]
 pub struct Asteroid {

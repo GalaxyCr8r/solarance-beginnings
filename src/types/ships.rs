@@ -1,4 +1,4 @@
-use spacetimedb::{Identity, ReducerContext, SpacetimeType, Table};
+use spacetimedb::{Identity, ReducerContext, SpacetimeType, Table, table};
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
 pub enum ShipClass {
