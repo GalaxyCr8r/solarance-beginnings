@@ -85,7 +85,7 @@
     },
     {
       "label": "Client: Generate Bindings",
-      "command": "spacetime generate --lang rust --out-dir client/src/module_bindings --project-path server",
+      "command": "spacetime generate --lang rust --out-dir src/module_bindings --project-path ${workspaceFolder}/server",
       "type": "shell",
       "options": {
         "cwd": "${workspaceFolder}/client"
