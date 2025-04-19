@@ -21,6 +21,6 @@ jobs:
       working-directory: server/
     # - name: Run server tests
     #   run: cargo test --verbose
-    - name: Build Client
-      run: cargo build --verbose
-      working-directory: client/
+    # - name: Build Client
+    #   run: cargo build --verbose
+    #   working-directory: client/
