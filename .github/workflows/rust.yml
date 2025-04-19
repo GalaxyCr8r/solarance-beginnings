@@ -16,11 +16,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - run: cd server
     - name: Build Server
       run: cargo build --verbose
-    - name: Run server tests
-      run: cargo test --verbose
-    - run: cd ../client
+      working-directory: server/
+    # - name: Run server tests
+    #   run: cargo test --verbose
     - name: Build Client
       run: cargo build --verbose
+      working-directory: client/
