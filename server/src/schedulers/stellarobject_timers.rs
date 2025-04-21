@@ -41,7 +41,6 @@ pub fn init(ctx: &ReducerContext) {
 #[spacetimedb::reducer]
 pub fn update_sobj_transforms(ctx: &ReducerContext, timer: UpdateTransformsTimer) {
     // We're using this value to determine whether or not to update the lower resolution table.
-    // Here we're doing a 4:1 ratio (4 high resolution updates for every 1 low resolution update)
     let mut update = timer;
     let low_resolution = update.current_update == 0;
 
@@ -50,10 +49,10 @@ pub fn update_sobj_transforms(ctx: &ReducerContext, timer: UpdateTransformsTimer
         panic!("This reducer can only be called by SpacetimeDB!");
     }
 
-    //__move_ships(ctx);
+    __move_ships(ctx);
 
     // Update the value in the config table
-    update.current_update = (update.current_update + 1) % 4;
+    update.current_update = (update.current_update + 1) % 5; // TODO: Make this configurable
     ctx.db.update_sobj_transform_timer().scheduled_id().update(update);
 
 
@@ -62,8 +61,8 @@ pub fn update_sobj_transforms(ctx: &ReducerContext, timer: UpdateTransformsTimer
         ctx.db.stellar_object_hi_res().sobj_id().delete(row.sobj_id);
     }
 
+    // Clear all low res positions
     if low_resolution {
-        // Clear all low res positions
         for row in ctx.db.stellar_object_low_res().iter() {
             ctx.db.stellar_object_low_res().sobj_id().delete(row.sobj_id);
         }
@@ -73,13 +72,18 @@ pub fn update_sobj_transforms(ctx: &ReducerContext, timer: UpdateTransformsTimer
     for row in ctx.db.stellar_object_internal().iter() {
         ctx.db.stellar_object_hi_res().insert(StellarObjectTransform {
             sobj_id: row.sobj_id,
-            transform: row.transform.clone(),
+            x: row.x,
+            y: row.y,
+            rotation_radians: row.rotation_radians
         });
 
+        // Update all low res positions
         if low_resolution {
-            ctx.db.stellar_object_hi_res().insert(StellarObjectTransform {
+            ctx.db.stellar_object_low_res().insert(StellarObjectTransform {
                 sobj_id: row.sobj_id,
-                transform: row.transform,
+                x: row.x,
+                y: row.y,
+                rotation_radians: row.rotation_radians
             });
         }
     }
@@ -96,19 +100,29 @@ pub fn __move_ships(ctx: &ReducerContext) {
         if wrapped_transform.is_none() { continue; }
         let tranform = wrapped_transform.unwrap();
 
-        let current_pos = tranform.transform.position.to_vec2();
-        let velocity = Vec2::from_angle(tranform.transform.rotation_radians) * 0.1337;
+        let current_pos = tranform.to_vec2();
+        let mut x = current_pos.x;
+        let mut y = current_pos.y;
+        let velocity = Vec2::from_angle(tranform.rotation_radians) * 1.337;
+
+        if x > 500.0 {
+            x -= 500.0;
+        } else if x < 0. {
+            x += 500.0;
+        }
+
+        if y > 500.0 {
+            y -= 500.0;
+        } else if y < 0. {
+            y += 500.0;
+        }
 
         ctx.db.stellar_object_internal().sobj_id().update(
             StellarObjectTransform {
                 sobj_id: tranform.sobj_id,
-                transform: StellarTransform { 
-                    position: StellarPosition {
-                        x: (current_pos + velocity).x,
-                        y: (current_pos + velocity).y
-                    }, 
-                    rotation_radians: tranform.transform.rotation_radians
-                }
+                x: x + velocity.x,
+                y: y + velocity.y,
+                rotation_radians: tranform.rotation_radians
             }
         );
     }
