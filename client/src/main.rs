@@ -102,12 +102,20 @@ fn collision_system(world: &World, _: &mut GameState) {
 fn draw_ship(transform: StellarTransform) {
     let position = vec2(transform.position.x, transform.position.y);
     let forward = Vec2::from_angle(transform.rotation_radians) * 16.0;
-    let right = Vec2::from_angle(transform.rotation_radians + PI) * 16.0;
-    let left = Vec2::from_angle(transform.rotation_radians - PI) * 16.0;
-    /// Vec2::from_angle(PI).rotate(Vec2::Y)
+    let right = Vec2::from_angle(transform.rotation_radians + (PI * 0.75)) * 16.0;
+    let left = Vec2::from_angle(transform.rotation_radians - (PI * 0.75)) * 16.0;
+
+    let forward_pos = position+(forward*2.0);
     
+    draw_line(position.x, position.y, forward_pos.x, forward_pos.y, 2.0, RED);
     draw_triangle(position+forward, position+right, position+left, BLACK);
-    draw_text("Ship", transform.position.x, transform.position.y, 16.0, BLACK);
+    
+    draw_text_ex("Ship", transform.position.x, transform.position.y, TextParams { 
+        font_size: 16,
+        rotation: transform.rotation_radians, 
+        color: BLACK,
+        ..TextParams::default()
+     });
 }
 
 fn render_system(world: &World, game_state: &mut GameState) {

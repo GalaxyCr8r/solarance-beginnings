@@ -1,5 +1,5 @@
 use std::time::Duration;
-use spacetimedb::{rand::{self, RngCore}, Identity, ReducerContext, SpacetimeType, Table};
+use spacetimedb::{rand::{self, Rng, RngCore}, Identity, ReducerContext, SpacetimeType, Table};
 
 #[derive(SpacetimeType, Clone)]
 pub struct StellarPosition {
@@ -109,9 +109,9 @@ pub fn create_stellar_object_random(ctx: &ReducerContext) -> Result<(), String> 
     
     create_stellar_object(ctx, StellarObjectKinds::Ship, 0, StellarTransform { 
         position: StellarPosition { 
-            x: f32::from_bits(ctx.rng().next_u32() % 1024), 
-            y: f32::from_bits(ctx.rng().next_u32() % 512) 
+            x: ctx.rng().gen_range(0.0 .. 1024.0), 
+            y: ctx.rng().gen_range(0.0 .. 512.0) 
         }, 
-        rotation_radians: 0.
+        rotation_radians: ctx.rng().gen_range(-std::f32::consts::PI .. std::f32::consts::PI)
     })
 }
