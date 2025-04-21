@@ -9,8 +9,8 @@ pub struct StellarPosition {
 
 #[derive(SpacetimeType, Clone)]
 pub struct StellarTransform {
-    position: StellarPosition,
-    rotation_radians: f32,
+    pub position: StellarPosition,
+    pub rotation_radians: f32,
 }
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
@@ -24,10 +24,10 @@ pub enum StellarObjectKinds {
 pub struct StellarObject {
     #[primary_key]
     #[auto_inc]
-    id: u64,
+    pub id: u64,
     pub kind: StellarObjectKinds,
     #[index(btree)]
-    sector_id: u64, // Foreign key to a Sector
+    pub sector_id: u64, // Foreign key to a Sector
 }
 
 #[derive(SpacetimeType, PartialEq)]
@@ -46,6 +46,19 @@ pub struct StellarObjectTransform {
     pub transform: StellarTransform
 }
 
+/// Impls ///
+
+impl StellarPosition {
+    pub fn new(x: f32, y: f32) -> Self {
+        Self { x, y }
+    }
+
+    pub fn to_vec2(&self) -> glam::Vec2 {
+        glam::Vec2 { x: self.x, y: self.y }
+    }
+}
+
+/// Reducers ///
 
 #[spacetimedb::reducer]
 pub fn update_object_transform(ctx: &ReducerContext, object: StellarObject, transform: StellarTransform) {
