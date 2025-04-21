@@ -12,3 +12,10 @@ pub struct Player {
     pub controlled_entity_id: Option<u64>, // FK to Entity
     pub current_sector: u64,               // FK to Sector
 }
+
+#[table(name = connection, public)]
+pub struct Connection {
+    #[unique]
+    pub identity: Identity,
+    pub entity_id: u64, // FK to Player
+}

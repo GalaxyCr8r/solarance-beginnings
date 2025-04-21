@@ -1,14 +1,14 @@
-use std::sync::{
-    Arc,
-    atomic::{AtomicBool, Ordering},
-};
+use std::{f32::consts::PI, sync::{
+    atomic::{AtomicBool, Ordering}, Arc
+}};
 
-use macroquad::{prelude::*, rand, ui::root_ui};
+use egui::{Align2};
+use macroquad::{math::Vec2, prelude::*, rand, ui::root_ui};
 use secs::World;
 
 mod module_bindings;
 use module_bindings::*;
-use spacetimedb_sdk::DbContext;
+use spacetimedb_sdk::{DbContext, Table};
 mod stdb;
 
 struct GameState {
@@ -26,77 +26,88 @@ struct Velocity {
 }
 
 struct Sprite {
-    shape: Shape,
+    //shape: Shape,
     width: f32,
     height: f32,
 }
 
-struct Powerup {
-    active: bool,
-    width: f32,
-    height: f32,
-}
+// struct Powerup {
+//     active: bool,
+//     width: f32,
+//     height: f32,
+// }
 
-struct Score {
-    value: i32,
-}
+// struct Score {
+//     value: i32,
+// }
 
-enum Shape {
-    Square,
-    Circle,
-}
+// enum Shape {
+//     Square,
+//     Circle,
+// }
 
 fn move_system(world: &World, game_state: &mut GameState) {
     if game_state.paused {
         return;
     }
 
-    world.query(|_entity, pos: &mut Position, vel: &mut Velocity| {
-        vel.x = 0.;
-        vel.y = 0.;
+    // world.query(|_entity, pos: &mut Position, vel: &mut Velocity| {
+    //     vel.x = 0.;
+    //     vel.y = 0.;
 
-        if is_key_down(KeyCode::Right) || is_key_down(KeyCode::D) {
-            vel.x = 2.;
-        }
-        if is_key_down(KeyCode::Left) || is_key_down(KeyCode::A) {
-            vel.x = -2.;
-        }
-        if is_key_down(KeyCode::Down) || is_key_down(KeyCode::S) {
-            vel.y = 2.;
-        }
-        if is_key_down(KeyCode::Up) || is_key_down(KeyCode::W) {
-            vel.y = -2.;
-        }
+    //     if is_key_down(KeyCode::Right) || is_key_down(KeyCode::D) {
+    //         vel.x = 2.;
+    //     }
+    //     if is_key_down(KeyCode::Left) || is_key_down(KeyCode::A) {
+    //         vel.x = -2.;
+    //     }
+    //     if is_key_down(KeyCode::Down) || is_key_down(KeyCode::S) {
+    //         vel.y = 2.;
+    //     }
+    //     if is_key_down(KeyCode::Up) || is_key_down(KeyCode::W) {
+    //         vel.y = -2.;
+    //     }
 
-        pos.x += vel.x;
-        pos.y += vel.y;
-    });
+    //     pos.x += vel.x;
+    //     pos.y += vel.y;
+    // });
 }
 
 fn collision_system(world: &World, _: &mut GameState) {
-    world.query(
-        |_, player_center: &Position, player: &mut Sprite, player_score: &mut Score| {
-            world.query(|_, powerup_center: &Position, powerup: &mut Powerup| {
-                if powerup.active
-                    && (powerup_center.x - player_center.x).abs()
-                        < (powerup.width * 0.5) + (player.width * 0.5)
-                    && (powerup_center.y - player_center.y).abs()
-                        < (powerup.height * 0.5) + (player.height * 0.5)
-                {
-                    powerup.active = false;
+    // world.query(
+    //     |_, player_center: &Position, player: &mut Sprite, player_score: &mut Score| {
+    //         world.query(|_, powerup_center: &Position, powerup: &mut Powerup| {
+    //             if powerup.active
+    //                 && (powerup_center.x - player_center.x).abs()
+    //                     < (powerup.width * 0.5) + (player.width * 0.5)
+    //                 && (powerup_center.y - player_center.y).abs()
+    //                     < (powerup.height * 0.5) + (player.height * 0.5)
+    //             {
+    //                 powerup.active = false;
 
-                    player.shape = match player.shape {
-                        Shape::Square => Shape::Circle,
-                        Shape::Circle => Shape::Square,
-                    };
+    //                 player.shape = match player.shape {
+    //                     Shape::Square => Shape::Circle,
+    //                     Shape::Circle => Shape::Square,
+    //                 };
 
-                    player_score.value += 1;
-                    player.width += 3.;
-                    player.height += 3.;
-                }
-            });
-        },
-    )
+    //                 player_score.value += 1;
+    //                 player.width += 3.;
+    //                 player.height += 3.;
+    //             }
+    //         });
+    //     },
+    // )
+}
+
+fn draw_ship(transform: StellarTransform) {
+    let position = vec2(transform.position.x, transform.position.y);
+    let forward = Vec2::from_angle(transform.rotation_radians) * 16.0;
+    let right = Vec2::from_angle(transform.rotation_radians + PI) * 16.0;
+    let left = Vec2::from_angle(transform.rotation_radians - PI) * 16.0;
+    /// Vec2::from_angle(PI).rotate(Vec2::Y)
+    
+    draw_triangle(position+forward, position+right, position+left, BLACK);
+    draw_text("Ship", transform.position.x, transform.position.y, 16.0, BLACK);
 }
 
 fn render_system(world: &World, game_state: &mut GameState) {
@@ -111,32 +122,35 @@ fn render_system(world: &World, game_state: &mut GameState) {
         return;
     }
 
-    world.query(|_, pos: &Position, sprite: &Sprite| match sprite.shape {
-        Shape::Square => draw_rectangle(
-            pos.x - (sprite.width * 0.5),
-            pos.y - (sprite.width * 0.5),
-            sprite.width,
-            sprite.height,
-            ORANGE,
-        ),
-        Shape::Circle => draw_circle(pos.x, pos.y, sprite.width * 0.5, PURPLE),
-    });
+    draw_text("Solarance", 0., 64., 150., RED);
+    draw_line(0., 0., 32., 150., 3., GOLD);
 
-    world.query(|_, powerup: &Powerup, pos: &Position| {
-        if powerup.active {
-            draw_rectangle(
-                pos.x - (powerup.width * 0.5),
-                pos.y - (powerup.width * 0.5),
-                powerup.width,
-                powerup.height,
-                RED,
-            );
-        }
-    });
+    // world.query(|_, pos: &Position, sprite: &Sprite| match sprite.shape {
+    //     Shape::Square => draw_rectangle(
+    //         pos.x - (sprite.width * 0.5),
+    //         pos.y - (sprite.width * 0.5),
+    //         sprite.width,
+    //         sprite.height,
+    //         ORANGE,
+    //     ),
+    //     Shape::Circle => draw_circle(pos.x, pos.y, sprite.width * 0.5, PURPLE),
+    // });
 
-    world.query(|_, score: &Score| {
-        root_ui().label(None, &format!("Player Score: {}", score.value));
-    });
+    // world.query(|_, powerup: &Powerup, pos: &Position| {
+    //     if powerup.active {
+    //         draw_rectangle(
+    //             pos.x - (powerup.width * 0.5),
+    //             pos.y - (powerup.width * 0.5),
+    //             powerup.width,
+    //             powerup.height,
+    //             RED,
+    //         );
+    //     }
+    // });
+
+    // world.query(|_, score: &Score| {
+    //     root_ui().label(None, &format!("Player Score: {}", score.value));
+    // });
 }
 
 
@@ -152,40 +166,15 @@ fn _window_conf() -> Conf {
 async fn main() {
     let world = World::default();
     //let _egui_demo_windows = egui_demo_lib::DemoWindows::default();
-    let mut current_map_view = MapView::GalacticSystem;
+    //let mut current_map_view = MapView::GalacticSystem;
 
-    let ctx = stdb::connect_to_spacetime();
-
-    world.spawn((
-        Position { x: 100., y: 100. },
-        Velocity { x: 0., y: 0. },
-        Sprite {
-            shape: Shape::Circle,
-            width: 20.,
-            height: 20.,
-        },
-        Score { value: 0 },
-    ));
-
-    for _ in 0..50 {
-        let x = rand::gen_range(0., screen_width());
-        let y = rand::gen_range(0., screen_height());
-
-        world.spawn((
-            Powerup {
-                active: true,
-                width: 15.,
-                height: 15.,
-            },
-            Position { x, y },
-        ));
-    }
+    let ctx = stdb::connect_to_spacetime(None);
 
     let scheduler = secs::Scheduler::default();
     let mut game_state = GameState { paused: false };
 
-    scheduler.register(move_system);
-    scheduler.register(collision_system);
+    //scheduler.register(move_system);
+    //scheduler.register(collision_system);
     scheduler.register(render_system);
 
     loop {
@@ -196,37 +185,39 @@ async fn main() {
             .resizable(false)
             .collapsible(false)
             .movable(false)
+            .anchor(Align2::RIGHT_TOP, egui::Vec2::new(-5.0, 5.0))
             .show(egui_ctx, |ui| {
-                ui.heading("Map Control");
-
-                ui.horizontal(|ui| {
-                    ui.radio_value(&mut current_map_view, MapView::LocalSpace, "Local Space");
-                    ui.radio_value(&mut current_map_view, MapView::LocalSystem, "Local System");
-                    ui.radio_value(&mut current_map_view, MapView::SolarSystem, "Solar System");
-                    ui.radio_value(&mut current_map_view, MapView::GalacticSystem, "Galactic Map");
-                });
-
-                if ui.button("Reset").clicked() {
-                    current_map_view = MapView::GalacticSystem;
-                }
-
-                if ui.button("Save Default").clicked() {
-                    let _ = ctx.reducers.set_map_view(current_map_view.clone());
-                }
-
-                if ui.button("Load").clicked() {
-                    match ctx.db.person().identity().find(&ctx.identity()) {
-                        Some(person) => current_map_view = person.last_view,
-                        None => {
-                            println!("Could not load last map view.")
+                ui.heading("Test Header");
+                ui.label("Test text");
+                
+                for object in ctx.db.stellar_object().iter() {
+                    ui.horizontal(|ui| {
+                        ui.label("Ship!!");
+                        match ctx.db.stellar_object_hi_res().sobj_id().find(&object.id) {
+                            so_transform => {
+                                if so_transform.is_some() {
+                                    let position = so_transform.unwrap().transform.position;
+                                    let string = format!("Hi-Rez: {}, {}", position.x.to_string(), position.y.to_string());
+                                    ui.label(string)
+                                } else {
+                                    ui.label("Hi-res transform n/a")
+                                }
+                            },
+                            _ => ui.label("Hi-res object n/a")
                         }
-                    }
+                    });
                 }
             });
         });
 
-        if is_key_pressed(KeyCode::P) {
-            game_state.paused = !game_state.paused;
+        for object in ctx.db.stellar_object().iter() {
+            match ctx.db.stellar_object_hi_res().sobj_id().find(&object.id) {
+                Some(so_transform) => draw_ship(so_transform.transform),
+                None => {
+                    ()
+                },
+            }
+            
         }
 
         // run all parallel and sequential systems

@@ -84,7 +84,7 @@ impl<'ctx> __sdk::Table for StellarObjectHiResTableHandle<'ctx> {
 #[doc(hidden)]
 pub(super) fn register_table(client_cache: &mut __sdk::ClientCache<super::RemoteModule>) {
     let _table = client_cache.get_or_make_table::<StellarObjectTransform>("stellar_object_hi_res");
-    _table.add_unique_constraint::<u32>("sobj_id", |row| &row.sobj_id);
+    _table.add_unique_constraint::<u64>("sobj_id", |row| &row.sobj_id);
 }
 
 #[doc(hidden)]
@@ -106,7 +106,7 @@ pub(super) fn parse_table_update(
 /// but to directly chain method calls,
 /// like `ctx.db.stellar_object_hi_res().sobj_id().find(...)`.
 pub struct StellarObjectHiResSobjIdUnique<'ctx> {
-    imp: __sdk::UniqueConstraintHandle<StellarObjectTransform, u32>,
+    imp: __sdk::UniqueConstraintHandle<StellarObjectTransform, u64>,
     phantom: std::marker::PhantomData<&'ctx super::RemoteTables>,
 }
 
@@ -114,7 +114,7 @@ impl<'ctx> StellarObjectHiResTableHandle<'ctx> {
     /// Get a handle on the `sobj_id` unique index on the table `stellar_object_hi_res`.
     pub fn sobj_id(&self) -> StellarObjectHiResSobjIdUnique<'ctx> {
         StellarObjectHiResSobjIdUnique {
-            imp: self.imp.get_unique_constraint::<u32>("sobj_id"),
+            imp: self.imp.get_unique_constraint::<u64>("sobj_id"),
             phantom: std::marker::PhantomData,
         }
     }
@@ -123,7 +123,7 @@ impl<'ctx> StellarObjectHiResTableHandle<'ctx> {
 impl<'ctx> StellarObjectHiResSobjIdUnique<'ctx> {
     /// Find the subscribed row whose `sobj_id` column value is equal to `col_val`,
     /// if such a row is present in the client cache.
-    pub fn find(&self, col_val: &u32) -> Option<StellarObjectTransform> {
+    pub fn find(&self, col_val: &u64) -> Option<StellarObjectTransform> {
         self.imp.find(col_val)
     }
 }

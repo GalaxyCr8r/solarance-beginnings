@@ -2,7 +2,7 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use super::update_position_timer_type::UpdatePositionTimer;
+use super::update_transforms_timer_type::UpdateTransformsTimer;
 use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 /// Table handle for the table `update_sobj_transform_timer`.
@@ -14,7 +14,7 @@ use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 /// but to directly chain method calls,
 /// like `ctx.db.update_sobj_transform_timer().on_insert(...)`.
 pub struct UpdateSobjTransformTimerTableHandle<'ctx> {
-    imp: __sdk::TableHandle<UpdatePositionTimer>,
+    imp: __sdk::TableHandle<UpdateTransformsTimer>,
     ctx: std::marker::PhantomData<&'ctx super::RemoteTables>,
 }
 
@@ -33,7 +33,7 @@ impl UpdateSobjTransformTimerTableAccess for super::RemoteTables {
         UpdateSobjTransformTimerTableHandle {
             imp: self
                 .imp
-                .get_table::<UpdatePositionTimer>("update_sobj_transform_timer"),
+                .get_table::<UpdateTransformsTimer>("update_sobj_transform_timer"),
             ctx: std::marker::PhantomData,
         }
     }
@@ -43,13 +43,13 @@ pub struct UpdateSobjTransformTimerInsertCallbackId(__sdk::CallbackId);
 pub struct UpdateSobjTransformTimerDeleteCallbackId(__sdk::CallbackId);
 
 impl<'ctx> __sdk::Table for UpdateSobjTransformTimerTableHandle<'ctx> {
-    type Row = UpdatePositionTimer;
+    type Row = UpdateTransformsTimer;
     type EventContext = super::EventContext;
 
     fn count(&self) -> u64 {
         self.imp.count()
     }
-    fn iter(&self) -> impl Iterator<Item = UpdatePositionTimer> + '_ {
+    fn iter(&self) -> impl Iterator<Item = UpdateTransformsTimer> + '_ {
         self.imp.iter()
     }
 
@@ -83,7 +83,7 @@ impl<'ctx> __sdk::Table for UpdateSobjTransformTimerTableHandle<'ctx> {
 #[doc(hidden)]
 pub(super) fn register_table(client_cache: &mut __sdk::ClientCache<super::RemoteModule>) {
     let _table =
-        client_cache.get_or_make_table::<UpdatePositionTimer>("update_sobj_transform_timer");
+        client_cache.get_or_make_table::<UpdateTransformsTimer>("update_sobj_transform_timer");
     _table.add_unique_constraint::<u64>("scheduled_id", |row| &row.scheduled_id);
 }
 pub struct UpdateSobjTransformTimerUpdateCallbackId(__sdk::CallbackId);
@@ -106,9 +106,9 @@ impl<'ctx> __sdk::TableWithPrimaryKey for UpdateSobjTransformTimerTableHandle<'c
 #[doc(hidden)]
 pub(super) fn parse_table_update(
     raw_updates: __ws::TableUpdate<__ws::BsatnFormat>,
-) -> __sdk::Result<__sdk::TableUpdate<UpdatePositionTimer>> {
+) -> __sdk::Result<__sdk::TableUpdate<UpdateTransformsTimer>> {
     __sdk::TableUpdate::parse_table_update(raw_updates).map_err(|e| {
-        __sdk::InternalError::failed_parse("TableUpdate<UpdatePositionTimer>", "TableUpdate")
+        __sdk::InternalError::failed_parse("TableUpdate<UpdateTransformsTimer>", "TableUpdate")
             .with_cause(e)
             .into()
     })
@@ -122,7 +122,7 @@ pub(super) fn parse_table_update(
 /// but to directly chain method calls,
 /// like `ctx.db.update_sobj_transform_timer().scheduled_id().find(...)`.
 pub struct UpdateSobjTransformTimerScheduledIdUnique<'ctx> {
-    imp: __sdk::UniqueConstraintHandle<UpdatePositionTimer, u64>,
+    imp: __sdk::UniqueConstraintHandle<UpdateTransformsTimer, u64>,
     phantom: std::marker::PhantomData<&'ctx super::RemoteTables>,
 }
 
@@ -139,7 +139,7 @@ impl<'ctx> UpdateSobjTransformTimerTableHandle<'ctx> {
 impl<'ctx> UpdateSobjTransformTimerScheduledIdUnique<'ctx> {
     /// Find the subscribed row whose `scheduled_id` column value is equal to `col_val`,
     /// if such a row is present in the client cache.
-    pub fn find(&self, col_val: &u64) -> Option<UpdatePositionTimer> {
+    pub fn find(&self, col_val: &u64) -> Option<UpdateTransformsTimer> {
         self.imp.find(col_val)
     }
 }

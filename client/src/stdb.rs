@@ -8,9 +8,13 @@ const LOCAL_HOST: &str = "http://localhost:3000";
 /// The database name we chose when we published our module.
 const DB_NAME: &str = "solarance-beginnings";
 
-pub(crate) fn connect_to_spacetime() -> DbConnection {
+pub(crate) fn connect_to_spacetime(jwt_token:Option<String>) -> DbConnection {
+
     // Connect to the database
-    let ctx = connect_to_db(LOCAL_HOST);
+    let ctx = connect_to_db(LOCAL_HOST, match jwt_token {
+        Some(_) => jwt_token,
+        None => creds_store().load().expect("Error loading credentials")
+    });
 
     // Register callbacks to run in response to database events.
     register_callbacks(&ctx);
@@ -25,7 +29,7 @@ pub(crate) fn connect_to_spacetime() -> DbConnection {
 }
 
 /// Load credentials from a file and connect to the database.
-fn connect_to_db(host: &str) -> DbConnection {
+fn connect_to_db(host: &str, jwt_token:Option<String>) -> DbConnection {
     DbConnection::builder()
         // Register our `on_connect` callback, which will save our auth token.
         .on_connect(on_connected)
@@ -36,7 +40,7 @@ fn connect_to_db(host: &str) -> DbConnection {
         // If the user has previously connected, we'll have saved a token in the `on_connect` callback.
         // In that case, we'll load it and pass it to `with_token`,
         // so we can re-authenticate as the same `Identity`.
-        .with_token(creds_store().load().expect("Error loading credentials"))
+        .with_token(jwt_token)
         // Set the database name we chose when we called `spacetime publish`.
         .with_module_name(DB_NAME)
         // Set the URI of the SpacetimeDB host that's running our database.
@@ -47,7 +51,7 @@ fn connect_to_db(host: &str) -> DbConnection {
 }
 
 fn creds_store() -> credentials::File {
-    credentials::File::new("quickstart-chat")
+    credentials::File::new("solarance-beginnings-test")
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -115,8 +119,12 @@ fn subscribe_to_tables(ctx: &DbConnection) {
     ctx.subscription_builder()
         .on_applied(on_sub_applied)
         .on_error(on_sub_error)
-        .subscribe(["SELECT * FROM person"]);
-    //.subscribe(["SELECT * FROM user", "SELECT * FROM message"]);
+        .subscribe(["SELECT * FROM stellar_object"]);
+    ctx.subscription_builder()
+        .on_applied(on_sub_applied)
+        .on_error(on_sub_error)
+        .subscribe(["SELECT * FROM stellar_object_hi_res"]);
+        //.subscribe(["SELECT * FROM user", "SELECT * FROM message"]);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -143,13 +151,13 @@ fn on_sub_applied(ctx: &SubscriptionEventContext) {
     println!("Fully connected and all subscriptions applied.");
     //println!("Use /name to set your name, or type a message!");
 
-    match ctx.db.person().identity().find(&ctx.identity()) {
-        Some(person) => println!("We last used the {:?} map view!", person.last_view),
-        None => {
-            println!("Could not find your person. Creating them now.");
-            let _ = ctx.reducers.add_person("Henlo I'm name".into());
-        }
-    }
+    // match ctx.db.person().identity().find(&ctx.identity()) {
+    //     Some(person) => println!("We last used the {:?} map view!", person.last_view),
+    //     None => {
+    //         println!("Could not find your person. Creating them now.");
+    //         let _ = ctx.reducers.add_person("Henlo I'm name".into());
+    //     }
+    // }
 
     // match ctx.db.person().identity().find(&ctx.identity()) {
     //     person => println!("Found our old player instance! {:?}", person.unwrap().last_view),
