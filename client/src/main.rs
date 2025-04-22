@@ -3,8 +3,9 @@ use std::{f32::consts::PI, sync::{
 }};
 
 use egui::{Align2};
-use macroquad::{math::Vec2, prelude::*, rand, ui::root_ui};
+use macroquad::{math::Vec2, prelude::*, rand, ui::{self, root_ui}};
 use secs::World;
+use macroquad::miniquad::{self, conf::Conf};
 
 mod module_bindings;
 use module_bindings::*;
@@ -184,6 +185,14 @@ async fn main() {
     //scheduler.register(move_system);
     //scheduler.register(collision_system);
     scheduler.register(render_system);
+
+    set_panic_handler(|msg, _backtrace| async move {
+        loop {
+            clear_background(RED);
+            ui::root_ui().label(None, &msg);
+            next_frame().await;
+         }
+    });
 
     loop {
         clear_background(SKYBLUE);
