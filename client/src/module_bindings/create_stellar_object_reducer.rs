@@ -5,14 +5,14 @@
 use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 use super::stellar_object_kinds_type::StellarObjectKinds;
-use super::stellar_transform_type::StellarTransform;
+use super::stellar_object_transform_type::StellarObjectTransform;
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
 pub(super) struct CreateStellarObjectArgs {
     pub kind: StellarObjectKinds,
     pub sector_id: u64,
-    pub transform: StellarTransform,
+    pub transform: StellarObjectTransform,
 }
 
 impl From<CreateStellarObjectArgs> for super::Reducer {
@@ -45,7 +45,7 @@ pub trait create_stellar_object {
         &self,
         kind: StellarObjectKinds,
         sector_id: u64,
-        transform: StellarTransform,
+        transform: StellarObjectTransform,
     ) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `create_stellar_object`.
     ///
@@ -56,7 +56,7 @@ pub trait create_stellar_object {
     /// to cancel the callback.
     fn on_create_stellar_object(
         &self,
-        callback: impl FnMut(&super::ReducerEventContext, &StellarObjectKinds, &u64, &StellarTransform)
+        callback: impl FnMut(&super::ReducerEventContext, &StellarObjectKinds, &u64, &StellarObjectTransform)
             + Send
             + 'static,
     ) -> CreateStellarObjectCallbackId;
@@ -70,7 +70,7 @@ impl create_stellar_object for super::RemoteReducers {
         &self,
         kind: StellarObjectKinds,
         sector_id: u64,
-        transform: StellarTransform,
+        transform: StellarObjectTransform,
     ) -> __sdk::Result<()> {
         self.imp.call_reducer(
             "create_stellar_object",
@@ -83,7 +83,7 @@ impl create_stellar_object for super::RemoteReducers {
     }
     fn on_create_stellar_object(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &StellarObjectKinds, &u64, &StellarTransform)
+        mut callback: impl FnMut(&super::ReducerEventContext, &StellarObjectKinds, &u64, &StellarObjectTransform)
             + Send
             + 'static,
     ) -> CreateStellarObjectCallbackId {

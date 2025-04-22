@@ -100,8 +100,8 @@ fn collision_system(world: &World, _: &mut GameState) {
     // )
 }
 
-fn draw_ship(transform: StellarTransform) {
-    let position = vec2(transform.position.x, transform.position.y);
+fn draw_ship(transform: StellarObjectTransform) {
+    let position = vec2(transform.x, transform.y);
     let forward = Vec2::from_angle(transform.rotation_radians) * 16.0;
     let right = Vec2::from_angle(transform.rotation_radians + (PI * 0.75)) * 16.0;
     let left = Vec2::from_angle(transform.rotation_radians - (PI * 0.75)) * 16.0;
@@ -111,7 +111,8 @@ fn draw_ship(transform: StellarTransform) {
     draw_line(position.x, position.y, forward_pos.x, forward_pos.y, 2.0, RED);
     draw_triangle(position+forward, position+right, position+left, BLACK);
     
-    draw_text_ex("Ship", transform.position.x, transform.position.y, TextParams { 
+    let string = format!("Sobj{}", transform.sobj_id.to_string());
+    draw_text_ex(&string, transform.x, transform.y, TextParams { 
         font_size: 16,
         rotation: transform.rotation_radians, 
         color: BLACK,
@@ -213,14 +214,24 @@ async fn main() {
                         match ctx.db.stellar_object_hi_res().sobj_id().find(&object.id) {
                             so_transform => {
                                 if so_transform.is_some() {
-                                    let position = so_transform.unwrap().transform.position;
+                                    let position = so_transform.unwrap();
                                     let string = format!("Hi-Rez: {}, {}", position.x.to_string(), position.y.to_string());
-                                    ui.label(string)
+                                    ui.label(string);
                                 } else {
-                                    ui.label("Hi-res transform n/a")
+                                    let lr = ctx.db.stellar_object_low_res().sobj_id().find(&object.id);
+                                    if lr.is_none() {
+                                        ui.label("Low-rez transform n/a");
+                                        return;
+                                    }
+                                    let position = lr.unwrap();
+                                    let string = format!("Lo-Rez: {}, {}", position.x.to_string(), position.y.to_string());
+                                    ui.label(string);
                                 }
+                                return;
                             },
-                            _ => ui.label("Hi-res object n/a")
+                            _ => {
+                                ui.label("Object transform n/a");
+                            }
                         }
                     });
                 }
@@ -229,9 +240,12 @@ async fn main() {
 
         for object in ctx.db.stellar_object().iter() {
             match ctx.db.stellar_object_hi_res().sobj_id().find(&object.id) {
-                Some(so_transform) => draw_ship(so_transform.transform),
+                Some(hirez) => draw_ship(hirez),
                 None => {
-                    ()
+                    match ctx.db.stellar_object_low_res().sobj_id().find(&object.id) {
+                        Some(lorez) => draw_ship(lorez),
+                        None => (),
+                    }
                 },
             }
             

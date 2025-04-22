@@ -4,20 +4,17 @@
 #![allow(unused, clippy::all)]
 use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
-use super::stellar_object_type::StellarObject;
-use super::stellar_transform_type::StellarTransform;
+use super::stellar_object_transform_type::StellarObjectTransform;
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
 pub(super) struct UpdateObjectTransformArgs {
-    pub object: StellarObject,
-    pub transform: StellarTransform,
+    pub transform: StellarObjectTransform,
 }
 
 impl From<UpdateObjectTransformArgs> for super::Reducer {
     fn from(args: UpdateObjectTransformArgs) -> Self {
         Self::UpdateObjectTransform {
-            object: args.object,
             transform: args.transform,
         }
     }
@@ -39,11 +36,7 @@ pub trait update_object_transform {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_update_object_transform`] callbacks.
-    fn update_object_transform(
-        &self,
-        object: StellarObject,
-        transform: StellarTransform,
-    ) -> __sdk::Result<()>;
+    fn update_object_transform(&self, transform: StellarObjectTransform) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `update_object_transform`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -53,9 +46,7 @@ pub trait update_object_transform {
     /// to cancel the callback.
     fn on_update_object_transform(
         &self,
-        callback: impl FnMut(&super::ReducerEventContext, &StellarObject, &StellarTransform)
-            + Send
-            + 'static,
+        callback: impl FnMut(&super::ReducerEventContext, &StellarObjectTransform) + Send + 'static,
     ) -> UpdateObjectTransformCallbackId;
     /// Cancel a callback previously registered by [`Self::on_update_object_transform`],
     /// causing it not to run in the future.
@@ -63,21 +54,15 @@ pub trait update_object_transform {
 }
 
 impl update_object_transform for super::RemoteReducers {
-    fn update_object_transform(
-        &self,
-        object: StellarObject,
-        transform: StellarTransform,
-    ) -> __sdk::Result<()> {
+    fn update_object_transform(&self, transform: StellarObjectTransform) -> __sdk::Result<()> {
         self.imp.call_reducer(
             "update_object_transform",
-            UpdateObjectTransformArgs { object, transform },
+            UpdateObjectTransformArgs { transform },
         )
     }
     fn on_update_object_transform(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &StellarObject, &StellarTransform)
-            + Send
-            + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, &StellarObjectTransform) + Send + 'static,
     ) -> UpdateObjectTransformCallbackId {
         UpdateObjectTransformCallbackId(self.imp.on_reducer(
             "update_object_transform",
@@ -85,7 +70,7 @@ impl update_object_transform for super::RemoteReducers {
                 let super::ReducerEventContext {
                     event:
                         __sdk::ReducerEvent {
-                            reducer: super::Reducer::UpdateObjectTransform { object, transform },
+                            reducer: super::Reducer::UpdateObjectTransform { transform },
                             ..
                         },
                     ..
@@ -93,7 +78,7 @@ impl update_object_transform for super::RemoteReducers {
                 else {
                     unreachable!()
                 };
-                callback(ctx, object, transform)
+                callback(ctx, transform)
             }),
         ))
     }

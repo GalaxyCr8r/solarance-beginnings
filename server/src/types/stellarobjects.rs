@@ -39,11 +39,11 @@ pub struct StellarObjectTransform {
 
 #[client_visibility_filter]
 const HR_OBJECT_FILTER: Filter = Filter::Sql(
-    "SELECT * FROM stellar_object_hi_res WHERE x < 200 OR y < 200"
+    "SELECT * FROM stellar_object_hi_res WHERE x < 200 AND y < 200"
 );
 #[client_visibility_filter]
 const LR_OBJECT_FILTER: Filter = Filter::Sql(
-    "SELECT * FROM stellar_object_hi_res WHERE x >= 200 AND y >= 200"
+    "SELECT * FROM stellar_object_low_res WHERE x >= 200 OR y >= 200"
 );
 
 /// Impls ///
