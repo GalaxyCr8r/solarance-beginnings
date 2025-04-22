@@ -3,7 +3,6 @@
 
 #![allow(unused, clippy::all)]
 use super::stellar_object_transform_type::StellarObjectTransform;
-use super::stellar_transform_type::StellarTransform;
 use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 /// Table handle for the table `stellar_object_internal`.
@@ -85,7 +84,7 @@ impl<'ctx> __sdk::Table for StellarObjectInternalTableHandle<'ctx> {
 pub(super) fn register_table(client_cache: &mut __sdk::ClientCache<super::RemoteModule>) {
     let _table =
         client_cache.get_or_make_table::<StellarObjectTransform>("stellar_object_internal");
-    _table.add_unique_constraint::<u32>("sobj_id", |row| &row.sobj_id);
+    _table.add_unique_constraint::<u64>("sobj_id", |row| &row.sobj_id);
 }
 
 #[doc(hidden)]
@@ -107,7 +106,7 @@ pub(super) fn parse_table_update(
 /// but to directly chain method calls,
 /// like `ctx.db.stellar_object_internal().sobj_id().find(...)`.
 pub struct StellarObjectInternalSobjIdUnique<'ctx> {
-    imp: __sdk::UniqueConstraintHandle<StellarObjectTransform, u32>,
+    imp: __sdk::UniqueConstraintHandle<StellarObjectTransform, u64>,
     phantom: std::marker::PhantomData<&'ctx super::RemoteTables>,
 }
 
@@ -115,7 +114,7 @@ impl<'ctx> StellarObjectInternalTableHandle<'ctx> {
     /// Get a handle on the `sobj_id` unique index on the table `stellar_object_internal`.
     pub fn sobj_id(&self) -> StellarObjectInternalSobjIdUnique<'ctx> {
         StellarObjectInternalSobjIdUnique {
-            imp: self.imp.get_unique_constraint::<u32>("sobj_id"),
+            imp: self.imp.get_unique_constraint::<u64>("sobj_id"),
             phantom: std::marker::PhantomData,
         }
     }
@@ -124,7 +123,7 @@ impl<'ctx> StellarObjectInternalTableHandle<'ctx> {
 impl<'ctx> StellarObjectInternalSobjIdUnique<'ctx> {
     /// Find the subscribed row whose `sobj_id` column value is equal to `col_val`,
     /// if such a row is present in the client cache.
-    pub fn find(&self, col_val: &u32) -> Option<StellarObjectTransform> {
+    pub fn find(&self, col_val: &u64) -> Option<StellarObjectTransform> {
         self.imp.find(col_val)
     }
 }

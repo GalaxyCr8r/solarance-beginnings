@@ -4,17 +4,17 @@
 #![allow(unused, clippy::all)]
 use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
-use super::update_position_timer_type::UpdatePositionTimer;
+use super::update_transforms_timer_type::UpdateTransformsTimer;
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
 pub(super) struct UpdateSobjTransformsArgs {
-    pub arg: UpdatePositionTimer,
+    pub timer: UpdateTransformsTimer,
 }
 
 impl From<UpdateSobjTransformsArgs> for super::Reducer {
     fn from(args: UpdateSobjTransformsArgs) -> Self {
-        Self::UpdateSobjTransforms { arg: args.arg }
+        Self::UpdateSobjTransforms { timer: args.timer }
     }
 }
 
@@ -34,7 +34,7 @@ pub trait update_sobj_transforms {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_update_sobj_transforms`] callbacks.
-    fn update_sobj_transforms(&self, arg: UpdatePositionTimer) -> __sdk::Result<()>;
+    fn update_sobj_transforms(&self, timer: UpdateTransformsTimer) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `update_sobj_transforms`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -44,7 +44,7 @@ pub trait update_sobj_transforms {
     /// to cancel the callback.
     fn on_update_sobj_transforms(
         &self,
-        callback: impl FnMut(&super::ReducerEventContext, &UpdatePositionTimer) + Send + 'static,
+        callback: impl FnMut(&super::ReducerEventContext, &UpdateTransformsTimer) + Send + 'static,
     ) -> UpdateSobjTransformsCallbackId;
     /// Cancel a callback previously registered by [`Self::on_update_sobj_transforms`],
     /// causing it not to run in the future.
@@ -52,13 +52,13 @@ pub trait update_sobj_transforms {
 }
 
 impl update_sobj_transforms for super::RemoteReducers {
-    fn update_sobj_transforms(&self, arg: UpdatePositionTimer) -> __sdk::Result<()> {
+    fn update_sobj_transforms(&self, timer: UpdateTransformsTimer) -> __sdk::Result<()> {
         self.imp
-            .call_reducer("update_sobj_transforms", UpdateSobjTransformsArgs { arg })
+            .call_reducer("update_sobj_transforms", UpdateSobjTransformsArgs { timer })
     }
     fn on_update_sobj_transforms(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &UpdatePositionTimer) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, &UpdateTransformsTimer) + Send + 'static,
     ) -> UpdateSobjTransformsCallbackId {
         UpdateSobjTransformsCallbackId(self.imp.on_reducer(
             "update_sobj_transforms",
@@ -66,7 +66,7 @@ impl update_sobj_transforms for super::RemoteReducers {
                 let super::ReducerEventContext {
                     event:
                         __sdk::ReducerEvent {
-                            reducer: super::Reducer::UpdateSobjTransforms { arg },
+                            reducer: super::Reducer::UpdateSobjTransforms { timer },
                             ..
                         },
                     ..
@@ -74,7 +74,7 @@ impl update_sobj_transforms for super::RemoteReducers {
                 else {
                     unreachable!()
                 };
-                callback(ctx, arg)
+                callback(ctx, timer)
             }),
         ))
     }

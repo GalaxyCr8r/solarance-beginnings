@@ -4,15 +4,13 @@
 #![allow(unused, clippy::all)]
 use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
-use super::stellar_position_type::StellarPosition;
-
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
-pub struct StellarTransform {
-    pub position: StellarPosition,
-    pub rotation_radians: f32,
+pub struct Connection {
+    pub identity: __sdk::Identity,
+    pub entity_id: u64,
 }
 
-impl __sdk::InModule for StellarTransform {
+impl __sdk::InModule for Connection {
     type Module = super::RemoteModule;
 }

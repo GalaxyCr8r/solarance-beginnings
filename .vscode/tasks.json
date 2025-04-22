@@ -2,8 +2,13 @@
   // See https://go.microsoft.com/fwlink/?LinkId=733558
   // for the documentation about the tasks.json format
   "version": "2.0.0",
+  "options": {
+      "env": {
+        "RUST_BACKTRACE": "1"
+      }
+  },
   "tasks": [
-    /// SpacetimeDB ///
+    /// SpacetimeDB /// 
     {
       "label": "STDB: Start SpacetimeDB",
       "command": "spacetime start",
@@ -18,21 +23,27 @@
       "isBackground": true
     },
     {
-      "label": "STDB: List all ST Database",
+      "label": "STDB: Show Login Token",
+      "command": "spacetime login show --token",
+      "type": "shell",
+      "problemMatcher": []
+    },
+    {
+      "label": "STDB: List Local ST Databases",
       "command": "spacetime list",
       "type": "shell",
-      "options": {
-        "cwd": "${workspaceFolder}/server"
-      },
+      "problemMatcher": []
+    },
+    {
+      "label": "STDB: List Maincloud ST Databases",
+      "command": "spacetime list -s maincloud",
+      "type": "shell",
       "problemMatcher": []
     },
     {
       "label": "STDB: View Logs for Solarance",
       "command": "spacetime logs solarance-beginnings",
       "type": "shell",
-      "options": {
-        "cwd": "${workspaceFolder}/server"
-      },
       "problemMatcher": []
     },
     /// Server ///
@@ -46,8 +57,17 @@
       "problemMatcher": []
     },
     {
-      "label": "Server: Publish to Local ST",
-      "command": "spacetime publish -c solarance-beginnings",
+      "label": "Server: Publish to Local ST & Clears DB",
+      "command": "spacetime publish -c solarance-beginnings -y",
+      "type": "shell",
+      "options": {
+        "cwd": "${workspaceFolder}/server"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Server: Publish to Local ST (Keeps DB)",
+      "command": "spacetime publish solarance-beginnings",
       "type": "shell",
       "options": {
         "cwd": "${workspaceFolder}/server"

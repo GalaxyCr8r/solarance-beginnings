@@ -7,9 +7,16 @@ use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 pub mod add_person_reducer;
 pub mod asteroid_table;
 pub mod asteroid_type;
+pub mod connection_table;
+pub mod connection_type;
+pub mod create_stellar_object_random_reducer;
+pub mod create_stellar_object_reducer;
 pub mod identity_connected_reducer;
 pub mod identity_disconnected_reducer;
 pub mod map_view_type;
+pub mod move_ships_reducer;
+pub mod move_ships_timer_table;
+pub mod move_ships_timer_type;
 pub mod person_table;
 pub mod person_type;
 pub mod player_table;
@@ -30,15 +37,23 @@ pub mod stellar_object_low_res_table;
 pub mod stellar_object_table;
 pub mod stellar_object_transform_type;
 pub mod stellar_object_type;
-pub mod stellar_position_type;
-pub mod stellar_transform_type;
-pub mod update_position_timer_type;
+pub mod update_object_transform_reducer;
 pub mod update_sobj_transform_timer_table;
 pub mod update_sobj_transforms_reducer;
+pub mod update_transforms_timer_type;
 
 pub use add_person_reducer::{add_person, set_flags_for_add_person, AddPersonCallbackId};
 pub use asteroid_table::*;
 pub use asteroid_type::Asteroid;
+pub use connection_table::*;
+pub use connection_type::Connection;
+pub use create_stellar_object_random_reducer::{
+    create_stellar_object_random, set_flags_for_create_stellar_object_random,
+    CreateStellarObjectRandomCallbackId,
+};
+pub use create_stellar_object_reducer::{
+    create_stellar_object, set_flags_for_create_stellar_object, CreateStellarObjectCallbackId,
+};
 pub use identity_connected_reducer::{
     identity_connected, set_flags_for_identity_connected, IdentityConnectedCallbackId,
 };
@@ -46,6 +61,9 @@ pub use identity_disconnected_reducer::{
     identity_disconnected, set_flags_for_identity_disconnected, IdentityDisconnectedCallbackId,
 };
 pub use map_view_type::MapView;
+pub use move_ships_reducer::{move_ships, set_flags_for_move_ships, MoveShipsCallbackId};
+pub use move_ships_timer_table::*;
+pub use move_ships_timer_type::MoveShipsTimer;
 pub use person_table::*;
 pub use person_type::Person;
 pub use player_table::*;
@@ -66,13 +84,14 @@ pub use stellar_object_low_res_table::*;
 pub use stellar_object_table::*;
 pub use stellar_object_transform_type::StellarObjectTransform;
 pub use stellar_object_type::StellarObject;
-pub use stellar_position_type::StellarPosition;
-pub use stellar_transform_type::StellarTransform;
-pub use update_position_timer_type::UpdatePositionTimer;
+pub use update_object_transform_reducer::{
+    set_flags_for_update_object_transform, update_object_transform, UpdateObjectTransformCallbackId,
+};
 pub use update_sobj_transform_timer_table::*;
 pub use update_sobj_transforms_reducer::{
     set_flags_for_update_sobj_transforms, update_sobj_transforms, UpdateSobjTransformsCallbackId,
 };
+pub use update_transforms_timer_type::UpdateTransformsTimer;
 
 #[derive(Clone, PartialEq, Debug)]
 
@@ -82,13 +101,31 @@ pub use update_sobj_transforms_reducer::{
 /// to indicate which reducer caused the event.
 
 pub enum Reducer {
-    AddPerson { name: String },
+    AddPerson {
+        name: String,
+    },
+    CreateStellarObject {
+        kind: StellarObjectKinds,
+        sector_id: u64,
+        transform: StellarObjectTransform,
+    },
+    CreateStellarObjectRandom,
     IdentityConnected,
     IdentityDisconnected,
+    MoveShips {
+        timer: MoveShipsTimer,
+    },
     SayHello,
     ServerOnly,
-    SetMapView { new_view: MapView },
-    UpdateSobjTransforms { arg: UpdatePositionTimer },
+    SetMapView {
+        new_view: MapView,
+    },
+    UpdateObjectTransform {
+        transform: StellarObjectTransform,
+    },
+    UpdateSobjTransforms {
+        timer: UpdateTransformsTimer,
+    },
 }
 
 impl __sdk::InModule for Reducer {
@@ -99,11 +136,15 @@ impl __sdk::Reducer for Reducer {
     fn reducer_name(&self) -> &'static str {
         match self {
             Reducer::AddPerson { .. } => "add_person",
+            Reducer::CreateStellarObject { .. } => "create_stellar_object",
+            Reducer::CreateStellarObjectRandom => "create_stellar_object_random",
             Reducer::IdentityConnected => "identity_connected",
             Reducer::IdentityDisconnected => "identity_disconnected",
+            Reducer::MoveShips { .. } => "move_ships",
             Reducer::SayHello => "say_hello",
             Reducer::ServerOnly => "server_only",
             Reducer::SetMapView { .. } => "set_map_view",
+            Reducer::UpdateObjectTransform { .. } => "update_object_transform",
             Reducer::UpdateSobjTransforms { .. } => "update_sobj_transforms",
         }
     }
@@ -119,6 +160,16 @@ impl TryFrom<__ws::ReducerCallInfo<__ws::BsatnFormat>> for Reducer {
                 )?
                 .into(),
             ),
+            "create_stellar_object" => Ok(__sdk::parse_reducer_args::<
+                create_stellar_object_reducer::CreateStellarObjectArgs,
+            >("create_stellar_object", &value.args)?
+            .into()),
+            "create_stellar_object_random" => {
+                Ok(__sdk::parse_reducer_args::<
+                    create_stellar_object_random_reducer::CreateStellarObjectRandomArgs,
+                >("create_stellar_object_random", &value.args)?
+                .into())
+            }
             "identity_connected" => Ok(__sdk::parse_reducer_args::<
                 identity_connected_reducer::IdentityConnectedArgs,
             >("identity_connected", &value.args)?
@@ -127,6 +178,13 @@ impl TryFrom<__ws::ReducerCallInfo<__ws::BsatnFormat>> for Reducer {
                 identity_disconnected_reducer::IdentityDisconnectedArgs,
             >("identity_disconnected", &value.args)?
             .into()),
+            "move_ships" => Ok(
+                __sdk::parse_reducer_args::<move_ships_reducer::MoveShipsArgs>(
+                    "move_ships",
+                    &value.args,
+                )?
+                .into(),
+            ),
             "say_hello" => Ok(
                 __sdk::parse_reducer_args::<say_hello_reducer::SayHelloArgs>(
                     "say_hello",
@@ -148,6 +206,10 @@ impl TryFrom<__ws::ReducerCallInfo<__ws::BsatnFormat>> for Reducer {
                 )?
                 .into(),
             ),
+            "update_object_transform" => Ok(__sdk::parse_reducer_args::<
+                update_object_transform_reducer::UpdateObjectTransformArgs,
+            >("update_object_transform", &value.args)?
+            .into()),
             "update_sobj_transforms" => Ok(__sdk::parse_reducer_args::<
                 update_sobj_transforms_reducer::UpdateSobjTransformsArgs,
             >("update_sobj_transforms", &value.args)?
@@ -167,6 +229,8 @@ impl TryFrom<__ws::ReducerCallInfo<__ws::BsatnFormat>> for Reducer {
 #[doc(hidden)]
 pub struct DbUpdate {
     asteroid: __sdk::TableUpdate<Asteroid>,
+    connection: __sdk::TableUpdate<Connection>,
+    move_ships_timer: __sdk::TableUpdate<MoveShipsTimer>,
     person: __sdk::TableUpdate<Person>,
     player: __sdk::TableUpdate<Player>,
     sector: __sdk::TableUpdate<Sector>,
@@ -175,7 +239,7 @@ pub struct DbUpdate {
     stellar_object_hi_res: __sdk::TableUpdate<StellarObjectTransform>,
     stellar_object_internal: __sdk::TableUpdate<StellarObjectTransform>,
     stellar_object_low_res: __sdk::TableUpdate<StellarObjectTransform>,
-    update_sobj_transform_timer: __sdk::TableUpdate<UpdatePositionTimer>,
+    update_sobj_transform_timer: __sdk::TableUpdate<UpdateTransformsTimer>,
 }
 
 impl TryFrom<__ws::DatabaseUpdate<__ws::BsatnFormat>> for DbUpdate {
@@ -186,6 +250,13 @@ impl TryFrom<__ws::DatabaseUpdate<__ws::BsatnFormat>> for DbUpdate {
             match &table_update.table_name[..] {
                 "asteroid" => {
                     db_update.asteroid = asteroid_table::parse_table_update(table_update)?
+                }
+                "connection" => {
+                    db_update.connection = connection_table::parse_table_update(table_update)?
+                }
+                "move_ships_timer" => {
+                    db_update.move_ships_timer =
+                        move_ships_timer_table::parse_table_update(table_update)?
                 }
                 "person" => db_update.person = person_table::parse_table_update(table_update)?,
                 "player" => db_update.player = player_table::parse_table_update(table_update)?,
@@ -240,6 +311,10 @@ impl __sdk::DbUpdate for DbUpdate {
         diff.asteroid = cache
             .apply_diff_to_table::<Asteroid>("asteroid", &self.asteroid)
             .with_updates_by_pk(|row| &row.entity_id);
+        diff.connection = cache.apply_diff_to_table::<Connection>("connection", &self.connection);
+        diff.move_ships_timer = cache
+            .apply_diff_to_table::<MoveShipsTimer>("move_ships_timer", &self.move_ships_timer)
+            .with_updates_by_pk(|row| &row.scheduled_id);
         diff.person = cache
             .apply_diff_to_table::<Person>("person", &self.person)
             .with_updates_by_pk(|row| &row.identity);
@@ -268,7 +343,7 @@ impl __sdk::DbUpdate for DbUpdate {
             &self.stellar_object_low_res,
         );
         diff.update_sobj_transform_timer = cache
-            .apply_diff_to_table::<UpdatePositionTimer>(
+            .apply_diff_to_table::<UpdateTransformsTimer>(
                 "update_sobj_transform_timer",
                 &self.update_sobj_transform_timer,
             )
@@ -283,6 +358,8 @@ impl __sdk::DbUpdate for DbUpdate {
 #[doc(hidden)]
 pub struct AppliedDiff<'r> {
     asteroid: __sdk::TableAppliedDiff<'r, Asteroid>,
+    connection: __sdk::TableAppliedDiff<'r, Connection>,
+    move_ships_timer: __sdk::TableAppliedDiff<'r, MoveShipsTimer>,
     person: __sdk::TableAppliedDiff<'r, Person>,
     player: __sdk::TableAppliedDiff<'r, Player>,
     sector: __sdk::TableAppliedDiff<'r, Sector>,
@@ -291,7 +368,7 @@ pub struct AppliedDiff<'r> {
     stellar_object_hi_res: __sdk::TableAppliedDiff<'r, StellarObjectTransform>,
     stellar_object_internal: __sdk::TableAppliedDiff<'r, StellarObjectTransform>,
     stellar_object_low_res: __sdk::TableAppliedDiff<'r, StellarObjectTransform>,
-    update_sobj_transform_timer: __sdk::TableAppliedDiff<'r, UpdatePositionTimer>,
+    update_sobj_transform_timer: __sdk::TableAppliedDiff<'r, UpdateTransformsTimer>,
 }
 
 impl __sdk::InModule for AppliedDiff<'_> {
@@ -305,6 +382,12 @@ impl<'r> __sdk::AppliedDiff<'r> for AppliedDiff<'r> {
         callbacks: &mut __sdk::DbCallbacks<RemoteModule>,
     ) {
         callbacks.invoke_table_row_callbacks::<Asteroid>("asteroid", &self.asteroid, event);
+        callbacks.invoke_table_row_callbacks::<Connection>("connection", &self.connection, event);
+        callbacks.invoke_table_row_callbacks::<MoveShipsTimer>(
+            "move_ships_timer",
+            &self.move_ships_timer,
+            event,
+        );
         callbacks.invoke_table_row_callbacks::<Person>("person", &self.person, event);
         callbacks.invoke_table_row_callbacks::<Player>("player", &self.player, event);
         callbacks.invoke_table_row_callbacks::<Sector>("sector", &self.sector, event);
@@ -329,7 +412,7 @@ impl<'r> __sdk::AppliedDiff<'r> for AppliedDiff<'r> {
             &self.stellar_object_low_res,
             event,
         );
-        callbacks.invoke_table_row_callbacks::<UpdatePositionTimer>(
+        callbacks.invoke_table_row_callbacks::<UpdateTransformsTimer>(
             "update_sobj_transform_timer",
             &self.update_sobj_transform_timer,
             event,
@@ -910,6 +993,8 @@ impl __sdk::SpacetimeModule for RemoteModule {
 
     fn register_tables(client_cache: &mut __sdk::ClientCache<Self>) {
         asteroid_table::register_table(client_cache);
+        connection_table::register_table(client_cache);
+        move_ships_timer_table::register_table(client_cache);
         person_table::register_table(client_cache);
         player_table::register_table(client_cache);
         sector_table::register_table(client_cache);
