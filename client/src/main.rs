@@ -12,8 +12,24 @@ use module_bindings::*;
 use spacetimedb_sdk::{DbContext, Table};
 mod stdb;
 
-struct GameState {
+static mut WORLD: World = World::default();
+/*
+fn hashmap() -> &'static HashMap<u32, &'static str> {
+    static HASHMAP: OnceLock<HashMap<u32, &str>> = OnceLock::new();
+    HASHMAP.get_or_init(|| {
+        let mut m = HashMap::new();
+        m.insert(0, "foo");
+        m.insert(1, "bar");
+        m.insert(2, "baz");
+        m
+    })
+}
+*/
+
+struct GameState<'a> {
     paused: bool,
+    done: bool,
+    ctx: &'a DbConnection
 }
 
 struct Position {
@@ -52,26 +68,26 @@ fn move_system(world: &World, game_state: &mut GameState) {
         return;
     }
 
-    // world.query(|_entity, pos: &mut Position, vel: &mut Velocity| {
-    //     vel.x = 0.;
-    //     vel.y = 0.;
+    world.query(|_entity, pos: &mut Position, vel: &mut Velocity| {
+        vel.x = 0.;
+        vel.y = 0.;
 
-    //     if is_key_down(KeyCode::Right) || is_key_down(KeyCode::D) {
-    //         vel.x = 2.;
-    //     }
-    //     if is_key_down(KeyCode::Left) || is_key_down(KeyCode::A) {
-    //         vel.x = -2.;
-    //     }
-    //     if is_key_down(KeyCode::Down) || is_key_down(KeyCode::S) {
-    //         vel.y = 2.;
-    //     }
-    //     if is_key_down(KeyCode::Up) || is_key_down(KeyCode::W) {
-    //         vel.y = -2.;
-    //     }
+        if is_key_down(KeyCode::Right) || is_key_down(KeyCode::D) {
+            vel.x = 2.;
+        }
+        if is_key_down(KeyCode::Left) || is_key_down(KeyCode::A) {
+            vel.x = -2.;
+        }
+        if is_key_down(KeyCode::Down) || is_key_down(KeyCode::S) {
+            vel.y = 2.;
+        }
+        if is_key_down(KeyCode::Up) || is_key_down(KeyCode::W) {
+            vel.y = -2.;
+        }
 
-    //     pos.x += vel.x;
-    //     pos.y += vel.y;
-    // });
+        pos.x += vel.x;
+        pos.y += vel.y;
+    });
 }
 
 fn collision_system(world: &World, _: &mut GameState) {
@@ -132,8 +148,22 @@ fn render_system(world: &World, game_state: &mut GameState) {
         return;
     }
 
+    for object in game_state.ctx.db.stellar_object().iter() {
+        match game_state.ctx.db.stellar_object_hi_res().sobj_id().find(&object.id) {
+            Some(hirez) => draw_ship(hirez),
+            None => {
+                match game_state.ctx.db.stellar_object_low_res().sobj_id().find(&object.id) {
+                    Some(lorez) => draw_ship(lorez),
+                    None => (),
+                }
+            },
+        }
+        
+    }
+
     draw_text("Solarance", 0., 64., 150., RED);
     draw_line(0., 0., 32., 150., 3., GOLD);
+    
 
     // world.query(|_, pos: &Position, sprite: &Sprite| match sprite.shape {
     //     Shape::Square => draw_rectangle(
@@ -163,6 +193,93 @@ fn render_system(world: &World, game_state: &mut GameState) {
     // });
 }
 
+fn debug_window(game_state: &mut GameState) {
+    let db = &game_state.ctx.db;
+
+    egui_macroquad::ui(|egui_ctx| {
+        egui::Window::new("Solarance:Beginnings")
+        .resizable(false)
+        .collapsible(false)
+        .movable(false)
+        .anchor(Align2::RIGHT_TOP, egui::Vec2::new(-5.0, 5.0))
+        .show(egui_ctx, |ui| {
+            ui.heading("Test Header");
+            ui.label("Test text");
+            
+            for object in db.stellar_object().iter() {
+                ui.horizontal(|ui| {
+                    ui.label("Ship!!");
+                    match db.stellar_object_hi_res().sobj_id().find(&object.id) {
+                        so_transform => {
+                            if so_transform.is_some() {
+                                let position = so_transform.unwrap();
+                                let string = format!("Hi-Rez: {}, {}", position.x.to_string(), position.y.to_string());
+                                ui.label(string);
+                            } else {
+                                let lr = db.stellar_object_low_res().sobj_id().find(&object.id);
+                                if lr.is_none() {
+                                    ui.label("Low-rez transform n/a");
+                                    return;
+                                }
+                                let position = lr.unwrap();
+                                let string = format!("Lo-Rez: {}, {}", position.x.to_string(), position.y.to_string());
+                                ui.label(string);
+                            }
+                            return;
+                        },
+                        _ => {
+                            ui.label("Object transform n/a");
+                        }
+                    }
+                });
+            }
+
+            ui.add_space(8.0);
+            if ui.button("  Quit  ").clicked() {
+                game_state.done = true;
+            }
+        });
+    });
+}
+
+/// Register all the callbacks our app will use to respond to database events.
+fn register_callbacks(world: &World, game_state: &mut GameState, ctx: &DbConnection) {
+    ctx.db.stellar_object().on_insert(|event, sobj| {
+        world.spawn((
+            StellarObject {
+                id: sobj.id,
+                kind: sobj.kind,
+                sector_id: 0
+            }, 
+            StellarObjectTransform {
+                sobj_id: 0,
+                x: 0.0, y: 0.0, 
+                rotation_radians: 0.0
+            }
+    ));
+    });
+
+    // When a new user joins, print a notification.
+    // ctx.db.user().on_insert(on_user_inserted);
+
+    // // When a user's status changes, print a notification.
+    // ctx.db.user().on_update(on_user_updated);
+
+    // // When a new message is received, print it.
+    // ctx.db.message().on_insert(on_message_inserted);
+
+    // // When we fail to set our name, print a warning.
+    // ctx.reducers.on_set_name(on_name_set);
+
+    // // When we fail to send a message, print a warning.
+    // ctx.reducers.on_send_message(on_message_sent);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
+/// Main Loop
+////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
 
 fn _window_conf() -> Conf {
     Conf {
@@ -181,7 +298,7 @@ async fn main() {
     let ctx = stdb::connect_to_spacetime(None);
 
     let scheduler = secs::Scheduler::default();
-    let mut game_state = GameState { paused: false };
+    let mut game_state = GameState { paused: false, done: false, ctx: &ctx };
 
     //scheduler.register(move_system);
     //scheduler.register(collision_system);
@@ -198,63 +315,17 @@ async fn main() {
     loop {
         clear_background(SKYBLUE);
 
-        egui_macroquad::ui(|egui_ctx| {
-            egui::Window::new("Solarance:Beginnings")
-            .resizable(false)
-            .collapsible(false)
-            .movable(false)
-            .anchor(Align2::RIGHT_TOP, egui::Vec2::new(-5.0, 5.0))
-            .show(egui_ctx, |ui| {
-                ui.heading("Test Header");
-                ui.label("Test text");
-                
-                for object in ctx.db.stellar_object().iter() {
-                    ui.horizontal(|ui| {
-                        ui.label("Ship!!");
-                        match ctx.db.stellar_object_hi_res().sobj_id().find(&object.id) {
-                            so_transform => {
-                                if so_transform.is_some() {
-                                    let position = so_transform.unwrap();
-                                    let string = format!("Hi-Rez: {}, {}", position.x.to_string(), position.y.to_string());
-                                    ui.label(string);
-                                } else {
-                                    let lr = ctx.db.stellar_object_low_res().sobj_id().find(&object.id);
-                                    if lr.is_none() {
-                                        ui.label("Low-rez transform n/a");
-                                        return;
-                                    }
-                                    let position = lr.unwrap();
-                                    let string = format!("Lo-Rez: {}, {}", position.x.to_string(), position.y.to_string());
-                                    ui.label(string);
-                                }
-                                return;
-                            },
-                            _ => {
-                                ui.label("Object transform n/a");
-                            }
-                        }
-                    });
-                }
-            });
-        });
-
-        for object in ctx.db.stellar_object().iter() {
-            match ctx.db.stellar_object_hi_res().sobj_id().find(&object.id) {
-                Some(hirez) => draw_ship(hirez),
-                None => {
-                    match ctx.db.stellar_object_low_res().sobj_id().find(&object.id) {
-                        Some(lorez) => draw_ship(lorez),
-                        None => (),
-                    }
-                },
-            }
-            
-        }
-
         // run all parallel and sequential systems
         scheduler.run(&world, &mut game_state);
         egui_macroquad::draw();
 
+        debug_window(&mut game_state);
+
         next_frame().await;
+
+        if (game_state.done) {
+            let _ = ctx.disconnect();
+            break;
+        }
     }
 }
