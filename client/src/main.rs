@@ -1,4 +1,4 @@
-use std::{collections::HashMap, f32::consts::PI, sync::RwLock};
+use std::{collections::HashMap, f32::consts::PI, sync::Mutex};
 
 use egui::Align2;
 use macroquad::{math::Vec2, prelude::*, ui::{self}};
@@ -11,7 +11,7 @@ use module_bindings::*;
 use spacetimedb_sdk::{DbContext, Table};
 mod stdb;
 
-pub static mut WORLD: Lazy<RwLock<World>> = Lazy::new(|| RwLock::new(World::default()));
+static mut WORLD: Lazy<Mutex<World>> = Lazy::new(|| Mutex::new(World::default()));
 
 struct GameState<'a> {
     paused: bool,
@@ -20,21 +20,21 @@ struct GameState<'a> {
     textures: HashMap<&'static str, Texture2D>
 }
 
-struct Position {
-    x: f32,
-    y: f32,
-}
+// struct Position {
+//     x: f32,
+//     y: f32,
+// }
 
 // struct Velocity {
 //     x: f32,
 //     y: f32,
 // }
 
-struct Sprite {
-    //shape: Shape,
-    width: f32,
-    height: f32,
-}
+// struct Sprite {
+//     //shape: Shape,
+//     width: f32,
+//     height: f32,
+// }
 
 // struct Powerup {
 //     active: bool,
@@ -213,7 +213,7 @@ fn debug_window(game_state: &mut GameState) {
 fn on_stellar_object_inserted(_event: &EventContext, sobj: &StellarObject) {
     println!("Stellar Object Inserted: {:?}", sobj);
     unsafe {
-        let world_lock = WORLD.write();
+        let world_lock = WORLD.lock();
         if world_lock.is_err() {
             println!("Failed to get world lock");
             return;
@@ -310,7 +310,7 @@ async fn main() {
 
         // run all parallel and sequential systems
         unsafe {
-            let world_lock = WORLD.read();
+            let world_lock = WORLD.lock();
             if world_lock.is_ok() {
                 let world = world_lock.unwrap();
                 scheduler.run(&world, &mut game_state);
