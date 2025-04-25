@@ -1,17 +1,14 @@
-use std::{collections::HashMap, f32::consts::PI, sync::RwLock};
+use std::{collections::HashMap, f32::consts::PI, sync::mpsc::{self, Receiver}, time::Duration};
 
 use egui::Align2;
 use macroquad::{math::Vec2, prelude::*, ui::{self}};
 use secs::World;
 use macroquad::miniquad::conf::Conf;
-use once_cell::sync::Lazy;
 
 mod module_bindings;
 use module_bindings::*;
 use spacetimedb_sdk::{DbContext, Table};
 mod stdb;
-
-pub static mut WORLD: Lazy<RwLock<World>> = Lazy::new(|| RwLock::new(World::default()));
 
 struct GameState<'a> {
     paused: bool,
@@ -20,9 +17,15 @@ struct GameState<'a> {
     textures: HashMap<&'static str, Texture2D>
 }
 
-struct Position {
-    x: f32,
-    y: f32,
+#[derive(Default)]
+struct SolShip {
+    sobj_id: u64,
+}
+
+#[derive(Default)]
+struct Transform {
+    x: f32, y: f32,
+    rotation_radians: f32,
 }
 
 // struct Velocity {
@@ -30,11 +33,11 @@ struct Position {
 //     y: f32,
 // }
 
-struct Sprite {
-    //shape: Shape,
-    width: f32,
-    height: f32,
-}
+// struct Sprite {
+//     //shape: Shape,
+//     width: f32,
+//     height: f32,
+// }
 
 // struct Powerup {
 //     active: bool,
@@ -210,34 +213,43 @@ fn debug_window(game_state: &mut GameState) {
     });
 }
 
-fn on_stellar_object_inserted(_event: &EventContext, sobj: &StellarObject) {
-    println!("Stellar Object Inserted: {:?}", sobj);
-    unsafe {
-        let world_lock = WORLD.write();
-        if world_lock.is_err() {
-            println!("Failed to get world lock");
-            return;
-        }
-        let world = world_lock.unwrap();
+// fn on_stellar_object_inserted(_event: &EventContext, sobj: &StellarObject) {
+//     println!("Stellar Object Inserted: {:?}", sobj);
+//     unsafe {
+//         let world_lock = WORLD.lock();
+//         if world_lock.is_err() {
+//             println!("Failed to get world lock");
+//             return;
+//         }
+//         let world = world_lock.unwrap();
 
-        world.spawn((
-            StellarObject {
-                id: sobj.id,
-                kind: sobj.kind,
-                sector_id: 0
-            }, 
-            StellarObjectTransform {
-                sobj_id: 0,
-                x: 0.0, y: 0.0, 
-                rotation_radians: 0.0
-            }
-        ));
-    }
-}
+//         world.spawn((
+//             StellarObject {
+//                 id: sobj.id,
+//                 kind: sobj.kind,
+//                 sector_id: 0
+//             }, 
+//             StellarObjectTransform {
+//                 sobj_id: sobj.id,
+//                 x: 0.0, y: 0.0, 
+//                 rotation_radians: 0.0
+//             }
+//         ));
+//     }
+// }
 
 /// Register all the callbacks our app will use to respond to database events.
-fn register_callbacks(ctx: &DbConnection) {
-    ctx.db.stellar_object().on_insert(on_stellar_object_inserted);
+fn register_callbacks(world: &World, ctx: &DbConnection) -> Receiver<StellarObject> {
+    let (transmitter, receiver) = mpsc::channel();
+
+    ctx.db.stellar_object().on_insert(move |_ec, row| {
+        match transmitter.send(row.clone()) {
+            Err(error) => println!("ERROR : {:?}", error),
+            _ => (),
+        }
+    });
+
+    return receiver;
 
     // When a new user joins, print a notification.
     // ctx.db.user().on_insert(on_user_inserted);
@@ -273,12 +285,13 @@ fn _window_conf() -> Conf {
 async fn main() {
 
     // DB Connection & ECS World
+    let world = World::default();
     let ctx = stdb::connect_to_spacetime(None);
 
     let scheduler = secs::Scheduler::default();
     let mut game_state = GameState { paused: false, done: false, ctx: &ctx, textures: HashMap::new() };
 
-    register_callbacks(&ctx);
+    let receiver = register_callbacks(&world, &ctx);
 
     scheduler.register(move_system);
     scheduler.register(render_system);
@@ -309,19 +322,29 @@ async fn main() {
         clear_background(SKYBLUE);
 
         // run all parallel and sequential systems
-        unsafe {
-            let world_lock = WORLD.read();
-            if world_lock.is_ok() {
-                let world = world_lock.unwrap();
-                scheduler.run(&world, &mut game_state);
-            }
-        }
+        scheduler.run(&world, &mut game_state);
         
         egui_macroquad::draw();
 
         debug_window(&mut game_state);
 
         next_frame().await;
+
+        match receiver.recv_timeout(Duration::from_millis(10)) {
+            Ok(sobj) => {
+                println!("Stellar Object Inserted: {:?}", sobj);
+                world.spawn((SolShip {
+                    sobj_id: sobj.id,
+                    ..Default::default()
+                }, Transform::default()));
+            },
+            Err(err) => match err {
+                mpsc::RecvTimeoutError::Timeout => (),
+                mpsc::RecvTimeoutError::Disconnected => {
+                    println!("ERROR : {:?}", err)
+                },
+            },
+        }
 
         if game_state.done {
             let _ = ctx.disconnect();
