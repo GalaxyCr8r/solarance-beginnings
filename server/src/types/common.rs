@@ -43,15 +43,19 @@ pub fn server_only(ctx: &ReducerContext){
     }
 }
 
+const IS_SERVER_OR_OWNER_ERROR: &str = "This reducer can only be called by SpacetimeDB or the owner!";
+
 #[spacetimedb::reducer]
-pub fn is_server_or_owner(ctx: &ReducerContext) -> Result<(), String> {
+pub fn is_server_or_owner(ctx: &ReducerContext, sobj_id: u64) -> Result<(), String> {
     if ctx.sender == ctx.identity() {
         return Ok(());
     }
-    match ctx.db.player().identity().find(ctx.sender) {
-        Some(_owner) => return Ok(()),
-        None => Err("This reducer can only be called by SpacetimeDB or the owner!".to_string()),
+    let owner = ctx.db.player().identity().find(ctx.sender).ok_or(IS_SERVER_OR_OWNER_ERROR)?;
+    let controlled_entity_id = owner.controlled_entity_id.ok_or(IS_SERVER_OR_OWNER_ERROR)?;
+    if controlled_entity_id == sobj_id {
+        return Ok(());
     }
+    Err(IS_SERVER_OR_OWNER_ERROR.to_string())
 }
 
 #[spacetimedb::reducer]

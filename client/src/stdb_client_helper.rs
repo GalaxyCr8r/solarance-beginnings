@@ -1,6 +1,25 @@
+use macroquad::prelude::glam;
 use spacetimedb_sdk::{credentials, DbContext, Error, Identity};
 
 use crate::module_bindings::*;
+
+/// Impls ///
+
+impl StellarObjectTransform {
+    // pub fn new(x: f32, y: f32) -> Self {
+    //     Self { x, y }
+    // }
+
+    pub fn to_vec2(&self) -> glam::Vec2 {
+        glam::Vec2 { x: self.x, y: self.y }
+    }
+
+    pub fn from_vec2(&self, vec: glam::Vec2) -> StellarObjectTransform {
+        StellarObjectTransform { x: vec.x, y: vec.y, ..*self }
+    }
+}
+
+/// Connection ///
 
 /// The URI of the SpacetimeDB instance hosting our chat module.
 const LOCAL_HOST: &str = "http://localhost:3000";
@@ -134,6 +153,14 @@ fn subscribe_to_tables(ctx: &DbConnection) {
         .on_applied(on_sub_applied)
         .on_error(on_sub_error)
         .subscribe(["SELECT * FROM stellar_object_low_res"]);
+    ctx.subscription_builder()
+        .on_applied(on_sub_applied)
+        .on_error(on_sub_error)
+        .subscribe(["SELECT * FROM stellar_object_velocity"]);
+    ctx.subscription_builder()
+        .on_applied(on_sub_applied)
+        .on_error(on_sub_error)
+        .subscribe(["SELECT * FROM player"]);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////

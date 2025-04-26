@@ -8,4 +8,5 @@ pub mod sector;
 pub mod ships;
 pub mod stations;
 pub mod stellarobjects;
+pub mod utility;
 

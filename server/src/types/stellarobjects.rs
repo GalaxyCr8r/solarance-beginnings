@@ -87,16 +87,13 @@ pub fn update_object_transform(ctx: &ReducerContext, transform: StellarObjectTra
     }
 }
 
-#[spacetimedb::reducer]
-pub fn create_stellar_object(
+pub fn create_stellar_object_internal(
     ctx: &ReducerContext,
     kind: StellarObjectKinds,
     sector_id: u64,
     transform: StellarObjectTransform,
     forward_velocity: f32
-) -> Result<(), String> {
-    server_only(ctx);
-
+) -> Result<StellarObject, String> {
     let object = ctx.db.stellar_object().try_insert(StellarObject {
         id: 0,
         kind: kind,
@@ -118,10 +115,25 @@ pub fn create_stellar_object(
 
         ctx.db.stellar_object_velocity().insert(velocity);
         spacetimedb::log::info!("Success!");
-    } else {
-        spacetimedb::log::error!("Failed to create stellar object!");
+        return Ok(sobj);
     }
-    Ok(())
+    Err("Failed to create stellar object!".to_string())
+}
+
+#[spacetimedb::reducer]
+pub fn create_stellar_object(
+    ctx: &ReducerContext,
+    kind: StellarObjectKinds,
+    sector_id: u64,
+    transform: StellarObjectTransform,
+    forward_velocity: f32
+) -> Result<(), String> {
+    server_only(ctx);
+
+    match create_stellar_object_internal(ctx, kind, sector_id, transform, forward_velocity) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(e),
+    }
 }
 
 #[spacetimedb::reducer]
@@ -143,7 +155,7 @@ pub fn create_stellar_object_random(ctx: &ReducerContext) -> Result<(), String> 
 }
 
 pub fn stellar_object_increase_forward_velocity(ctx: &ReducerContext, sobj_id: u64, amount: f32) -> Result<(), String> {
-    is_server_or_owner(ctx)?;
+    is_server_or_owner(ctx, sobj_id)?;
     
     match ctx.db.stellar_object_velocity().sobj_id().find(sobj_id) {
         Some(velocity) => {
@@ -159,7 +171,7 @@ pub fn stellar_object_increase_forward_velocity(ctx: &ReducerContext, sobj_id: u
 }
 
 pub fn stellar_object_increase_rotational_velocity(ctx: &ReducerContext, sobj_id: u64, amount_radians: f32) -> Result<(), String> {
-    is_server_or_owner(ctx)?;
+    is_server_or_owner(ctx, sobj_id)?;
     
     match ctx.db.stellar_object_velocity().sobj_id().find(sobj_id) {
         Some(velocity) => {
@@ -178,7 +190,7 @@ pub fn update_stellar_object_velocity(
     ctx: &ReducerContext,
     velocity: StellarObjectTransform
 ) -> Result<(), String> {
-    is_server_or_owner(ctx)?;
+    is_server_or_owner(ctx, velocity.sobj_id)?;
     if ctx.db.stellar_object_velocity().sobj_id().find(velocity.sobj_id).is_none() {
         return Err("Stellar object not found!".to_string());
     }
