@@ -2,7 +2,12 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
+use spacetimedb_sdk::__codegen::{
+	self as __sdk,
+	__lib,
+	__sats,
+	__ws,
+};
 
 use super::map_view_type::MapView;
 
@@ -14,6 +19,8 @@ pub struct Person {
     pub last_view: MapView,
 }
 
+
 impl __sdk::InModule for Person {
     type Module = super::RemoteModule;
 }
+

@@ -2,7 +2,13 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
+use spacetimedb_sdk::__codegen::{
+	self as __sdk,
+	__lib,
+	__sats,
+	__ws,
+};
+
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
@@ -12,8 +18,10 @@ pub(super) struct AddPersonArgs {
 
 impl From<AddPersonArgs> for super::Reducer {
     fn from(args: AddPersonArgs) -> Self {
-        Self::AddPerson { name: args.name }
-    }
+        Self::AddPerson {
+            name: args.name,
+}
+}
 }
 
 impl __sdk::InModule for AddPersonArgs {
@@ -32,7 +40,8 @@ pub trait add_person {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_add_person`] callbacks.
-    fn add_person(&self, name: String) -> __sdk::Result<()>;
+    fn add_person(&self, name: String,
+) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `add_person`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -40,38 +49,34 @@ pub trait add_person {
     ///
     /// The returned [`AddPersonCallbackId`] can be passed to [`Self::remove_on_add_person`]
     /// to cancel the callback.
-    fn on_add_person(
-        &self,
-        callback: impl FnMut(&super::ReducerEventContext, &String) + Send + 'static,
-    ) -> AddPersonCallbackId;
+    fn on_add_person(&self, callback: impl FnMut(&super::ReducerEventContext, &String, ) + Send + 'static) -> AddPersonCallbackId;
     /// Cancel a callback previously registered by [`Self::on_add_person`],
     /// causing it not to run in the future.
     fn remove_on_add_person(&self, callback: AddPersonCallbackId);
 }
 
 impl add_person for super::RemoteReducers {
-    fn add_person(&self, name: String) -> __sdk::Result<()> {
-        self.imp.call_reducer("add_person", AddPersonArgs { name })
+    fn add_person(&self, name: String,
+) -> __sdk::Result<()> {
+        self.imp.call_reducer("add_person", AddPersonArgs { name,  })
     }
     fn on_add_person(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &String) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, &String, ) + Send + 'static,
     ) -> AddPersonCallbackId {
         AddPersonCallbackId(self.imp.on_reducer(
             "add_person",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event:
-                        __sdk::ReducerEvent {
-                            reducer: super::Reducer::AddPerson { name },
-                            ..
+                    event: __sdk::ReducerEvent {
+                        reducer: super::Reducer::AddPerson {
+                            name, 
                         },
+                        ..
+                    },
                     ..
-                } = ctx
-                else {
-                    unreachable!()
-                };
-                callback(ctx, name)
+                } = ctx else { unreachable!() };
+                callback(ctx, name, )
             }),
         ))
     }
@@ -99,3 +104,4 @@ impl set_flags_for_add_person for super::SetReducerFlags {
         self.imp.set_call_reducer_flags("add_person", flags);
     }
 }
+

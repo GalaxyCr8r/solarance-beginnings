@@ -2,9 +2,14 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use super::ship_class_type::ShipClass;
+use spacetimedb_sdk::__codegen::{
+	self as __sdk,
+	__lib,
+	__sats,
+	__ws,
+};
 use super::ship_type::Ship;
-use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
+use super::ship_class_type::ShipClass;
 
 /// Table handle for the table `ship`.
 ///
@@ -45,12 +50,8 @@ impl<'ctx> __sdk::Table for ShipTableHandle<'ctx> {
     type Row = Ship;
     type EventContext = super::EventContext;
 
-    fn count(&self) -> u64 {
-        self.imp.count()
-    }
-    fn iter(&self) -> impl Iterator<Item = Ship> + '_ {
-        self.imp.iter()
-    }
+    fn count(&self) -> u64 { self.imp.count() }
+    fn iter(&self) -> impl Iterator<Item = Ship> + '_ { self.imp.iter() }
 
     type InsertCallbackId = ShipInsertCallbackId;
 
@@ -81,7 +82,8 @@ impl<'ctx> __sdk::Table for ShipTableHandle<'ctx> {
 
 #[doc(hidden)]
 pub(super) fn register_table(client_cache: &mut __sdk::ClientCache<super::RemoteModule>) {
-    let _table = client_cache.get_or_make_table::<Ship>("ship");
+
+        let _table = client_cache.get_or_make_table::<Ship>("ship");
     _table.add_unique_constraint::<u64>("entity_id", |row| &row.entity_id);
 }
 pub struct ShipUpdateCallbackId(__sdk::CallbackId);
@@ -101,43 +103,46 @@ impl<'ctx> __sdk::TableWithPrimaryKey for ShipTableHandle<'ctx> {
     }
 }
 
+
 #[doc(hidden)]
 pub(super) fn parse_table_update(
     raw_updates: __ws::TableUpdate<__ws::BsatnFormat>,
 ) -> __sdk::Result<__sdk::TableUpdate<Ship>> {
     __sdk::TableUpdate::parse_table_update(raw_updates).map_err(|e| {
-        __sdk::InternalError::failed_parse("TableUpdate<Ship>", "TableUpdate")
-            .with_cause(e)
-            .into()
+        __sdk::InternalError::failed_parse(
+            "TableUpdate<Ship>",
+            "TableUpdate",
+        ).with_cause(e).into()
     })
 }
 
-/// Access to the `entity_id` unique index on the table `ship`,
-/// which allows point queries on the field of the same name
-/// via the [`ShipEntityIdUnique::find`] method.
-///
-/// Users are encouraged not to explicitly reference this type,
-/// but to directly chain method calls,
-/// like `ctx.db.ship().entity_id().find(...)`.
-pub struct ShipEntityIdUnique<'ctx> {
-    imp: __sdk::UniqueConstraintHandle<Ship, u64>,
-    phantom: std::marker::PhantomData<&'ctx super::RemoteTables>,
-}
-
-impl<'ctx> ShipTableHandle<'ctx> {
-    /// Get a handle on the `entity_id` unique index on the table `ship`.
-    pub fn entity_id(&self) -> ShipEntityIdUnique<'ctx> {
-        ShipEntityIdUnique {
-            imp: self.imp.get_unique_constraint::<u64>("entity_id"),
-            phantom: std::marker::PhantomData,
+        /// Access to the `entity_id` unique index on the table `ship`,
+        /// which allows point queries on the field of the same name
+        /// via the [`ShipEntityIdUnique::find`] method.
+        ///
+        /// Users are encouraged not to explicitly reference this type,
+        /// but to directly chain method calls,
+        /// like `ctx.db.ship().entity_id().find(...)`.
+        pub struct ShipEntityIdUnique<'ctx> {
+            imp: __sdk::UniqueConstraintHandle<Ship, u64>,
+            phantom: std::marker::PhantomData<&'ctx super::RemoteTables>,
         }
-    }
-}
 
-impl<'ctx> ShipEntityIdUnique<'ctx> {
-    /// Find the subscribed row whose `entity_id` column value is equal to `col_val`,
-    /// if such a row is present in the client cache.
-    pub fn find(&self, col_val: &u64) -> Option<Ship> {
-        self.imp.find(col_val)
-    }
-}
+        impl<'ctx> ShipTableHandle<'ctx> {
+            /// Get a handle on the `entity_id` unique index on the table `ship`.
+            pub fn entity_id(&self) -> ShipEntityIdUnique<'ctx> {
+                ShipEntityIdUnique {
+                    imp: self.imp.get_unique_constraint::<u64>("entity_id"),
+                    phantom: std::marker::PhantomData,
+                }
+            }
+        }
+
+        impl<'ctx> ShipEntityIdUnique<'ctx> {
+            /// Find the subscribed row whose `entity_id` column value is equal to `col_val`,
+            /// if such a row is present in the client cache.
+            pub fn find(&self, col_val: &u64) -> Option<Ship> {
+                self.imp.find(col_val)
+            }
+        }
+        

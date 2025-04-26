@@ -2,7 +2,12 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
+use spacetimedb_sdk::__codegen::{
+	self as __sdk,
+	__lib,
+	__sats,
+	__ws,
+};
 
 use super::stellar_object_transform_type::StellarObjectTransform;
 
@@ -16,8 +21,8 @@ impl From<UpdateObjectTransformArgs> for super::Reducer {
     fn from(args: UpdateObjectTransformArgs) -> Self {
         Self::UpdateObjectTransform {
             transform: args.transform,
-        }
-    }
+}
+}
 }
 
 impl __sdk::InModule for UpdateObjectTransformArgs {
@@ -36,7 +41,8 @@ pub trait update_object_transform {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_update_object_transform`] callbacks.
-    fn update_object_transform(&self, transform: StellarObjectTransform) -> __sdk::Result<()>;
+    fn update_object_transform(&self, transform: StellarObjectTransform,
+) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `update_object_transform`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -44,47 +50,39 @@ pub trait update_object_transform {
     ///
     /// The returned [`UpdateObjectTransformCallbackId`] can be passed to [`Self::remove_on_update_object_transform`]
     /// to cancel the callback.
-    fn on_update_object_transform(
-        &self,
-        callback: impl FnMut(&super::ReducerEventContext, &StellarObjectTransform) + Send + 'static,
-    ) -> UpdateObjectTransformCallbackId;
+    fn on_update_object_transform(&self, callback: impl FnMut(&super::ReducerEventContext, &StellarObjectTransform, ) + Send + 'static) -> UpdateObjectTransformCallbackId;
     /// Cancel a callback previously registered by [`Self::on_update_object_transform`],
     /// causing it not to run in the future.
     fn remove_on_update_object_transform(&self, callback: UpdateObjectTransformCallbackId);
 }
 
 impl update_object_transform for super::RemoteReducers {
-    fn update_object_transform(&self, transform: StellarObjectTransform) -> __sdk::Result<()> {
-        self.imp.call_reducer(
-            "update_object_transform",
-            UpdateObjectTransformArgs { transform },
-        )
+    fn update_object_transform(&self, transform: StellarObjectTransform,
+) -> __sdk::Result<()> {
+        self.imp.call_reducer("update_object_transform", UpdateObjectTransformArgs { transform,  })
     }
     fn on_update_object_transform(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &StellarObjectTransform) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, &StellarObjectTransform, ) + Send + 'static,
     ) -> UpdateObjectTransformCallbackId {
         UpdateObjectTransformCallbackId(self.imp.on_reducer(
             "update_object_transform",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event:
-                        __sdk::ReducerEvent {
-                            reducer: super::Reducer::UpdateObjectTransform { transform },
-                            ..
+                    event: __sdk::ReducerEvent {
+                        reducer: super::Reducer::UpdateObjectTransform {
+                            transform, 
                         },
+                        ..
+                    },
                     ..
-                } = ctx
-                else {
-                    unreachable!()
-                };
-                callback(ctx, transform)
+                } = ctx else { unreachable!() };
+                callback(ctx, transform, )
             }),
         ))
     }
     fn remove_on_update_object_transform(&self, callback: UpdateObjectTransformCallbackId) {
-        self.imp
-            .remove_on_reducer("update_object_transform", callback.0)
+        self.imp.remove_on_reducer("update_object_transform", callback.0)
     }
 }
 
@@ -104,7 +102,7 @@ pub trait set_flags_for_update_object_transform {
 
 impl set_flags_for_update_object_transform for super::SetReducerFlags {
     fn update_object_transform(&self, flags: __ws::CallReducerFlags) {
-        self.imp
-            .set_call_reducer_flags("update_object_transform", flags);
+        self.imp.set_call_reducer_flags("update_object_transform", flags);
     }
 }
+

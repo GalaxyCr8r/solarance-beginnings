@@ -2,7 +2,12 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
+use spacetimedb_sdk::__codegen::{
+	self as __sdk,
+	__lib,
+	__sats,
+	__ws,
+};
 
 use super::move_ships_timer_type::MoveShipsTimer;
 
@@ -14,8 +19,10 @@ pub(super) struct MoveShipsArgs {
 
 impl From<MoveShipsArgs> for super::Reducer {
     fn from(args: MoveShipsArgs) -> Self {
-        Self::MoveShips { timer: args.timer }
-    }
+        Self::MoveShips {
+            timer: args.timer,
+}
+}
 }
 
 impl __sdk::InModule for MoveShipsArgs {
@@ -34,7 +41,8 @@ pub trait move_ships {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_move_ships`] callbacks.
-    fn move_ships(&self, timer: MoveShipsTimer) -> __sdk::Result<()>;
+    fn move_ships(&self, timer: MoveShipsTimer,
+) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `move_ships`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -42,38 +50,34 @@ pub trait move_ships {
     ///
     /// The returned [`MoveShipsCallbackId`] can be passed to [`Self::remove_on_move_ships`]
     /// to cancel the callback.
-    fn on_move_ships(
-        &self,
-        callback: impl FnMut(&super::ReducerEventContext, &MoveShipsTimer) + Send + 'static,
-    ) -> MoveShipsCallbackId;
+    fn on_move_ships(&self, callback: impl FnMut(&super::ReducerEventContext, &MoveShipsTimer, ) + Send + 'static) -> MoveShipsCallbackId;
     /// Cancel a callback previously registered by [`Self::on_move_ships`],
     /// causing it not to run in the future.
     fn remove_on_move_ships(&self, callback: MoveShipsCallbackId);
 }
 
 impl move_ships for super::RemoteReducers {
-    fn move_ships(&self, timer: MoveShipsTimer) -> __sdk::Result<()> {
-        self.imp.call_reducer("move_ships", MoveShipsArgs { timer })
+    fn move_ships(&self, timer: MoveShipsTimer,
+) -> __sdk::Result<()> {
+        self.imp.call_reducer("move_ships", MoveShipsArgs { timer,  })
     }
     fn on_move_ships(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &MoveShipsTimer) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, &MoveShipsTimer, ) + Send + 'static,
     ) -> MoveShipsCallbackId {
         MoveShipsCallbackId(self.imp.on_reducer(
             "move_ships",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event:
-                        __sdk::ReducerEvent {
-                            reducer: super::Reducer::MoveShips { timer },
-                            ..
+                    event: __sdk::ReducerEvent {
+                        reducer: super::Reducer::MoveShips {
+                            timer, 
                         },
+                        ..
+                    },
                     ..
-                } = ctx
-                else {
-                    unreachable!()
-                };
-                callback(ctx, timer)
+                } = ctx else { unreachable!() };
+                callback(ctx, timer, )
             }),
         ))
     }
@@ -101,3 +105,4 @@ impl set_flags_for_move_ships for super::SetReducerFlags {
         self.imp.set_call_reducer_flags("move_ships", flags);
     }
 }
+

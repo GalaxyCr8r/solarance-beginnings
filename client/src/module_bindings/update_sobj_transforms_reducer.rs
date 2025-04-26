@@ -2,7 +2,12 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
+use spacetimedb_sdk::__codegen::{
+	self as __sdk,
+	__lib,
+	__sats,
+	__ws,
+};
 
 use super::update_transforms_timer_type::UpdateTransformsTimer;
 
@@ -14,8 +19,10 @@ pub(super) struct UpdateSobjTransformsArgs {
 
 impl From<UpdateSobjTransformsArgs> for super::Reducer {
     fn from(args: UpdateSobjTransformsArgs) -> Self {
-        Self::UpdateSobjTransforms { timer: args.timer }
-    }
+        Self::UpdateSobjTransforms {
+            timer: args.timer,
+}
+}
 }
 
 impl __sdk::InModule for UpdateSobjTransformsArgs {
@@ -34,7 +41,8 @@ pub trait update_sobj_transforms {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_update_sobj_transforms`] callbacks.
-    fn update_sobj_transforms(&self, timer: UpdateTransformsTimer) -> __sdk::Result<()>;
+    fn update_sobj_transforms(&self, timer: UpdateTransformsTimer,
+) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `update_sobj_transforms`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -42,45 +50,39 @@ pub trait update_sobj_transforms {
     ///
     /// The returned [`UpdateSobjTransformsCallbackId`] can be passed to [`Self::remove_on_update_sobj_transforms`]
     /// to cancel the callback.
-    fn on_update_sobj_transforms(
-        &self,
-        callback: impl FnMut(&super::ReducerEventContext, &UpdateTransformsTimer) + Send + 'static,
-    ) -> UpdateSobjTransformsCallbackId;
+    fn on_update_sobj_transforms(&self, callback: impl FnMut(&super::ReducerEventContext, &UpdateTransformsTimer, ) + Send + 'static) -> UpdateSobjTransformsCallbackId;
     /// Cancel a callback previously registered by [`Self::on_update_sobj_transforms`],
     /// causing it not to run in the future.
     fn remove_on_update_sobj_transforms(&self, callback: UpdateSobjTransformsCallbackId);
 }
 
 impl update_sobj_transforms for super::RemoteReducers {
-    fn update_sobj_transforms(&self, timer: UpdateTransformsTimer) -> __sdk::Result<()> {
-        self.imp
-            .call_reducer("update_sobj_transforms", UpdateSobjTransformsArgs { timer })
+    fn update_sobj_transforms(&self, timer: UpdateTransformsTimer,
+) -> __sdk::Result<()> {
+        self.imp.call_reducer("update_sobj_transforms", UpdateSobjTransformsArgs { timer,  })
     }
     fn on_update_sobj_transforms(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &UpdateTransformsTimer) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, &UpdateTransformsTimer, ) + Send + 'static,
     ) -> UpdateSobjTransformsCallbackId {
         UpdateSobjTransformsCallbackId(self.imp.on_reducer(
             "update_sobj_transforms",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event:
-                        __sdk::ReducerEvent {
-                            reducer: super::Reducer::UpdateSobjTransforms { timer },
-                            ..
+                    event: __sdk::ReducerEvent {
+                        reducer: super::Reducer::UpdateSobjTransforms {
+                            timer, 
                         },
+                        ..
+                    },
                     ..
-                } = ctx
-                else {
-                    unreachable!()
-                };
-                callback(ctx, timer)
+                } = ctx else { unreachable!() };
+                callback(ctx, timer, )
             }),
         ))
     }
     fn remove_on_update_sobj_transforms(&self, callback: UpdateSobjTransformsCallbackId) {
-        self.imp
-            .remove_on_reducer("update_sobj_transforms", callback.0)
+        self.imp.remove_on_reducer("update_sobj_transforms", callback.0)
     }
 }
 
@@ -100,7 +102,7 @@ pub trait set_flags_for_update_sobj_transforms {
 
 impl set_flags_for_update_sobj_transforms for super::SetReducerFlags {
     fn update_sobj_transforms(&self, flags: __ws::CallReducerFlags) {
-        self.imp
-            .set_call_reducer_flags("update_sobj_transforms", flags);
+        self.imp.set_call_reducer_flags("update_sobj_transforms", flags);
     }
 }
+

@@ -99,11 +99,14 @@ pub fn __move_ships(ctx: &ReducerContext) {
         let wrapped_transform = ctx.db.stellar_object_internal().sobj_id().find(object.id);
         if wrapped_transform.is_none() { continue; }
         let tranform = wrapped_transform.unwrap();
+        let wrapped_velocity = ctx.db.stellar_object_velocity().sobj_id().find(object.id);
+        if wrapped_velocity.is_none() { continue; }
+        let velocity = wrapped_velocity.unwrap();
 
         let current_pos = tranform.to_vec2();
         let mut x = current_pos.x;
         let mut y = current_pos.y;
-        let velocity = Vec2::from_angle(tranform.rotation_radians) * 1.337;
+        //let velocity = Vec2::from_angle(tranform.rotation_radians) * 1.337;
 
         if x > 500.0 {
             x -= 500.0;
@@ -122,7 +125,7 @@ pub fn __move_ships(ctx: &ReducerContext) {
                 sobj_id: tranform.sobj_id,
                 x: x + velocity.x,
                 y: y + velocity.y,
-                rotation_radians: tranform.rotation_radians
+                rotation_radians: tranform.rotation_radians + velocity.rotation_radians
             }
         );
     }

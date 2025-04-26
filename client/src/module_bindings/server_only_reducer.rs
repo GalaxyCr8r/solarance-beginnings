@@ -2,16 +2,23 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
+use spacetimedb_sdk::__codegen::{
+	self as __sdk,
+	__lib,
+	__sats,
+	__ws,
+};
+
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
-pub(super) struct ServerOnlyArgs {}
+pub(super) struct ServerOnlyArgs {
+    }
 
 impl From<ServerOnlyArgs> for super::Reducer {
     fn from(args: ServerOnlyArgs) -> Self {
         Self::ServerOnly
-    }
+}
 }
 
 impl __sdk::InModule for ServerOnlyArgs {
@@ -30,7 +37,7 @@ pub trait server_only {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_server_only`] callbacks.
-    fn server_only(&self) -> __sdk::Result<()>;
+    fn server_only(&self, ) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `server_only`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -38,38 +45,33 @@ pub trait server_only {
     ///
     /// The returned [`ServerOnlyCallbackId`] can be passed to [`Self::remove_on_server_only`]
     /// to cancel the callback.
-    fn on_server_only(
-        &self,
-        callback: impl FnMut(&super::ReducerEventContext) + Send + 'static,
-    ) -> ServerOnlyCallbackId;
+    fn on_server_only(&self, callback: impl FnMut(&super::ReducerEventContext, ) + Send + 'static) -> ServerOnlyCallbackId;
     /// Cancel a callback previously registered by [`Self::on_server_only`],
     /// causing it not to run in the future.
     fn remove_on_server_only(&self, callback: ServerOnlyCallbackId);
 }
 
 impl server_only for super::RemoteReducers {
-    fn server_only(&self) -> __sdk::Result<()> {
-        self.imp.call_reducer("server_only", ServerOnlyArgs {})
+    fn server_only(&self, ) -> __sdk::Result<()> {
+        self.imp.call_reducer("server_only", ServerOnlyArgs {  })
     }
     fn on_server_only(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, ) + Send + 'static,
     ) -> ServerOnlyCallbackId {
         ServerOnlyCallbackId(self.imp.on_reducer(
             "server_only",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event:
-                        __sdk::ReducerEvent {
-                            reducer: super::Reducer::ServerOnly {},
-                            ..
+                    event: __sdk::ReducerEvent {
+                        reducer: super::Reducer::ServerOnly {
+                            
                         },
+                        ..
+                    },
                     ..
-                } = ctx
-                else {
-                    unreachable!()
-                };
-                callback(ctx)
+                } = ctx else { unreachable!() };
+                callback(ctx, )
             }),
         ))
     }
@@ -97,3 +99,4 @@ impl set_flags_for_server_only for super::SetReducerFlags {
         self.imp.set_call_reducer_flags("server_only", flags);
     }
 }
+

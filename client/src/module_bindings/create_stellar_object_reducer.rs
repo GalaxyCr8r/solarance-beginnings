@@ -2,7 +2,12 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
+use spacetimedb_sdk::__codegen::{
+	self as __sdk,
+	__lib,
+	__sats,
+	__ws,
+};
 
 use super::stellar_object_kinds_type::StellarObjectKinds;
 use super::stellar_object_transform_type::StellarObjectTransform;
@@ -13,6 +18,7 @@ pub(super) struct CreateStellarObjectArgs {
     pub kind: StellarObjectKinds,
     pub sector_id: u64,
     pub transform: StellarObjectTransform,
+    pub forward_velocity: f32,
 }
 
 impl From<CreateStellarObjectArgs> for super::Reducer {
@@ -21,8 +27,9 @@ impl From<CreateStellarObjectArgs> for super::Reducer {
             kind: args.kind,
             sector_id: args.sector_id,
             transform: args.transform,
-        }
-    }
+            forward_velocity: args.forward_velocity,
+}
+}
 }
 
 impl __sdk::InModule for CreateStellarObjectArgs {
@@ -41,12 +48,11 @@ pub trait create_stellar_object {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_create_stellar_object`] callbacks.
-    fn create_stellar_object(
-        &self,
-        kind: StellarObjectKinds,
-        sector_id: u64,
-        transform: StellarObjectTransform,
-    ) -> __sdk::Result<()>;
+    fn create_stellar_object(&self, kind: StellarObjectKinds,
+sector_id: u64,
+transform: StellarObjectTransform,
+forward_velocity: f32,
+) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `create_stellar_object`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -54,65 +60,42 @@ pub trait create_stellar_object {
     ///
     /// The returned [`CreateStellarObjectCallbackId`] can be passed to [`Self::remove_on_create_stellar_object`]
     /// to cancel the callback.
-    fn on_create_stellar_object(
-        &self,
-        callback: impl FnMut(&super::ReducerEventContext, &StellarObjectKinds, &u64, &StellarObjectTransform)
-            + Send
-            + 'static,
-    ) -> CreateStellarObjectCallbackId;
+    fn on_create_stellar_object(&self, callback: impl FnMut(&super::ReducerEventContext, &StellarObjectKinds, &u64, &StellarObjectTransform, &f32, ) + Send + 'static) -> CreateStellarObjectCallbackId;
     /// Cancel a callback previously registered by [`Self::on_create_stellar_object`],
     /// causing it not to run in the future.
     fn remove_on_create_stellar_object(&self, callback: CreateStellarObjectCallbackId);
 }
 
 impl create_stellar_object for super::RemoteReducers {
-    fn create_stellar_object(
-        &self,
-        kind: StellarObjectKinds,
-        sector_id: u64,
-        transform: StellarObjectTransform,
-    ) -> __sdk::Result<()> {
-        self.imp.call_reducer(
-            "create_stellar_object",
-            CreateStellarObjectArgs {
-                kind,
-                sector_id,
-                transform,
-            },
-        )
+    fn create_stellar_object(&self, kind: StellarObjectKinds,
+sector_id: u64,
+transform: StellarObjectTransform,
+forward_velocity: f32,
+) -> __sdk::Result<()> {
+        self.imp.call_reducer("create_stellar_object", CreateStellarObjectArgs { kind, sector_id, transform, forward_velocity,  })
     }
     fn on_create_stellar_object(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &StellarObjectKinds, &u64, &StellarObjectTransform)
-            + Send
-            + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, &StellarObjectKinds, &u64, &StellarObjectTransform, &f32, ) + Send + 'static,
     ) -> CreateStellarObjectCallbackId {
         CreateStellarObjectCallbackId(self.imp.on_reducer(
             "create_stellar_object",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event:
-                        __sdk::ReducerEvent {
-                            reducer:
-                                super::Reducer::CreateStellarObject {
-                                    kind,
-                                    sector_id,
-                                    transform,
-                                },
-                            ..
+                    event: __sdk::ReducerEvent {
+                        reducer: super::Reducer::CreateStellarObject {
+                            kind, sector_id, transform, forward_velocity, 
                         },
+                        ..
+                    },
                     ..
-                } = ctx
-                else {
-                    unreachable!()
-                };
-                callback(ctx, kind, sector_id, transform)
+                } = ctx else { unreachable!() };
+                callback(ctx, kind, sector_id, transform, forward_velocity, )
             }),
         ))
     }
     fn remove_on_create_stellar_object(&self, callback: CreateStellarObjectCallbackId) {
-        self.imp
-            .remove_on_reducer("create_stellar_object", callback.0)
+        self.imp.remove_on_reducer("create_stellar_object", callback.0)
     }
 }
 
@@ -132,7 +115,7 @@ pub trait set_flags_for_create_stellar_object {
 
 impl set_flags_for_create_stellar_object for super::SetReducerFlags {
     fn create_stellar_object(&self, flags: __ws::CallReducerFlags) {
-        self.imp
-            .set_call_reducer_flags("create_stellar_object", flags);
+        self.imp.set_call_reducer_flags("create_stellar_object", flags);
     }
 }
+

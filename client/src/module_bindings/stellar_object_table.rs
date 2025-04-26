@@ -2,9 +2,14 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use super::stellar_object_kinds_type::StellarObjectKinds;
+use spacetimedb_sdk::__codegen::{
+	self as __sdk,
+	__lib,
+	__sats,
+	__ws,
+};
 use super::stellar_object_type::StellarObject;
-use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
+use super::stellar_object_kinds_type::StellarObjectKinds;
 
 /// Table handle for the table `stellar_object`.
 ///
@@ -45,12 +50,8 @@ impl<'ctx> __sdk::Table for StellarObjectTableHandle<'ctx> {
     type Row = StellarObject;
     type EventContext = super::EventContext;
 
-    fn count(&self) -> u64 {
-        self.imp.count()
-    }
-    fn iter(&self) -> impl Iterator<Item = StellarObject> + '_ {
-        self.imp.iter()
-    }
+    fn count(&self) -> u64 { self.imp.count() }
+    fn iter(&self) -> impl Iterator<Item = StellarObject> + '_ { self.imp.iter() }
 
     type InsertCallbackId = StellarObjectInsertCallbackId;
 
@@ -81,7 +82,8 @@ impl<'ctx> __sdk::Table for StellarObjectTableHandle<'ctx> {
 
 #[doc(hidden)]
 pub(super) fn register_table(client_cache: &mut __sdk::ClientCache<super::RemoteModule>) {
-    let _table = client_cache.get_or_make_table::<StellarObject>("stellar_object");
+
+        let _table = client_cache.get_or_make_table::<StellarObject>("stellar_object");
     _table.add_unique_constraint::<u64>("id", |row| &row.id);
 }
 pub struct StellarObjectUpdateCallbackId(__sdk::CallbackId);
@@ -101,43 +103,46 @@ impl<'ctx> __sdk::TableWithPrimaryKey for StellarObjectTableHandle<'ctx> {
     }
 }
 
+
 #[doc(hidden)]
 pub(super) fn parse_table_update(
     raw_updates: __ws::TableUpdate<__ws::BsatnFormat>,
 ) -> __sdk::Result<__sdk::TableUpdate<StellarObject>> {
     __sdk::TableUpdate::parse_table_update(raw_updates).map_err(|e| {
-        __sdk::InternalError::failed_parse("TableUpdate<StellarObject>", "TableUpdate")
-            .with_cause(e)
-            .into()
+        __sdk::InternalError::failed_parse(
+            "TableUpdate<StellarObject>",
+            "TableUpdate",
+        ).with_cause(e).into()
     })
 }
 
-/// Access to the `id` unique index on the table `stellar_object`,
-/// which allows point queries on the field of the same name
-/// via the [`StellarObjectIdUnique::find`] method.
-///
-/// Users are encouraged not to explicitly reference this type,
-/// but to directly chain method calls,
-/// like `ctx.db.stellar_object().id().find(...)`.
-pub struct StellarObjectIdUnique<'ctx> {
-    imp: __sdk::UniqueConstraintHandle<StellarObject, u64>,
-    phantom: std::marker::PhantomData<&'ctx super::RemoteTables>,
-}
-
-impl<'ctx> StellarObjectTableHandle<'ctx> {
-    /// Get a handle on the `id` unique index on the table `stellar_object`.
-    pub fn id(&self) -> StellarObjectIdUnique<'ctx> {
-        StellarObjectIdUnique {
-            imp: self.imp.get_unique_constraint::<u64>("id"),
-            phantom: std::marker::PhantomData,
+        /// Access to the `id` unique index on the table `stellar_object`,
+        /// which allows point queries on the field of the same name
+        /// via the [`StellarObjectIdUnique::find`] method.
+        ///
+        /// Users are encouraged not to explicitly reference this type,
+        /// but to directly chain method calls,
+        /// like `ctx.db.stellar_object().id().find(...)`.
+        pub struct StellarObjectIdUnique<'ctx> {
+            imp: __sdk::UniqueConstraintHandle<StellarObject, u64>,
+            phantom: std::marker::PhantomData<&'ctx super::RemoteTables>,
         }
-    }
-}
 
-impl<'ctx> StellarObjectIdUnique<'ctx> {
-    /// Find the subscribed row whose `id` column value is equal to `col_val`,
-    /// if such a row is present in the client cache.
-    pub fn find(&self, col_val: &u64) -> Option<StellarObject> {
-        self.imp.find(col_val)
-    }
-}
+        impl<'ctx> StellarObjectTableHandle<'ctx> {
+            /// Get a handle on the `id` unique index on the table `stellar_object`.
+            pub fn id(&self) -> StellarObjectIdUnique<'ctx> {
+                StellarObjectIdUnique {
+                    imp: self.imp.get_unique_constraint::<u64>("id"),
+                    phantom: std::marker::PhantomData,
+                }
+            }
+        }
+
+        impl<'ctx> StellarObjectIdUnique<'ctx> {
+            /// Find the subscribed row whose `id` column value is equal to `col_val`,
+            /// if such a row is present in the client cache.
+            pub fn find(&self, col_val: &u64) -> Option<StellarObject> {
+                self.imp.find(col_val)
+            }
+        }
+        

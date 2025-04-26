@@ -8,7 +8,8 @@ use macroquad::miniquad::conf::Conf;
 mod module_bindings;
 use module_bindings::*;
 use spacetimedb_sdk::{DbContext, Table};
-mod stdb;
+mod stdb_client_helper;
+mod shader;
 
 struct GameState<'a> {
     paused: bool,
@@ -82,7 +83,7 @@ fn move_system(_world: &World, game_state: &mut GameState) {
 }
 
 fn draw_ship(transform: &StellarObjectTransform) {
-    let position = vec2(transform.x, transform.y);
+    let position = Vec2::new(transform.x, transform.y);
     let forward = Vec2::from_angle(transform.rotation_radians) * 16.0;
     let right = Vec2::from_angle(transform.rotation_radians + (PI * 0.75)) * 16.0;
     let left = Vec2::from_angle(transform.rotation_radians - (PI * 0.75)) * 16.0;
@@ -286,7 +287,7 @@ async fn main() {
 
     // DB Connection & ECS World
     let world = World::default();
-    let ctx = stdb::connect_to_spacetime(None);
+    let ctx = stdb_client_helper::connect_to_spacetime(None);
 
     let scheduler = secs::Scheduler::default();
     let mut game_state = GameState { paused: false, done: false, ctx: &ctx, textures: HashMap::new() };
@@ -309,6 +310,11 @@ async fn main() {
     game_state.textures.insert("lc/phalanx", ship_texture);
     game_state.textures.insert("bullet", bullet_texture);
 
+    // Load starfield shader
+    let sf_shader = shader::load_starfield_shader();
+    let render_target = render_target(320, 150);
+    render_target.texture.set_filter(FilterMode::Nearest);
+
     // Setup Panic Handler
     set_panic_handler(|msg, _backtrace| async move {
         loop {
@@ -318,8 +324,12 @@ async fn main() {
          }
     });
 
+    let mut tmp_angle = 0.0;
     loop {
-        clear_background(SKYBLUE);
+        clear_background(WHITE);
+        //clear_background(BLACK);
+        shader::apply_shader_to_screen(render_target, sf_shader, Vec2::from_angle(tmp_angle) * 0.01337);
+        tmp_angle += 0.01337;
 
         // run all parallel and sequential systems
         scheduler.run(&world, &mut game_state);

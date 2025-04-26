@@ -2,7 +2,12 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
+use spacetimedb_sdk::__codegen::{
+	self as __sdk,
+	__lib,
+	__sats,
+	__ws,
+};
 
 use super::ship_class_type::ShipClass;
 
@@ -10,14 +15,16 @@ use super::ship_class_type::ShipClass;
 #[sats(crate = __lib)]
 pub struct Ship {
     pub entity_id: u64,
-    pub owner_id: Option<u64>,
-    pub faction_id: Option<u64>,
+    pub owner_id: Option::<u64>,
+    pub faction_id: Option::<u64>,
     pub class: ShipClass,
     pub health: f32,
     pub max_health: f32,
     pub cargo_capacity: u32,
 }
 
+
 impl __sdk::InModule for Ship {
     type Module = super::RemoteModule;
 }
+

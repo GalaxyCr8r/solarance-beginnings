@@ -2,7 +2,12 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
+use spacetimedb_sdk::__codegen::{
+	self as __sdk,
+	__lib,
+	__sats,
+	__ws,
+};
 
 use super::map_view_type::MapView;
 
@@ -16,8 +21,8 @@ impl From<SetMapViewArgs> for super::Reducer {
     fn from(args: SetMapViewArgs) -> Self {
         Self::SetMapView {
             new_view: args.new_view,
-        }
-    }
+}
+}
 }
 
 impl __sdk::InModule for SetMapViewArgs {
@@ -36,7 +41,8 @@ pub trait set_map_view {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_set_map_view`] callbacks.
-    fn set_map_view(&self, new_view: MapView) -> __sdk::Result<()>;
+    fn set_map_view(&self, new_view: MapView,
+) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `set_map_view`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -44,39 +50,34 @@ pub trait set_map_view {
     ///
     /// The returned [`SetMapViewCallbackId`] can be passed to [`Self::remove_on_set_map_view`]
     /// to cancel the callback.
-    fn on_set_map_view(
-        &self,
-        callback: impl FnMut(&super::ReducerEventContext, &MapView) + Send + 'static,
-    ) -> SetMapViewCallbackId;
+    fn on_set_map_view(&self, callback: impl FnMut(&super::ReducerEventContext, &MapView, ) + Send + 'static) -> SetMapViewCallbackId;
     /// Cancel a callback previously registered by [`Self::on_set_map_view`],
     /// causing it not to run in the future.
     fn remove_on_set_map_view(&self, callback: SetMapViewCallbackId);
 }
 
 impl set_map_view for super::RemoteReducers {
-    fn set_map_view(&self, new_view: MapView) -> __sdk::Result<()> {
-        self.imp
-            .call_reducer("set_map_view", SetMapViewArgs { new_view })
+    fn set_map_view(&self, new_view: MapView,
+) -> __sdk::Result<()> {
+        self.imp.call_reducer("set_map_view", SetMapViewArgs { new_view,  })
     }
     fn on_set_map_view(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &MapView) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, &MapView, ) + Send + 'static,
     ) -> SetMapViewCallbackId {
         SetMapViewCallbackId(self.imp.on_reducer(
             "set_map_view",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event:
-                        __sdk::ReducerEvent {
-                            reducer: super::Reducer::SetMapView { new_view },
-                            ..
+                    event: __sdk::ReducerEvent {
+                        reducer: super::Reducer::SetMapView {
+                            new_view, 
                         },
+                        ..
+                    },
                     ..
-                } = ctx
-                else {
-                    unreachable!()
-                };
-                callback(ctx, new_view)
+                } = ctx else { unreachable!() };
+                callback(ctx, new_view, )
             }),
         ))
     }
@@ -104,3 +105,4 @@ impl set_flags_for_set_map_view for super::SetReducerFlags {
         self.imp.set_call_reducer_flags("set_map_view", flags);
     }
 }
+

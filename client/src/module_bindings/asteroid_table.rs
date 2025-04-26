@@ -2,9 +2,14 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
+use spacetimedb_sdk::__codegen::{
+	self as __sdk,
+	__lib,
+	__sats,
+	__ws,
+};
 use super::asteroid_type::Asteroid;
 use super::resource_type_type::ResourceType;
-use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 /// Table handle for the table `asteroid`.
 ///
@@ -45,12 +50,8 @@ impl<'ctx> __sdk::Table for AsteroidTableHandle<'ctx> {
     type Row = Asteroid;
     type EventContext = super::EventContext;
 
-    fn count(&self) -> u64 {
-        self.imp.count()
-    }
-    fn iter(&self) -> impl Iterator<Item = Asteroid> + '_ {
-        self.imp.iter()
-    }
+    fn count(&self) -> u64 { self.imp.count() }
+    fn iter(&self) -> impl Iterator<Item = Asteroid> + '_ { self.imp.iter() }
 
     type InsertCallbackId = AsteroidInsertCallbackId;
 
@@ -81,7 +82,8 @@ impl<'ctx> __sdk::Table for AsteroidTableHandle<'ctx> {
 
 #[doc(hidden)]
 pub(super) fn register_table(client_cache: &mut __sdk::ClientCache<super::RemoteModule>) {
-    let _table = client_cache.get_or_make_table::<Asteroid>("asteroid");
+
+        let _table = client_cache.get_or_make_table::<Asteroid>("asteroid");
     _table.add_unique_constraint::<u64>("entity_id", |row| &row.entity_id);
 }
 pub struct AsteroidUpdateCallbackId(__sdk::CallbackId);
@@ -101,43 +103,46 @@ impl<'ctx> __sdk::TableWithPrimaryKey for AsteroidTableHandle<'ctx> {
     }
 }
 
+
 #[doc(hidden)]
 pub(super) fn parse_table_update(
     raw_updates: __ws::TableUpdate<__ws::BsatnFormat>,
 ) -> __sdk::Result<__sdk::TableUpdate<Asteroid>> {
     __sdk::TableUpdate::parse_table_update(raw_updates).map_err(|e| {
-        __sdk::InternalError::failed_parse("TableUpdate<Asteroid>", "TableUpdate")
-            .with_cause(e)
-            .into()
+        __sdk::InternalError::failed_parse(
+            "TableUpdate<Asteroid>",
+            "TableUpdate",
+        ).with_cause(e).into()
     })
 }
 
-/// Access to the `entity_id` unique index on the table `asteroid`,
-/// which allows point queries on the field of the same name
-/// via the [`AsteroidEntityIdUnique::find`] method.
-///
-/// Users are encouraged not to explicitly reference this type,
-/// but to directly chain method calls,
-/// like `ctx.db.asteroid().entity_id().find(...)`.
-pub struct AsteroidEntityIdUnique<'ctx> {
-    imp: __sdk::UniqueConstraintHandle<Asteroid, u64>,
-    phantom: std::marker::PhantomData<&'ctx super::RemoteTables>,
-}
-
-impl<'ctx> AsteroidTableHandle<'ctx> {
-    /// Get a handle on the `entity_id` unique index on the table `asteroid`.
-    pub fn entity_id(&self) -> AsteroidEntityIdUnique<'ctx> {
-        AsteroidEntityIdUnique {
-            imp: self.imp.get_unique_constraint::<u64>("entity_id"),
-            phantom: std::marker::PhantomData,
+        /// Access to the `entity_id` unique index on the table `asteroid`,
+        /// which allows point queries on the field of the same name
+        /// via the [`AsteroidEntityIdUnique::find`] method.
+        ///
+        /// Users are encouraged not to explicitly reference this type,
+        /// but to directly chain method calls,
+        /// like `ctx.db.asteroid().entity_id().find(...)`.
+        pub struct AsteroidEntityIdUnique<'ctx> {
+            imp: __sdk::UniqueConstraintHandle<Asteroid, u64>,
+            phantom: std::marker::PhantomData<&'ctx super::RemoteTables>,
         }
-    }
-}
 
-impl<'ctx> AsteroidEntityIdUnique<'ctx> {
-    /// Find the subscribed row whose `entity_id` column value is equal to `col_val`,
-    /// if such a row is present in the client cache.
-    pub fn find(&self, col_val: &u64) -> Option<Asteroid> {
-        self.imp.find(col_val)
-    }
-}
+        impl<'ctx> AsteroidTableHandle<'ctx> {
+            /// Get a handle on the `entity_id` unique index on the table `asteroid`.
+            pub fn entity_id(&self) -> AsteroidEntityIdUnique<'ctx> {
+                AsteroidEntityIdUnique {
+                    imp: self.imp.get_unique_constraint::<u64>("entity_id"),
+                    phantom: std::marker::PhantomData,
+                }
+            }
+        }
+
+        impl<'ctx> AsteroidEntityIdUnique<'ctx> {
+            /// Find the subscribed row whose `entity_id` column value is equal to `col_val`,
+            /// if such a row is present in the client cache.
+            pub fn find(&self, col_val: &u64) -> Option<Asteroid> {
+                self.imp.find(col_val)
+            }
+        }
+        

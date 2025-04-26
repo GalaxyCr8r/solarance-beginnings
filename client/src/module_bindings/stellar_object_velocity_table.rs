@@ -10,71 +10,71 @@ use spacetimedb_sdk::__codegen::{
 };
 use super::stellar_object_transform_type::StellarObjectTransform;
 
-/// Table handle for the table `stellar_object_low_res`.
+/// Table handle for the table `stellar_object_velocity`.
 ///
-/// Obtain a handle from the [`StellarObjectLowResTableAccess::stellar_object_low_res`] method on [`super::RemoteTables`],
-/// like `ctx.db.stellar_object_low_res()`.
+/// Obtain a handle from the [`StellarObjectVelocityTableAccess::stellar_object_velocity`] method on [`super::RemoteTables`],
+/// like `ctx.db.stellar_object_velocity()`.
 ///
 /// Users are encouraged not to explicitly reference this type,
 /// but to directly chain method calls,
-/// like `ctx.db.stellar_object_low_res().on_insert(...)`.
-pub struct StellarObjectLowResTableHandle<'ctx> {
+/// like `ctx.db.stellar_object_velocity().on_insert(...)`.
+pub struct StellarObjectVelocityTableHandle<'ctx> {
     imp: __sdk::TableHandle<StellarObjectTransform>,
     ctx: std::marker::PhantomData<&'ctx super::RemoteTables>,
 }
 
 #[allow(non_camel_case_types)]
-/// Extension trait for access to the table `stellar_object_low_res`.
+/// Extension trait for access to the table `stellar_object_velocity`.
 ///
 /// Implemented for [`super::RemoteTables`].
-pub trait StellarObjectLowResTableAccess {
+pub trait StellarObjectVelocityTableAccess {
     #[allow(non_snake_case)]
-    /// Obtain a [`StellarObjectLowResTableHandle`], which mediates access to the table `stellar_object_low_res`.
-    fn stellar_object_low_res(&self) -> StellarObjectLowResTableHandle<'_>;
+    /// Obtain a [`StellarObjectVelocityTableHandle`], which mediates access to the table `stellar_object_velocity`.
+    fn stellar_object_velocity(&self) -> StellarObjectVelocityTableHandle<'_>;
 }
 
-impl StellarObjectLowResTableAccess for super::RemoteTables {
-    fn stellar_object_low_res(&self) -> StellarObjectLowResTableHandle<'_> {
-        StellarObjectLowResTableHandle {
-            imp: self.imp.get_table::<StellarObjectTransform>("stellar_object_low_res"),
+impl StellarObjectVelocityTableAccess for super::RemoteTables {
+    fn stellar_object_velocity(&self) -> StellarObjectVelocityTableHandle<'_> {
+        StellarObjectVelocityTableHandle {
+            imp: self.imp.get_table::<StellarObjectTransform>("stellar_object_velocity"),
             ctx: std::marker::PhantomData,
         }
     }
 }
 
-pub struct StellarObjectLowResInsertCallbackId(__sdk::CallbackId);
-pub struct StellarObjectLowResDeleteCallbackId(__sdk::CallbackId);
+pub struct StellarObjectVelocityInsertCallbackId(__sdk::CallbackId);
+pub struct StellarObjectVelocityDeleteCallbackId(__sdk::CallbackId);
 
-impl<'ctx> __sdk::Table for StellarObjectLowResTableHandle<'ctx> {
+impl<'ctx> __sdk::Table for StellarObjectVelocityTableHandle<'ctx> {
     type Row = StellarObjectTransform;
     type EventContext = super::EventContext;
 
     fn count(&self) -> u64 { self.imp.count() }
     fn iter(&self) -> impl Iterator<Item = StellarObjectTransform> + '_ { self.imp.iter() }
 
-    type InsertCallbackId = StellarObjectLowResInsertCallbackId;
+    type InsertCallbackId = StellarObjectVelocityInsertCallbackId;
 
     fn on_insert(
         &self,
         callback: impl FnMut(&Self::EventContext, &Self::Row) + Send + 'static,
-    ) -> StellarObjectLowResInsertCallbackId {
-        StellarObjectLowResInsertCallbackId(self.imp.on_insert(Box::new(callback)))
+    ) -> StellarObjectVelocityInsertCallbackId {
+        StellarObjectVelocityInsertCallbackId(self.imp.on_insert(Box::new(callback)))
     }
 
-    fn remove_on_insert(&self, callback: StellarObjectLowResInsertCallbackId) {
+    fn remove_on_insert(&self, callback: StellarObjectVelocityInsertCallbackId) {
         self.imp.remove_on_insert(callback.0)
     }
 
-    type DeleteCallbackId = StellarObjectLowResDeleteCallbackId;
+    type DeleteCallbackId = StellarObjectVelocityDeleteCallbackId;
 
     fn on_delete(
         &self,
         callback: impl FnMut(&Self::EventContext, &Self::Row) + Send + 'static,
-    ) -> StellarObjectLowResDeleteCallbackId {
-        StellarObjectLowResDeleteCallbackId(self.imp.on_delete(Box::new(callback)))
+    ) -> StellarObjectVelocityDeleteCallbackId {
+        StellarObjectVelocityDeleteCallbackId(self.imp.on_delete(Box::new(callback)))
     }
 
-    fn remove_on_delete(&self, callback: StellarObjectLowResDeleteCallbackId) {
+    fn remove_on_delete(&self, callback: StellarObjectVelocityDeleteCallbackId) {
         self.imp.remove_on_delete(callback.0)
     }
 }
@@ -82,7 +82,7 @@ impl<'ctx> __sdk::Table for StellarObjectLowResTableHandle<'ctx> {
 #[doc(hidden)]
 pub(super) fn register_table(client_cache: &mut __sdk::ClientCache<super::RemoteModule>) {
 
-        let _table = client_cache.get_or_make_table::<StellarObjectTransform>("stellar_object_low_res");
+        let _table = client_cache.get_or_make_table::<StellarObjectTransform>("stellar_object_velocity");
     _table.add_unique_constraint::<u64>("sobj_id", |row| &row.sobj_id);
 }
 
@@ -98,29 +98,29 @@ pub(super) fn parse_table_update(
     })
 }
 
-        /// Access to the `sobj_id` unique index on the table `stellar_object_low_res`,
+        /// Access to the `sobj_id` unique index on the table `stellar_object_velocity`,
         /// which allows point queries on the field of the same name
-        /// via the [`StellarObjectLowResSobjIdUnique::find`] method.
+        /// via the [`StellarObjectVelocitySobjIdUnique::find`] method.
         ///
         /// Users are encouraged not to explicitly reference this type,
         /// but to directly chain method calls,
-        /// like `ctx.db.stellar_object_low_res().sobj_id().find(...)`.
-        pub struct StellarObjectLowResSobjIdUnique<'ctx> {
+        /// like `ctx.db.stellar_object_velocity().sobj_id().find(...)`.
+        pub struct StellarObjectVelocitySobjIdUnique<'ctx> {
             imp: __sdk::UniqueConstraintHandle<StellarObjectTransform, u64>,
             phantom: std::marker::PhantomData<&'ctx super::RemoteTables>,
         }
 
-        impl<'ctx> StellarObjectLowResTableHandle<'ctx> {
-            /// Get a handle on the `sobj_id` unique index on the table `stellar_object_low_res`.
-            pub fn sobj_id(&self) -> StellarObjectLowResSobjIdUnique<'ctx> {
-                StellarObjectLowResSobjIdUnique {
+        impl<'ctx> StellarObjectVelocityTableHandle<'ctx> {
+            /// Get a handle on the `sobj_id` unique index on the table `stellar_object_velocity`.
+            pub fn sobj_id(&self) -> StellarObjectVelocitySobjIdUnique<'ctx> {
+                StellarObjectVelocitySobjIdUnique {
                     imp: self.imp.get_unique_constraint::<u64>("sobj_id"),
                     phantom: std::marker::PhantomData,
                 }
             }
         }
 
-        impl<'ctx> StellarObjectLowResSobjIdUnique<'ctx> {
+        impl<'ctx> StellarObjectVelocitySobjIdUnique<'ctx> {
             /// Find the subscribed row whose `sobj_id` column value is equal to `col_val`,
             /// if such a row is present in the client cache.
             pub fn find(&self, col_val: &u64) -> Option<StellarObjectTransform> {

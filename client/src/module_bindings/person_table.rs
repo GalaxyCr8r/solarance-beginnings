@@ -2,9 +2,14 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use super::map_view_type::MapView;
+use spacetimedb_sdk::__codegen::{
+	self as __sdk,
+	__lib,
+	__sats,
+	__ws,
+};
 use super::person_type::Person;
-use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
+use super::map_view_type::MapView;
 
 /// Table handle for the table `person`.
 ///
@@ -45,12 +50,8 @@ impl<'ctx> __sdk::Table for PersonTableHandle<'ctx> {
     type Row = Person;
     type EventContext = super::EventContext;
 
-    fn count(&self) -> u64 {
-        self.imp.count()
-    }
-    fn iter(&self) -> impl Iterator<Item = Person> + '_ {
-        self.imp.iter()
-    }
+    fn count(&self) -> u64 { self.imp.count() }
+    fn iter(&self) -> impl Iterator<Item = Person> + '_ { self.imp.iter() }
 
     type InsertCallbackId = PersonInsertCallbackId;
 
@@ -81,7 +82,8 @@ impl<'ctx> __sdk::Table for PersonTableHandle<'ctx> {
 
 #[doc(hidden)]
 pub(super) fn register_table(client_cache: &mut __sdk::ClientCache<super::RemoteModule>) {
-    let _table = client_cache.get_or_make_table::<Person>("person");
+
+        let _table = client_cache.get_or_make_table::<Person>("person");
     _table.add_unique_constraint::<__sdk::Identity>("identity", |row| &row.identity);
 }
 pub struct PersonUpdateCallbackId(__sdk::CallbackId);
@@ -101,45 +103,46 @@ impl<'ctx> __sdk::TableWithPrimaryKey for PersonTableHandle<'ctx> {
     }
 }
 
+
 #[doc(hidden)]
 pub(super) fn parse_table_update(
     raw_updates: __ws::TableUpdate<__ws::BsatnFormat>,
 ) -> __sdk::Result<__sdk::TableUpdate<Person>> {
     __sdk::TableUpdate::parse_table_update(raw_updates).map_err(|e| {
-        __sdk::InternalError::failed_parse("TableUpdate<Person>", "TableUpdate")
-            .with_cause(e)
-            .into()
+        __sdk::InternalError::failed_parse(
+            "TableUpdate<Person>",
+            "TableUpdate",
+        ).with_cause(e).into()
     })
 }
 
-/// Access to the `identity` unique index on the table `person`,
-/// which allows point queries on the field of the same name
-/// via the [`PersonIdentityUnique::find`] method.
-///
-/// Users are encouraged not to explicitly reference this type,
-/// but to directly chain method calls,
-/// like `ctx.db.person().identity().find(...)`.
-pub struct PersonIdentityUnique<'ctx> {
-    imp: __sdk::UniqueConstraintHandle<Person, __sdk::Identity>,
-    phantom: std::marker::PhantomData<&'ctx super::RemoteTables>,
-}
-
-impl<'ctx> PersonTableHandle<'ctx> {
-    /// Get a handle on the `identity` unique index on the table `person`.
-    pub fn identity(&self) -> PersonIdentityUnique<'ctx> {
-        PersonIdentityUnique {
-            imp: self
-                .imp
-                .get_unique_constraint::<__sdk::Identity>("identity"),
-            phantom: std::marker::PhantomData,
+        /// Access to the `identity` unique index on the table `person`,
+        /// which allows point queries on the field of the same name
+        /// via the [`PersonIdentityUnique::find`] method.
+        ///
+        /// Users are encouraged not to explicitly reference this type,
+        /// but to directly chain method calls,
+        /// like `ctx.db.person().identity().find(...)`.
+        pub struct PersonIdentityUnique<'ctx> {
+            imp: __sdk::UniqueConstraintHandle<Person, __sdk::Identity>,
+            phantom: std::marker::PhantomData<&'ctx super::RemoteTables>,
         }
-    }
-}
 
-impl<'ctx> PersonIdentityUnique<'ctx> {
-    /// Find the subscribed row whose `identity` column value is equal to `col_val`,
-    /// if such a row is present in the client cache.
-    pub fn find(&self, col_val: &__sdk::Identity) -> Option<Person> {
-        self.imp.find(col_val)
-    }
-}
+        impl<'ctx> PersonTableHandle<'ctx> {
+            /// Get a handle on the `identity` unique index on the table `person`.
+            pub fn identity(&self) -> PersonIdentityUnique<'ctx> {
+                PersonIdentityUnique {
+                    imp: self.imp.get_unique_constraint::<__sdk::Identity>("identity"),
+                    phantom: std::marker::PhantomData,
+                }
+            }
+        }
+
+        impl<'ctx> PersonIdentityUnique<'ctx> {
+            /// Find the subscribed row whose `identity` column value is equal to `col_val`,
+            /// if such a row is present in the client cache.
+            pub fn find(&self, col_val: &__sdk::Identity) -> Option<Person> {
+                self.imp.find(col_val)
+            }
+        }
+        

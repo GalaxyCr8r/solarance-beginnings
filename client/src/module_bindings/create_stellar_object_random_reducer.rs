@@ -2,16 +2,23 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
+use spacetimedb_sdk::__codegen::{
+	self as __sdk,
+	__lib,
+	__sats,
+	__ws,
+};
+
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
-pub(super) struct CreateStellarObjectRandomArgs {}
+pub(super) struct CreateStellarObjectRandomArgs {
+    }
 
 impl From<CreateStellarObjectRandomArgs> for super::Reducer {
     fn from(args: CreateStellarObjectRandomArgs) -> Self {
         Self::CreateStellarObjectRandom
-    }
+}
 }
 
 impl __sdk::InModule for CreateStellarObjectRandomArgs {
@@ -30,7 +37,7 @@ pub trait create_stellar_object_random {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_create_stellar_object_random`] callbacks.
-    fn create_stellar_object_random(&self) -> __sdk::Result<()>;
+    fn create_stellar_object_random(&self, ) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `create_stellar_object_random`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -38,50 +45,38 @@ pub trait create_stellar_object_random {
     ///
     /// The returned [`CreateStellarObjectRandomCallbackId`] can be passed to [`Self::remove_on_create_stellar_object_random`]
     /// to cancel the callback.
-    fn on_create_stellar_object_random(
-        &self,
-        callback: impl FnMut(&super::ReducerEventContext) + Send + 'static,
-    ) -> CreateStellarObjectRandomCallbackId;
+    fn on_create_stellar_object_random(&self, callback: impl FnMut(&super::ReducerEventContext, ) + Send + 'static) -> CreateStellarObjectRandomCallbackId;
     /// Cancel a callback previously registered by [`Self::on_create_stellar_object_random`],
     /// causing it not to run in the future.
     fn remove_on_create_stellar_object_random(&self, callback: CreateStellarObjectRandomCallbackId);
 }
 
 impl create_stellar_object_random for super::RemoteReducers {
-    fn create_stellar_object_random(&self) -> __sdk::Result<()> {
-        self.imp.call_reducer(
-            "create_stellar_object_random",
-            CreateStellarObjectRandomArgs {},
-        )
+    fn create_stellar_object_random(&self, ) -> __sdk::Result<()> {
+        self.imp.call_reducer("create_stellar_object_random", CreateStellarObjectRandomArgs {  })
     }
     fn on_create_stellar_object_random(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, ) + Send + 'static,
     ) -> CreateStellarObjectRandomCallbackId {
         CreateStellarObjectRandomCallbackId(self.imp.on_reducer(
             "create_stellar_object_random",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event:
-                        __sdk::ReducerEvent {
-                            reducer: super::Reducer::CreateStellarObjectRandom {},
-                            ..
+                    event: __sdk::ReducerEvent {
+                        reducer: super::Reducer::CreateStellarObjectRandom {
+                            
                         },
+                        ..
+                    },
                     ..
-                } = ctx
-                else {
-                    unreachable!()
-                };
-                callback(ctx)
+                } = ctx else { unreachable!() };
+                callback(ctx, )
             }),
         ))
     }
-    fn remove_on_create_stellar_object_random(
-        &self,
-        callback: CreateStellarObjectRandomCallbackId,
-    ) {
-        self.imp
-            .remove_on_reducer("create_stellar_object_random", callback.0)
+    fn remove_on_create_stellar_object_random(&self, callback: CreateStellarObjectRandomCallbackId) {
+        self.imp.remove_on_reducer("create_stellar_object_random", callback.0)
     }
 }
 
@@ -101,7 +96,7 @@ pub trait set_flags_for_create_stellar_object_random {
 
 impl set_flags_for_create_stellar_object_random for super::SetReducerFlags {
     fn create_stellar_object_random(&self, flags: __ws::CallReducerFlags) {
-        self.imp
-            .set_call_reducer_flags("create_stellar_object_random", flags);
+        self.imp.set_call_reducer_flags("create_stellar_object_random", flags);
     }
 }
+

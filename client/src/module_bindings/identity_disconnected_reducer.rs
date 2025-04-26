@@ -2,16 +2,23 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
+use spacetimedb_sdk::__codegen::{
+	self as __sdk,
+	__lib,
+	__sats,
+	__ws,
+};
+
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
-pub(super) struct IdentityDisconnectedArgs {}
+pub(super) struct IdentityDisconnectedArgs {
+    }
 
 impl From<IdentityDisconnectedArgs> for super::Reducer {
     fn from(args: IdentityDisconnectedArgs) -> Self {
         Self::IdentityDisconnected
-    }
+}
 }
 
 impl __sdk::InModule for IdentityDisconnectedArgs {
@@ -30,7 +37,7 @@ pub trait identity_disconnected {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_identity_disconnected`] callbacks.
-    fn identity_disconnected(&self) -> __sdk::Result<()>;
+    fn identity_disconnected(&self, ) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `identity_disconnected`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -38,45 +45,38 @@ pub trait identity_disconnected {
     ///
     /// The returned [`IdentityDisconnectedCallbackId`] can be passed to [`Self::remove_on_identity_disconnected`]
     /// to cancel the callback.
-    fn on_identity_disconnected(
-        &self,
-        callback: impl FnMut(&super::ReducerEventContext) + Send + 'static,
-    ) -> IdentityDisconnectedCallbackId;
+    fn on_identity_disconnected(&self, callback: impl FnMut(&super::ReducerEventContext, ) + Send + 'static) -> IdentityDisconnectedCallbackId;
     /// Cancel a callback previously registered by [`Self::on_identity_disconnected`],
     /// causing it not to run in the future.
     fn remove_on_identity_disconnected(&self, callback: IdentityDisconnectedCallbackId);
 }
 
 impl identity_disconnected for super::RemoteReducers {
-    fn identity_disconnected(&self) -> __sdk::Result<()> {
-        self.imp
-            .call_reducer("identity_disconnected", IdentityDisconnectedArgs {})
+    fn identity_disconnected(&self, ) -> __sdk::Result<()> {
+        self.imp.call_reducer("identity_disconnected", IdentityDisconnectedArgs {  })
     }
     fn on_identity_disconnected(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, ) + Send + 'static,
     ) -> IdentityDisconnectedCallbackId {
         IdentityDisconnectedCallbackId(self.imp.on_reducer(
             "identity_disconnected",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event:
-                        __sdk::ReducerEvent {
-                            reducer: super::Reducer::IdentityDisconnected {},
-                            ..
+                    event: __sdk::ReducerEvent {
+                        reducer: super::Reducer::IdentityDisconnected {
+                            
                         },
+                        ..
+                    },
                     ..
-                } = ctx
-                else {
-                    unreachable!()
-                };
-                callback(ctx)
+                } = ctx else { unreachable!() };
+                callback(ctx, )
             }),
         ))
     }
     fn remove_on_identity_disconnected(&self, callback: IdentityDisconnectedCallbackId) {
-        self.imp
-            .remove_on_reducer("identity_disconnected", callback.0)
+        self.imp.remove_on_reducer("identity_disconnected", callback.0)
     }
 }
 
@@ -96,7 +96,7 @@ pub trait set_flags_for_identity_disconnected {
 
 impl set_flags_for_identity_disconnected for super::SetReducerFlags {
     fn identity_disconnected(&self, flags: __ws::CallReducerFlags) {
-        self.imp
-            .set_call_reducer_flags("identity_disconnected", flags);
+        self.imp.set_call_reducer_flags("identity_disconnected", flags);
     }
 }
+
