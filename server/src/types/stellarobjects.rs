@@ -1,10 +1,8 @@
-use std::{ default, time::Duration };
 use glam::Vec2;
 use spacetimedb::{
     client_visibility_filter,
-    rand::{ self, Rng, RngCore },
+    rand::{ Rng },
     Filter,
-    Identity,
     ReducerContext,
     SpacetimeType,
     Table,

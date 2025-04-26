@@ -1,4 +1,4 @@
-use macroquad::{math::Vec2, miniquad::UniformDesc, prelude::*, ui::{self}};
+use macroquad::{math::Vec2, prelude::*};
 
 const FRAGMENT_SHADER: &str = include_str!("starfield.glsl");
 

@@ -1,4 +1,4 @@
-use spacetimedb::{Identity, ReducerContext, SpacetimeType, Table, table};
+use spacetimedb::SpacetimeType;
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
 pub enum ResourceType {

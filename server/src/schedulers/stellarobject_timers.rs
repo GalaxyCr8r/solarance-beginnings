@@ -1,6 +1,5 @@
 use std::time::Duration;
-use glam::Vec2;
-use spacetimedb::{Identity, ReducerContext, SpacetimeType, Table};
+use spacetimedb::{ReducerContext, Table};
 
 use crate::types::stellarobjects::{*};
 

@@ -1,4 +1,4 @@
-use spacetimedb_sdk::{credentials, DbContext, Error, Event, Identity, Status, Table, TableWithPrimaryKey};
+use spacetimedb_sdk::{credentials, DbContext, Error, Identity};
 
 use crate::module_bindings::*;
 

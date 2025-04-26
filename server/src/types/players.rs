@@ -1,4 +1,4 @@
-use spacetimedb::{Identity, ReducerContext, SpacetimeType, Table, table};
+use spacetimedb::{Identity, table};
 
 #[table(name = player, public)]
 pub struct Player {
