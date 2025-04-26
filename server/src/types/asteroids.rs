@@ -1,4 +1,4 @@
-use spacetimedb::{Identity, ReducerContext, SpacetimeType, Table, table};
+use spacetimedb::table;
 
 use super::economy::ResourceType;
 

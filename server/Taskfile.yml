@@ -1,0 +1,23 @@
+
+version: '3'
+
+tasks:
+  build:
+    desc: "Server: Build with ST"
+    cmds:
+      - spacetime build
+
+  publish-clear-db:
+    desc: "Server: Publish to Local ST & Clears DB"
+    cmds:
+      - spacetime publish -c solarance-beginnings -y
+
+  publish:
+    desc: "Server: Publish to Local ST (Keeps DB)"
+    cmds:
+      - spacetime publish solarance-beginnings
+
+  clear-db:
+    desc: "Server: Clear ST Database"
+    cmds:
+      - spacetime publish solarance-beginnings --delete-data

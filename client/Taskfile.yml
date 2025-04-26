@@ -1,0 +1,25 @@
+
+version: '3'
+
+tasks:
+  build:
+    desc: "Client: Build"
+    cmds:
+      - cargo build
+
+  run:
+    desc: "Client: Run"
+    cmds:
+      - cargo run
+
+  generate-bindings:
+    desc: "Client: Generate Bindings"
+    cmds:
+      - spacetime generate --lang rust --out-dir src/module_bindings --project-path ../server
+
+  run-full:
+    desc: "Generate bindings, build, and run client"
+    deps:
+      - generate-bindings
+      - build
+      - run

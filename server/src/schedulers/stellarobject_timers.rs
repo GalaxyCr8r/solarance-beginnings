@@ -1,6 +1,5 @@
 use std::time::Duration;
-use glam::Vec2;
-use spacetimedb::{Identity, ReducerContext, SpacetimeType, Table};
+use spacetimedb::{ReducerContext, Table};
 
 use crate::types::stellarobjects::{*};
 
@@ -98,32 +97,34 @@ pub fn __move_ships(ctx: &ReducerContext) {
     for object in ctx.db.stellar_object().iter() {
         let wrapped_transform = ctx.db.stellar_object_internal().sobj_id().find(object.id);
         if wrapped_transform.is_none() { continue; }
-        let tranform = wrapped_transform.unwrap();
+        let mut transform = wrapped_transform.unwrap();
+        let wrapped_velocity = ctx.db.stellar_object_velocity().sobj_id().find(object.id);
+        if wrapped_velocity.is_none() { continue; }
+        let mut velocity = wrapped_velocity.unwrap();
 
-        let current_pos = tranform.to_vec2();
-        let mut x = current_pos.x;
-        let mut y = current_pos.y;
-        let velocity = Vec2::from_angle(tranform.rotation_radians) * 1.337;
-
-        if x > 500.0 {
-            x -= 500.0;
-        } else if x < 0. {
-            x += 500.0;
+        // TODO: Remove this code, this is ONLY for early milestones!
+        if transform.x > 500.0 {
+            transform.x -= 500.0;
+        } else if transform.x < 0. {
+            transform.x += 500.0;
         }
 
-        if y > 500.0 {
-            y -= 500.0;
-        } else if y < 0. {
-            y += 500.0;
+        if transform.y > 500.0 {
+            transform.y -= 500.0;
+        } else if transform.y < 0. {
+            transform.y += 500.0;
         }
+        // TODO:RM
 
-        ctx.db.stellar_object_internal().sobj_id().update(
-            StellarObjectTransform {
-                sobj_id: tranform.sobj_id,
-                x: x + velocity.x,
-                y: y + velocity.y,
-                rotation_radians: tranform.rotation_radians
-            }
-        );
+        transform=transform.from_vec2(transform.to_vec2() + velocity.to_vec2());
+        transform.rotation_radians += velocity.rotation_radians;
+
+        ctx.db.stellar_object_internal().sobj_id().update(transform);
+
+        // Add inertia to the velocity
+        velocity=velocity.from_vec2(velocity.to_vec2() * 0.975); // TODO:: Milestone 10+ make these ship-type specific values.
+        velocity.rotation_radians *= 0.75; // TODO:: Milestone 10+ make these ship-type specific values.
+        
+        ctx.db.stellar_object_velocity().sobj_id().update(velocity);
     }
 }
