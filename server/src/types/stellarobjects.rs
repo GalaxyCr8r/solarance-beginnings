@@ -38,7 +38,7 @@ pub struct StellarObject {
 #[spacetimedb::table(name = stellar_object_velocity, public)]
 #[spacetimedb::table(name = stellar_object_hi_res, public)]
 #[spacetimedb::table(name = stellar_object_low_res, public)]
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct StellarObjectTransform {
     #[unique]
     pub sobj_id: u64, // FK: StellarObject
@@ -49,11 +49,11 @@ pub struct StellarObjectTransform {
 
 #[client_visibility_filter]
 const HR_OBJECT_FILTER: Filter = Filter::Sql(
-    "SELECT * FROM stellar_object_hi_res WHERE x < 200 AND y < 200"
+    "SELECT * FROM stellar_object_hi_res WHERE x < 300 AND y < 300"
 );
 #[client_visibility_filter]
 const LR_OBJECT_FILTER: Filter = Filter::Sql(
-    "SELECT * FROM stellar_object_low_res WHERE x >= 200 OR y >= 200"
+    "SELECT * FROM stellar_object_low_res WHERE x >= 300 OR y >= 300"
 );
 
 /// Impls ///
@@ -154,37 +154,6 @@ pub fn create_stellar_object_random(ctx: &ReducerContext) -> Result<(), String> 
     )
 }
 
-pub fn stellar_object_increase_forward_velocity(ctx: &ReducerContext, sobj_id: u64, amount: f32) -> Result<(), String> {
-    is_server_or_owner(ctx, sobj_id)?;
-    
-    match ctx.db.stellar_object_velocity().sobj_id().find(sobj_id) {
-        Some(velocity) => {
-            // Calculate the new velocity by adding the forward vector scaled by the amount
-            let new_velocity = velocity.to_vec2() + Vec2::from_angle(velocity.rotation_radians) * amount;
-            velocity.from_vec2(new_velocity);
-            ctx.db.stellar_object_velocity().sobj_id().update(velocity);
-
-            Ok(())
-        }
-        None => Err("Stellar object not found!".to_string()),
-    }
-}
-
-pub fn stellar_object_increase_rotational_velocity(ctx: &ReducerContext, sobj_id: u64, amount_radians: f32) -> Result<(), String> {
-    is_server_or_owner(ctx, sobj_id)?;
-    
-    match ctx.db.stellar_object_velocity().sobj_id().find(sobj_id) {
-        Some(velocity) => {
-            ctx.db.stellar_object_velocity().sobj_id().update(StellarObjectTransform {
-                rotation_radians: amount_radians, ..velocity
-            });
-
-            Ok(())
-        }
-        None => Err("Stellar object not found!".to_string()),
-    }
-}
-
 #[spacetimedb::reducer]
 pub fn update_stellar_object_velocity(
     ctx: &ReducerContext,
@@ -194,36 +163,38 @@ pub fn update_stellar_object_velocity(
     if ctx.db.stellar_object_velocity().sobj_id().find(velocity.sobj_id).is_none() {
         return Err("Stellar object not found!".to_string());
     }
+    let mut update_velocity = velocity.clone();
     match ctx.db.stellar_object_velocity().sobj_id().find(velocity.sobj_id) {
         Some(prev_velocity) => {
             // Check if the acceleration required for the velocity change is too high
             let acceleration = (velocity.to_vec2() - prev_velocity.to_vec2()).length();
-            if acceleration > 10.0 {
+            if acceleration > 2.0 {
                 //// TODO: Make this variable per ship type
                 log::info!("Acceleration too high! {:?}", acceleration);
 
                 // Reduce the acceleration down
                 let new_velocity =
                     prev_velocity.to_vec2() +
-                    (velocity.to_vec2() - prev_velocity.to_vec2()).normalize() * 10.0;
-                velocity.from_vec2(new_velocity);
+                    (update_velocity.to_vec2() - prev_velocity.to_vec2()).normalize() * 2.0;
+                update_velocity=update_velocity.from_vec2(new_velocity);
             }
 
             // Check if the absolute velocity is too fast for the ship.
-            if velocity.to_vec2().length() > 100.0 {
+            if update_velocity.to_vec2().length() > 100.0 {
                 //// TODO: Make this variable per ship type
-                log::info!("Velocity too high! {:?}", velocity.to_vec2().length());
+                log::info!("Velocity too high! {:?}", update_velocity.to_vec2().length());
 
                 // Reduce the velocity down
-                let new_velocity = velocity.to_vec2().normalize() * 100.0;
-                velocity.from_vec2(new_velocity);
+                let new_velocity = update_velocity.to_vec2().normalize() * 100.0;
+                update_velocity=update_velocity.from_vec2(new_velocity);
             }
         }
         None => {
-            return Err("Stellar object not found!".to_string());
+            return Err("Stellar object's velocity table entry was not found!".to_string());
         }
     }
 
-    ctx.db.stellar_object_velocity().sobj_id().update(velocity);
+    log::info!("SObj ID #{} - New Velocity: {}, {}", update_velocity.sobj_id, update_velocity.x, update_velocity.y);
+    ctx.db.stellar_object_velocity().sobj_id().update(update_velocity);
     Ok(())
 }

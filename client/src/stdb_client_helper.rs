@@ -1,9 +1,23 @@
-use macroquad::prelude::glam;
+use macroquad::prelude::{glam, info};
 use spacetimedb_sdk::{credentials, DbContext, Error, Identity};
 
 use crate::module_bindings::*;
 
 /// Impls ///
+
+pub fn get_transform(ctx:&DbConnection, sobj_id:u64) -> Result<StellarObjectTransform, String> {
+    let hr= ctx.db.stellar_object_hi_res().sobj_id().find(&sobj_id);
+    if hr.is_some() {
+        Ok(hr.unwrap())
+    } else {
+        let lr = ctx.db.stellar_object_low_res().sobj_id().find(&sobj_id);
+        if lr.is_some() {
+            Ok(lr.unwrap())
+        } else {
+            Err("Could not find transform, even low-rez.".to_string())
+        }
+    }
+}
 
 impl StellarObjectTransform {
     // pub fn new(x: f32, y: f32) -> Self {

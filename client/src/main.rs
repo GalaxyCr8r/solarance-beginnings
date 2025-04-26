@@ -8,6 +8,7 @@ use macroquad::miniquad::conf::Conf;
 mod module_bindings;
 use module_bindings::*;
 use spacetimedb_sdk::{ DbContext, Table };
+use stdb_client_helper::get_transform;
 mod stdb_client_helper;
 mod shader;
 
@@ -55,33 +56,6 @@ struct Transform {
 //     Square,
 //     Circle,
 // }
-
-fn move_system(_world: &World, game_state: &mut GameState) {
-    if game_state.paused {
-        return;
-    }
-
-    // world.query(|_entity, pos: &mut Position, vel: &mut Velocity| {
-    //     vel.x = 0.;
-    //     vel.y = 0.;
-
-    //     if is_key_down(KeyCode::Right) || is_key_down(KeyCode::D) {
-    //         vel.x = 2.;
-    //     }
-    //     if is_key_down(KeyCode::Left) || is_key_down(KeyCode::A) {
-    //         vel.x = -2.;
-    //     }
-    //     if is_key_down(KeyCode::Down) || is_key_down(KeyCode::S) {
-    //         vel.y = 2.;
-    //     }
-    //     if is_key_down(KeyCode::Up) || is_key_down(KeyCode::W) {
-    //         vel.y = -2.;
-    //     }
-
-    //     pos.x += vel.x;
-    //     pos.y += vel.y;
-    // });
-}
 
 fn draw_ship(transform: &StellarObjectTransform) {
     let position = Vec2::new(transform.x, transform.y);
@@ -186,13 +160,9 @@ fn debug_window(game_state: &mut GameState) {
                     Some(player) => {
                         ui.heading(format!("Player: {}", player.username));
                         if player.controlled_entity_id.is_some() {
-                            match
-                                ctx.db
-                                    .stellar_object_hi_res()
-                                    .sobj_id()
-                                    .find(&player.controlled_entity_id.unwrap())
+                            match get_transform(&ctx, player.controlled_entity_id.unwrap())
                             {
-                                Some(transform) => {
+                                Ok(transform) => {
                                     ui.label(
                                         format!(
                                             "Ship: {}, {}",
@@ -222,10 +192,11 @@ fn debug_window(game_state: &mut GameState) {
                 for object in ctx.db.stellar_object().iter() {
                     ui.horizontal(|ui| {
                         ui.label(format!("- Ship #{}", object.id));
-                        match ctx.db.stellar_object_hi_res().sobj_id().find(&object.id) {
-                            Some(transform) => {
+
+                        match get_transform(&ctx, object.id) {
+                            Ok(transform) => {
                                 let string = format!(
-                                    "Hi-Rez: {}, {}",
+                                    "Position: {}, {}",
                                     transform.x.to_string(),
                                     transform.y.to_string()
                                 );
@@ -233,18 +204,7 @@ fn debug_window(game_state: &mut GameState) {
                                 return;
                             }
                             _ => {
-                                let lr = ctx.db.stellar_object_low_res().sobj_id().find(&object.id);
-                                if lr.is_none() {
-                                    ui.label("Low-rez transform n/a");
-                                    return;
-                                }
-                                let transform = lr.unwrap();
-                                let string = format!(
-                                    "Lo-Rez: {}, {}",
-                                    transform.x.to_string(),
-                                    transform.y.to_string()
-                                );
-                                ui.label(string);
+                                ui.label("Position: n/a");
                             }
                         }
                     });
@@ -341,7 +301,6 @@ async fn main() {
 
     let receiver = register_callbacks(&world, &ctx);
 
-    scheduler.register(move_system);
     scheduler.register(render_system);
 
     // Load asset textures
@@ -391,52 +350,7 @@ async fn main() {
 
         next_frame().await;
 
-        match ctx.db.player().identity().find(&ctx.identity()) {
-            Some(player) => {
-                match player.controlled_entity_id {
-                    Some(controlled_entity_id) => {
-                        match
-                            ctx.db.stellar_object_velocity().sobj_id().find(&controlled_entity_id)
-                        {
-                            Some(velocity) => {
-                                let mut vel = Vec2::default();
-                                if is_key_down(KeyCode::Right) || is_key_down(KeyCode::D) {
-                                    vel.x = 2.0;
-                                }
-                                if is_key_down(KeyCode::Left) || is_key_down(KeyCode::A) {
-                                    vel.x = -2.0;
-                                }
-                                if is_key_down(KeyCode::Down) || is_key_down(KeyCode::S) {
-                                    vel.y = 2.0;
-                                }
-                                if is_key_down(KeyCode::Up) || is_key_down(KeyCode::W) {
-                                    vel.y = -2.0;
-                                }
-                                match
-                                    ctx.reducers.update_stellar_object_velocity(
-                                        velocity.from_vec2(vel)
-                                    )
-                                {
-                                    Ok(_) => {
-                                        ();
-                                    }
-                                    Err(err) => {
-                                        info!("WARNING: Failed to update velocity: {:?}", err);
-                                    }
-                                }
-                            }
-                            None => {
-                                //info!("Could not find velocity for object");
-                            }
-                        }
-                    }
-                    None => {
-                        //info!("Could not find controlled object");
-                    }
-                }
-            }
-            None => (), //{info!("Could not find player")},
-        }
+        let _ = control_player_ship(&ctx);
 
         match receiver.recv_timeout(Duration::from_millis(10)) {
             Ok(sobj) => {
@@ -463,4 +377,46 @@ async fn main() {
             break;
         }
     }
+}
+
+fn control_player_ship(ctx: &DbConnection) -> Result<(), String> {
+    let player = ctx.db.player().identity().find(&ctx.identity()).ok_or("Could not find player.")?;
+    let controlled_entity_id = player.controlled_entity_id.ok_or(
+        "Player doesn't control a stellar object yet!"
+    )?;
+    let mut velocity = ctx.db
+        .stellar_object_velocity()
+        .sobj_id()
+        .find(&controlled_entity_id)
+        .ok_or("Player's controlled object doesn't have a velocity table entry!")?;
+
+    let vel = velocity.to_vec2();
+    let mut changed = false;
+    if is_key_down(KeyCode::Right) || is_key_down(KeyCode::D) {
+        velocity.rotation_radians += PI * 0.01337;
+        changed = true;
+    }
+    if is_key_down(KeyCode::Left) || is_key_down(KeyCode::A) {
+        velocity.rotation_radians -= PI * 0.01337;
+        changed = true;
+    }
+    if is_key_down(KeyCode::Down) || is_key_down(KeyCode::S) {
+        velocity = velocity.from_vec2(vel * 0.75);
+        changed = true;
+    }
+    if is_key_down(KeyCode::Up) || is_key_down(KeyCode::W) {
+        info!("Orig. Velocity: {}, {}", velocity.x, velocity.y);
+        let transform = get_transform(&ctx, velocity.sobj_id)?;
+        velocity = velocity.from_vec2(Vec2::from_angle(transform.rotation_radians) * 200.0);
+        changed = true;
+        info!("Updated Velocity: {}, {}", velocity.x, velocity.y);
+    }
+
+    if !changed {
+        return Ok(());
+    }
+
+    ctx.reducers
+        .update_stellar_object_velocity(velocity)
+        .or_else(|err| Err(err.to_string()))
 }
