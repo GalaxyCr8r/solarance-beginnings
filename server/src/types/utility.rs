@@ -7,9 +7,6 @@ use super::{ common::is_server_or_owner, players::{ player, Player }, stellarobj
 
 #[spacetimedb::reducer]
 pub fn create_player_controlled_ship(ctx: &ReducerContext, identity: Identity) -> Result<(), String> {
-    // let player = ctx.db
-    //     .player()
-    //     .insert();
     let mut player = Player {
         identity: identity,
         username: "GalaxyCr8r".to_string(),
