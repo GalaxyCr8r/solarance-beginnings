@@ -1,6 +1,6 @@
 use std::{ collections::HashMap, f32::consts::PI, sync::mpsc::{ self, Receiver }, time::Duration };
 
-use egui::Align2;
+use egui::{Align2, RichText};
 use macroquad::{ math::Vec2, prelude::*, ui::{ self } };
 use secs::World;
 use macroquad::miniquad::conf::Conf;
@@ -287,9 +287,32 @@ fn _window_conf() -> Conf {
 
 #[macroquad::main("secs_macroquad")]
 async fn main() {
+    loop {
+        clear_background(BLACK);
+
+        egui_macroquad::ui(|egui_ctx| {
+            egui::Window
+                ::new("Solarance:Beginnings")
+                .resizable(false)
+                .collapsible(false)
+                .movable(false)
+                .anchor(Align2::CENTER_CENTER, egui::Vec2::new(0.0, 0.0))
+                .show(egui_ctx, |ui| {
+                    if ui.button(RichText::new("\n      Login      \n").monospace().size(32.0)).clicked() {
+                        info!("CLICKED!");
+                    }
+                });
+        });
+
+        egui_macroquad::draw();
+        next_frame().await;
+    }
+}
+
+async fn _gameplay(token : Option<String>) {
     // DB Connection & ECS World
     let world = World::default();
-    let ctx = stdb_client_helper::connect_to_spacetime(None);
+    let ctx = stdb_client_helper::connect_to_spacetime(token);
 
     let scheduler = secs::Scheduler::default();
     let mut game_state = GameState {
