@@ -27,3 +27,5 @@ Cargo.lock
 /.spacetime
 
 client/src/module_bindings/
+
+.env
