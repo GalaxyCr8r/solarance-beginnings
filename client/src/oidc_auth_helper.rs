@@ -23,12 +23,9 @@ use openidconnect::core::{
 };
 use openidconnect::reqwest;
 use url::Url;
-use dotenv::dotenv;
 use std::env;
 
 pub(crate) fn begin_connection() -> Result<(), String> {
-    dotenv().ok();
-    env_logger::init();
     
     let auth0_client_id = ClientId::new(
         env::var("AUTH0_CLIENT_ID").expect("Missing the AUTH0_CLIENT_ID environment variable."),
@@ -37,7 +34,8 @@ pub(crate) fn begin_connection() -> Result<(), String> {
         env::var("AUTH0_CLIENT_SECRET")
             .expect("Missing the AUTH0_CLIENT_SECRET environment variable."),
     );
-    let issuer_url = IssuerUrl::new(env::var("AUTH0_ISSUER_URL").expect("Missing AUTH0_ISSUER_URL!")).expect("Invalid issuer URL");
+    let issuer_url = IssuerUrl::new(
+        env::var("AUTH0_ISSUER_URL").expect("Missing AUTH0_ISSUER_URL!")).expect("Invalid issuer URL");
     
     let http_client = reqwest::blocking::ClientBuilder::new()
         // Following redirects opens the client up to SSRF vulnerabilities.

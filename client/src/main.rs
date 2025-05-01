@@ -12,6 +12,8 @@ use spacetimedb_sdk::{ Table };
 mod stdb_client_helper;
 mod shader;
 pub mod oidc_auth_helper;
+use dotenv::dotenv;
+use std::env;
 
 struct GameState<'a> {
     paused: bool,
@@ -108,6 +110,7 @@ fn _window_conf() -> Conf {
 
 #[macroquad::main("secs_macroquad")]
 async fn main() {
+    dotenv().ok();
     
     set_pc_assets_folder("assets");
     let rings: Vec<Texture2D> =
@@ -144,9 +147,10 @@ async fn main() {
                 .movable(false)
                 .anchor(Align2::CENTER_CENTER, egui::Vec2::new(0.0, 0.0))
                 .show(egui_ctx, |ui| {
+                    ui.label(env::var("AUTH0_CLIENT_ID").unwrap_or(".env still ain't loading".to_string()));
                     if ui.button(RichText::new("\n      Login      \n").size(32.0)).clicked() {
                         info!("CLICKED!");
-                        oidc_auth_helper::begin_connection();
+                        let _ = oidc_auth_helper::begin_connection();
                     }
                 });
         });
