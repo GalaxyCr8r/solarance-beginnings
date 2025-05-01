@@ -25,7 +25,11 @@ use openidconnect::reqwest;
 use url::Url;
 use std::env;
 
-pub(crate) fn begin_connection() -> Result<(), String> {
+use std::thread;
+use std::net::{TcpListener, TcpStream};
+use std::io::{BufRead, BufReader, Read, Write};
+
+pub(crate) fn get_client_token() -> Result<String, String> {
     
     let auth0_client_id = ClientId::new(
         env::var("AUTH0_CLIENT_ID").expect("Missing the AUTH0_CLIENT_ID environment variable."),
@@ -58,30 +62,90 @@ pub(crate) fn begin_connection() -> Result<(), String> {
         Some(ClientSecret::new("eJnzhmxpt_JeGfn6LxAwrypfPMlXzuhkfVKKS0exNvjsoQMQ6q2vEU6vAP0OSqeQ".to_string())),
     )
     // Set the URL the user will be redirected to after the authorization process.
-        .set_redirect_uri(RedirectUrl::new("http://karlnyborg.com".to_string()).unwrap());
+        .set_redirect_uri(RedirectUrl::new("http://localhost:13613".to_string()).unwrap());
 
     // Generate a PKCE challenge.
     let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
 
     // Generate the full authorization URL.
-    let (auth_url, csrf_token, nonce) = client
-    .authorize_url(
-        CoreAuthenticationFlow::AuthorizationCode,
-        CsrfToken::new_random,
-        Nonce::new_random,
-    )
-    // Set the desired scopes.
-    .add_scope(Scope::new("read".to_string()))
-    .add_scope(Scope::new("write".to_string()))
-    // Set the PKCE code challenge.
-    .set_pkce_challenge(pkce_challenge)
-    .url();
+    let (auth_url, csrf_state, nonce) = client
+        .authorize_url(
+            CoreAuthenticationFlow::AuthorizationCode,
+            CsrfToken::new_random,
+            Nonce::new_random,
+        )
+        // Set the desired scopes.
+        .add_scope(Scope::new("read".to_string()))
+        .add_scope(Scope::new("write".to_string()))
+        // Set the PKCE code challenge.
+        .set_pkce_challenge(pkce_challenge)
+        .url();
 
     // This is the URL you should redirect the user to, in order to trigger the authorization
     // process.
     println!("Browse to: {}", auth_url);
+    let _ = open::that_in_background(auth_url.to_string());
 
-    Ok(())
+    let (code, state) = {
+        // A very naive implementation of the redirect server.
+        let listener = TcpListener::bind("127.0.0.1:13613").unwrap();
+
+        // Accept one connection
+        let (mut stream, _) = listener.accept().unwrap();
+
+        let mut reader = BufReader::new(&stream);
+
+        let mut request_line = String::new();
+        reader.read_line(&mut request_line).unwrap();
+
+        let redirect_url = request_line.split_whitespace().nth(1).unwrap();
+        let url = Url::parse(&("http://localhost".to_string() + redirect_url)).unwrap();
+
+        let code = url
+            .query_pairs()
+            .find(|(key, _)| key == "code")
+            .map(|(_, code)| AuthorizationCode::new(code.into_owned()))
+            .unwrap();
+
+        let state = url
+            .query_pairs()
+            .find(|(key, _)| key == "state")
+            .map(|(_, state)| CsrfToken::new(state.into_owned()))
+            .unwrap();
+
+        let message = "<h1>Login completed!</h1> <p>Return to <em>Solarance:Beginnings</em> and complain about this travesty of a landing page!</p>";
+        let response = format!(
+            "HTTP/1.1 200 OK\r\ncontent-length: {}\r\n\r\n{}",
+            message.len(),
+            message
+        );
+        stream.write_all(response.as_bytes()).unwrap();
+
+        (code, state)
+    };
+
+    println!("Auth0 returned the following code:\n{}\n", code.secret());
+    println!(
+        "Auth0 returned the following state:\n{} (expected `{}`)\n",
+        state.secret(),
+        csrf_state.secret()
+    );
+
+    // Exchange the code with a token.
+    let token_response = client
+        .exchange_code(code)
+        .expect("No user info endpoint")
+        .set_pkce_verifier(pkce_verifier)
+        .request(&http_client)
+        .expect("Failed to contact token endpoint");
+
+    println!(
+        "Auth0 returned access token:\n{}\n",
+        token_response.access_token().secret()
+    );
+    println!("Auth0 returned scopes: {:?}", token_response.scopes());
+
+    Ok(token_response.access_token().secret().to_string())
 }
 
 // fn finish_exchange() {

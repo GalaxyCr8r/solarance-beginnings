@@ -1,6 +1,6 @@
-use std::{ collections::HashMap, f32::consts::PI };
+use std::{ collections::HashMap, f32::consts::PI, thread::{self, JoinHandle} };
 
-use egui::{Align2, RichText};
+use egui::{Align2, Color32, RichText};
 use macroquad::{ math::Vec2, prelude::*, time};
 use secs::World;
 use macroquad::miniquad::conf::Conf;
@@ -108,9 +108,14 @@ fn _window_conf() -> Conf {
     }
 }
 
-#[macroquad::main("secs_macroquad")]
+#[macroquad::main("Solarance:Beginnings")]
 async fn main() {
     dotenv().ok();
+
+    let mut client_token_thread: Option<JoinHandle::<Result<String, String>>> = None;
+
+    let mut access_token: Option<String> = None;
+    let mut error_message: Option<String> = None;
     
     set_pc_assets_folder("assets");
     let rings: Vec<Texture2D> =
@@ -119,6 +124,19 @@ async fn main() {
              load_texture("Ring3.png").await.expect("Couldn't load file")];
 
     loop {
+        if client_token_thread.as_ref().is_some_and(|thread| {thread.is_finished()}) {
+            let thread = client_token_thread.take().unwrap();
+            if thread.is_finished() {
+                match thread.join() {
+                    Ok(token_result) => match token_result {
+                        Ok(token) => access_token = Some(token.to_string()),
+                        Err(error) => error_message = Some(error.to_string()),
+                    },
+                    Err(_join_error) => error_message = Some("Unknown join error of login thread!".to_string()),
+                }
+            }
+        }
+
         clear_background(BLACK);
 
         for i in 0 .. 3 {
@@ -138,7 +156,7 @@ async fn main() {
                     ..Default::default()
                 });
         }
-
+        
         egui_macroquad::ui(|egui_ctx| {
             egui::Window
                 ::new("Solarance:Beginnings")
@@ -147,10 +165,25 @@ async fn main() {
                 .movable(false)
                 .anchor(Align2::CENTER_CENTER, egui::Vec2::new(0.0, 0.0))
                 .show(egui_ctx, |ui| {
-                    ui.label(env::var("AUTH0_CLIENT_ID").unwrap_or(".env still ain't loading".to_string()));
+                    if client_token_thread.as_ref().is_none() {
+                        ui.label(env::var("AUTH0_CLIENT_ID").unwrap_or(".env still ain't loading".to_string()));
+                    } else {
+                        ui.label("Still thinking..");
+                    }
+
+                    if access_token.is_some() {
+                        ui.label(RichText::new(format!("ACCESS!!!: {}", access_token.as_ref().unwrap().to_string())).color(Color32::GREEN));
+                    }
+
+                    if error_message.is_some() {
+                        ui.label(RichText::new(format!("ERROR: {}", error_message.as_ref().unwrap().to_string())).color(Color32::RED));
+                    }
+
                     if ui.button(RichText::new("\n      Login      \n").size(32.0)).clicked() {
                         info!("CLICKED!");
-                        let _ = oidc_auth_helper::begin_connection();
+                        client_token_thread = Some(thread::spawn(|| {
+                            oidc_auth_helper::get_client_token()
+                        }));
                     }
                 });
         });
