@@ -1,15 +1,11 @@
-use anyhow::anyhow;
 use openidconnect::{
-    AccessTokenHash,
-    AuthenticationFlow,
     AuthorizationCode,
     ClientId,
-    ClientSecret,
     CsrfToken,
     IssuerUrl,
     Nonce,
     OAuth2TokenResponse,
-    PkceCodeChallenge,
+    PkceCodeChallenge, 
     RedirectUrl,
     Scope,
     TokenResponse,
@@ -17,26 +13,19 @@ use openidconnect::{
 use openidconnect::core::{
   CoreAuthenticationFlow,
   CoreClient,
-  CoreProviderMetadata,
-  CoreResponseType,
-  CoreUserInfoClaims,
+  CoreProviderMetadata
 };
 use openidconnect::reqwest;
 use url::Url;
 use std::env;
 
-use std::thread;
-use std::net::{TcpListener, TcpStream};
-use std::io::{BufRead, BufReader, Read, Write};
+use std::net::TcpListener;
+use std::io::{BufRead, BufReader, Write};
 
 pub(crate) fn get_client_token() -> Result<String, String> {
     
     let auth0_client_id = ClientId::new(
         env::var("AUTH0_CLIENT_ID").expect("Missing the AUTH0_CLIENT_ID environment variable."),
-    );
-    let auth0_client_secret: ClientSecret = ClientSecret::new(
-        env::var("AUTH0_CLIENT_SECRET")
-            .expect("Missing the AUTH0_CLIENT_SECRET environment variable."),
     );
     let issuer_url = IssuerUrl::new(
         env::var("AUTH0_ISSUER_URL").expect("Missing AUTH0_ISSUER_URL!")).expect("Invalid issuer URL");
@@ -58,8 +47,8 @@ pub(crate) fn get_client_token() -> Result<String, String> {
     let client =
     CoreClient::from_provider_metadata(
         provider_metadata,
-        ClientId::new("BnJiVrOXavZ1mbvsiwvBcZ96dTFH9k4L".to_string()),
-        Some(ClientSecret::new("eJnzhmxpt_JeGfn6LxAwrypfPMlXzuhkfVKKS0exNvjsoQMQ6q2vEU6vAP0OSqeQ".to_string())),
+        auth0_client_id,
+        None,
     )
     // Set the URL the user will be redirected to after the authorization process.
         .set_redirect_uri(RedirectUrl::new("http://localhost:13613".to_string()).unwrap());
@@ -68,7 +57,7 @@ pub(crate) fn get_client_token() -> Result<String, String> {
     let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
 
     // Generate the full authorization URL.
-    let (auth_url, csrf_state, nonce) = client
+    let (auth_url, csrf_state, _nonce) = client
         .authorize_url(
             CoreAuthenticationFlow::AuthorizationCode,
             CsrfToken::new_random,
