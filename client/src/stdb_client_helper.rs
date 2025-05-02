@@ -127,7 +127,7 @@ fn on_disconnected(_ctx: &ErrorContext, err: Option<Error>) {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Register all the callbacks our app will use to respond to database events.
-fn register_callbacks(_world: &World, ctx: &DbConnection) -> Receiver<StellarObject> {
+pub fn register_callbacks(_world: &World, ctx: &DbConnection) -> Receiver<StellarObject> {
     let (transmitter, receiver) = mpsc::channel();
 
     ctx.db.stellar_object().on_insert(move |_ec, row| {

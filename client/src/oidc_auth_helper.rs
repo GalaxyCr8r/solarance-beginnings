@@ -145,7 +145,7 @@ pub(crate) fn get_client_token() -> Result<String, String> {
     );
     println!("Auth0 returned scopes: {:?}", token_response.scopes());
 
-    Ok(token_response.access_token().secret().to_string())
+    Ok(token_response.id_token().expect("ID token is missing or malformed.").to_string())
 }
 
 // fn finish_exchange() {
