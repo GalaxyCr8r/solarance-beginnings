@@ -1,5 +1,8 @@
+use std::sync::mpsc::{self, Receiver};
+
 use macroquad::prelude::{glam, info};
-use spacetimedb_sdk::{credentials, DbContext, Error, Identity};
+use secs::World;
+use spacetimedb_sdk::{credentials, DbContext, Error, Identity, Table};
 
 use crate::module_bindings::*;
 
@@ -50,7 +53,7 @@ pub(crate) fn connect_to_spacetime(jwt_token:Option<String>) -> DbConnection {
     });
 
     // Register callbacks to run in response to database events.
-    register_callbacks(&ctx);
+    //register_callbacks(&ctx);
 
     // Subscribe to SQL queries in order to construct a local partial replica of the database.
     subscribe_to_tables(&ctx);
@@ -124,7 +127,18 @@ fn on_disconnected(_ctx: &ErrorContext, err: Option<Error>) {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Register all the callbacks our app will use to respond to database events.
-fn register_callbacks(_ctx: &DbConnection) {
+pub fn register_callbacks(_world: &World, ctx: &DbConnection) -> Receiver<StellarObject> {
+    let (transmitter, receiver) = mpsc::channel();
+
+    ctx.db.stellar_object().on_insert(move |_ec, row| {
+        match transmitter.send(row.clone()) {
+            Err(error) => println!("ERROR : {:?}", error),
+            _ => (),
+        }
+    });
+
+    return receiver;
+
     // When a new user joins, print a notification.
     // ctx.db.user().on_insert(on_user_inserted);
 

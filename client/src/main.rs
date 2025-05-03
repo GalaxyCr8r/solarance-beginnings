@@ -1,16 +1,20 @@
-use std::{ collections::HashMap, f32::consts::PI, sync::mpsc::{ self, Receiver }, time::Duration };
+use std::{ collections::HashMap, f32::consts::PI, sync::mpsc, thread::{ self, JoinHandle }, time::Duration };
 
-use egui::Align2;
-use macroquad::{ math::Vec2, prelude::*, ui::{ self } };
+use egui::{ Align2, Color32, RichText };
+use macroquad::{ math::Vec2, prelude::*, time, ui };
 use secs::World;
 use macroquad::miniquad::conf::Conf;
 
 mod module_bindings;
 use module_bindings::*;
 use spacetimedb_sdk::{ DbContext, Table };
-use stdb_client_helper::get_transform;
+//use stdb_client_helper::get_transform;
 mod stdb_client_helper;
 mod shader;
+pub mod oidc_auth_helper;
+use dotenv::dotenv;
+use stdb_client_helper::{get_transform, register_callbacks};
+use std::env;
 
 struct GameState<'a> {
     paused: bool,
@@ -30,32 +34,6 @@ struct Transform {
     y: f32,
     rotation_radians: f32,
 }
-
-// struct Velocity {
-//     x: f32,
-//     y: f32,
-// }
-
-// struct Sprite {
-//     //shape: Shape,
-//     width: f32,
-//     height: f32,
-// }
-
-// struct Powerup {
-//     active: bool,
-//     width: f32,
-//     height: f32,
-// }
-
-// struct Score {
-//     value: i32,
-// }
-
-// enum Shape {
-//     Square,
-//     Circle,
-// }
 
 fn draw_ship(transform: &StellarObjectTransform) {
     let position = Vec2::new(transform.x, transform.y);
@@ -116,34 +94,141 @@ fn render_system(_world: &World, game_state: &mut GameState) {
 
     draw_text("Solarance", 0.0, 64.0, 150.0, RED);
     draw_line(0.0, 0.0, 32.0, 150.0, 3.0, GOLD);
-
-    // world.query(|_, pos: &Position, sprite: &Sprite| match sprite.shape {
-    //     Shape::Square => draw_rectangle(
-    //         pos.x - (sprite.width * 0.5),
-    //         pos.y - (sprite.width * 0.5),
-    //         sprite.width,
-    //         sprite.height,
-    //         ORANGE,
-    //     ),
-    //     Shape::Circle => draw_circle(pos.x, pos.y, sprite.width * 0.5, PURPLE),
-    // });
-
-    // world.query(|_, powerup: &Powerup, pos: &Position| {
-    //     if powerup.active {
-    //         draw_rectangle(
-    //             pos.x - (powerup.width * 0.5),
-    //             pos.y - (powerup.width * 0.5),
-    //             powerup.width,
-    //             powerup.height,
-    //             RED,
-    //         );
-    //     }
-    // });
-
-    // world.query(|_, score: &Score| {
-    //     root_ui().label(None, &format!("Player Score: {}", score.value));
-    // });
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
+/// Main Loop
+////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
+fn _window_conf() -> Conf {
+    Conf {
+        window_title: "egui with macroquad & secs".to_owned(),
+        //high_dpi: true,
+        ..Default::default()
+    }
+}
+
+#[macroquad::main("Solarance:Beginnings")]
+async fn main() {
+    dotenv().ok();
+
+    let mut client_token_thread: Option<JoinHandle<Result<String, String>>> = None;
+
+    let mut access_token: Option<String> = None;
+    let mut error_message: Option<String> = None;
+
+    let mut break_the_loop = false;
+
+    set_pc_assets_folder("assets");
+    let rings: Vec<Texture2D> = vec![
+        load_texture("Ring1.png").await.expect("Couldn't load file"),
+        load_texture("Ring2.png").await.expect("Couldn't load file"),
+        load_texture("Ring3.png").await.expect("Couldn't load file")
+    ];
+
+    loop {
+        if client_token_thread.as_ref().is_some_and(|thread| { thread.is_finished() }) {
+            let thread = client_token_thread.take().unwrap();
+            if thread.is_finished() {
+                match thread.join() {
+                    Ok(token_result) =>
+                        match token_result {
+                            Ok(token) => {
+                                access_token = Some(token.to_string());
+                            }
+                            Err(error) => {
+                                error_message = Some(error.to_string());
+                            }
+                        }
+                    Err(_join_error) => {
+                        error_message = Some("Unknown join error of login thread!".to_string());
+                    }
+                }
+            }
+        }
+
+        clear_background(BLACK);
+
+        for i in 0..3 {
+            let rot = match i {
+                0 => { f32::cos((time::get_time() as f32) * 0.5) }
+                1 => { f32::sin(time::get_time() as f32) }
+                _ => { f32::cos((-time::get_time() as f32) * 0.25) }
+            };
+            draw_texture_ex(
+                rings[i],
+                screen_width() / 2.0 - rings[i].width() / 4.0,
+                screen_height() / 2.0 - rings[i].height() / 4.0,
+                Color {
+                    a: 0.5,
+                    ..Color::from_hex(0xbedaff)
+                },
+                DrawTextureParams {
+                    rotation: rot * PI,
+                    dest_size: Some(Vec2::new(rings[i].width() / 2.0, rings[i].height() / 2.0)),
+                    ..Default::default()
+                }
+            );
+        }
+
+        egui_macroquad::ui(|egui_ctx| {
+            egui::Window
+                ::new("Solarance:Beginnings")
+                .resizable(false)
+                .collapsible(false)
+                .movable(false)
+                .anchor(Align2::CENTER_CENTER, egui::Vec2::new(0.0, 0.0))
+                .show(egui_ctx, |ui| {
+                    if !client_token_thread.as_ref().is_none() {
+                        ui.label("Waiting on handshake...");
+                    }
+
+                    // if access_token.is_some() {
+                    //     ui.label(
+                    //         RichText::new(
+                    //             format!("ACCESS!!!: {}", access_token.as_ref().unwrap().to_string())
+                    //         ).color(Color32::GREEN)
+                    //     );
+                    // }
+
+                    if error_message.is_some() {
+                        ui.label(
+                            RichText::new(
+                                format!("ERROR: {}", error_message.as_ref().unwrap().to_string())
+                            ).color(Color32::RED)
+                        );
+                    }
+
+                    if !access_token.is_some() && ui.button(RichText::new("\n      Login      \n").size(32.0)).clicked() {
+                        info!("CLICKED!");
+                        client_token_thread = Some(
+                            thread::spawn(|| { oidc_auth_helper::get_client_token() })
+                        );
+                    }
+                    if access_token.is_some() && ui.button(RichText::new("\n      PLAY!      \n").size(32.0)).clicked() {
+                        info!("CLICKED!");
+                        break_the_loop = true;
+                    }
+                });
+        });
+
+        egui_macroquad::draw();
+        next_frame().await;
+
+        if break_the_loop {
+            break;
+        }
+    }
+
+    gameplay(access_token).await;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
+/// Debug Gameplay Window
+////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
 
 fn debug_window(game_state: &mut GameState) {
     let ctx = &game_state.ctx;
@@ -218,78 +303,16 @@ fn debug_window(game_state: &mut GameState) {
     });
 }
 
-// fn on_stellar_object_inserted(_event: &EventContext, sobj: &StellarObject) {
-//     println!("Stellar Object Inserted: {:?}", sobj);
-//     unsafe {
-//         let world_lock = WORLD.lock();
-//         if world_lock.is_err() {
-//             println!("Failed to get world lock");
-//             return;
-//         }
-//         let world = world_lock.unwrap();
-
-//         world.spawn((
-//             StellarObject {
-//                 id: sobj.id,
-//                 kind: sobj.kind,
-//                 sector_id: 0
-//             },
-//             StellarObjectTransform {
-//                 sobj_id: sobj.id,
-//                 x: 0.0, y: 0.0,
-//                 rotation_radians: 0.0
-//             }
-//         ));
-//     }
-// }
-
-/// Register all the callbacks our app will use to respond to database events.
-fn register_callbacks(world: &World, ctx: &DbConnection) -> Receiver<StellarObject> {
-    let (transmitter, receiver) = mpsc::channel();
-
-    ctx.db.stellar_object().on_insert(move |_ec, row| {
-        match transmitter.send(row.clone()) {
-            Err(error) => println!("ERROR : {:?}", error),
-            _ => (),
-        }
-    });
-
-    return receiver;
-
-    // When a new user joins, print a notification.
-    // ctx.db.user().on_insert(on_user_inserted);
-
-    // // When a user's status changes, print a notification.
-    // ctx.db.user().on_update(on_user_updated);
-
-    // // When a new message is received, print it.
-    // ctx.db.message().on_insert(on_message_inserted);
-
-    // // When we fail to set our name, print a warning.
-    // ctx.reducers.on_set_name(on_name_set);
-
-    // // When we fail to send a message, print a warning.
-    // ctx.reducers.on_send_message(on_message_sent);
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 /// Main Loop
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
-fn _window_conf() -> Conf {
-    Conf {
-        window_title: "egui with macroquad & secs".to_owned(),
-        //high_dpi: true,
-        ..Default::default()
-    }
-}
 
-#[macroquad::main("secs_macroquad")]
-async fn main() {
+pub async fn gameplay(token : Option<String>) {
     // DB Connection & ECS World
     let world = World::default();
-    let ctx = stdb_client_helper::connect_to_spacetime(None);
+    let ctx = stdb_client_helper::connect_to_spacetime(token);
 
     let scheduler = secs::Scheduler::default();
     let mut game_state = GameState {
