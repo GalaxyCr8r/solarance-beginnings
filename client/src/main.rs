@@ -8,13 +8,11 @@ use macroquad::miniquad::conf::Conf;
 mod module_bindings;
 use module_bindings::*;
 use spacetimedb_sdk::{ DbContext, Table };
-//use stdb_client_helper::get_transform;
 mod stdb_client_helper;
 mod shader;
 pub mod oidc_auth_helper;
 use dotenv::dotenv;
 use stdb_client_helper::{get_transform, register_callbacks};
-use std::env;
 
 struct GameState<'a> {
     paused: bool,
@@ -35,7 +33,7 @@ struct Transform {
     rotation_radians: f32,
 }
 
-fn draw_ship(transform: &StellarObjectTransform) {
+fn draw_ship(transform: &StellarObjectTransform) { // TODO: Refactor this out of main.rs
     let position = Vec2::new(transform.x, transform.y);
     let forward = Vec2::from_angle(transform.rotation_radians) * 16.0;
     let right = Vec2::from_angle(transform.rotation_radians + PI * 0.75) * 16.0;
@@ -55,7 +53,7 @@ fn draw_ship(transform: &StellarObjectTransform) {
     });
 }
 
-fn render_system(_world: &World, game_state: &mut GameState) {
+fn render_system(_world: &World, game_state: &mut GameState) { // TODO: Refactor this out of main.rs
     if game_state.paused {
         let text = "PAUSED";
         let font_size = 100.0;
@@ -66,6 +64,11 @@ fn render_system(_world: &World, game_state: &mut GameState) {
 
         return;
     }
+
+    // TODO: Figure out how to get the player ship's position at the beginning so we can offset everything drawn by it.
+
+    let sun = game_state.textures["star"];
+    draw_texture(sun, sun.width() * -0.5, sun.height() * -0.5, WHITE);
 
     for object in game_state.ctx.db.stellar_object().iter() {
         match game_state.ctx.db.stellar_object_hi_res().sobj_id().find(&object.id) {
@@ -91,9 +94,6 @@ fn render_system(_world: &World, game_state: &mut GameState) {
             }
         }
     }
-
-    draw_text("Solarance", 0.0, 64.0, 150.0, RED);
-    draw_line(0.0, 0.0, 32.0, 150.0, 3.0, GOLD);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -110,12 +110,12 @@ fn _window_conf() -> Conf {
 }
 
 #[macroquad::main("Solarance:Beginnings")]
-async fn main() {
+async fn main() { // TODO: Refactor most of this stuff out of main.rs
     dotenv().ok();
 
     let mut client_token_thread: Option<JoinHandle<Result<String, String>>> = None;
 
-    let mut access_token: Option<String> = None;
+    let mut id_token: Option<String> = None;
     let mut error_message: Option<String> = None;
 
     let mut break_the_loop = false;
@@ -127,7 +127,7 @@ async fn main() {
         load_texture("Ring3.png").await.expect("Couldn't load file")
     ];
 
-    loop {
+    loop { 
         if client_token_thread.as_ref().is_some_and(|thread| { thread.is_finished() }) {
             let thread = client_token_thread.take().unwrap();
             if thread.is_finished() {
@@ -135,7 +135,7 @@ async fn main() {
                     Ok(token_result) =>
                         match token_result {
                             Ok(token) => {
-                                access_token = Some(token.to_string());
+                                id_token = Some(token.to_string());
                             }
                             Err(error) => {
                                 error_message = Some(error.to_string());
@@ -183,32 +183,25 @@ async fn main() {
                     if !client_token_thread.as_ref().is_none() {
                         ui.label("Waiting on handshake...");
                     }
-
-                    // if access_token.is_some() {
-                    //     ui.label(
-                    //         RichText::new(
-                    //             format!("ACCESS!!!: {}", access_token.as_ref().unwrap().to_string())
-                    //         ).color(Color32::GREEN)
-                    //     );
-                    // }
-
-                    if error_message.is_some() {
-                        ui.label(
-                            RichText::new(
-                                format!("ERROR: {}", error_message.as_ref().unwrap().to_string())
-                            ).color(Color32::RED)
-                        );
-                    }
-
-                    if !access_token.is_some() && ui.button(RichText::new("\n      Login      \n").size(32.0)).clicked() {
-                        info!("CLICKED!");
-                        client_token_thread = Some(
-                            thread::spawn(|| { oidc_auth_helper::get_client_token() })
-                        );
-                    }
-                    if access_token.is_some() && ui.button(RichText::new("\n      PLAY!      \n").size(32.0)).clicked() {
-                        info!("CLICKED!");
-                        break_the_loop = true;
+                    else {
+                        if error_message.is_some() {
+                            ui.label(
+                                RichText::new(
+                                    format!("ERROR: {}", error_message.as_ref().unwrap().to_string())
+                                ).color(Color32::RED)
+                            );
+                        }
+    
+                        if !id_token.is_some() && ui.button(RichText::new("\n      Login      \n").size(32.0)).clicked() {
+                            info!("CLICKED!");
+                            client_token_thread = Some(
+                                thread::spawn(|| { oidc_auth_helper::get_client_token() })
+                            );
+                        }
+                        if id_token.is_some() && ui.button(RichText::new("\n      PLAY!      \n").size(32.0)).clicked() {
+                            info!("CLICKED!");
+                            break_the_loop = true;
+                        }
                     }
                 });
         });
@@ -221,7 +214,7 @@ async fn main() {
         }
     }
 
-    gameplay(access_token).await;
+    gameplay(id_token).await;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -230,7 +223,7 @@ async fn main() {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-fn debug_window(game_state: &mut GameState) {
+fn debug_window(game_state: &mut GameState) { // TODO: Refactor this out of main.rs
     let ctx = &game_state.ctx;
 
     egui_macroquad::ui(|egui_ctx| {
@@ -309,7 +302,7 @@ fn debug_window(game_state: &mut GameState) {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub async fn gameplay(token : Option<String>) {
+pub async fn gameplay(token : Option<String>) { // TODO: Refactor this out of main.rs
     // DB Connection & ECS World
     let world = World::default();
     let ctx = stdb_client_helper::connect_to_spacetime(token);
@@ -327,22 +320,32 @@ pub async fn gameplay(token : Option<String>) {
     scheduler.register(render_system);
 
     // Load asset textures
+    info!("Loading textures...");
     set_pc_assets_folder("assets");
+    let sun_texture: Texture2D =
+        load_texture("stars/star.png").await.expect("Couldn't load file");
+    sun_texture.set_filter(FilterMode::Nearest);
     let ship_texture: Texture2D =
         load_texture("ships/lc/phalanx.png").await.expect("Couldn't load file");
     ship_texture.set_filter(FilterMode::Nearest);
+    let station_texture: Texture2D =
+        load_texture("ships/lc/generic_station.png").await.expect("Couldn't load file");
+        station_texture.set_filter(FilterMode::Nearest);
     let bullet_texture: Texture2D =
         load_texture("ships/bullet02.png").await.expect("Couldn't load file");
     bullet_texture.set_filter(FilterMode::Linear);
 
     build_textures_atlas();
+    game_state.textures.insert("star", sun_texture);
     game_state.textures.insert("lc/phalanx", ship_texture);
+    game_state.textures.insert("lc/station", station_texture);
     game_state.textures.insert("bullet", bullet_texture);
 
     // Load starfield shader
+    info!("Loading shader...");
     let sf_shader = shader::load_starfield_shader();
     let render_target = render_target(320, 150);
-    render_target.texture.set_filter(FilterMode::Nearest);
+    render_target.texture.set_filter(FilterMode::Linear);
 
     // Setup Panic Handler
     set_panic_handler(|msg, _backtrace| async move {
@@ -367,10 +370,9 @@ pub async fn gameplay(token : Option<String>) {
         // run all parallel and sequential systems
         scheduler.run(&world, &mut game_state);
 
-        egui_macroquad::draw();
-
         debug_window(&mut game_state);
 
+        egui_macroquad::draw();
         next_frame().await;
 
         let _ = control_player_ship(&ctx);
