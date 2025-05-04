@@ -102,19 +102,19 @@ pub fn __move_ships(ctx: &ReducerContext) {
         if wrapped_velocity.is_none() { continue; }
         let mut velocity = wrapped_velocity.unwrap();
 
-        // TODO: Remove this code, this is ONLY for early milestones!
-        if transform.x > 500.0 {
-            transform.x -= 500.0;
-        } else if transform.x < 0. {
-            transform.x += 500.0;
-        }
+        // // TODO: Remove this code, this is ONLY for early milestones!
+        // if transform.x > 500.0 {
+        //     transform.x -= 500.0;
+        // } else if transform.x < 0. {
+        //     transform.x += 500.0;
+        // }
 
-        if transform.y > 500.0 {
-            transform.y -= 500.0;
-        } else if transform.y < 0. {
-            transform.y += 500.0;
-        }
-        // TODO:RM
+        // if transform.y > 500.0 {
+        //     transform.y -= 500.0;
+        // } else if transform.y < 0. {
+        //     transform.y += 500.0;
+        // }
+        // // TODO:RM
 
         transform=transform.from_vec2(transform.to_vec2() + velocity.to_vec2());
         transform.rotation_radians += velocity.rotation_radians;

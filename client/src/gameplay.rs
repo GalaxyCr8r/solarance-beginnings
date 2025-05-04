@@ -16,6 +16,7 @@ struct GameState<'a> {
     done: bool,
     ctx: &'a DbConnection,
     textures: HashMap<&'static str, Texture2D>,
+    camera: Camera2D
 }
 
 // #[derive(Default)]
@@ -33,7 +34,7 @@ struct GameState<'a> {
 
 /// Register all the callbacks our app will use to respond to database events.
 pub fn register_callbacks(world: &World, ctx: &DbConnection) -> Receiver<StellarObject> {
-    let (transmitter, receiver) = mpsc::channel();
+    let (_transmitter, receiver) = mpsc::channel();
 
     ctx.db.stellar_object().on_insert( |_ec, sobj| {
         println!("Stellar Object Inserted: {:?}", sobj);
@@ -84,24 +85,33 @@ pub fn register_callbacks(world: &World, ctx: &DbConnection) -> Receiver<Stellar
     // ctx.reducers.on_send_message(on_message_sent);
 }
 
-fn draw_ship(transform: &StellarObjectTransform) { // TODO: Refactor this out of main.rs
-    let position = Vec2::new(transform.x, transform.y);
+fn draw_ship(transform: &StellarObjectTransform, game_state: &mut GameState) {
+    let position = transform.to_vec2();
     let forward = Vec2::from_angle(transform.rotation_radians) * 16.0;
-    let right = Vec2::from_angle(transform.rotation_radians + PI * 0.75) * 16.0;
-    let left = Vec2::from_angle(transform.rotation_radians - PI * 0.75) * 16.0;
 
     let forward_pos = position + forward * 2.0;
 
     draw_line(position.x, position.y, forward_pos.x, forward_pos.y, 2.0, RED);
-    draw_triangle(position + forward, position + right, position + left, WHITE);
 
     let string = format!("Sobj{}", transform.sobj_id.to_string());
-    draw_text_ex(&string, transform.x, transform.y, TextParams {
+    draw_text_ex(&string, position.x, position.y, TextParams {
         font_size: 16,
         rotation: transform.rotation_radians,
         color: WHITE,
         ..TextParams::default()
     });
+
+    let tex = game_state.textures["lc.phalanx"];
+    draw_texture_ex(
+        tex,
+        position.x - tex.width() * 0.5,
+        position.y - tex.height() * 0.5,
+        WHITE,
+        DrawTextureParams {
+            rotation: transform.rotation_radians,
+            ..DrawTextureParams::default()
+        }
+    );
 }
 
 fn render_system(_world: &World, game_state: &mut GameState) { // TODO: Refactor this out of main.rs
@@ -122,29 +132,14 @@ fn render_system(_world: &World, game_state: &mut GameState) { // TODO: Refactor
     draw_texture(sun, sun.width() * -0.5, sun.height() * -0.5, WHITE);
 
     for object in game_state.ctx.db.stellar_object().iter() {
-        match game_state.ctx.db.stellar_object_hi_res().sobj_id().find(&object.id) {
-            Some(hirez) => {
-                draw_ship(&hirez);
-                let tex = game_state.textures["lc.phalanx"];
-                draw_texture_ex(
-                    tex,
-                    hirez.x - tex.width() * 0.5,
-                    hirez.y - tex.height() * 0.5,
-                    WHITE,
-                    DrawTextureParams {
-                        rotation: hirez.rotation_radians,
-                        ..DrawTextureParams::default()
-                    }
-                );
-            }
-            None => {
-                match game_state.ctx.db.stellar_object_low_res().sobj_id().find(&object.id) {
-                    Some(lorez) => draw_ship(&lorez),
-                    None => (),
-                }
-            }
+        let transform = get_transform(game_state.ctx, object.id);
+
+        if transform.is_ok() {
+            draw_ship(&transform.unwrap(), game_state);
         }
     }
+
+    draw_line(0.0, 0.0, game_state.camera.target.x, game_state.camera.target.y, 3.0, RED);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -218,6 +213,14 @@ fn debug_window(game_state: &mut GameState) { // TODO: Refactor this out of main
                     });
                 }
 
+                ui.label(
+                    format!(
+                        "Camera: {}, {}",
+                        game_state.camera.target.x.to_string(),
+                        game_state.camera.target.y.to_string()
+                    )
+                );
+
                 ui.add_space(8.0);
                 if ui.button("  Quit  ").clicked() {
                     game_state.done = true;
@@ -232,7 +235,7 @@ fn debug_window(game_state: &mut GameState) { // TODO: Refactor this out of main
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub async fn gameplay(textures : HashMap<&'static str, Texture2D>, token : Option<String>) { // TODO: Refactor this out of main.rs
+pub async fn gameplay(textures : HashMap<&'static str, Texture2D>, token : Option<String>) {
     // DB Connection & ECS World
     let world = World::default();
     let ctx = connect_to_spacetime(token);
@@ -243,9 +246,18 @@ pub async fn gameplay(textures : HashMap<&'static str, Texture2D>, token : Optio
         done: false,
         ctx: &ctx,
         textures: textures,
+        camera: Camera2D::from_display_rect(Rect { x: 0.0, y: 0.0, w: screen_width(), h: screen_height() })
+        // camera: Camera2D{
+        //     rotation: 0.0,
+        //     zoom: Vec2 { x: 1.0, y: 1.0 },
+        //     target: Vec2::ZERO,
+        //     offset: Vec2::ZERO,
+        //     render_target: None,
+        //     viewport: None,
+        // }
     };
 
-    let receiver = register_callbacks(&world, &ctx);
+    let _receiver = register_callbacks(&world, &ctx);
 
     scheduler.register(render_system);
 
@@ -264,14 +276,20 @@ pub async fn gameplay(textures : HashMap<&'static str, Texture2D>, token : Optio
         }
     });
 
+    set_camera(&game_state.camera);
+
     let mut tmp_angle = 0.0;
     loop {
         clear_background(WHITE);
-        //clear_background(BLACK);
+
+        game_state.camera.target = get_player_transform_vec2(&ctx, Vec2::ZERO);// - Vec2 { x: screen_width()/4.0, y: screen_height()/4.0 };
+        set_camera(&game_state.camera);
+        
         apply_shader_to_screen(
             render_target,
             sf_shader,
-            Vec2::from_angle(tmp_angle) * 0.01337
+            game_state.camera.target,
+            game_state.camera.target * 0.0001337
         );
         tmp_angle += 0.01337;
 
@@ -284,26 +302,6 @@ pub async fn gameplay(textures : HashMap<&'static str, Texture2D>, token : Optio
         next_frame().await;
 
         let _ = control_player_ship(&ctx);
-
-        // match receiver.recv_timeout(Duration::from_millis(10)) {
-        //     Ok(sobj) => {
-        //         println!("Stellar Object Inserted: {:?}", sobj);
-        //         world.spawn((
-        //             SolShip {
-        //                 sobj_id: sobj.id,
-        //                 ..Default::default()
-        //             },
-        //             Transform::default(),
-        //         ));
-        //     }
-        //     Err(err) =>
-        //         match err {
-        //             mpsc::RecvTimeoutError::Timeout => (),
-        //             mpsc::RecvTimeoutError::Disconnected => {
-        //                 println!("ERROR : {:?}", err);
-        //             }
-        //         }
-        // }
 
         if game_state.done {
             let _ = ctx.disconnect();

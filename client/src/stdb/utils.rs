@@ -1,3 +1,4 @@
+use macroquad::{math::Vec2, prelude::glam};
 use spacetimedb_sdk::DbContext;
 
 use crate::module_bindings::*;
@@ -30,5 +31,24 @@ pub fn get_player_sobj_id(ctx: &DbConnection) -> Option<u64> {
     match this {
         Some(v) => v.controlled_entity_id,
         None => None,
+    }
+}
+
+pub fn get_player_transform(ctx: &DbConnection) -> Option<StellarObjectTransform> {
+    let this = get_player_sobj_id(ctx);
+    if this.is_some() {
+        get_transform(ctx, this.unwrap()).ok()
+    } else {None}
+}
+
+pub fn get_player_transform_vec2(ctx: &DbConnection, default: glam::Vec2) -> glam::Vec2 {
+    let this = get_player_sobj_id(ctx);
+    if this.is_some() {
+        match get_transform(ctx, this.unwrap()) {
+            Ok(t) => t.to_vec2(),
+            Err(_) => default,
+        }
+    } else {
+        default
     }
 }
