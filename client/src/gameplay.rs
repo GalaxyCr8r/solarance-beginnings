@@ -157,7 +157,7 @@ fn debug_window(game_state: &mut GameState) { // TODO: Refactor this out of main
             .resizable(false)
             .collapsible(false)
             .movable(false)
-            .anchor(Align2::RIGHT_TOP, egui::Vec2::new(-5.0, 5.0))
+            .anchor(Align2::LEFT_TOP, egui::Vec2::new(-5.0, 5.0))
             .show(egui_ctx, |ui| {
                 match ctx.db.player().identity().find(&ctx.identity()) {
                     Some(player) => {

@@ -59,10 +59,6 @@ fn _window_conf() -> Conf {
 async fn main() {
     dotenv().ok();
 
-    let test = vec!["One".to_string(), "Forty two".to_string()];
-    let text = "Yolo".to_string();
-    let testtwo = test.clone().push(text);
-
     loop {
         let id_token: Option<String> = login_screen().await;
 

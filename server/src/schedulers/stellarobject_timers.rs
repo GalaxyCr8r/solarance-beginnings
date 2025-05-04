@@ -1,4 +1,5 @@
-use std::time::Duration;
+use std::{f32::consts::PI, time::Duration};
+use glam::Vec2;
 use spacetimedb::{ReducerContext, Table};
 
 use crate::types::stellarobjects::{*};
@@ -29,6 +30,8 @@ pub struct MoveShipsTimer {
     current_update: u8,
 }
 
+/// Init ///
+
 pub fn init(ctx: &ReducerContext) {
     ctx.db.update_sobj_transform_timer().insert(UpdateTransformsTimer {
         scheduled_id: 0,
@@ -36,6 +39,8 @@ pub fn init(ctx: &ReducerContext) {
         current_update: 0
     });
 }
+
+/// Reducers ///
 
 #[spacetimedb::reducer]
 pub fn update_sobj_transforms(ctx: &ReducerContext, timer: UpdateTransformsTimer) {
@@ -103,17 +108,10 @@ pub fn __move_ships(ctx: &ReducerContext) {
         let mut velocity = wrapped_velocity.unwrap();
 
         // // TODO: Remove this code, this is ONLY for early milestones!
-        // if transform.x > 500.0 {
-        //     transform.x -= 500.0;
-        // } else if transform.x < 0. {
-        //     transform.x += 500.0;
-        // }
-
-        // if transform.y > 500.0 {
-        //     transform.y -= 500.0;
-        // } else if transform.y < 0. {
-        //     transform.y += 500.0;
-        // }
+        if let Some(_controller) = ctx.db.stellar_object_controller_turn_left().sobj_id().find(object.id) {
+            velocity = velocity.from_vec2(Vec2::from_angle(transform.rotation_radians) * 25.0);
+            transform.rotation_radians += PI * 0.01337;
+        }
         // // TODO:RM
 
         transform=transform.from_vec2(transform.to_vec2() + velocity.to_vec2());
@@ -123,6 +121,9 @@ pub fn __move_ships(ctx: &ReducerContext) {
 
         // Add inertia to the velocity
         velocity=velocity.from_vec2(velocity.to_vec2() * 0.975); // TODO:: Milestone 10+ make these ship-type specific values.
+        if velocity.to_vec2().length() < 0.01337 {
+            velocity = velocity.from_vec2(Vec2::ZERO);
+        }
         velocity.rotation_radians *= 0.75; // TODO:: Milestone 10+ make these ship-type specific values.
         
         ctx.db.stellar_object_velocity().sobj_id().update(velocity);
