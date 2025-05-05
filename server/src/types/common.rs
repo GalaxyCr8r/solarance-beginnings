@@ -1,6 +1,6 @@
 use spacetimedb::{Identity, ReducerContext, SpacetimeType, Table};
 
-use super::players::player;
+use super::{players::player, stellarobjects::player_controlled_stellar_object};
 
 
 
@@ -50,9 +50,8 @@ pub fn is_server_or_owner(ctx: &ReducerContext, sobj_id: u64) -> Result<(), Stri
     if ctx.sender == ctx.identity() {
         return Ok(());
     }
-    let owner = ctx.db.player().identity().find(ctx.sender).ok_or(IS_SERVER_OR_OWNER_ERROR)?;
-    let controlled_entity_id = owner.controlled_entity_id.ok_or(IS_SERVER_OR_OWNER_ERROR)?;
-    if controlled_entity_id == sobj_id {
+    let owner = ctx.db.player_controlled_stellar_object().identity().find(ctx.sender).ok_or(IS_SERVER_OR_OWNER_ERROR)?;
+    if owner.controlled_sobj_id == sobj_id {
         return Ok(());
     }
     Err(IS_SERVER_OR_OWNER_ERROR.to_string())

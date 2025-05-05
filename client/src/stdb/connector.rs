@@ -156,6 +156,10 @@ fn subscribe_to_tables(ctx: &DbConnection) {
         .on_applied(on_sub_applied)
         .on_error(on_sub_error)
         .subscribe(["SELECT * FROM player"]);
+    ctx.subscription_builder()
+        .on_applied(on_sub_applied)
+        .on_error(on_sub_error)
+        .subscribe(["SELECT * FROM player_controlled_stellar_object"]);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////

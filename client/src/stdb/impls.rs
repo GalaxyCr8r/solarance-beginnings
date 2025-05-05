@@ -17,3 +17,13 @@ impl StellarObjectTransform {
         StellarObjectTransform { x: vec.x, y: vec.y, ..*self }
     }
 }
+
+impl Player {
+    pub fn get_controlled_stellar_object(&self, ctx: &DbConnection) -> Option<u64> {
+        if let Some(player_controlled_stellar_object) = ctx.db.player_controlled_stellar_object().identity().find(&self.identity) {
+            Some(player_controlled_stellar_object.controlled_sobj_id)
+        } else {
+            None
+        }
+    }
+}

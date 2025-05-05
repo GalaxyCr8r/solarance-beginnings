@@ -1,5 +1,6 @@
 use std::{f32::consts::PI, time::Duration};
 use glam::Vec2;
+use log::info;
 use spacetimedb::{ReducerContext, Table};
 
 use crate::types::stellarobjects::{*};
@@ -27,7 +28,14 @@ pub struct MoveShipsTimer {
     #[auto_inc]
     scheduled_id: u64,
     scheduled_at: spacetimedb::ScheduleAt,
-    current_update: u8,
+}
+
+#[spacetimedb::table(name = update_player_windows_timer, scheduled(update_player_windows))]
+pub struct UpdatePlayerWindowsTimer {
+    #[primary_key]
+    #[auto_inc]
+    scheduled_id: u64,
+    scheduled_at: spacetimedb::ScheduleAt,
 }
 
 /// Init ///
@@ -37,6 +45,10 @@ pub fn init(ctx: &ReducerContext) {
         scheduled_id: 0,
         scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 20).into()),
         current_update: 0
+    });
+    ctx.db.update_player_windows_timer().insert(UpdatePlayerWindowsTimer {
+        scheduled_id: 0,
+        scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_millis(750).into()),
     });
 }
 
@@ -127,5 +139,28 @@ pub fn __move_ships(ctx: &ReducerContext) {
         velocity.rotation_radians *= 0.75; // TODO:: Milestone 10+ make these ship-type specific values.
         
         ctx.db.stellar_object_velocity().sobj_id().update(velocity);
+    }
+}
+
+#[spacetimedb::reducer]
+pub fn update_player_windows(ctx: &ReducerContext, _timer: UpdatePlayerWindowsTimer) {
+    for window in ctx.db.stellar_object_player_window().iter() {
+        if let Some(player) = ctx.db.player_controlled_stellar_object().identity().find(window.identity) {
+            if let Some(transform) = ctx.db.stellar_object_internal().sobj_id().find(player.controlled_sobj_id) {
+                // Check to see if the player has moved too close to window's margin and recalculate the window if needed.
+                if transform.x < window.tl_x + window.margin || transform.x > window.br_x - window.margin ||
+                   transform.y < window.tl_y + window.margin || transform.x > window.br_y - window.margin 
+                {                    
+                    let result = ctx.db.stellar_object_player_window().identity().update(StellarObjectPlayerWindow { 
+                        tl_x: transform.x - window.window, 
+                        tl_y: transform.y - window.window, 
+                        br_x: transform.x + window.window, 
+                        br_y: transform.y + window.window,
+                        ..window
+                    });
+                    info!("Recalcuating window for player stellar obj #{}: [({}, {}) ({}, {})]", player.controlled_sobj_id, result.tl_x, result.tl_y, result.br_x, result.br_y);
+                }
+            }
+        }
     }
 }

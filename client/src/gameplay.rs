@@ -132,10 +132,8 @@ fn render_system(_world: &World, game_state: &mut GameState) { // TODO: Refactor
     draw_texture(sun, sun.width() * -0.5, sun.height() * -0.5, WHITE);
 
     for object in game_state.ctx.db.stellar_object().iter() {
-        let transform = get_transform(game_state.ctx, object.id);
-
-        if transform.is_ok() {
-            draw_ship(&transform.unwrap(), game_state);
+        if let Ok(transform) = get_transform(game_state.ctx, object.id) {
+            draw_ship(&transform, game_state);
         }
     }
 
@@ -162,8 +160,8 @@ fn debug_window(game_state: &mut GameState) { // TODO: Refactor this out of main
                 match ctx.db.player().identity().find(&ctx.identity()) {
                     Some(player) => {
                         ui.heading(format!("Player: {}", player.username));
-                        if player.controlled_entity_id.is_some() {
-                            match get_transform(&ctx, player.controlled_entity_id.unwrap())
+                        if let Some(controlled) = player.get_controlled_stellar_object(&ctx) {
+                            match get_transform(&ctx, controlled)
                             {
                                 Ok(transform) => {
                                     ui.label(
@@ -211,6 +209,10 @@ fn debug_window(game_state: &mut GameState) { // TODO: Refactor this out of main
                             }
                         }
                     });
+                }
+
+                for playerControlled in ctx.db.player_controlled_stellar_object().iter() {
+                    ui.label(format!(" - Player Controlled Obj #{} in Sec#{}", playerControlled.controlled_sobj_id, playerControlled.sector_id));
                 }
 
                 ui.label(
