@@ -47,13 +47,6 @@ async fn load_textures() -> HashMap<&'static str, Texture2D>
 /// Main Loop
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
-fn _window_conf() -> Conf {
-    Conf {
-        window_title: "egui with macroquad & secs".to_owned(),
-        //high_dpi: true,
-        ..Default::default()
-    }
-}
 
 #[macroquad::main("Solarance:Beginnings")]
 async fn main() {
