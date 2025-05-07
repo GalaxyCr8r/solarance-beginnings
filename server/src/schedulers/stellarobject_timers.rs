@@ -128,6 +128,9 @@ pub fn __move_ships(ctx: &ReducerContext) {
 
         transform=transform.from_vec2(transform.to_vec2() + velocity.to_vec2());
         transform.rotation_radians += velocity.rotation_radians;
+        if transform.rotation_radians.abs() > PI * 2.0 {
+            transform.rotation_radians = transform.rotation_radians.abs() % PI * 2.0;
+        }
 
         ctx.db.stellar_object_internal().sobj_id().update(transform);
 
@@ -148,8 +151,10 @@ pub fn update_player_windows(ctx: &ReducerContext, _timer: UpdatePlayerWindowsTi
         if let Some(player) = ctx.db.player_controlled_stellar_object().identity().find(window.identity) {
             if let Some(transform) = ctx.db.stellar_object_internal().sobj_id().find(player.controlled_sobj_id) {
                 // Check to see if the player has moved too close to window's margin and recalculate the window if needed.
-                if transform.x < window.tl_x + window.margin || transform.x > window.br_x - window.margin ||
-                   transform.y < window.tl_y + window.margin || transform.x > window.br_y - window.margin 
+                if transform.x < window.tl_x + window.margin || 
+                   transform.x > window.br_x - window.margin ||
+                   transform.y < window.tl_y + window.margin || 
+                   transform.y > window.br_y - window.margin 
                 {                    
                     let result = ctx.db.stellar_object_player_window().identity().update(StellarObjectPlayerWindow { 
                         tl_x: transform.x - window.window, 

@@ -125,9 +125,9 @@ const LR_OBJECT_FILTER: Filter = Filter::Sql(
     FROM stellar_object_low_res o
     JOIN stellar_object_player_window w
     WHERE w.identity = :sender AND
-          (o.x <= w.tl_x AND 
-          o.y <= w.tl_y AND 
-          o.x >= w.br_x AND 
+          (o.x <= w.tl_x OR 
+          o.y <= w.tl_y OR 
+          o.x >= w.br_x OR 
           o.y >= w.br_y)"
 );
 
@@ -160,7 +160,7 @@ pub fn create_stellar_object_player_window_for(ctx: &ReducerContext, sobj_id: u6
         }
     }
     if owning_player.is_none() {
-        info!("Welp we tried and failed");
+        info!("Couldn't find owning player to create player window");
         return;
     }
 
@@ -170,8 +170,8 @@ pub fn create_stellar_object_player_window_for(ctx: &ReducerContext, sobj_id: u6
         .insert(StellarObjectPlayerWindow {
             identity: owning_player.unwrap(),
             sobj_id,
-            window: 2000.0,
-            margin: 1000.0,
+            window: 4000.0,
+            margin: 2000.0,
             tl_x: -2000.0,
             tl_y: -2000.0,
             br_x: 2000.0,
@@ -257,7 +257,7 @@ pub fn update_stellar_object_velocity(
             let acceleration = (velocity.to_vec2() - prev_velocity.to_vec2()).length();
             if acceleration > 2.0 {
                 //// TODO: Make this variable per ship type
-                log::info!("Acceleration too high! {:?}", acceleration);
+                //log::info!("Acceleration too high! {:?}", acceleration);
 
                 // Reduce the acceleration down
                 let new_velocity =
@@ -269,7 +269,7 @@ pub fn update_stellar_object_velocity(
             // Check if the absolute velocity is too fast for the ship.
             if update_velocity.to_vec2().length() > 100.0 {
                 //// TODO: Make this variable per ship type
-                log::info!("Velocity too high! {:?}", update_velocity.to_vec2().length());
+                //log::info!("Velocity too high! {:?}", update_velocity.to_vec2().length());
 
                 // Reduce the velocity down
                 let new_velocity = update_velocity.to_vec2().normalize() * 100.0;
@@ -281,12 +281,12 @@ pub fn update_stellar_object_velocity(
         }
     }
 
-    log::info!(
-        "SObj ID #{} - New Velocity: {}, {}",
-        update_velocity.sobj_id,
-        update_velocity.x,
-        update_velocity.y
-    );
+    // log::info!(
+    //     "SObj ID #{} - New Velocity: {}, {}",
+    //     update_velocity.sobj_id,
+    //     update_velocity.x,
+    //     update_velocity.y
+    // );
     ctx.db.stellar_object_velocity().sobj_id().update(update_velocity);
     Ok(())
 }
@@ -320,7 +320,7 @@ pub fn create_stellar_object_internal(
         }).from_vec2(Vec2::from_angle(transform.rotation_radians) * forward_velocity);
 
         ctx.db.stellar_object_velocity().insert(velocity);
-        spacetimedb::log::info!("Success!");
+        spacetimedb::log::info!("Created stellar object #{}!", sobj.id);
         return Ok(sobj);
     }
     Err("Failed to create stellar object!".to_string())
