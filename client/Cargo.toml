@@ -1,14 +1,16 @@
 [package]
-name = "solarance_simple_test"
+name = "solarance-beginnings"
 version = "0.1.0"
 edition = "2021"
 authors = ["Karl Nyborg"]
 rust-version = "1.86.0"
 
 [dependencies]
+async-executor = "1.13.2"
 dotenv = "0.15.0"
 egui = "0.21.0"
 egui-macroquad = "0.15.0"
+futures-lite = "2.6.0"
 macroquad = "0.3.26"
 open = "5.3.2"
 openidconnect = { version = "4.0.0", features = ["reqwest-blocking"]}

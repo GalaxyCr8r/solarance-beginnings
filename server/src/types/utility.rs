@@ -1,28 +1,25 @@
 use spacetimedb::{ Identity, ReducerContext, Table };
 
-use super::{ common::is_server_or_owner, players::{ player, Player }, stellarobjects::create_stellar_object_internal };
+use super::{ common::is_server_or_owner, players::{ player, Player }, stellarobjects::{create_stellar_object_internal, player_controlled_stellar_object, PlayerControlledStellarObject} };
 
-/// For helper functions that utilize several different tables
+/// For helper reducers that utilize several different tables
 ///
 
 #[spacetimedb::reducer]
 pub fn create_player_controlled_ship(ctx: &ReducerContext, identity: Identity) -> Result<(), String> {
-    let mut player = Player {
+    ctx.db.player().insert(Player {
         identity: identity,
-        username: "GalaxyCr8r".to_string(),
-        controlled_entity_id: None,
-        current_sector: 0,
-    };
-    let ship = create_stellar_object_internal(
+        username: "GalaxyCr8r".to_string(), // TODO: Bust this out into its own reducer that the player needs to set up before calling this reducer.
+    });
+    
+    if let Ok(ship) = create_stellar_object_internal(
         ctx,
         super::stellarobjects::StellarObjectKinds::Ship,
         0, // TODO: Make this the proper sector id!
         super::stellarobjects::StellarObjectTransform { x: 64.0, y: 64.0, rotation_radians: 0.0, sobj_id: 0 },
         0.0
-    );
-    if ship.is_ok() {
-        player.controlled_entity_id = Some(ship.unwrap().id);
-        ctx.db.player().insert(player);
+    ) {
+        ctx.db.player_controlled_stellar_object().insert(PlayerControlledStellarObject { identity, controlled_sobj_id: ship.id, sector_id: ship.sector_id });
         Ok(())
     } else {
         Err("Failed to create ship!".to_string())

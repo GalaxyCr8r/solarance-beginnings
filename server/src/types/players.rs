@@ -1,4 +1,6 @@
-use spacetimedb::{Identity, table};
+use spacetimedb::{table, ReducerContext, Identity};
+
+use super::stellarobjects::player_controlled_stellar_object;
 
 #[table(name = player, public)]
 pub struct Player {
@@ -8,6 +10,19 @@ pub struct Player {
     #[index(btree)]
     pub username: String,
 
-    pub controlled_entity_id: Option<u64>, // FK to Entity
-    pub current_sector: u64,               // FK to Sector
 }
+
+//// Impls ///
+
+impl Player {
+    pub fn get_controlled_stellar_object(&self, ctx: &ReducerContext) -> Option<u64> {
+        if let Some(player_controlled_stellar_object) = ctx.db.player_controlled_stellar_object().identity().find(&self.identity) {
+            Some(player_controlled_stellar_object.controlled_sobj_id)
+        } else {
+            None
+        }
+    }
+}
+
+//// Reducers ///
+

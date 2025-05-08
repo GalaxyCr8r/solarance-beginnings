@@ -1,40 +1,7 @@
-use std::sync::mpsc::{self, Receiver};
 
-use macroquad::prelude::{glam, info};
-use secs::World;
-use spacetimedb_sdk::{credentials, DbContext, Error, Identity, Table};
+use spacetimedb_sdk::{credentials, DbContext, Error, Identity};
 
 use crate::module_bindings::*;
-
-/// Impls ///
-
-pub fn get_transform(ctx:&DbConnection, sobj_id:u64) -> Result<StellarObjectTransform, String> {
-    let hr= ctx.db.stellar_object_hi_res().sobj_id().find(&sobj_id);
-    if hr.is_some() {
-        Ok(hr.unwrap())
-    } else {
-        let lr = ctx.db.stellar_object_low_res().sobj_id().find(&sobj_id);
-        if lr.is_some() {
-            Ok(lr.unwrap())
-        } else {
-            Err("Could not find transform, even low-rez.".to_string())
-        }
-    }
-}
-
-impl StellarObjectTransform {
-    // pub fn new(x: f32, y: f32) -> Self {
-    //     Self { x, y }
-    // }
-
-    pub fn to_vec2(&self) -> glam::Vec2 {
-        glam::Vec2 { x: self.x, y: self.y }
-    }
-
-    pub fn from_vec2(&self, vec: glam::Vec2) -> StellarObjectTransform {
-        StellarObjectTransform { x: vec.x, y: vec.y, ..*self }
-    }
-}
 
 /// Connection ///
 
@@ -127,33 +94,33 @@ fn on_disconnected(_ctx: &ErrorContext, err: Option<Error>) {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Register all the callbacks our app will use to respond to database events.
-pub fn register_callbacks(_world: &World, ctx: &DbConnection) -> Receiver<StellarObject> {
-    let (transmitter, receiver) = mpsc::channel();
+// pub fn register_callbacks(_world: &World, ctx: &DbConnection) -> Receiver<StellarObject> {
+//     let (transmitter, receiver) = mpsc::channel();
 
-    ctx.db.stellar_object().on_insert(move |_ec, row| {
-        match transmitter.send(row.clone()) {
-            Err(error) => println!("ERROR : {:?}", error),
-            _ => (),
-        }
-    });
+//     ctx.db.stellar_object().on_insert(move |_ec, row| {
+//         match transmitter.send(row.clone()) {
+//             Err(error) => println!("ERROR : {:?}", error),
+//             _ => (),
+//         }
+//     });
 
-    return receiver;
+//     return receiver;
 
-    // When a new user joins, print a notification.
-    // ctx.db.user().on_insert(on_user_inserted);
+//     // When a new user joins, print a notification.
+//     // ctx.db.user().on_insert(on_user_inserted);
 
-    // // When a user's status changes, print a notification.
-    // ctx.db.user().on_update(on_user_updated);
+//     // // When a user's status changes, print a notification.
+//     // ctx.db.user().on_update(on_user_updated);
 
-    // // When a new message is received, print it.
-    // ctx.db.message().on_insert(on_message_inserted);
+//     // // When a new message is received, print it.
+//     // ctx.db.message().on_insert(on_message_inserted);
 
-    // // When we fail to set our name, print a warning.
-    // ctx.reducers.on_set_name(on_name_set);
+//     // // When we fail to set our name, print a warning.
+//     // ctx.reducers.on_set_name(on_name_set);
 
-    // // When we fail to send a message, print a warning.
-    // ctx.reducers.on_send_message(on_message_sent);
-}
+//     // // When we fail to send a message, print a warning.
+//     // ctx.reducers.on_send_message(on_message_sent);
+// }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -189,6 +156,10 @@ fn subscribe_to_tables(ctx: &DbConnection) {
         .on_applied(on_sub_applied)
         .on_error(on_sub_error)
         .subscribe(["SELECT * FROM player"]);
+    ctx.subscription_builder()
+        .on_applied(on_sub_applied)
+        .on_error(on_sub_error)
+        .subscribe(["SELECT * FROM player_controlled_stellar_object"]);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////

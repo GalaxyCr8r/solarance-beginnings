@@ -1,8 +1,19 @@
+<div align="center">
+
 # Solarance: Beginnings
+
+<img src="./blank_planet.png" width="80%">
+
+**A Top-Down 2D Living Universe Sci-Fi Space MMO**
+
+</div>
 
 Solarance is a 2D top down game idea I've had for years now. Heavily inspired by 
 Escape Velocity: Nova, X2/X3, Freelancer, and numerous other entries in the space
 adventure/building genre.
+
+Goal is not to be a 2D EVE or Star Citizen, but a game where you can hopefully have fun
+combat and creating stations with friends and exploring the unfolding universe.
 
 For this initial stab, I'm focusing on real-time asteroids-like movement for combat.
 However I expect this to be unsustainable in the long term, and in fact, not preferable
@@ -24,4 +35,14 @@ are the core features:
  - Ship Building and Upgrades (PvE)
  - Mining and Resource Management (PvE)
 
+### Contribution
+
 The goals are set up fairly granularly in the form of [Issue Milestones](https://github.com/GalaxyCr8r/solarance-beginnings/milestones)
+
+However almost NONE of the issues have descriptions. Please contact me on the SpacetimeDB discord or just comment on an issue that you'll like me to flesh out so it can be completed!
+
+## License
+
+All code is GPL 3.0
+
+All art assets I withhold license to use. That may change when/if I get new artwork.
