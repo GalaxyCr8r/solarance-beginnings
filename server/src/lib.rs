@@ -15,6 +15,8 @@ pub fn init(ctx: &ReducerContext) {
 #[spacetimedb::reducer(client_connected)]
 pub fn identity_connected(_ctx: &ReducerContext) {
     // Called everytime a new client connects
+    
+    // TODO: When someone logs in set their player to online
 }
 
 #[spacetimedb::reducer(client_disconnected)]
