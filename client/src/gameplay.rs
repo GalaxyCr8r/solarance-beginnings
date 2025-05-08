@@ -1,6 +1,7 @@
-use std::{ collections::HashMap, f32::consts::PI, sync::mpsc::{self, Receiver}, thread::{ self, JoinHandle }, time::Duration };
+use std::{ collections::HashMap, f32::consts::PI, sync::mpsc::{self, Receiver, Sender}, thread::{ self, JoinHandle }, time::Duration };
+use lazy_static::lazy_static;
 
-use egui::{ Align2, Color32, RichText };
+use egui::{ Align2, Color32, Context, RichText, ScrollArea, TextStyle };
 use macroquad::{ math::Vec2, prelude::*, ui };
 use secs::World;
 
@@ -33,9 +34,7 @@ struct GameState<'a> {
 
 
 /// Register all the callbacks our app will use to respond to database events.
-pub fn register_callbacks(world: &World, ctx: &DbConnection) -> Receiver<StellarObject> {
-    let (_transmitter, receiver) = mpsc::channel();
-
+pub fn register_callbacks(ctx: &DbConnection, global_chat_channel: Sender<GlobalChat>) {
     ctx.db.stellar_object().on_insert( |_ec, sobj| {
         println!("Stellar Object Inserted: {:?}", sobj);
         // world.spawn((
@@ -47,42 +46,10 @@ pub fn register_callbacks(world: &World, ctx: &DbConnection) -> Receiver<Stellar
         // ));
     });
 
-//     match receiver.recv_timeout(Duration::from_millis(10)) {
-//     Ok(sobj) => {
-//         println!("Stellar Object Inserted: {:?}", sobj);
-//         world.spawn((
-//             SolShip {
-//                 sobj_id: sobj.id,
-//                 ..Default::default()
-//             },
-//             Transform::default(),
-//         ));
-//     }
-//     Err(err) =>
-//         match err {
-//             mpsc::RecvTimeoutError::Timeout => (),
-//             mpsc::RecvTimeoutError::Disconnected => {
-//                 println!("ERROR : {:?}", err);
-//             }
-//         }
-// }
-
-    return receiver;
-
-    // When a new user joins, print a notification.
-    // ctx.db.user().on_insert(on_user_inserted);
-
-    // // When a user's status changes, print a notification.
-    // ctx.db.user().on_update(on_user_updated);
-
-    // // When a new message is received, print it.
-    // ctx.db.message().on_insert(on_message_inserted);
-
-    // // When we fail to set our name, print a warning.
-    // ctx.reducers.on_set_name(on_name_set);
-
-    // // When we fail to send a message, print a warning.
-    // ctx.reducers.on_send_message(on_message_sent);
+    ctx.db.global_chat().on_insert(move |ec, message| {
+        print!("{}: {}", message.identity.to_abbreviated_hex().to_string(), message.message);
+        let _ = global_chat_channel.send(message.clone());
+    });
 }
 
 fn draw_ship(transform: &StellarObjectTransform, game_state: &mut GameState) {
@@ -146,89 +113,127 @@ fn render_system(_world: &World, game_state: &mut GameState) { // TODO: Refactor
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-fn debug_window(game_state: &mut GameState) { // TODO: Refactor this out of main.rs
+fn debug_window(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::InnerResponse<Option<()>>> {
     let ctx = &game_state.ctx;
 
-    egui_macroquad::ui(|egui_ctx| {
-        egui::Window
-            ::new("Solarance:Beginnings")
-            .resizable(false)
-            .collapsible(false)
-            .movable(false)
-            .anchor(Align2::LEFT_TOP, egui::Vec2::new(-5.0, 5.0))
-            .show(egui_ctx, |ui| {
-                match ctx.db.player().identity().find(&ctx.identity()) {
-                    Some(player) => {
-                        ui.heading(format!("Player: {}", player.username));
-                        if let Some(controlled) = player.get_controlled_stellar_object(&ctx) {
-                            match get_transform(&ctx, controlled)
-                            {
-                                Ok(transform) => {
-                                    ui.label(
-                                        format!(
-                                            "Ship: {}, {}",
-                                            transform.x.to_string(),
-                                            transform.y.to_string()
-                                        )
-                                    );
-                                }
-                                _ => {
-                                    ui.label("Ship: unknown");
-                                }
-                            }
-                        } else {
-                            ui.label("Ship: None");
-                        }
-                    }
-                    None => {
-                        ui.heading("Player: unknown");
-                        ui.label(format!("ID: {}", ctx.identity()));
-                        if ui.button("Create Player & Ship").clicked() {
-                            let _ = ctx.reducers.create_player_controlled_ship(ctx.identity());
-                            info!("Creating player and ship");
-                        }
-                    }
-                }
-
-                for object in ctx.db.stellar_object().iter() {
-                    ui.horizontal(|ui| {
-                        ui.label(format!("- Ship #{}", object.id));
-
-                        match get_transform(&ctx, object.id) {
+    egui::Window
+        ::new("Solarance:Beginnings")
+        .resizable(false)
+        .collapsible(false)
+        .movable(false)
+        .anchor(Align2::LEFT_TOP, egui::Vec2::new(-5.0, 5.0))
+        .show(egui_ctx, |ui| {
+            match ctx.db.player().identity().find(&ctx.identity()) {
+                Some(player) => {
+                    ui.heading(format!("Player: {}", player.username));
+                    if let Some(controlled) = player.get_controlled_stellar_object(&ctx) {
+                        match get_transform(&ctx, controlled)
+                        {
                             Ok(transform) => {
-                                let string = format!(
-                                    "Position: {}, {}",
-                                    transform.x.to_string(),
-                                    transform.y.to_string()
+                                ui.label(
+                                    format!(
+                                        "Ship: {}, {}",
+                                        transform.x.to_string(),
+                                        transform.y.to_string()
+                                    )
                                 );
-                                ui.label(string);
-                                return;
                             }
                             _ => {
-                                ui.label("Position: n/a");
+                                ui.label("Ship: unknown");
                             }
                         }
-                    });
+                    } else {
+                        ui.label("Ship: None");
+                    }
                 }
-
-                for playerControlled in ctx.db.player_controlled_stellar_object().iter() {
-                    ui.label(format!(" - Player Controlled Obj #{} in Sec#{}", playerControlled.controlled_sobj_id, playerControlled.sector_id));
+                None => {
+                    ui.heading("Player: unknown");
+                    ui.label(format!("ID: {}", ctx.identity()));
+                    if ui.button("Create Player & Ship").clicked() {
+                        let _ = ctx.reducers.create_player_controlled_ship(ctx.identity(), "Galaxy".to_string());
+                        info!("Creating player and ship");
+                    }
                 }
+            }
 
-                ui.label(
-                    format!(
-                        "Camera: {}, {}",
-                        game_state.camera.target.x.to_string(),
-                        game_state.camera.target.y.to_string()
-                    )
-                );
+            for object in ctx.db.stellar_object().iter() {
+                ui.horizontal(|ui| {
+                    ui.label(format!("- Ship #{}", object.id));
 
-                ui.add_space(8.0);
-                if ui.button("  Quit  ").clicked() {
-                    game_state.done = true;
-                }
+                    match get_transform(&ctx, object.id) {
+                        Ok(transform) => {
+                            let string = format!(
+                                "Position: {}, {}",
+                                transform.x.to_string(),
+                                transform.y.to_string()
+                            );
+                            ui.label(string);
+                            return;
+                        }
+                        _ => {
+                            ui.label("Position: n/a");
+                        }
+                    }
+                });
+            }
+
+            for player_controlled in ctx.db.player_controlled_stellar_object().iter() {
+                ui.label(format!(" - Player Controlled Obj #{} in Sec#{}", player_controlled.controlled_sobj_id, player_controlled.sector_id));
+            }
+
+            ui.label(
+                format!(
+                    "Camera: {}, {}",
+                    game_state.camera.target.x.to_string(),
+                    game_state.camera.target.y.to_string()
+                )
+            );
+
+            ui.add_space(8.0);
+            if ui.button("  Quit  ").clicked() {
+                game_state.done = true;
+            }
+        })
+}
+
+fn chat_window(egui_ctx: &Context, ctx: &DbConnection, global_chat_channel: &[GlobalChat]) -> Option<egui::InnerResponse<Option<()>>> {
+    let mut chat_text = String::new();
+    let mut selected_tab = 0;
+
+    egui::Window
+        ::new("Chat Window")
+        .min_width(256.0)
+        .title_bar(false)
+        .resizable(false)
+        .collapsible(true)
+        .movable(false)
+        .anchor(Align2::LEFT_BOTTOM, egui::Vec2::new(0.0, 0.0))
+        .show(egui_ctx, |ui| {
+            ui.horizontal(|ui| {
+                ui.selectable_value(&mut selected_tab, 0, "Global");
+                ui.selectable_value(&mut selected_tab, 1, "Sector");
+                ui.selectable_value(&mut selected_tab, 2, "Alliance");
+                ui.selectable_value(&mut selected_tab,3, "Faction");
             });
-    });
+            ui.separator();
+            let text_style = TextStyle::Body;
+            let row_height = ui.text_style_height(&text_style);
+            ScrollArea::vertical()
+                .auto_shrink([false, true])
+                .stick_to_bottom(true)
+                .show_rows(
+                ui,
+                row_height,
+                global_chat_channel.len(),
+                |ui, _row_range| {
+                    for message in global_chat_channel {
+                        ui.label(format!("[{}]: {}", get_username(ctx, &message.identity), message.message));
+                    }
+                },
+            );
+
+            ui.text_edit_singleline(&mut chat_text);
+        })
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -241,6 +246,9 @@ pub async fn gameplay(textures : HashMap<&'static str, Texture2D>, token : Optio
     // DB Connection & ECS World
     let world = World::default();
     let ctx = connect_to_spacetime(token);
+
+    let (global_chat_transmitter, global_chat_receiver) = mpsc::channel::<GlobalChat>();
+    let mut global_chat_channel = Vec::<GlobalChat>::new();
 
     let scheduler = secs::Scheduler::default();
     let mut game_state = GameState {
@@ -259,7 +267,7 @@ pub async fn gameplay(textures : HashMap<&'static str, Texture2D>, token : Optio
         // }
     };
 
-    let _receiver = register_callbacks(&world, &ctx);
+    let _receiver = register_callbacks(&ctx, global_chat_transmitter);
 
     scheduler.register(render_system);
 
@@ -280,7 +288,6 @@ pub async fn gameplay(textures : HashMap<&'static str, Texture2D>, token : Optio
 
     set_camera(&game_state.camera);
 
-    let mut tmp_angle = 0.0;
     loop {
         clear_background(WHITE);
 
@@ -293,17 +300,23 @@ pub async fn gameplay(textures : HashMap<&'static str, Texture2D>, token : Optio
             game_state.camera.target,
             game_state.camera.target * 0.0001337
         );
-        tmp_angle += 0.01337;
 
         // run all parallel and sequential systems
         scheduler.run(&world, &mut game_state);
 
-        debug_window(&mut game_state);
+        egui_macroquad::ui(|egui_ctx| {  
+            chat_window(&egui_ctx, &ctx, &global_chat_channel);
+            debug_window(&egui_ctx, &mut game_state);
+        });
 
         egui_macroquad::draw();
         next_frame().await;
 
         let _ = control_player_ship(&ctx);
+
+        if let Ok(message) = global_chat_receiver.try_recv() {
+            global_chat_channel.push(message);
+        }
 
         if game_state.done {
             let _ = ctx.disconnect();

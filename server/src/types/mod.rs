@@ -1,6 +1,7 @@
-//! Types used throughout the solarance-rust-server
+//! Types used throughout the solarance-beginnings-server
 
 pub mod asteroids;
+pub mod chats;
 pub mod common;
 pub mod economy;
 pub mod players;
@@ -9,4 +10,3 @@ pub mod ships;
 pub mod stations;
 pub mod stellarobjects;
 pub mod utility;
-

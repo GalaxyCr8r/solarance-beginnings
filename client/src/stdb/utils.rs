@@ -1,5 +1,5 @@
 use macroquad::{math::Vec2, prelude::glam};
-use spacetimedb_sdk::DbContext;
+use spacetimedb_sdk::{DbContext, Identity};
 
 use crate::module_bindings::*;
 
@@ -16,8 +16,20 @@ pub fn get_transform(ctx:&DbConnection, sobj_id:u64) -> Result<StellarObjectTran
     }
 }
 
-pub fn get_player(ctx: &DbConnection) -> Option<Player> {
-    let this = ctx.db.player().identity().find(&ctx.identity());
+pub fn get_username(ctx: &DbConnection, id:&Identity) -> String {
+    if let Some(player) = ctx.db.player().identity().find(id) {
+        player.username
+    } else {
+        id.to_abbreviated_hex().to_string()
+    }
+}
+
+pub fn get_current_player(ctx: &DbConnection) -> Option<Player> {
+    get_player(&ctx.db, &ctx.identity())
+}
+
+pub fn get_player(db: &RemoteTables, id: &Identity) -> Option<Player> {
+    let this = db.player().identity().find(id);
     match this {
         Some(p) => Some(p),
         None => None,
@@ -25,7 +37,7 @@ pub fn get_player(ctx: &DbConnection) -> Option<Player> {
 }
 
 pub fn get_player_sobj_id(ctx: &DbConnection) -> Option<u64> {
-    if let Some(this) = get_player(ctx) {
+    if let Some(this) = get_current_player(ctx) {
         this.get_controlled_stellar_object(ctx)
     } else {
         None

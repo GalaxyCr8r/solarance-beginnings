@@ -24,5 +24,13 @@ impl Player {
     }
 }
 
+pub fn get_username(ctx: &ReducerContext, id:Identity) -> String {
+    if let Some(player) = ctx.db.player().identity().find(id) {
+        player.username
+    } else {
+        id.to_abbreviated_hex().to_string()
+    }
+}
+
 //// Reducers ///
 
