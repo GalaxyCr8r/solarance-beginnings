@@ -224,13 +224,24 @@ fn chat_window(egui_ctx: &Context, ctx: &DbConnection, global_chat_channel: &[Gl
                 row_height,
                 global_chat_channel.len(),
                 |ui, _row_range| {
-                    for message in global_chat_channel {
+                    for message in global_chat_channel { // TODO: Currently this can print prior messages out of order if recevied out of order. Fix this.
                         ui.label(format!("[{}]: {}", get_username(ctx, &message.identity), message.message));
                     }
                 },
             );
 
-            ui.text_edit_singleline(text);
+            ui.horizontal(|ui| {
+                ui.text_edit_singleline(text);
+                if ui.button("Send").clicked() || ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                    if let Err(error) = ctx.reducers.send_global_chat(text.clone()) {
+                        info!("Failed to send message: {}", error);
+                        // TODO Add a message to chat log or do SOMETHING to alert the user it failed.
+                    } else {
+                        text.clear();
+                    }
+                    
+                }
+            });
         })
 }
 

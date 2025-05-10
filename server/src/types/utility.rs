@@ -21,7 +21,7 @@ pub fn create_player_controlled_ship(ctx: &ReducerContext, identity: Identity, u
     ) {
         ctx.db.player_controlled_stellar_object().insert(PlayerControlledStellarObject { identity, controlled_sobj_id: ship.id, sector_id: ship.sector_id });
 
-        create_stellar_object_player_window_for(ctx, ship.id);
+        create_stellar_object_player_window_for(ctx, identity, ship.id);
         Ok(())
     } else {
         Err("Failed to create ship!".to_string())

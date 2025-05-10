@@ -150,7 +150,7 @@ impl StellarObjectTransform {
 /// Reducers ///
 
 #[spacetimedb::reducer]
-pub fn create_stellar_object_player_window_for(ctx: &ReducerContext, sobj_id: u64) {
+pub fn create_stellar_object_player_window_from(ctx: &ReducerContext, sobj_id: u64) {
     // Find who owns the object, if any
     let mut owning_player = None;
     for player in ctx.db.player_controlled_stellar_object().iter() {
@@ -165,10 +165,16 @@ pub fn create_stellar_object_player_window_for(ctx: &ReducerContext, sobj_id: u6
     }
 
     // Create the window for the object
+    create_stellar_object_player_window_for(ctx, owning_player.unwrap(), sobj_id)
+}
+
+#[spacetimedb::reducer]
+pub fn create_stellar_object_player_window_for(ctx: &ReducerContext, owning_player:Identity, sobj_id: u64) {
+    // Create the window for the object
     ctx.db
         .stellar_object_player_window()
         .insert(StellarObjectPlayerWindow {
-            identity: owning_player.unwrap(),
+            identity: owning_player,
             sobj_id,
             window: 4000.0,
             margin: 2000.0,

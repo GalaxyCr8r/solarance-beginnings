@@ -1,5 +1,6 @@
 
 use spacetimedb_sdk::{credentials, DbContext, Error, Identity};
+use std::env;
 
 use crate::module_bindings::*;
 
@@ -14,7 +15,16 @@ const DB_NAME: &str = "solarance-beginnings";
 pub(crate) fn connect_to_spacetime(jwt_token:Option<String>) -> DbConnection {
 
     // Connect to the database
-    let ctx = connect_to_db(LOCAL_HOST, match jwt_token {
+    let host = {
+        let result = env::var("DATABASE_HOST").unwrap_or(LOCAL_HOST.to_string());
+        if result.is_empty() {
+            LOCAL_HOST.to_string()
+        } else {
+            result
+        }
+    };
+
+    let ctx = connect_to_db(host, match jwt_token {
         Some(_) => jwt_token,
         None => creds_store().load().expect("Error loading credentials")
     });
@@ -32,7 +42,7 @@ pub(crate) fn connect_to_spacetime(jwt_token:Option<String>) -> DbConnection {
 }
 
 /// Load credentials from a file and connect to the database.
-fn connect_to_db(host: &str, jwt_token:Option<String>) -> DbConnection {
+fn connect_to_db(host: String, jwt_token:Option<String>) -> DbConnection {
     DbConnection::builder()
         // Register our `on_connect` callback, which will save our auth token.
         .on_connect(on_connected)
