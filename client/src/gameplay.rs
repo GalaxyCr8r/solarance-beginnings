@@ -1,9 +1,7 @@
-use std::{ collections::HashMap, f32::consts::PI, sync::mpsc::{self, Receiver, Sender}, thread::{ self, JoinHandle }, time::Duration };
-use lazy_static::lazy_static;
+use std::{ collections::HashMap, f32::consts::PI, sync::mpsc::{self, Sender} };
 
-use egui::{ Align2, Color32, Context, RichText, ScrollArea, TextStyle };
+use egui::{ Align2, Context, ScrollArea, TextStyle };
 use macroquad::{ math::Vec2, prelude::*, ui };
-use secs::World;
 
 use super::module_bindings::*;
 use spacetimedb_sdk::{ DbContext, Table };
@@ -46,7 +44,7 @@ pub fn register_callbacks(ctx: &DbConnection, global_chat_channel: Sender<Global
         // ));
     });
 
-    ctx.db.global_chat().on_insert(move |ec, message| {
+    ctx.db.global_chat().on_insert(move |_ec, message| {
         print!("{}: {}", message.identity.to_abbreviated_hex().to_string(), message.message);
         let _ = global_chat_channel.send(message.clone());
     });
@@ -81,7 +79,7 @@ fn draw_ship(transform: &StellarObjectTransform, game_state: &mut GameState) {
     );
 }
 
-fn render_system(_world: &World, game_state: &mut GameState) { // TODO: Refactor this out of main.rs
+fn render_system(game_state: &mut GameState) {
     if game_state.paused {
         let text = "PAUSED";
         let font_size = 100.0;
@@ -196,9 +194,9 @@ fn debug_window(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::
         })
 }
 
-fn chat_window(egui_ctx: &Context, ctx: &DbConnection, global_chat_channel: &[GlobalChat]) -> Option<egui::InnerResponse<Option<()>>> {
-    let mut chat_text = String::new();
-    let mut selected_tab = 0;
+fn chat_window(egui_ctx: &Context, ctx: &DbConnection, global_chat_channel: &[GlobalChat], text: &mut String) -> Option<egui::InnerResponse<Option<()>>> {
+    //let mut chat_text = String::new();
+    let mut selected_tab = 0; // TODO Add this to a new `chat_window_state` struct
 
     egui::Window
         ::new("Chat Window")
@@ -232,7 +230,7 @@ fn chat_window(egui_ctx: &Context, ctx: &DbConnection, global_chat_channel: &[Gl
                 },
             );
 
-            ui.text_edit_singleline(&mut chat_text);
+            ui.text_edit_singleline(text);
         })
 }
 
@@ -244,13 +242,11 @@ fn chat_window(egui_ctx: &Context, ctx: &DbConnection, global_chat_channel: &[Gl
 
 pub async fn gameplay(textures : HashMap<&'static str, Texture2D>, token : Option<String>) {
     // DB Connection & ECS World
-    let world = World::default();
     let ctx = connect_to_spacetime(token);
 
     let (global_chat_transmitter, global_chat_receiver) = mpsc::channel::<GlobalChat>();
     let mut global_chat_channel = Vec::<GlobalChat>::new();
 
-    let scheduler = secs::Scheduler::default();
     let mut game_state = GameState {
         paused: false,
         done: false,
@@ -266,10 +262,9 @@ pub async fn gameplay(textures : HashMap<&'static str, Texture2D>, token : Optio
         //     viewport: None,
         // }
     };
+    let mut text: String = String::new();
 
     let _receiver = register_callbacks(&ctx, global_chat_transmitter);
-
-    scheduler.register(render_system);
 
     // Load starfield shader
     info!("Loading shader...");
@@ -302,10 +297,10 @@ pub async fn gameplay(textures : HashMap<&'static str, Texture2D>, token : Optio
         );
 
         // run all parallel and sequential systems
-        scheduler.run(&world, &mut game_state);
+        render_system(&mut game_state);
 
         egui_macroquad::ui(|egui_ctx| {  
-            chat_window(&egui_ctx, &ctx, &global_chat_channel);
+            chat_window(&egui_ctx, &ctx, &global_chat_channel, &mut text);
             debug_window(&egui_ctx, &mut game_state);
         });
 

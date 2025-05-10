@@ -16,7 +16,6 @@ macroquad = "0.3.26"
 open = "5.3.2"
 openidconnect = { version = "4.0.0", features = ["reqwest-blocking"]}
 reqwest = { version = "0.12.15", features = ["blocking", "rustls-tls"], default-features = false }
-secs = { git = "https://github.com/wick3dr0se/secs", version = "0.1.0" }
 spacetimedb-sdk = "1.1.1"
 url = "2.5.4"
 

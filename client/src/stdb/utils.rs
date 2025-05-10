@@ -1,4 +1,4 @@
-use macroquad::{math::Vec2, prelude::glam};
+use macroquad::prelude::glam;
 use spacetimedb_sdk::{DbContext, Identity};
 
 use crate::module_bindings::*;
