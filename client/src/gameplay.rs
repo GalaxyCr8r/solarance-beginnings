@@ -194,7 +194,7 @@ fn debug_window(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::
         })
 }
 
-fn chat_window(egui_ctx: &Context, ctx: &DbConnection, global_chat_channel: &[GlobalChat], text: &mut String) -> Option<egui::InnerResponse<Option<()>>> {
+fn chat_window(egui_ctx: &Context, ctx: &DbConnection, global_chat_channel: &[GlobalChat], text: &mut String) -> Option<egui::InnerResponse<Option<()>>> { // TODO Refactor to use a proper state object
     //let mut chat_text = String::new();
     let mut selected_tab = 0; // TODO Add this to a new `chat_window_state` struct
 
@@ -231,7 +231,7 @@ fn chat_window(egui_ctx: &Context, ctx: &DbConnection, global_chat_channel: &[Gl
             );
 
             ui.horizontal(|ui| {
-                ui.text_edit_singleline(text);
+                ui.text_edit_singleline(text); // TODO: Currently typing/moving the cursor in here moves your ship. Fix this.
                 if ui.button("Send").clicked() || ui.input(|i| i.key_pressed(egui::Key::Enter)) {
                     if let Err(error) = ctx.reducers.send_global_chat(text.clone()) {
                         info!("Failed to send message: {}", error);
