@@ -3,7 +3,7 @@ use glam::Vec2;
 use log::info;
 use spacetimedb::{ReducerContext, Table};
 
-use crate::types::stellarobjects::{*};
+use crate::types::{common::global_config, stellarobjects::*};
 
 // // Intentionally private
 // #[spacetimedb::table(name = update_config)]
@@ -56,6 +56,13 @@ pub fn init(ctx: &ReducerContext) {
 
 #[spacetimedb::reducer]
 pub fn update_sobj_transforms(ctx: &ReducerContext, timer: UpdateTransformsTimer) {
+    // Bail out ASAP if there's no players connected.
+    if let Some(config) = ctx.db.global_config().id().find(0) {
+        if config.active_players == 0 {
+            return
+        }
+    }
+
     // We're using this value to determine whether or not to update the lower resolution table.
     let mut update = timer;
     let low_resolution = update.current_update == 0;
@@ -147,6 +154,13 @@ pub fn __move_ships(ctx: &ReducerContext) {
 
 #[spacetimedb::reducer]
 pub fn update_player_windows(ctx: &ReducerContext, _timer: UpdatePlayerWindowsTimer) {
+    // Bail out ASAP if there's no players connected.
+    if let Some(config) = ctx.db.global_config().id().find(0) {
+        if config.active_players == 0 {
+            return
+        }
+    }
+    
     for window in ctx.db.stellar_object_player_window().iter() {
         if let Some(player) = ctx.db.player_controlled_stellar_object().identity().find(window.identity) {
             if let Some(transform) = ctx.db.stellar_object_internal().sobj_id().find(player.controlled_sobj_id) {

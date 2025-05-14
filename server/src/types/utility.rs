@@ -7,6 +7,10 @@ use super::{ common::is_server_or_owner, players::{ player, Player }, stellarobj
 
 #[spacetimedb::reducer]
 pub fn create_player_controlled_ship(ctx: &ReducerContext, identity: Identity, username: String) -> Result<(), String> {
+    if ctx.db.player().username().filter(&username).count() > 0 {
+        return Err("Username already taken!".to_string());
+    }
+
     ctx.db.player().insert(Player {
         identity: identity,
         username: username, // TODO: Bust this out into its own reducer that the player needs to set up before calling this reducer.
