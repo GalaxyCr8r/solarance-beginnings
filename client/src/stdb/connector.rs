@@ -1,7 +1,10 @@
 
-use spacetimedb_sdk::{credentials, DbContext, Error, Identity};
+use spacetimedb_sdk::{credentials, Error, Identity};
+use std::env;
 
 use crate::module_bindings::*;
+
+mod subscriptions;
 
 /// Connection ///
 
@@ -14,16 +17,22 @@ const DB_NAME: &str = "solarance-beginnings";
 pub(crate) fn connect_to_spacetime(jwt_token:Option<String>) -> DbConnection {
 
     // Connect to the database
-    let ctx = connect_to_db(LOCAL_HOST, match jwt_token {
+    let host = {
+        let result = env::var("DATABASE_HOST").unwrap_or(LOCAL_HOST.to_string());
+        if result.is_empty() {
+            LOCAL_HOST.to_string()
+        } else {
+            result
+        }
+    };
+
+    let ctx = connect_to_db(host, match jwt_token {
         Some(_) => jwt_token,
-        None => creds_store().load().expect("Error loading credentials")
+        None => creds_store().load().expect("Error loading credentials") // TODO: Remove expect() and fail gracefully
     });
 
-    // Register callbacks to run in response to database events.
-    //register_callbacks(&ctx);
-
     // Subscribe to SQL queries in order to construct a local partial replica of the database.
-    subscribe_to_tables(&ctx);
+    subscriptions::subscribe_to_tables(&ctx);
 
     // Spawn a thread, where the connection will process messages and invoke callbacks.
     ctx.run_threaded();
@@ -32,7 +41,7 @@ pub(crate) fn connect_to_spacetime(jwt_token:Option<String>) -> DbConnection {
 }
 
 /// Load credentials from a file and connect to the database.
-fn connect_to_db(host: &str, jwt_token:Option<String>) -> DbConnection {
+fn connect_to_db(host: String, jwt_token:Option<String>) -> DbConnection {
     DbConnection::builder()
         // Register our `on_connect` callback, which will save our auth token.
         .on_connect(on_connected)
@@ -50,7 +59,7 @@ fn connect_to_db(host: &str, jwt_token:Option<String>) -> DbConnection {
         .with_uri(host)
         // Finalize configuration and connect!
         .build()
-        .expect("Failed to connect")
+        .expect("Failed to connect") // TODO: Remove expect() and fail gracefully
 }
 
 fn creds_store() -> credentials::File {
@@ -59,7 +68,7 @@ fn creds_store() -> credentials::File {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
-/// Connection Callbacks
+//// Connection Callbacks
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -86,127 +95,3 @@ fn on_disconnected(_ctx: &ErrorContext, err: Option<Error>) {
         std::process::exit(0);
     }
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////
-/// Reducer Callbacks
-////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////
-
-/// Register all the callbacks our app will use to respond to database events.
-// pub fn register_callbacks(_world: &World, ctx: &DbConnection) -> Receiver<StellarObject> {
-//     let (transmitter, receiver) = mpsc::channel();
-
-//     ctx.db.stellar_object().on_insert(move |_ec, row| {
-//         match transmitter.send(row.clone()) {
-//             Err(error) => println!("ERROR : {:?}", error),
-//             _ => (),
-//         }
-//     });
-
-//     return receiver;
-
-//     // When a new user joins, print a notification.
-//     // ctx.db.user().on_insert(on_user_inserted);
-
-//     // // When a user's status changes, print a notification.
-//     // ctx.db.user().on_update(on_user_updated);
-
-//     // // When a new message is received, print it.
-//     // ctx.db.message().on_insert(on_message_inserted);
-
-//     // // When we fail to set our name, print a warning.
-//     // ctx.reducers.on_set_name(on_name_set);
-
-//     // // When we fail to send a message, print a warning.
-//     // ctx.reducers.on_send_message(on_message_sent);
-// }
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////
-/// Event Callbacks
-////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////
-/// Subscriptions
-////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////
-
-/// Register subscriptions for all rows of both tables.
-fn subscribe_to_tables(ctx: &DbConnection) {
-    ctx.subscription_builder()
-        .on_applied(on_sub_applied)
-        .on_error(on_sub_error)
-        .subscribe(["SELECT * FROM stellar_object"]);
-    ctx.subscription_builder()
-        .on_applied(on_sub_applied)
-        .on_error(on_sub_error)
-        .subscribe(["SELECT * FROM stellar_object_hi_res"]);
-    ctx.subscription_builder()
-        .on_applied(on_sub_applied)
-        .on_error(on_sub_error)
-        .subscribe(["SELECT * FROM stellar_object_low_res"]);
-    ctx.subscription_builder()
-        .on_applied(on_sub_applied)
-        .on_error(on_sub_error)
-        .subscribe(["SELECT * FROM stellar_object_velocity"]);
-    ctx.subscription_builder()
-        .on_applied(on_sub_applied)
-        .on_error(on_sub_error)
-        .subscribe(["SELECT * FROM player"]);
-    ctx.subscription_builder()
-        .on_applied(on_sub_applied)
-        .on_error(on_sub_error)
-        .subscribe(["SELECT * FROM player_controlled_stellar_object"]);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////
-/// Subscription Callbacks
-////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////
-
-/// Our `on_subscription_applied` callback:
-/// sort all past messages and print them in timestamp order.
-fn on_sub_applied(ctx: &SubscriptionEventContext) {
-    // let persons = ctx.db.person().iter().collect::<Vec<_>>();
-    // let mut local_person: Option<Person> = None;
-    println!("Sub Applied for {}", ctx.identity().to_hex());
-    // for person in persons {
-    //     //print_message(ctx, &message);
-    //     println!("Found person {} ({}) with map set to: {:?}", person.name, person.identity.to_hex(), person.last_view);
-
-    //     // Did we find 'em??
-    //     if person.identity == ctx.identity() {
-    //         local_person = Some(person);
-    //     }
-    // }
-    println!("Fully connected and all subscriptions applied.");
-    //println!("Use /name to set your name, or type a message!");
-
-    // match ctx.db.person().identity().find(&ctx.identity()) {
-    //     Some(person) => println!("We last used the {:?} map view!", person.last_view),
-    //     None => {
-    //         println!("Could not find your person. Creating them now.");
-    //         let _ = ctx.reducers.add_person("Henlo I'm name".into());
-    //     }
-    // }
-
-    // match ctx.db.person().identity().find(&ctx.identity()) {
-    //     person => println!("Found our old player instance! {:?}", person.unwrap().last_view),
-    //     None => {
-    //         eprintln!("Could not find player. Maybe we aren't created yet?");
-    //         let _ = ctx.reducers.add_person("Henlo I'm name".into());
-    //     }
-    // }
-}
-
-/// Or `on_error` callback:
-/// print the error, then exit the process.
-fn on_sub_error(_ctx: &ErrorContext, err: Error) {
-    eprintln!("Subscription failed: {}", err);
-    std::process::exit(1);
-}
-

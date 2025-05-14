@@ -2,8 +2,7 @@ use std::{ collections::HashMap, f32::consts::PI, thread::{ self, JoinHandle } }
 
 use dotenv::dotenv;
 use egui::{ Align2, Color32, RichText };
-use macroquad::{ math::Vec2, prelude::*, time, ui };
-use macroquad::miniquad::conf::Conf;
+use macroquad::{ math::Vec2, prelude::*, time };
 
 mod module_bindings;
 pub mod oidc_auth_helper;
