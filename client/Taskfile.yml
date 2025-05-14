@@ -11,7 +11,7 @@ tasks:
     desc: "Client: Build Release"
     cmds:
       - cargo build --release
-
+    
   run:
     desc: "Client: Run"
     cmds:
