@@ -1,6 +1,6 @@
 use spacetimedb::{ Identity, ReducerContext, Table };
 
-use super::{ common::is_server_or_owner, players::{ player, Player }, stellarobjects::{create_stellar_object_internal, create_stellar_object_player_window_for, player_controlled_stellar_object, PlayerControlledStellarObject} };
+use super::{ players::{ player, Player }, stellarobjects::{create_stellar_object_internal, create_stellar_object_player_window_for, player_controlled_stellar_object, PlayerControlledStellarObject} };
 
 /// For helper reducers that utilize several different tables
 ///

@@ -1,6 +1,6 @@
 use spacetimedb::{Identity, ReducerContext, SpacetimeType, Table};
 
-use super::{players::player, stellarobjects::player_controlled_stellar_object};
+use super::stellarobjects::player_controlled_stellar_object;
 
 
 

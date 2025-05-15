@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use macroquad::{ math::Vec2, prelude::*, ui };
+use macroquad::{ math::Vec2, prelude::* };
 
 use crate::module_bindings::*;
 

@@ -1,12 +1,10 @@
-use std::{ collections::HashMap, sync::mpsc::{self, Sender} };
 
-use macroquad::{ math::Vec2, prelude::*, ui };
+use macroquad::{ math::Vec2, prelude::* };
 
 use crate::module_bindings::*;
-use spacetimedb_sdk::{ DbContext, Table };
-use crate::stdb::connector::connect_to_spacetime;
+use spacetimedb_sdk::*;
 
-use crate::{shader::*, stdb::utils::*};
+use crate::stdb::utils::*;
 
 use super::state::GameState;
 

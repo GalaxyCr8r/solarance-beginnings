@@ -75,8 +75,11 @@ pub async fn gameplay(textures : HashMap<&'static str, Texture2D>, token : Optio
         render::sector(&mut game_state);
 
         egui_macroquad::ui(|egui_ctx| {  
-            chat::chat_window(&egui_ctx, &game_state.ctx, &mut game_state.chat_window);
             debug::debug_window(&egui_ctx, &mut game_state);
+
+            if get_player(&ctx.db, &ctx.identity()).is_some() {
+                chat::chat_window(&egui_ctx, &game_state.ctx, &mut game_state.chat_window);
+            }
         });
 
         egui_macroquad::draw();

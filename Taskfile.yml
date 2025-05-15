@@ -26,7 +26,7 @@ tasks:
     silent: false
     sources: []
     generates: []
-    interactive: true
+#    interactive: true
 
   show-login-token:
     desc: "STDB: Show Login Token"

@@ -28,4 +28,4 @@ Cargo.lock
 
 client/src/module_bindings/
 
-.env
+**/.env

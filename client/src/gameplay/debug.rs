@@ -58,7 +58,7 @@ pub fn debug_window(egui_ctx: &Context, game_state: &mut GameState) -> Option<eg
 
                     if ui.button("Create Player & Ship").clicked() && game_state.chat_window.text.len() > 1{
                         info!("Creating player and ship");
-                        let _ = ctx.reducers.create_player_controlled_ship(ctx.identity(), game_state.chat_window.text);
+                        let _ = ctx.reducers.create_player_controlled_ship(ctx.identity(), game_state.chat_window.text.clone());
                         game_state.chat_window.text.clear();
                     }
                 }
