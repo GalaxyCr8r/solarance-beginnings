@@ -10,7 +10,7 @@ use spacetimedb::{
     Table,
 };
 
-use super::{ common::{ is_server_or_owner, server_only }, players::player };
+use super::common::{ is_server_or_owner, server_only };
 
 #[derive(SpacetimeType, PartialEq)]
 enum TransformResolution {

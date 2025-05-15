@@ -1,8 +1,17 @@
 use spacetimedb::{Identity, ReducerContext, SpacetimeType, Table};
 
-use super::{players::player, stellarobjects::player_controlled_stellar_object};
+use super::stellarobjects::player_controlled_stellar_object;
 
 
+
+#[spacetimedb::table(name = global_config)]
+pub struct GlobalConfig {
+    #[primary_key]
+    pub id: u32,
+    
+    pub active_players: u32,
+    pub old_gods_defeated: u8,
+}
 
 #[derive(SpacetimeType, Clone, Debug, PartialEq)]
 pub enum MapView {

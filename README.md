@@ -23,6 +23,13 @@ the universe all the time.
 This is a test project to explore Rust, Macroquad, and SpacetimeDB to finally make the
 space MMO I've always wanted to make.
 
+## Running the Game
+
+Copy the `client/.env.template` file to `client/.env` and select the SpacetimeDB URL you want to use. The maincloud
+instance might not always be available or up to date.
+
+If you have Taskfile, Rust, etc. installed you should just be able to run `task client:run-full` in the root directory.
+
 ## Current State of the Project
 
 This is a very early prototype. Assuming SpacetimeDB will be able to support it, the following

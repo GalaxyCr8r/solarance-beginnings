@@ -15,7 +15,7 @@ use super::state::GameState;
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub fn debug_window(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::InnerResponse<Option<()>>> {
-    let ctx = &game_state.ctx;
+    let ctx = game_state.ctx;
 
     egui::Window
         ::new("Solarance:Beginnings")
@@ -48,11 +48,18 @@ pub fn debug_window(egui_ctx: &Context, game_state: &mut GameState) -> Option<eg
                     }
                 }
                 None => {
-                    ui.heading("Player: unknown");
+                    ui.heading("Player: MISSING");
                     ui.label(format!("ID: {}", ctx.identity()));
-                    if ui.button("Create Player & Ship").clicked() {
-                        let _ = ctx.reducers.create_player_controlled_ship(ctx.identity(), "Galaxy".to_string());
+
+                    ui.horizontal(|ui| {
+                        ui.label("Username: ");
+                        ui.text_edit_singleline(&mut game_state.chat_window.text);
+                    });
+
+                    if ui.button("Create Player & Ship").clicked() && game_state.chat_window.text.len() > 1{
                         info!("Creating player and ship");
+                        let _ = ctx.reducers.create_player_controlled_ship(ctx.identity(), game_state.chat_window.text.clone());
+                        game_state.chat_window.text.clear();
                     }
                 }
             }
