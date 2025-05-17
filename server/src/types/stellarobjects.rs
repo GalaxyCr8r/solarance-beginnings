@@ -9,40 +9,53 @@ use spacetimedb::{
     SpacetimeType,
     Table,
 };
+use spacetimedsl::dsl;
 
 use super::common::{ is_server_or_owner, server_only };
 
 #[derive(SpacetimeType, PartialEq)]
-enum TransformResolution {
+enum TransformResolution { // TODO Delete?
     Internal = 0, // Internal transform state
     High = 1, // Nearby objects
     Low = 2, // For out-of-sector or far-away objects
 }
 
-#[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
+#[derive(SpacetimeType, Debug, Clone, PartialEq, Eq, PartialOrd)]
 pub enum StellarObjectKinds {
     Ship,
     Asteroid,
     Station,
 }
 
+#[dsl(plural_name = stellar_objects)]
 #[spacetimedb::table(name = stellar_object, public)]
 pub struct StellarObject {
     #[primary_key]
     #[auto_inc]
+    #[wrap]
     pub id: u64,
-    pub kind: StellarObjectKinds,
+
     #[index(btree)]
+    pub kind: StellarObjectKinds,
+
+    #[index(btree)]
+    #[wrapped(path = crate::types::sector::SectorLocationId)]
     pub sector_id: u64, // FK: SectorLocation
 }
 
+#[dsl(plural_name = player_controlled_stellar_objects)]
 #[spacetimedb::table(name = player_controlled_stellar_object, public)]
 pub struct PlayerControlledStellarObject {
     #[primary_key]
+    #[wrapped(path = crate::types::players::PlayerIdentity)]
     pub identity: Identity,
+
     #[unique]
+    #[wrapped(path = StellarObjectId)]
     pub controlled_sobj_id: u64, // FK to Entity
+
     #[index(btree)]
+    #[wrapped(path = crate::types::sector::SectorLocationId)]
     pub sector_id: u64 // FK to Sector ID - Only because actually referencing the player's stellar object would require three table hits.
 }
 
@@ -55,46 +68,76 @@ const SO_OBJECT_FILTER: Filter = Filter::Sql(
     WHERE p.identity = :sender"
 );
 
-/*
-const ACCOUNT_FILTER_FOR_ADMINS: Filter = Filter::Sql(
-    "SELECT account.* FROM account JOIN admin WHERE admin.identity = :sender"
-);
-
-/// A client can only see players on their same level
-#[client_visibility_filter]
-const PLAYER_FILTER: Filter = Filter::Sql("
-    SELECT q.*
-    FROM account a
-    JOIN player p ON a.id = p.id
-    JOIN player q on p.level = q.level
-    WHERE a.identity = :sender
-");
-*/
-
+#[dsl(plural_name = stellar_object_internal_transforms)]
 #[spacetimedb::table(name = stellar_object_internal)]
-#[spacetimedb::table(name = stellar_object_velocity, public)]
-#[spacetimedb::table(name = stellar_object_hi_res, public)]
-#[spacetimedb::table(name = stellar_object_low_res, public)]
-#[derive(Default, Clone)]
-pub struct StellarObjectTransform {
-    #[unique]
+#[derive(Default)]
+pub struct StellarObjectTransformInternal {
+    #[primary_key]
+    #[wrapped(path = StellarObjectId)]
     pub sobj_id: u64, // FK: StellarObject
+
     pub x: f32,
     pub y: f32,
     pub rotation_radians: f32,
 }
 
+#[dsl(plural_name = stellar_object_velocities)]
+#[spacetimedb::table(name = stellar_object_velocity, public)]
+#[derive(Default)]
+pub struct StellarObjectVelocity {
+    #[primary_key]
+    #[wrapped(path = StellarObjectId)]
+    pub sobj_id: u64, // FK: StellarObject
+
+    pub x: f32,
+    pub y: f32,
+    pub rotation_radians: f32,
+}
+
+
+#[dsl(plural_name = stellar_object_hi_res_transforms)]
+#[spacetimedb::table(name = stellar_object_hi_res, public)]
+#[derive(Default)]
+pub struct StellarObjectTransformHiRes {
+    #[primary_key]
+    #[wrapped(path = StellarObjectId)]
+    pub sobj_id: u64, // FK: StellarObject
+
+    pub x: f32,
+    pub y: f32,
+    pub rotation_radians: f32,
+}
+
+#[dsl(plural_name = stellar_object_low_res_transforms)]
+#[spacetimedb::table(name = stellar_object_low_res, public)]
+#[derive(Default)]
+pub struct StellarObjectTransformLowRes {
+    #[primary_key]
+    #[wrapped(path = StellarObjectId)]
+    pub sobj_id: u64, // FK: StellarObject
+
+    pub x: f32,
+    pub y: f32,
+    pub rotation_radians: f32,
+}
+
+#[dsl(plural_name = stellar_object_turn_left_controllers)]
 #[spacetimedb::table(name = stellar_object_controller_turn_left)]
 pub struct StellarObjectControllerTurnLeft {
     #[primary_key]
+    #[wrapped(path = StellarObjectId)]
     pub sobj_id: u64, // FK: StellarObject
 }
 
+#[dsl(plural_name = stellar_object_player_windows)]
 #[spacetimedb::table(name = stellar_object_player_window, public)]
 pub struct StellarObjectPlayerWindow {
     #[primary_key]
+    #[wrapped(path = crate::types::players::PlayerIdentity)]
     pub identity: Identity,
+
     #[unique]
+    #[wrapped(path = StellarObjectId)]
     pub sobj_id: u64, // FK: StellarObject
 
     pub window: f32, // How big of a rectangular window should be
@@ -133,7 +176,7 @@ const LR_OBJECT_FILTER: Filter = Filter::Sql(
 
 /// Impls ///
 
-impl StellarObjectTransform {
+impl StellarObjectVelocity {
     // pub fn new(x: f32, y: f32) -> Self {
     //     Self { x, y }
     // }
@@ -142,8 +185,22 @@ impl StellarObjectTransform {
         glam::Vec2 { x: self.x, y: self.y }
     }
 
-    pub fn from_vec2(&self, vec: glam::Vec2) -> StellarObjectTransform {
-        StellarObjectTransform { x: vec.x, y: vec.y, ..*self }
+    pub fn from_vec2(&self, vec: glam::Vec2) -> StellarObjectVelocity {
+        StellarObjectVelocity { x: vec.x, y: vec.y, ..*self }
+    }
+}
+
+impl StellarObjectTransformInternal {
+    // pub fn new(x: f32, y: f32) -> Self {
+    //     Self { x, y }
+    // }
+
+    pub fn to_vec2(&self) -> glam::Vec2 {
+        glam::Vec2 { x: self.x, y: self.y }
+    }
+
+    pub fn from_vec2(&self, vec: glam::Vec2) -> StellarObjectTransformInternal {
+        StellarObjectTransformInternal { x: vec.x, y: vec.y, ..*self }
     }
 }
 
@@ -201,24 +258,11 @@ pub fn create_turn_left_controller_for(ctx: &ReducerContext, sobj_id: u64) {
 }
 
 #[spacetimedb::reducer]
-pub fn update_object_transform(ctx: &ReducerContext, transform: StellarObjectTransform) {
-    // We'll update this user's internal position, not their public position. Public positions will be updated in the scheduled timer.
-
-    //// TODO: Add checking so you can only update the transform of your own ship.. or something better entirely
-
-    if ctx.db.stellar_object_internal().sobj_id().find(transform.sobj_id).is_some() {
-        ctx.db.stellar_object_internal().sobj_id().update(transform);
-    } else {
-        ctx.db.stellar_object_internal().insert(transform);
-    }
-}
-
-#[spacetimedb::reducer]
 pub fn create_stellar_object(
     ctx: &ReducerContext,
     kind: StellarObjectKinds,
     sector_id: u64,
-    transform: StellarObjectTransform,
+    transform: StellarObjectTransformInternal,
     forward_velocity: f32
 ) -> Result<(), String> {
     server_only(ctx);
@@ -237,7 +281,7 @@ pub fn create_stellar_object_random(ctx: &ReducerContext, sector_id: u64) -> Res
         ctx,
         StellarObjectKinds::Ship,
         sector_id,
-        StellarObjectTransform {
+        StellarObjectTransformInternal {
             sobj_id: 0,
             x: ctx.rng().gen_range(0.0..1024.0),
             y: ctx.rng().gen_range(0.0..512.0),
@@ -250,7 +294,7 @@ pub fn create_stellar_object_random(ctx: &ReducerContext, sector_id: u64) -> Res
 #[spacetimedb::reducer]
 pub fn update_stellar_object_velocity(
     ctx: &ReducerContext,
-    velocity: StellarObjectTransform
+    velocity: StellarObjectVelocity
 ) -> Result<(), String> {
     is_server_or_owner(ctx, velocity.sobj_id)?;
     if ctx.db.stellar_object_velocity().sobj_id().find(velocity.sobj_id).is_none() {
@@ -303,7 +347,7 @@ pub fn create_stellar_object_internal(
     ctx: &ReducerContext,
     kind: StellarObjectKinds,
     sector_id: u64,
-    transform: StellarObjectTransform,
+    transform: StellarObjectTransformInternal,
     forward_velocity: f32
 ) -> Result<StellarObject, String> {
     let object = ctx.db.stellar_object().try_insert(StellarObject {
@@ -313,14 +357,14 @@ pub fn create_stellar_object_internal(
     });
     if object.is_ok() {
         let sobj = object.unwrap();
-        let new_transform = ctx.db.stellar_object_internal().insert(StellarObjectTransform {
+        let new_transform = ctx.db.stellar_object_internal().insert(StellarObjectTransformInternal {
             sobj_id: sobj.id, // TODO MAKE SURE THIS GETS  THE PROPER ID!
             ..transform
         });
         if sobj.id != new_transform.sobj_id {
             panic!("At the disco");
         }
-        let velocity = (StellarObjectTransform {
+        let velocity = (StellarObjectVelocity {
             sobj_id: sobj.id,
             ..Default::default()
         }).from_vec2(Vec2::from_angle(transform.rotation_radians) * forward_velocity);

@@ -9,7 +9,7 @@ use crate::stdb::utils::*;
 use super::state::GameState;
 
 
-fn draw_ship(transform: &StellarObjectTransform, game_state: &mut GameState) {
+fn draw_ship(transform: &StellarObjectTransformHiRes, game_state: &mut GameState) {
     let position = transform.to_vec2();
     let forward = Vec2::from_angle(transform.rotation_radians) * 16.0;
 

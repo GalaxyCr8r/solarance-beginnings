@@ -93,7 +93,7 @@ pub fn update_sobj_transforms(ctx: &ReducerContext, timer: UpdateTransformsTimer
 
     // Update all high res positions
     for row in ctx.db.stellar_object_internal().iter() {
-        ctx.db.stellar_object_hi_res().insert(StellarObjectTransform {
+        ctx.db.stellar_object_hi_res().insert(StellarObjectTransformHiRes {
             sobj_id: row.sobj_id,
             x: row.x,
             y: row.y,
@@ -102,7 +102,7 @@ pub fn update_sobj_transforms(ctx: &ReducerContext, timer: UpdateTransformsTimer
 
         // Update all low res positions
         if low_resolution {
-            ctx.db.stellar_object_low_res().insert(StellarObjectTransform {
+            ctx.db.stellar_object_low_res().insert(StellarObjectTransformLowRes {
                 sobj_id: row.sobj_id,
                 x: row.x,
                 y: row.y,

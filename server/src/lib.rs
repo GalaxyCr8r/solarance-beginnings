@@ -35,7 +35,7 @@ pub fn identity_connected(ctx: &ReducerContext) -> Result<(), String> {
 
     if let Some(config) = dsl.get_all_global_configurations().last().as_mut() {
         config.set_active_players(config.active_players+1);
-        dsl.update_global_config_by_id(config)?;
+        dsl.update_global_config_by_id(config.clone())?;
     }
 
     Ok(())

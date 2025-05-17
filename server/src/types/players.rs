@@ -1,15 +1,20 @@
-use spacetimedb::{table, ReducerContext, Identity};
+use spacetimedb::{table, Identity, ReducerContext, Timestamp};
+use spacetimedsl::dsl;
 
 use super::stellarobjects::player_controlled_stellar_object;
 
+#[dsl(plural_name = players)]
 #[table(name = player, public)]
 pub struct Player {
     #[primary_key]
+    #[wrap]
     pub identity: Identity,
 
     #[index(btree)]
     pub username: String,
 
+    created_at: Timestamp,
+    modified_at: Timestamp,
 }
 
 //// Impls ///
