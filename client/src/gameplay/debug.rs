@@ -86,7 +86,7 @@ pub fn debug_window(egui_ctx: &Context, game_state: &mut GameState) -> Option<eg
             }
 
             for player_controlled in ctx.db.player_controlled_stellar_object().iter() {
-                ui.label(format!(" - Player Controlled Obj #{} in Sec#{}", player_controlled.controlled_sobj_id, player_controlled.sector_id));
+                ui.label(format!(" - Player Controlled Obj #{} in Sec#{}", player_controlled.sobj_id, player_controlled.sector_id));
             }
 
             ui.label(
@@ -98,8 +98,15 @@ pub fn debug_window(egui_ctx: &Context, game_state: &mut GameState) -> Option<eg
             );
 
             ui.add_space(8.0);
-            if ui.button("  Quit  ").clicked() {
-                game_state.done = true;
-            }
+            ui.horizontal(|ui| {
+                if ui.button("  Quit  ").clicked() {
+                    game_state.done = true;
+                }
+                if ui.button("New NPC").clicked() {
+                    let current_sobj_total = ctx.db.stellar_object().count();
+                    let _ = ctx.reducers.create_stellar_object_random(0);
+                    let _ = ctx.reducers.create_turn_left_controller_for(StellarObjectId{ value: current_sobj_total });
+                }
+            });
         })
 }
