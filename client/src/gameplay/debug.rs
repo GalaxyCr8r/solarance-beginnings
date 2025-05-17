@@ -102,11 +102,6 @@ pub fn debug_window(egui_ctx: &Context, game_state: &mut GameState) -> Option<eg
                 if ui.button("  Quit  ").clicked() {
                     game_state.done = true;
                 }
-                if ui.button("New NPC").clicked() {
-                    let current_sobj_total = ctx.db.stellar_object().count();
-                    let _ = ctx.reducers.create_stellar_object_random(0);
-                    let _ = ctx.reducers.create_turn_left_controller_for(StellarObjectId{ value: current_sobj_total });
-                }
             });
         })
 }

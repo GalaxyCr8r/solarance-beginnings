@@ -1,3 +1,4 @@
+use log::info;
 use spacetimedb::{
     client_visibility_filter,
     rand::Rng,
@@ -225,18 +226,17 @@ pub fn create_stellar_object_player_window_from(ctx: &ReducerContext, sobj_id: u
 pub fn create_stellar_object_player_window_for(ctx: &ReducerContext, controlled_sobj: PlayerControlledStellarObject) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    match dsl.create_stellar_object_player_window(
+    dsl.create_stellar_object_player_window(
         controlled_sobj.identity, 
-        StellarObjectId::new(controlled_sobj.sobj_id), 
+        controlled_sobj.get_sobj_id(), 
         4000.0,
         2000.0,
         -2000.0,
         -2000.0,
         2000.0,
-        2000.0) {
-        Ok(_) => Ok(()),
-        Err(e) => Err(e.to_string()),
-    }
+        2000.0)?;
+    info!("Created player window for {} and object #{}!", controlled_sobj.identity.to_abbreviated_hex().to_string(), controlled_sobj.sobj_id);
+    Ok(())
 }
 
 #[spacetimedb::reducer]

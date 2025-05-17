@@ -18,10 +18,10 @@ pub struct GlobalConfig {
 pub fn are_there_active_players(ctx: &ReducerContext) -> bool {
     if let Some(config) = ctx.db.global_config().id().find(0) {
         if config.active_players == 0 {
-            return true
+            return false
         }
     }
-    false
+    true
 }
 
 #[spacetimedb::reducer]
