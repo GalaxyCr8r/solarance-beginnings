@@ -1,48 +1,46 @@
 use std::{f32::consts::PI, time::Duration};
 use glam::Vec2;
-use spacetimedb::{ReducerContext, Table};
+use spacetimedb::{ReducerContext};
 use spacetimedsl::{dsl};
 
 use crate::types::{common::{are_there_active_players, try_server_only}, stellarobjects::*};
 
-//#[dsl(plural_name = update_transforms_timers)]
-#[spacetimedb::table(name = update_sobj_transform_timer, scheduled(update_sobj_transforms))]
-pub struct UpdateTransformsTimer {
+#[dsl(plural_name = transforms_timers)]
+#[spacetimedb::table(name = sobj_transform_timer, scheduled(recalculate_sobj_transforms))]
+pub struct TransformsTimer {
     #[primary_key]
     #[auto_inc]
-    scheduled_id: u64,
+    #[wrap]
+    pub scheduled_id: u64,
     scheduled_at: spacetimedb::ScheduleAt,
     current_update: u8,
 }
 
-#[spacetimedb::table(name = update_player_windows_timer, scheduled(update_player_windows))]
-pub struct UpdatePlayerWindowsTimer {
+#[dsl(plural_name = player_window_timers)]
+#[spacetimedb::table(name = player_windows_timer, scheduled(recalculate_player_windows))]
+pub struct PlayerWindowsTimer {
     #[primary_key]
     #[auto_inc]
-    scheduled_id: u64,
+    #[wrap]
+    pub scheduled_id: u64,
     scheduled_at: spacetimedb::ScheduleAt,
 }
 
 /// Init ///
 
-pub fn init(ctx: &ReducerContext) {
-    //let dsl = dsl(ctx); // Waiting for DSL implementation of timers
+pub fn init(ctx: &ReducerContext) -> Result<(), String> {
+    let dsl = dsl(ctx); // Waiting for DSL implementation of timers
 
-    ctx.db.update_sobj_transform_timer().insert(UpdateTransformsTimer {
-        scheduled_id: 0,
-        scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 20).into()),
-        current_update: 0
-    });
-    ctx.db.update_player_windows_timer().insert(UpdatePlayerWindowsTimer {
-        scheduled_id: 0,
-        scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_millis(750).into()),
-    });
+    dsl.create_sobj_transform_timer(spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 20).into()), 0)?;
+    dsl.create_player_windows_timer(spacetimedb::ScheduleAt::Interval(Duration::from_millis(750).into()))?;
+
+    Ok(())
 }
 
 /// Reducers ///
 
 #[spacetimedb::reducer]
-pub fn update_sobj_transforms(ctx: &ReducerContext, timer: UpdateTransformsTimer) -> Result<(), String> {
+pub fn recalculate_sobj_transforms(ctx: &ReducerContext, timer: TransformsTimer) -> Result<(), String> {
     let dsl = dsl(ctx);
 
     try_server_only(ctx)?;
@@ -60,8 +58,7 @@ pub fn update_sobj_transforms(ctx: &ReducerContext, timer: UpdateTransformsTimer
 
     // Update the value in the config table
     update.current_update = (update.current_update + 1) % 5; // TODO: Make this configurable
-    ctx.db.update_sobj_transform_timer().scheduled_id().update(update);
-
+    dsl.update_sobj_transform_timer_by_scheduled_id(update)?;
 
     // Clear all high res positions
     for row in dsl.get_all_stellar_object_hi_res_transforms() {
@@ -136,7 +133,7 @@ pub fn move_ships(ctx: &ReducerContext) -> Result<(), String> {
 }
 
 #[spacetimedb::reducer]
-pub fn update_player_windows(ctx: &ReducerContext, _timer: UpdatePlayerWindowsTimer) -> Result<(), String> {
+pub fn recalculate_player_windows(ctx: &ReducerContext, _timer: PlayerWindowsTimer) -> Result<(), String> {
     let dsl = dsl(ctx);
 
     // Bail out ASAP if there's no players connected.

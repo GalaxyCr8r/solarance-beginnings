@@ -13,7 +13,7 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     log::info!("init identity: {:?}", ctx.identity());
     log::info!("init sender: {:?}", ctx.sender);
 
-    stellarobject_timers::init(ctx);
+    stellarobject_timers::init(ctx)?;
 
     // Create a Global Config row, or reinitalize the one if it exists.
     if dsl.get_count_of_global_configurations() == 0 {
