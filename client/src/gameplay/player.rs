@@ -18,7 +18,7 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
         return Err("Player doesn't control a stellar object yet!".to_string());
     }
     let mut velocity = ctx.db
-        .stellar_object_velocity()
+        .sobj_velocity()
         .sobj_id()
         .find(&controlled_entity_id.unwrap())
         .ok_or("Player's controlled object doesn't have a velocity table entry!")?;
@@ -50,6 +50,6 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
     }
 
     ctx.reducers
-        .update_stellar_object_velocity(velocity)
+        .update_sobj_velocity(velocity)
         .or_else(|err| Err(err.to_string()))
 }

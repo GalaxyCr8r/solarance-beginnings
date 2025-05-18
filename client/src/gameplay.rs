@@ -15,12 +15,12 @@ mod player;
 mod render;
 
 /// Register all the callbacks our app will use to respond to database events.
-pub fn register_callbacks(ctx: &DbConnection, global_chat_channel: Sender<GlobalChat>) {
+pub fn register_callbacks(ctx: &DbConnection, global_chat_channel: Sender<GlobalChatMessage>) {
     ctx.db.stellar_object().on_insert( |_ec, sobj| {
         println!("Stellar Object Inserted: {:?}", sobj);
     });
 
-    ctx.db.global_chat().on_insert(move |_ec, message| {
+    ctx.db.global_chat_message().on_insert(move |_ec, message| {
         print!("{}: {}", message.identity.to_abbreviated_hex().to_string(), message.message);
         let _ = global_chat_channel.send(message.clone());
     });
@@ -36,7 +36,7 @@ pub async fn gameplay(textures : HashMap<&'static str, Texture2D>, token : Optio
     // DB Connection & ECS World
     let ctx = connect_to_spacetime(token);
 
-    let (global_chat_transmitter, global_chat_receiver) = mpsc::channel::<GlobalChat>();
+    let (global_chat_transmitter, global_chat_receiver) = mpsc::channel::<GlobalChatMessage>();
 
     let mut game_state = state::initialize(textures, &ctx);
 
