@@ -1,4 +1,4 @@
-use spacetimedb::ReducerContext;
+use spacetimedb::{ReducerContext, Timestamp};
 use spacetimedsl::{dsl, Wrapper};
 
 use super::{stellarobjects::{GetPlayerControlledStellarObjectRowOptionByIdentity, StellarObjectId}};
@@ -13,6 +13,9 @@ pub struct GlobalConfig {
     
     pub active_players: u32,
     pub old_gods_defeated: u8,
+
+    created_at: Timestamp,
+    modified_at: Timestamp,
 }
 
 pub fn are_there_active_players(ctx: &ReducerContext) -> bool {

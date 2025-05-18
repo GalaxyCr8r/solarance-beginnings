@@ -1,6 +1,6 @@
 use schedulers::stellarobject_timers::{self};
 use spacetimedb::ReducerContext;
-use types::common::{global_config, CreateGlobalConfigRow, GetAllGlobalConfigRows, GetCountOfGlobalConfigRows, GlobalConfig, UpdateGlobalConfigRowById};
+use types::common::{CreateGlobalConfigRow, GetAllGlobalConfigRows, GetCountOfGlobalConfigRows, UpdateGlobalConfigRowById};
 use spacetimedsl::dsl;
 
 pub mod types;
@@ -33,9 +33,9 @@ pub fn identity_connected(ctx: &ReducerContext) -> Result<(), String> {
     
     // TODO: When someone logs in set their player to online
 
-    if let Some(config) = dsl.get_all_global_configurations().last().as_mut() {
+    if let Some(mut config) = dsl.get_all_global_configurations().last() {
         config.set_active_players(config.active_players+1);
-        dsl.update_global_config_by_id(config.clone())?;
+        dsl.update_global_config_by_id(config)?;
     }
 
     Ok(())
@@ -46,12 +46,10 @@ pub fn identity_disconnected(ctx: &ReducerContext) -> Result<(), String> {
     let dsl = dsl(ctx);
     // Called everytime a client disconnects
 
-    if let Some(config) = dsl.get_all_global_configurations().last() {
+    if let Some(mut config) = dsl.get_all_global_configurations().last() {
         if config.active_players > 0 {
-            ctx.db.global_config().id().update(GlobalConfig {
-                active_players: config.active_players-1,
-                ..config
-            });
+            config.set_active_players(config.active_players-1);
+            dsl.update_global_config_by_id(config)?;
         }
     }
 

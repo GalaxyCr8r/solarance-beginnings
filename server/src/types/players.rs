@@ -9,7 +9,7 @@ pub struct Player {
     #[primary_key]
     pub identity: Identity,
 
-    #[index(btree)]
+    #[unique]
     pub username: String,
 
     created_at: Timestamp,

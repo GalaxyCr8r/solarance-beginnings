@@ -5,10 +5,10 @@ use crate::module_bindings::*;
 
 
 pub fn get_transform(ctx:&DbConnection, sobj_id:u64) -> Result<StellarObjectTransformHiRes, String> {
-    if let Some(hr)= ctx.db.stellar_object_hi_res().sobj_id().find(&sobj_id) {
+    if let Some(hr)= ctx.db.sobj_hi_res_transform().sobj_id().find(&sobj_id) {
         Ok(hr)
     } else {
-        if let Some(lr) = ctx.db.stellar_object_low_res().sobj_id().find(&sobj_id) {
+        if let Some(lr) = ctx.db.sobj_low_res_transform().sobj_id().find(&sobj_id) {
             Ok(StellarObjectTransformHiRes {
                 sobj_id: lr.sobj_id,
                 x: lr.x,
