@@ -1,12 +1,15 @@
 use log::info;
-use spacetimedb::{table, Identity, ReducerContext, Table, Timestamp};
+use spacetimedb::{table, Identity, ReducerContext, Timestamp};
+use spacetimedsl::dsl;
 
 use crate::types::players::get_username;
 
-#[table(name = global_chat, public)]
-pub struct GlobalChat {
+#[dsl(plural_name = global_chat_messages)]
+#[table(name = global_chat_message, public)]
+pub struct GlobalChatMessage {
     #[primary_key]
     #[auto_inc]
+    #[wrap]
     pub id: u64,
 
     pub identity: Identity, // FK to Player
@@ -18,21 +21,19 @@ pub struct GlobalChat {
 
 //// Impls ///
 
-impl GlobalChat {
+impl GlobalChatMessage {
     //
 }
 
 //// Reducers ///
 
 #[spacetimedb::reducer]
-pub fn send_global_chat(ctx: &ReducerContext, chat_message: String) {
+pub fn send_global_chat(ctx: &ReducerContext, chat_message: String) -> Result<(), String> {
+    let dsl = dsl(ctx);
+
     // If ctx.sender is a valid, unbanned, unmuted player
     info!("Message received: [{}]: {}", get_username(ctx, ctx.sender), chat_message);
 
-    ctx.db.global_chat().insert(GlobalChat {
-        id: 0,
-        identity: ctx.sender,
-        message: chat_message,
-        created_at: ctx.timestamp
-    });
+    dsl.create_global_chat_message(ctx.sender, &chat_message)?;
+    Ok(())
 }

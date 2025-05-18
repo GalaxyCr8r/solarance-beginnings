@@ -5,7 +5,7 @@ use crate::{module_bindings::*, stdb::utils::get_username};
 
 #[derive(Default)]
 pub struct ChatWindowState {
-    pub global_chat_channel: Vec<GlobalChat>,
+    pub global_chat_channel: Vec<GlobalChatMessage>,
     pub text: String,
     pub selected_tab: u8,
     pub has_focus: bool,

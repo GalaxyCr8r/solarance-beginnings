@@ -1,4 +1,3 @@
-use glam::Vec2;
 use log::info;
 use spacetimedb::{
     client_visibility_filter,
@@ -6,43 +5,54 @@ use spacetimedb::{
     Filter,
     Identity,
     ReducerContext,
-    SpacetimeType,
-    Table,
+    SpacetimeType
 };
+use spacetimedsl::{dsl, Wrapper};
 
-use super::common::{ is_server_or_owner, server_only };
+use super::{common::{ is_server_or_owner, server_only }, sector::SectorLocationId};
 
 #[derive(SpacetimeType, PartialEq)]
-enum TransformResolution {
+enum TransformResolution { // TODO Delete?
     Internal = 0, // Internal transform state
     High = 1, // Nearby objects
     Low = 2, // For out-of-sector or far-away objects
 }
 
-#[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
+#[derive(SpacetimeType, Debug, Clone, PartialEq, Eq, PartialOrd)]
 pub enum StellarObjectKinds {
     Ship,
     Asteroid,
     Station,
 }
 
+#[dsl(plural_name = stellar_objects)]
 #[spacetimedb::table(name = stellar_object, public)]
 pub struct StellarObject {
     #[primary_key]
     #[auto_inc]
+    #[wrap]
     pub id: u64,
-    pub kind: StellarObjectKinds,
+
     #[index(btree)]
+    pub kind: StellarObjectKinds,
+
+    #[index(btree)]
+    #[wrapped(path = crate::types::sector::SectorLocationId)]
     pub sector_id: u64, // FK: SectorLocation
 }
 
+#[dsl(plural_name = player_controlled_stellar_objects)]
 #[spacetimedb::table(name = player_controlled_stellar_object, public)]
 pub struct PlayerControlledStellarObject {
     #[primary_key]
     pub identity: Identity,
+
     #[unique]
-    pub controlled_sobj_id: u64, // FK to Entity
+    #[wrapped(path = StellarObjectId)]
+    pub sobj_id: u64, // FK to Entity
+
     #[index(btree)]
+    #[wrapped(path = crate::types::sector::SectorLocationId)]
     pub sector_id: u64 // FK to Sector ID - Only because actually referencing the player's stellar object would require three table hits.
 }
 
@@ -55,46 +65,74 @@ const SO_OBJECT_FILTER: Filter = Filter::Sql(
     WHERE p.identity = :sender"
 );
 
-/*
-const ACCOUNT_FILTER_FOR_ADMINS: Filter = Filter::Sql(
-    "SELECT account.* FROM account JOIN admin WHERE admin.identity = :sender"
-);
-
-/// A client can only see players on their same level
-#[client_visibility_filter]
-const PLAYER_FILTER: Filter = Filter::Sql("
-    SELECT q.*
-    FROM account a
-    JOIN player p ON a.id = p.id
-    JOIN player q on p.level = q.level
-    WHERE a.identity = :sender
-");
-*/
-
-#[spacetimedb::table(name = stellar_object_internal)]
-#[spacetimedb::table(name = stellar_object_velocity, public)]
-#[spacetimedb::table(name = stellar_object_hi_res, public)]
-#[spacetimedb::table(name = stellar_object_low_res, public)]
-#[derive(Default, Clone)]
-pub struct StellarObjectTransform {
-    #[unique]
+#[dsl(plural_name = sobj_internal_transforms)]
+#[spacetimedb::table(name = sobj_internal_transform)]
+#[derive(Default)]
+pub struct StellarObjectTransformInternal {
+    #[primary_key]
+    #[wrapped(path = StellarObjectId)]
     pub sobj_id: u64, // FK: StellarObject
+
     pub x: f32,
     pub y: f32,
     pub rotation_radians: f32,
 }
 
-#[spacetimedb::table(name = stellar_object_controller_turn_left)]
+#[dsl(plural_name = sobj_velocities)]
+#[spacetimedb::table(name = sobj_velocity, public)]
+#[derive(Default)]
+pub struct StellarObjectVelocity {
+    #[primary_key]
+    #[wrapped(path = StellarObjectId)]
+    pub sobj_id: u64, // FK: StellarObject
+
+    pub x: f32,
+    pub y: f32,
+    pub rotation_radians: f32,
+}
+
+#[dsl(plural_name = sobj_hi_res_transforms)]
+#[spacetimedb::table(name = sobj_hi_res_transform, public)]
+#[derive(Default)]
+pub struct StellarObjectTransformHiRes {
+    #[primary_key]
+    #[wrapped(path = StellarObjectId)]
+    pub sobj_id: u64, // FK: StellarObject
+
+    pub x: f32,
+    pub y: f32,
+    pub rotation_radians: f32,
+}
+
+#[dsl(plural_name = sobj_low_res_transforms)]
+#[spacetimedb::table(name = sobj_low_res_transform, public)]
+#[derive(Default)]
+pub struct StellarObjectTransformLowRes {
+    #[primary_key]
+    #[wrapped(path = StellarObjectId)]
+    pub sobj_id: u64, // FK: StellarObject
+
+    pub x: f32,
+    pub y: f32,
+    pub rotation_radians: f32,
+}
+
+#[dsl(plural_name = sobj_turn_left_controllers)]
+#[spacetimedb::table(name = sobj_turn_left_controller)]
 pub struct StellarObjectControllerTurnLeft {
     #[primary_key]
+    #[wrapped(path = StellarObjectId)]
     pub sobj_id: u64, // FK: StellarObject
 }
 
-#[spacetimedb::table(name = stellar_object_player_window, public)]
+#[dsl(plural_name = sobj_player_windows)]
+#[spacetimedb::table(name = sobj_player_window, public)]
 pub struct StellarObjectPlayerWindow {
     #[primary_key]
     pub identity: Identity,
+
     #[unique]
+    #[wrapped(path = StellarObjectId)]
     pub sobj_id: u64, // FK: StellarObject
 
     pub window: f32, // How big of a rectangular window should be
@@ -110,8 +148,8 @@ pub struct StellarObjectPlayerWindow {
 #[client_visibility_filter]
 const HR_OBJECT_FILTER: Filter = Filter::Sql(
     "SELECT o.* 
-    FROM stellar_object_hi_res o
-    JOIN stellar_object_player_window w
+    FROM sobj_hi_res_transform o
+    JOIN sobj_player_window w
     WHERE w.identity = :sender AND
           (o.x > w.tl_x AND 
           o.y > w.tl_y AND 
@@ -122,8 +160,8 @@ const HR_OBJECT_FILTER: Filter = Filter::Sql(
 #[client_visibility_filter]
 const LR_OBJECT_FILTER: Filter = Filter::Sql(
     "SELECT o.* 
-    FROM stellar_object_low_res o
-    JOIN stellar_object_player_window w
+    FROM sobj_low_res_transform o
+    JOIN sobj_player_window w
     WHERE w.identity = :sender AND
           (o.x <= w.tl_x OR 
           o.y <= w.tl_y OR 
@@ -133,7 +171,7 @@ const LR_OBJECT_FILTER: Filter = Filter::Sql(
 
 /// Impls ///
 
-impl StellarObjectTransform {
+impl StellarObjectVelocity {
     // pub fn new(x: f32, y: f32) -> Self {
     //     Self { x, y }
     // }
@@ -142,122 +180,123 @@ impl StellarObjectTransform {
         glam::Vec2 { x: self.x, y: self.y }
     }
 
-    pub fn from_vec2(&self, vec: glam::Vec2) -> StellarObjectTransform {
-        StellarObjectTransform { x: vec.x, y: vec.y, ..*self }
+    pub fn from_vec2(&self, vec: glam::Vec2) -> StellarObjectVelocity {
+        StellarObjectVelocity { x: vec.x, y: vec.y, ..*self }
+    }
+}
+
+impl StellarObjectTransformInternal {
+    // pub fn new(x: f32, y: f32) -> Self {
+    //     Self { x, y }
+    // }
+
+    pub fn to_vec2(&self) -> glam::Vec2 {
+        glam::Vec2 { x: self.x, y: self.y }
+    }
+
+    pub fn from_vec2(&self, vec: glam::Vec2) -> StellarObjectTransformInternal {
+        StellarObjectTransformInternal { x: vec.x, y: vec.y, ..*self }
     }
 }
 
 /// Reducers ///
 
 #[spacetimedb::reducer]
-pub fn create_stellar_object_player_window_from(ctx: &ReducerContext, sobj_id: u64) {
+pub fn create_sobj_player_window_from(ctx: &ReducerContext, sobj_id: u64) -> Result<(), String> {
+    let dsl = dsl(ctx);
+    
     // Find who owns the object, if any
     let mut owning_player = None;
-    for player in ctx.db.player_controlled_stellar_object().iter() {
-        if player.controlled_sobj_id == sobj_id {
-            owning_player = Some(player.identity);
+    for controlled in dsl.get_all_player_controlled_stellar_objects() {
+        if controlled.sobj_id == sobj_id {
+            owning_player = Some(controlled);
             break;
         }
     }
     if owning_player.is_none() {
-        info!("Couldn't find owning player to create player window");
-        return;
+        return Err("Couldn't find owning player to create player window".to_string());
     }
 
     // Create the window for the object
-    create_stellar_object_player_window_for(ctx, owning_player.unwrap(), sobj_id)
+    create_sobj_player_window_for(ctx, owning_player.unwrap())
 }
 
 #[spacetimedb::reducer]
-pub fn create_stellar_object_player_window_for(ctx: &ReducerContext, owning_player:Identity, sobj_id: u64) {
-    // Create the window for the object
-    ctx.db
-        .stellar_object_player_window()
-        .insert(StellarObjectPlayerWindow {
-            identity: owning_player,
-            sobj_id,
-            window: 4000.0,
-            margin: 2000.0,
-            tl_x: -2000.0,
-            tl_y: -2000.0,
-            br_x: 2000.0,
-            br_y: 2000.0,
-        });
+pub fn create_sobj_player_window_for(ctx: &ReducerContext, controlled_sobj: PlayerControlledStellarObject) -> Result<(), String> {
+    let dsl = dsl(ctx);
+
+    dsl.create_sobj_player_window(
+        controlled_sobj.identity, 
+        controlled_sobj.get_sobj_id(), 
+        4000.0,
+        2000.0,
+        -2000.0,
+        -2000.0,
+        2000.0,
+        2000.0)?;
+    info!("Created player window for {} and object #{}!", controlled_sobj.identity.to_abbreviated_hex().to_string(), controlled_sobj.sobj_id);
+    Ok(())
 }
 
 #[spacetimedb::reducer]
-pub fn create_turn_left_controller_for(ctx: &ReducerContext, sobj_id: u64) {
-    if let Some(controller) = ctx.db.stellar_object_controller_turn_left().sobj_id().find(sobj_id) {
-        ctx.db.stellar_object_controller_turn_left().delete(controller);
-        spacetimedb::log::info!("Deleted controller #{}", sobj_id);
+pub fn create_turn_left_controller_for(ctx: &ReducerContext, sobj_id: StellarObjectId) -> Result<(), String> {
+    let dsl = dsl(ctx);
+
+    if let Some(controller) = dsl.get_sobj_turn_left_controller_by_sobj_id(&sobj_id) {
+        dsl.delete_sobj_turn_left_controller_by_sobj_id(controller.get_sobj_id());
+        spacetimedb::log::info!("Deleted controller #{:?}", sobj_id.value);
     } else {
-        let controller = ctx.db
-            .stellar_object_controller_turn_left()
-            .insert(StellarObjectControllerTurnLeft {
-                sobj_id: sobj_id,
-            });
+        let controller = dsl.create_sobj_turn_left_controller(sobj_id)?;
         spacetimedb::log::info!("Created controller #{}", controller.sobj_id);
     }
-}
-
-#[spacetimedb::reducer]
-pub fn update_object_transform(ctx: &ReducerContext, transform: StellarObjectTransform) {
-    // We'll update this user's internal position, not their public position. Public positions will be updated in the scheduled timer.
-
-    //// TODO: Add checking so you can only update the transform of your own ship.. or something better entirely
-
-    if ctx.db.stellar_object_internal().sobj_id().find(transform.sobj_id).is_some() {
-        ctx.db.stellar_object_internal().sobj_id().update(transform);
-    } else {
-        ctx.db.stellar_object_internal().insert(transform);
-    }
+    Ok(())
 }
 
 #[spacetimedb::reducer]
 pub fn create_stellar_object(
     ctx: &ReducerContext,
     kind: StellarObjectKinds,
-    sector_id: u64,
-    transform: StellarObjectTransform,
-    forward_velocity: f32
+    sector_id: SectorLocationId,
+    transform: StellarObjectTransformInternal
 ) -> Result<(), String> {
     server_only(ctx);
 
-    match create_stellar_object_internal(ctx, kind, sector_id, transform, forward_velocity) {
+    match create_sobj_internal(ctx, kind, sector_id, transform) {
         Ok(_) => Ok(()),
         Err(e) => Err(e),
     }
 }
 
 #[spacetimedb::reducer]
-pub fn create_stellar_object_random(ctx: &ReducerContext, sector_id: u64) -> Result<(), String> {
+pub fn create_sobj_random(ctx: &ReducerContext, sector_id: u64) -> Result<(), String> {
     server_only(ctx);
 
     create_stellar_object(
         ctx,
         StellarObjectKinds::Ship,
-        sector_id,
-        StellarObjectTransform {
+        SectorLocationId::new(sector_id),
+        StellarObjectTransformInternal {
             sobj_id: 0,
             x: ctx.rng().gen_range(0.0..1024.0),
             y: ctx.rng().gen_range(0.0..512.0),
             rotation_radians: ctx.rng().gen_range(-std::f32::consts::PI..std::f32::consts::PI),
-        },
-        0.0
+        }
     )
 }
 
+/// Called by clients to update their ships. Will limit the acceleration and etc.
 #[spacetimedb::reducer]
-pub fn update_stellar_object_velocity(
+pub fn update_sobj_velocity(
     ctx: &ReducerContext,
-    velocity: StellarObjectTransform
+    velocity: StellarObjectVelocity
 ) -> Result<(), String> {
-    is_server_or_owner(ctx, velocity.sobj_id)?;
-    if ctx.db.stellar_object_velocity().sobj_id().find(velocity.sobj_id).is_none() {
-        return Err("Stellar object not found!".to_string());
-    }
+    let dsl = dsl(ctx);
+
+    is_server_or_owner(ctx, velocity.get_sobj_id())?;
+
     let mut update_velocity = velocity.clone();
-    match ctx.db.stellar_object_velocity().sobj_id().find(velocity.sobj_id) {
+    
+    match dsl.get_sobj_velocity_by_sobj_id(velocity.get_sobj_id()) {
         Some(prev_velocity) => {
             // Check if the acceleration required for the velocity change is too high
             let acceleration = (velocity.to_vec2() - prev_velocity.to_vec2()).length();
@@ -265,20 +304,19 @@ pub fn update_stellar_object_velocity(
                 //// TODO: Make this variable per ship type
                 //log::info!("Acceleration too high! {:?}", acceleration);
 
-                // Reduce the acceleration down
-                let new_velocity =
+                // Reduce the acceleration down                
+                update_velocity = update_velocity.from_vec2(
                     prev_velocity.to_vec2() +
-                    (update_velocity.to_vec2() - prev_velocity.to_vec2()).normalize() * 2.0;
-                update_velocity = update_velocity.from_vec2(new_velocity);
+                    (update_velocity.to_vec2() - prev_velocity.to_vec2()).normalize() * 2.0);
             }
 
             // Check if the absolute velocity is too fast for the ship.
-            if update_velocity.to_vec2().length() > 100.0 {
+            if update_velocity.to_vec2().length() > 50.0 {
                 //// TODO: Make this variable per ship type
                 //log::info!("Velocity too high! {:?}", update_velocity.to_vec2().length());
 
                 // Reduce the velocity down
-                let new_velocity = update_velocity.to_vec2().normalize() * 100.0;
+                let new_velocity = update_velocity.to_vec2().normalize() * 50.0;
                 update_velocity = update_velocity.from_vec2(new_velocity);
             }
         }
@@ -287,47 +325,27 @@ pub fn update_stellar_object_velocity(
         }
     }
 
-    // log::info!(
-    //     "SObj ID #{} - New Velocity: {}, {}",
-    //     update_velocity.sobj_id,
-    //     update_velocity.x,
-    //     update_velocity.y
-    // );
-    ctx.db.stellar_object_velocity().sobj_id().update(update_velocity);
+    if let Err(e) = dsl.update_sobj_velocity_by_sobj_id(update_velocity) {
+        return Err(e.to_string())
+    }
     Ok(())
 }
 
 /// Helper Functions ///
 
-pub fn create_stellar_object_internal(
+pub fn create_sobj_internal(
     ctx: &ReducerContext,
     kind: StellarObjectKinds,
-    sector_id: u64,
-    transform: StellarObjectTransform,
-    forward_velocity: f32
+    sector_id: SectorLocationId,
+    transform: StellarObjectTransformInternal
 ) -> Result<StellarObject, String> {
-    let object = ctx.db.stellar_object().try_insert(StellarObject {
-        id: 0,
-        kind: kind,
-        sector_id: sector_id,
-    });
-    if object.is_ok() {
-        let sobj = object.unwrap();
-        let new_transform = ctx.db.stellar_object_internal().insert(StellarObjectTransform {
-            sobj_id: sobj.id, // TODO MAKE SURE THIS GETS  THE PROPER ID!
-            ..transform
-        });
-        if sobj.id != new_transform.sobj_id {
-            panic!("At the disco");
-        }
-        let velocity = (StellarObjectTransform {
-            sobj_id: sobj.id,
-            ..Default::default()
-        }).from_vec2(Vec2::from_angle(transform.rotation_radians) * forward_velocity);
+    let dsl = dsl(ctx);
 
-        ctx.db.stellar_object_velocity().insert(velocity);
-        spacetimedb::log::info!("Created stellar object #{}!", sobj.id);
-        return Ok(sobj);
-    }
-    Err("Failed to create stellar object!".to_string())
+    let sobj = dsl.create_stellar_object(kind, sector_id)?;
+    
+    let _ = dsl.create_sobj_internal_transform(&sobj, transform.x, transform.y, transform.rotation_radians);
+    let _ = dsl.create_sobj_velocity(&sobj, 0.0, 0.0, 0.0);
+
+    spacetimedb::log::info!("Created stellar object #{}!", sobj.id);
+    return Ok(sobj);
 }

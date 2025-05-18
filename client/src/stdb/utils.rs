@@ -4,12 +4,17 @@ use spacetimedb_sdk::{DbContext, Identity};
 use crate::module_bindings::*;
 
 
-pub fn get_transform(ctx:&DbConnection, sobj_id:u64) -> Result<StellarObjectTransform, String> {
-    if let Some(hr)= ctx.db.stellar_object_hi_res().sobj_id().find(&sobj_id) {
+pub fn get_transform(ctx:&DbConnection, sobj_id:u64) -> Result<StellarObjectTransformHiRes, String> {
+    if let Some(hr)= ctx.db.sobj_hi_res_transform().sobj_id().find(&sobj_id) {
         Ok(hr)
     } else {
-        if let Some(lr) = ctx.db.stellar_object_low_res().sobj_id().find(&sobj_id) {
-            Ok(lr)
+        if let Some(lr) = ctx.db.sobj_low_res_transform().sobj_id().find(&sobj_id) {
+            Ok(StellarObjectTransformHiRes {
+                sobj_id: lr.sobj_id,
+                x: lr.x,
+                y: lr.y,
+                rotation_radians: lr.rotation_radians,
+            })
         } else {
             Err("Could not find transform, even low-rez.".to_string())
         }
@@ -44,7 +49,7 @@ pub fn get_player_sobj_id(ctx: &DbConnection) -> Option<u64> {
     }
 }
 
-pub fn get_player_transform(ctx: &DbConnection) -> Option<StellarObjectTransform> {
+pub fn get_player_transform(ctx: &DbConnection) -> Option<StellarObjectTransformHiRes> {
     if let Some(this) = get_player_sobj_id(ctx) {
         get_transform(ctx, this).ok()
     } else {

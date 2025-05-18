@@ -13,7 +13,7 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
     ctx.subscription_builder()
         .on_applied(on_sub_applied)
         .on_error(on_sub_error)
-        .subscribe(["SELECT * FROM global_chat"]);
+        .subscribe(["SELECT * FROM global_chat_message"]);
     ctx.subscription_builder()
         .on_applied(on_sub_applied)
         .on_error(on_sub_error)
@@ -21,15 +21,15 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
     ctx.subscription_builder()
         .on_applied(on_sub_applied)
         .on_error(on_sub_error)
-        .subscribe(["SELECT * FROM stellar_object_hi_res"]);
+        .subscribe(["SELECT * FROM sobj_hi_res_transform"]);
     ctx.subscription_builder()
         .on_applied(on_sub_applied)
         .on_error(on_sub_error)
-        .subscribe(["SELECT * FROM stellar_object_low_res"]);
+        .subscribe(["SELECT * FROM sobj_low_res_transform"]);
     ctx.subscription_builder()
         .on_applied(on_sub_applied)
         .on_error(on_sub_error)
-        .subscribe(["SELECT * FROM stellar_object_velocity"]);
+        .subscribe(["SELECT * FROM sobj_velocity"]);
     ctx.subscription_builder()
         .on_applied(on_sub_applied)
         .on_error(on_sub_error)
@@ -66,6 +66,7 @@ fn on_sub_applied(ctx: &SubscriptionEventContext) {
 /// print the error, then exit the process.
 fn on_sub_error(_ctx: &ErrorContext, err: Error) {
     eprintln!("Subscription failed: {}", err);
+    // TODO Make a message here suggesting you might be on the wrong version.
     std::process::exit(1);
 }
 

@@ -32,6 +32,7 @@ async fn load_textures() -> HashMap<&'static str, Texture2D>
         load_texture("ships/bullet02.png").await.expect("Couldn't load file");
     bullet_texture.set_filter(FilterMode::Linear);
 
+    info!("Building texture atlas...");
     build_textures_atlas();
     textures.insert("star", sun_texture);
     textures.insert("lc.phalanx", ship_texture);
@@ -58,6 +59,7 @@ async fn main() {
             break;
         }
     
+        info!("Calling gameplay from main");
         gameplay::gameplay(load_textures().await, id_token).await;
     }
 }
