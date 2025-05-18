@@ -23,7 +23,7 @@ pub fn create_player_controlled_ship(ctx: &ReducerContext, identity: Identity, u
         super::stellarobjects::StellarObjectTransformInternal { x: 64.0, y: 64.0, rotation_radians: 0.0, sobj_id: 0 }
     ) {
         let controlled = dsl.create_player_controlled_stellar_object(
-            player.identity, ship.get_id(), ship.get_sector_id())?;
+            player.identity, &ship, ship.get_sector_id())?;
         let _ = create_stellar_object_player_window_for(ctx, controlled)?;
         Ok(())
     } else {

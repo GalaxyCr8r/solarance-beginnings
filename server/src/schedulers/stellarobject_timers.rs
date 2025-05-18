@@ -1,7 +1,7 @@
 use std::{f32::consts::PI, time::Duration};
 use glam::Vec2;
 use spacetimedb::{ReducerContext};
-use spacetimedsl::{dsl};
+use spacetimedsl::{dsl, Wrapper};
 
 use crate::types::{common::{are_there_active_players, try_server_only}, stellarobjects::*};
 
@@ -87,10 +87,10 @@ pub fn recalculate_sobj_transforms(ctx: &ReducerContext, timer: TransformsTimer)
 pub fn __move_ship(ctx: &ReducerContext, sobj: StellarObject) -> Result<(), String> {
     let dsl = dsl(ctx);
     
-    if let Some(mut transform) = dsl.get_stellar_object_internal_by_sobj_id(sobj.get_id()) {
-        if let Some(mut velocity) = dsl.get_stellar_object_velocity_by_sobj_id(sobj.get_id()) {
+    if let Some(mut transform) = dsl.get_stellar_object_internal_by_sobj_id(&sobj) {
+        if let Some(mut velocity) = dsl.get_stellar_object_velocity_by_sobj_id(&sobj) {
             // TODO: Remove this code, this is ONLY for early milestones!
-            if let Some(_) = dsl.get_stellar_object_controller_turn_left_by_sobj_id(sobj.get_id()) {
+            if let Some(_) = dsl.get_stellar_object_controller_turn_left_by_sobj_id(&sobj) {
                 velocity = velocity.from_vec2(Vec2::from_angle(transform.rotation_radians) * 25.0);
                 transform.rotation_radians += PI * 0.01337;
             }

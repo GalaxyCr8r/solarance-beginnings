@@ -344,8 +344,8 @@ pub fn create_stellar_object_internal(
 
     let sobj = dsl.create_stellar_object(kind, sector_id)?;
     
-    let _ = dsl.create_stellar_object_internal(sobj.get_id(), transform.x, transform.y, transform.rotation_radians);
-    let _ = dsl.create_stellar_object_velocity(sobj.get_id(), 0.0, 0.0, 0.0);
+    let _ = dsl.create_stellar_object_internal(&sobj, transform.x, transform.y, transform.rotation_radians);
+    let _ = dsl.create_stellar_object_velocity(&sobj, 0.0, 0.0, 0.0);
 
     spacetimedb::log::info!("Created stellar object #{}!", sobj.id);
     return Ok(sobj);
