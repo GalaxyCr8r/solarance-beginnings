@@ -25,6 +25,8 @@ space MMO I've always wanted to make.
 
 ## Running the Game
 
+For Macroquad you may have the download additional dependencies: https://github.com/not-fl3/macroquad#linux
+
 Copy the `client/.env.template` file to `client/.env` and select the SpacetimeDB URL you want to use. The maincloud
 instance might not always be available or up to date.
 

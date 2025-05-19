@@ -1,8 +1,9 @@
-use std::{ collections::HashMap, f32::consts::PI, thread::{ self, JoinHandle } };
+use std::{ f32::consts::PI, thread::{ self, JoinHandle } };
 
 use dotenv::dotenv;
 use egui::{ Align2, Color32, RichText };
-use macroquad::{ math::Vec2, prelude::*, time };
+use gameplay::resources::Resources;
+use macroquad::{math::Vec2, prelude::{collections::storage, coroutines::start_coroutine, *}, time};
 
 mod module_bindings;
 pub mod oidc_auth_helper;
@@ -10,36 +11,8 @@ pub mod stdb;
 mod shader;
 pub mod gameplay;
 
-async fn load_textures() -> HashMap<&'static str, Texture2D>
-{
-    let mut textures: HashMap<&'static str, Texture2D> = HashMap::new();
-
-    set_pc_assets_folder("assets");
-
-    // Load asset textures
-    info!("Loading textures...");
-    set_pc_assets_folder("assets");
-    let sun_texture: Texture2D =
-        load_texture("stars/star.png").await.expect("Couldn't load file");
-    sun_texture.set_filter(FilterMode::Nearest);
-    let ship_texture: Texture2D =
-        load_texture("ships/lc/phalanx.png").await.expect("Couldn't load file");
-    ship_texture.set_filter(FilterMode::Nearest);
-    let station_texture: Texture2D =
-        load_texture("ships/lc/generic_station.png").await.expect("Couldn't load file");
-        station_texture.set_filter(FilterMode::Nearest);
-    let bullet_texture: Texture2D =
-        load_texture("ships/bullet02.png").await.expect("Couldn't load file");
-    bullet_texture.set_filter(FilterMode::Linear);
-
-    info!("Building texture atlas...");
-    build_textures_atlas();
-    textures.insert("star", sun_texture);
-    textures.insert("lc.phalanx", ship_texture);
-    textures.insert("lc.station", station_texture);
-    textures.insert("bullet", bullet_texture);
-
-    textures
+struct MenuAssets {
+    pub rings: Vec<Texture2D>
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -49,8 +22,17 @@ async fn load_textures() -> HashMap<&'static str, Texture2D>
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[macroquad::main("Solarance:Beginnings")]
-async fn main() {
+async fn main() -> Result<(), FileError> {
     dotenv().ok();
+
+    set_pc_assets_folder("assets");
+    storage::store(MenuAssets{
+        rings: vec![
+            load_texture("Ring1.png").await.expect("Couldn't load file"),
+            load_texture("Ring2.png").await.expect("Couldn't load file"),
+            load_texture("Ring3.png").await.expect("Couldn't load file")
+        ]
+    });
 
     loop {
         let id_token: Option<String> = login_screen().await;
@@ -58,10 +40,13 @@ async fn main() {
         if id_token.is_none() {
             break;
         }
+        
+        loading_screen().await;
     
         info!("Calling gameplay from main");
-        gameplay::gameplay(load_textures().await, id_token).await;
+        gameplay::gameplay(id_token).await;
     }
+    Ok(())
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -72,6 +57,7 @@ async fn main() {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub(crate) async fn login_screen() -> Option<String> {
+    info!("Entering login screen");
 
     let mut client_token_thread: Option<JoinHandle<Result<String, String>>> = None;
 
@@ -79,13 +65,9 @@ pub(crate) async fn login_screen() -> Option<String> {
     let mut error_message: Option<String> = None;
 
     let mut break_the_loop = false;
-    
-    set_pc_assets_folder("assets");
-    let rings: Vec<Texture2D> = vec![
-        load_texture("Ring1.png").await.expect("Couldn't load file"),
-        load_texture("Ring2.png").await.expect("Couldn't load file"),
-        load_texture("Ring3.png").await.expect("Couldn't load file")
-    ];
+
+    let menu_assets = storage::get::<MenuAssets>();
+    info!("Starting login screen");
 
     loop { 
         if client_token_thread.as_ref().is_some_and(|thread| { thread.is_finished() }) {
@@ -119,16 +101,16 @@ pub(crate) async fn login_screen() -> Option<String> {
                 _ => { f32::cos((-time::get_time() as f32) * 0.25 + (y / 2048.0)) }
             };
             draw_texture_ex(
-                rings[i],
-                screen_width() / 2.0 - rings[i].width() / 4.0,
-                screen_height() / 2.0 - rings[i].height() / 4.0,
+                menu_assets.rings[i],
+                screen_width() / 2.0 - menu_assets.rings[i].width() / 4.0,
+                screen_height() / 2.0 - menu_assets.rings[i].height() / 4.0,
                 Color {
                     a: 0.5,
                     ..Color::from_hex(0xbedaff)
                 },
                 DrawTextureParams {
                     rotation: rot * PI,
-                    dest_size: Some(Vec2::new(rings[i].width() / 2.0, rings[i].height() / 2.0)),
+                    dest_size: Some(Vec2::new(menu_assets.rings[i].width() / 2.0, menu_assets.rings[i].height() / 2.0)),
                     ..Default::default()
                 }
             );
@@ -175,29 +157,53 @@ pub(crate) async fn login_screen() -> Option<String> {
         next_frame().await;
 
         if break_the_loop {
-            clear_background(BLACK);
-
-            for i in 0..3 {
-                draw_texture_ex(
-                    rings[i],
-                    rings[i].width() / -3.0,
-                    screen_height() - rings[i].height() / 3.0,
-                    Color {
-                        a: 0.5,
-                        ..Color::from_hex(0xbedaff)
-                    },
-                    DrawTextureParams {
-                        dest_size: Some(Vec2::new(rings[i].width() / 2.0, rings[i].height() / 2.0)),
-                        ..Default::default()
-                    }
-                );
-            }
-
-            draw_text("Connecting to the Solarance galaxy . . .", 42.0, 42.0, 32.0, DARKGRAY);
-            next_frame().await;
             break;
         }
     }
 
     id_token
 }
+
+//// Loading Screen
+/// 
+
+async fn loading_screen() {
+    let menu_assets = storage::get::<MenuAssets>();
+    
+    let mut resources_loading: Option<coroutines::Coroutine> = None;
+    
+    while resources_loading.is_none() || !resources_loading.unwrap().is_done() { 
+        clear_background(BLACK);
+
+        for i in 0..3 {
+            draw_texture_ex(
+                menu_assets.rings[i],
+                menu_assets.rings[i].width() / -3.0,
+                screen_height() - menu_assets.rings[i].height() / 3.0,
+                Color {
+                    a: 0.5,
+                    ..Color::from_hex(0xbedaff)
+                },
+                DrawTextureParams {
+                    dest_size: Some(Vec2::new(menu_assets.rings[i].width() / 2.0, menu_assets.rings[i].height() / 2.0)),
+                    ..Default::default()
+                }
+            );
+        }
+
+        let text = format!(
+            "Connecting to the Solarance galaxy  {}",
+            ". ".repeat(((get_time() * 2.) as usize) % 4)
+        );
+        draw_text(&text, 42.0, 42.0, 32.0, DARKGRAY);
+        next_frame().await;
+
+        if resources_loading.is_none() {
+            resources_loading = Some(start_coroutine(async move {
+                let resources = Resources::new().await.unwrap();
+                storage::store(resources);
+            }));
+        }
+    }
+}
+

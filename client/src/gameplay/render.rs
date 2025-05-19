@@ -1,15 +1,16 @@
 
-use macroquad::{ math::Vec2, prelude::* };
+use macroquad::{ math::Vec2, prelude::{collections::storage, *} };
 
 use crate::module_bindings::*;
 use spacetimedb_sdk::*;
 
 use crate::stdb::utils::*;
 
-use super::state::GameState;
+use super::{resources::Resources, state::GameState};
 
 
-fn draw_ship(transform: &StellarObjectTransformHiRes, game_state: &mut GameState) {
+fn draw_ship(transform: &StellarObjectTransformHiRes, _game_state: &mut GameState) {
+    let resources = storage::get::<Resources>();
     let position = transform.to_vec2();
     let forward = Vec2::from_angle(transform.rotation_radians) * 16.0;
 
@@ -25,7 +26,7 @@ fn draw_ship(transform: &StellarObjectTransformHiRes, game_state: &mut GameState
         ..TextParams::default()
     });
 
-    let tex = game_state.textures["lc.phalanx"];
+    let tex = resources.ship_textures["lc.phalanx"];
     draw_texture_ex(
         tex,
         position.x - tex.width() * 0.5,
@@ -39,6 +40,7 @@ fn draw_ship(transform: &StellarObjectTransformHiRes, game_state: &mut GameState
 }
 
 pub fn sector(game_state: &mut GameState) {
+    let resources = storage::get::<Resources>();
     // if game_state.paused {
     //     let text = "PAUSED";
     //     let font_size = 100.0;
@@ -52,7 +54,7 @@ pub fn sector(game_state: &mut GameState) {
 
     // TODO: Figure out how to get the player ship's position at the beginning so we can offset everything drawn by it.
 
-    let sun = game_state.textures["star"];
+    let sun = resources.sun_texture;
     draw_texture(sun, sun.width() * -0.5, sun.height() * -0.5, WHITE);
 
     for object in game_state.ctx.db.stellar_object().iter() {
