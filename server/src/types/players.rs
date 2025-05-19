@@ -11,6 +11,7 @@ pub struct Player {
 
     #[unique]
     pub username: String,
+    pub credits: u64,
 
     created_at: Timestamp,
     modified_at: Timestamp,

@@ -9,7 +9,7 @@ use spacetimedb::{
 };
 use spacetimedsl::{dsl, Wrapper};
 
-use super::{common::{ is_server_or_owner, server_only }, sector::SectorLocationId};
+use super::{utility::{ is_server_or_owner, server_only }, sector::SectorId};
 
 #[derive(SpacetimeType, PartialEq)]
 enum TransformResolution { // TODO Delete?
@@ -37,7 +37,7 @@ pub struct StellarObject {
     pub kind: StellarObjectKinds,
 
     #[index(btree)]
-    #[wrapped(path = crate::types::sector::SectorLocationId)]
+    #[wrapped(path = crate::types::sector::SectorId)]
     pub sector_id: u64, // FK: SectorLocation
 }
 
@@ -52,7 +52,7 @@ pub struct PlayerControlledStellarObject {
     pub sobj_id: u64, // FK to Entity
 
     #[index(btree)]
-    #[wrapped(path = crate::types::sector::SectorLocationId)]
+    #[wrapped(path = crate::types::sector::SectorId)]
     pub sector_id: u64 // FK to Sector ID - Only because actually referencing the player's stellar object would require three table hits.
 }
 
@@ -199,7 +199,9 @@ impl StellarObjectTransformInternal {
     }
 }
 
+///////////////////////////////////////////////////////////
 /// Reducers ///
+///////////////////////////////////////////////////////////
 
 #[spacetimedb::reducer]
 pub fn create_sobj_player_window_from(ctx: &ReducerContext, sobj_id: u64) -> Result<(), String> {
@@ -256,7 +258,7 @@ pub fn create_turn_left_controller_for(ctx: &ReducerContext, sobj_id: StellarObj
 pub fn create_stellar_object(
     ctx: &ReducerContext,
     kind: StellarObjectKinds,
-    sector_id: SectorLocationId,
+    sector_id: SectorId,
     transform: StellarObjectTransformInternal
 ) -> Result<(), String> {
     server_only(ctx);
@@ -274,7 +276,7 @@ pub fn create_sobj_random(ctx: &ReducerContext, sector_id: u64) -> Result<(), St
     create_stellar_object(
         ctx,
         StellarObjectKinds::Ship,
-        SectorLocationId::new(sector_id),
+        SectorId::new(sector_id),
         StellarObjectTransformInternal {
             sobj_id: 0,
             x: ctx.rng().gen_range(0.0..1024.0),
@@ -336,7 +338,7 @@ pub fn update_sobj_velocity(
 pub fn create_sobj_internal(
     ctx: &ReducerContext,
     kind: StellarObjectKinds,
-    sector_id: SectorLocationId,
+    sector_id: SectorId,
     transform: StellarObjectTransformInternal
 ) -> Result<StellarObject, String> {
     let dsl = dsl(ctx);

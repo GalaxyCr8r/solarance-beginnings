@@ -1,12 +1,20 @@
 {
-    "folder-color.pathColors": [
-        {
-            "folderPath": "solarance-rust-server\\server\\",
-            "badge": "🖥️"
-        },
-        {
-            "folderPath": "solarance-rust-server\\client\\",
-            "badge": "🕹️"
-        }
-    ]
+  "folder-color.pathColors": [
+    {
+      "folderPath": "solarance-rust-server\\server\\",
+      "badge": "🖥️"
+    },
+    {
+      "folderPath": "solarance-rust-server\\client\\",
+      "badge": "🕹️"
+    },
+    {
+      "folderPath": "solarance-rust-server/client/",
+      "badge": "🕹️"
+    },
+    {
+      "folderPath": "solarance-rust-server/server/",
+      "badge": "🖥️"
+    }
+  ]
 }

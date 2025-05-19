@@ -3,7 +3,7 @@ use glam::Vec2;
 use spacetimedb::{ReducerContext};
 use spacetimedsl::{dsl};
 
-use crate::types::{common::{are_there_active_players, try_server_only}, stellarobjects::*};
+use crate::types::{common::are_there_active_players, utility::try_server_only, stellarobjects::*};
 
 #[dsl(plural_name = sobj_transform_timers)]
 #[spacetimedb::table(name = sobj_transform_timer, scheduled(recalculate_sobj_transforms))]
