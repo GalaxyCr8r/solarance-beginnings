@@ -1,11 +1,6 @@
 use log::info;
 use spacetimedb::{
-    client_visibility_filter,
-    rand::Rng,
-    Filter,
-    Identity,
-    ReducerContext,
-    SpacetimeType
+    client_visibility_filter, rand::Rng, table, Filter, Identity, ReducerContext, SpacetimeType
 };
 use spacetimedsl::{dsl, Wrapper};
 
@@ -26,7 +21,7 @@ pub enum StellarObjectKinds {
 }
 
 #[dsl(plural_name = stellar_objects)]
-#[spacetimedb::table(name = stellar_object, public)]
+#[table(name = stellar_object, public)]
 pub struct StellarObject {
     #[primary_key]
     #[auto_inc]
@@ -42,7 +37,7 @@ pub struct StellarObject {
 }
 
 #[dsl(plural_name = player_controlled_stellar_objects)]
-#[spacetimedb::table(name = player_controlled_stellar_object, public)]
+#[table(name = player_controlled_stellar_object, public)]
 pub struct PlayerControlledStellarObject {
     #[primary_key]
     pub identity: Identity,
@@ -66,7 +61,7 @@ const SO_OBJECT_FILTER: Filter = Filter::Sql(
 );
 
 #[dsl(plural_name = sobj_internal_transforms)]
-#[spacetimedb::table(name = sobj_internal_transform)]
+#[table(name = sobj_internal_transform)]
 #[derive(Default)]
 pub struct StellarObjectTransformInternal {
     #[primary_key]
@@ -79,7 +74,7 @@ pub struct StellarObjectTransformInternal {
 }
 
 #[dsl(plural_name = sobj_velocities)]
-#[spacetimedb::table(name = sobj_velocity, public)]
+#[table(name = sobj_velocity, public)]
 #[derive(Default)]
 pub struct StellarObjectVelocity {
     #[primary_key]
@@ -92,7 +87,7 @@ pub struct StellarObjectVelocity {
 }
 
 #[dsl(plural_name = sobj_hi_res_transforms)]
-#[spacetimedb::table(name = sobj_hi_res_transform, public)]
+#[table(name = sobj_hi_res_transform, public)]
 #[derive(Default)]
 pub struct StellarObjectTransformHiRes {
     #[primary_key]
@@ -105,7 +100,7 @@ pub struct StellarObjectTransformHiRes {
 }
 
 #[dsl(plural_name = sobj_low_res_transforms)]
-#[spacetimedb::table(name = sobj_low_res_transform, public)]
+#[table(name = sobj_low_res_transform, public)]
 #[derive(Default)]
 pub struct StellarObjectTransformLowRes {
     #[primary_key]
@@ -118,7 +113,7 @@ pub struct StellarObjectTransformLowRes {
 }
 
 #[dsl(plural_name = sobj_turn_left_controllers)]
-#[spacetimedb::table(name = sobj_turn_left_controller)]
+#[table(name = sobj_turn_left_controller)]
 pub struct StellarObjectControllerTurnLeft {
     #[primary_key]
     #[wrapped(path = StellarObjectId)]
@@ -126,7 +121,7 @@ pub struct StellarObjectControllerTurnLeft {
 }
 
 #[dsl(plural_name = sobj_player_windows)]
-#[spacetimedb::table(name = sobj_player_window, public)]
+#[table(name = sobj_player_window, public)]
 pub struct StellarObjectPlayerWindow {
     #[primary_key]
     pub identity: Identity,

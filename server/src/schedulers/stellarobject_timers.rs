@@ -26,7 +26,9 @@ pub struct PlayerWindowsTimer {
     scheduled_at: spacetimedb::ScheduleAt,
 }
 
-/// Init ///
+//////////////////////////////////////////////////////////////
+// Init
+//////////////////////////////////////////////////////////////
 
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     let dsl = dsl(ctx); // Waiting for DSL implementation of timers
@@ -37,7 +39,9 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     Ok(())
 }
 
-/// Reducers ///
+//////////////////////////////////////////////////////////////
+// Reducers
+//////////////////////////////////////////////////////////////
 
 #[spacetimedb::reducer]
 pub fn recalculate_sobj_transforms(ctx: &ReducerContext, timer: TransformsTimer) -> Result<(), String> {

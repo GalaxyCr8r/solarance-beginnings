@@ -1,6 +1,6 @@
 use std::hash::Hasher;
 
-use spacetimedb::{ReducerContext, SpacetimeType, Timestamp};
+use spacetimedb::{table, ReducerContext, SpacetimeType, Timestamp};
 use spacetimedsl::{dsl, Wrapper};
 
 #[derive(SpacetimeType, Clone, Debug)]
@@ -10,7 +10,7 @@ pub struct Vec2 {
 }
 
 #[dsl(plural_name = global_configurations)]
-#[spacetimedb::table(name = global_config)]
+#[table(name = global_config)]
 pub struct GlobalConfig {
     #[primary_key]
     #[wrap]
