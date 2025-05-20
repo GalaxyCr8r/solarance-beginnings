@@ -25,6 +25,9 @@ struct MenuAssets {
 async fn main() -> Result<(), FileError> {
     dotenv().ok();
 
+    clear_background(BLACK);
+    next_frame().await;
+
     set_pc_assets_folder("assets");
     storage::store(MenuAssets{
         rings: vec![

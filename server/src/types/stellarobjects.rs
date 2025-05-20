@@ -142,7 +142,7 @@ pub struct StellarObjectPlayerWindow {
 //////////////////////////////////////////////////////////////
 
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
-    //definitions::init(ctx)?;
+    timers::init(ctx)?;
     
     Ok(())
 }

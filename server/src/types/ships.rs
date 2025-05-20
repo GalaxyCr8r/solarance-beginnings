@@ -37,6 +37,7 @@ pub struct ShipTypeDefinition {
     pub max_energy: u16,
 
     pub base_speed: f32,
+    pub base_acceleration: f32,
     pub base_turn_rate: f32, // Radians per second
 
     pub cargo_capacity: u16, // Max cargo volume

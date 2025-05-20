@@ -1,3 +1,4 @@
+use log::info;
 use spacetimedb::{ Identity, ReducerContext, Timestamp };
 use spacetimedsl::{dsl, Wrapper};
 
@@ -65,15 +66,20 @@ pub fn create_player_controlled_ship(ctx: &ReducerContext, identity: Identity, u
             player.identity, &sobj, sobj.get_sector_id())?;
         let _ = create_sobj_player_window_for(ctx, controlled)?;
 
-        let ship_type = dsl.get_ship_type_definition_by_id(ShipTypeDefinitionId::new(1001)).ok_or("Blah")?;
+        let ship_type = dsl.get_ship_type_definition_by_id(ShipTypeDefinitionId::new(1001)).ok_or("Failed to get ship type")?;
         let ship = dsl.create_ship_instance(
             Some(identity), None, 
             ship_type.get_id(), 
             SectorId::new(0), 
-            ship_type.max_health.into(), ship_type.max_shield.into(), ship_type.max_energy.into(), ship_type.cargo_capacity, 
-            None, None, ctx.timestamp)?;
+            ship_type.max_health.into(),
+            ship_type.max_shield.into(),
+            ship_type.max_energy.into(),
+            ship_type.cargo_capacity, 
+            None, None,
+            ctx.timestamp)?;
         let _shipobj = dsl.create_ship_object(ship.get_id(), sobj.get_id(), identity)?;
 
+        info!("Successfully created ship!");
         Ok(())
     } else {
         Err("Failed to create ship!".to_string())
