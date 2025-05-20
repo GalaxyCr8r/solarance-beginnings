@@ -1,8 +1,8 @@
 use spacetimedb::{ Identity, ReducerContext, Timestamp };
 use spacetimedsl::{dsl, Wrapper};
 
-use super::{ships::{CreateShipInstanceRow, CreateShipObjectRow, GetShipTypeDefinitionRowOptionById, ShipTypeDefinitionId}, stellarobjects::{GetPlayerControlledStellarObjectRowOptionByIdentity, StellarObjectId}};
-use super::{players::{ CreatePlayerRow, GetPlayerRowOptionByUsername }, sector::SectorId, stellarobjects::{create_sobj_internal, create_sobj_player_window_for, CreatePlayerControlledStellarObjectRow} };
+use super::{ships::{CreateShipInstanceRow, CreateShipObjectRow, GetShipTypeDefinitionRowOptionById, ShipTypeDefinitionId}, stellarobjects::{reducers::create_sobj_player_window_for, utility::create_sobj_internal, GetPlayerControlledStellarObjectRowOptionByIdentity, StellarObjectId}};
+use super::{players::*, sector::*, stellarobjects::* };
 
 /// For helper reducers that utilize several different tables
 ///
