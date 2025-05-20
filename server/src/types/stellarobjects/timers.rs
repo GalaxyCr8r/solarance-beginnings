@@ -3,7 +3,7 @@ use glam::Vec2;
 use spacetimedb::{ReducerContext};
 use spacetimedsl::{dsl};
 
-use crate::types::{common::are_there_active_players, utility::try_server_only, stellarobjects::*};
+use crate::types::{common::*, utility::*, stellarobjects::*};
 
 #[dsl(plural_name = sobj_transform_timers)]
 #[spacetimedb::table(name = sobj_transform_timer, scheduled(recalculate_sobj_transforms))]
@@ -26,7 +26,9 @@ pub struct PlayerWindowsTimer {
     scheduled_at: spacetimedb::ScheduleAt,
 }
 
-/// Init ///
+//////////////////////////////////////////////////////////////
+// Init
+//////////////////////////////////////////////////////////////
 
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     let dsl = dsl(ctx); // Waiting for DSL implementation of timers
@@ -37,7 +39,9 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     Ok(())
 }
 
-/// Reducers ///
+//////////////////////////////////////////////////////////////
+// Reducers
+//////////////////////////////////////////////////////////////
 
 #[spacetimedb::reducer]
 pub fn recalculate_sobj_transforms(ctx: &ReducerContext, timer: TransformsTimer) -> Result<(), String> {

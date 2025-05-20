@@ -1,10 +1,8 @@
-use schedulers::stellarobject_timers::{self};
 use spacetimedb::ReducerContext;
-use types::common::{CreateGlobalConfigRow, GetAllGlobalConfigRows, GetCountOfGlobalConfigRows, UpdateGlobalConfigRowById};
+use types::{common::*, *};
 use spacetimedsl::dsl;
 
 pub mod types;
-pub mod schedulers;
 
 #[spacetimedb::reducer(init)]
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
@@ -13,7 +11,8 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     log::info!("init identity: {:?}", ctx.identity());
     log::info!("init sender: {:?}", ctx.sender);
 
-    stellarobject_timers::init(ctx)?;
+    stellarobjects::init(ctx)?;
+    ships::init(ctx)?;
 
     // Create a Global Config row, or reinitalize the one if it exists.
     if dsl.get_count_of_global_configurations() == 0 {

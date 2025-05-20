@@ -13,31 +13,25 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
     ctx.subscription_builder()
         .on_applied(on_sub_applied)
         .on_error(on_sub_error)
-        .subscribe(["SELECT * FROM global_chat_message"]);
-    ctx.subscription_builder()
-        .on_applied(on_sub_applied)
-        .on_error(on_sub_error)
-        .subscribe(["SELECT * FROM stellar_object"]);
-    ctx.subscription_builder()
-        .on_applied(on_sub_applied)
-        .on_error(on_sub_error)
-        .subscribe(["SELECT * FROM sobj_hi_res_transform"]);
-    ctx.subscription_builder()
-        .on_applied(on_sub_applied)
-        .on_error(on_sub_error)
-        .subscribe(["SELECT * FROM sobj_low_res_transform"]);
-    ctx.subscription_builder()
-        .on_applied(on_sub_applied)
-        .on_error(on_sub_error)
-        .subscribe(["SELECT * FROM sobj_velocity"]);
-    ctx.subscription_builder()
-        .on_applied(on_sub_applied)
-        .on_error(on_sub_error)
-        .subscribe(["SELECT * FROM player"]);
-    ctx.subscription_builder()
-        .on_applied(on_sub_applied)
-        .on_error(on_sub_error)
-        .subscribe(["SELECT * FROM player_controlled_stellar_object"]);
+        .subscribe(["SELECT * FROM global_chat_message",
+                        "SELECT * FROM stellar_object",
+                        "SELECT * FROM sobj_hi_res_transform",
+                        "SELECT * FROM sobj_low_res_transform",
+                        "SELECT * FROM sobj_velocity",
+                        "SELECT * FROM player",
+                        "SELECT * FROM player_controlled_stellar_object",
+                        "SELECT * FROM asteroid",
+                        "SELECT * FROM faction_definition",
+                        "SELECT * FROM player_faction_standing",
+                        "SELECT * FROM item_definition",
+                        "SELECT * FROM cargo_crate",
+                        "SELECT * FROM jump_gate",
+                        "SELECT * FROM ship_type_definition",
+                        "SELECT * FROM ship_instance",
+                        "SELECT * FROM ship_object",
+                        "SELECT * FROM ship_cargo_item",
+                        "SELECT * FROM ship_equipment_slot",
+                        "SELECT * FROM station",]);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
