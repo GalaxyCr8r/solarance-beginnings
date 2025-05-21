@@ -38,22 +38,6 @@ pub struct StellarObject {
     pub sector_id: u64, // FK: SectorLocation
 }
 
-/// A stellar object directly controlled by a player.
-#[dsl(plural_name = player_controlled_stellar_objects)]
-#[table(name = player_controlled_stellar_object, public)]
-pub struct PlayerControlledStellarObject {
-    #[primary_key]
-    pub identity: Identity,
-
-    #[unique]
-    #[wrapped(path = StellarObjectId)]
-    pub sobj_id: u64, // FK to Entity
-
-    #[index(btree)]
-    #[wrapped(path = crate::types::sector::SectorId)]
-    pub sector_id: u64 // FK to Sector ID - Only because actually referencing the player's stellar object would require three table hits.
-}
-
 /// The current velocity of a stellar object.
 #[dsl(plural_name = sobj_velocities)]
 #[table(name = sobj_velocity, public)]

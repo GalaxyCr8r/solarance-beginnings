@@ -1,9 +1,9 @@
 use log::info;
-use spacetimedb::{ Identity, ReducerContext, Timestamp };
+use spacetimedb::{ Identity, ReducerContext };
 use spacetimedsl::{dsl, Wrapper};
 
-use super::{ships::{CreateShipInstanceRow, CreateShipObjectRow, GetShipTypeDefinitionRowOptionById, ShipTypeDefinitionId}, stellarobjects::{reducers::create_sobj_player_window_for, utility::create_sobj_internal, GetPlayerControlledStellarObjectRowOptionByIdentity, StellarObjectId}};
-use super::{players::*, sector::*, stellarobjects::* };
+use super::{ships::*, stellarobjects::{*, utility::*, reducers::*}};
+use super::{players::*, sector::* };
 
 /// For helper reducers that utilize several different tables
 ///
@@ -39,7 +39,7 @@ pub fn is_server_or_owner(ctx: &ReducerContext, sobj_id: StellarObjectId) -> Res
         return Ok(());
     }
     
-    let owner = dsl.get_player_controlled_stellar_object_by_identity(&ctx.sender).ok_or(IS_SERVER_OR_OWNER_ERROR)?;
+    let owner = dsl.get_ship_objects_by_player_id(&ctx.sender).last().ok_or(IS_SERVER_OR_OWNER_ERROR)?;
     if StellarObjectId::new(owner.sobj_id) == sobj_id {
         return Ok(());
     }
@@ -62,22 +62,21 @@ pub fn create_player_controlled_ship(ctx: &ReducerContext, identity: Identity, u
         SectorId::new(0), // TODO: Make this the proper sector id!
         super::stellarobjects::StellarObjectTransformInternal { x: 64.0, y: 64.0, rotation_radians: 0.0, sobj_id: 0 }
     ) {
-        let controlled = dsl.create_player_controlled_stellar_object(
-            player.identity, &sobj, sobj.get_sector_id())?;
-        let _ = create_sobj_player_window_for(ctx, controlled)?;
+        let _ = create_sobj_player_window_for(ctx, player.identity, sobj.get_id())?;
 
         let ship_type = dsl.get_ship_type_definition_by_id(ShipTypeDefinitionId::new(1001)).ok_or("Failed to get ship type")?;
         let ship = dsl.create_ship_instance(
+            ship_type.get_id(),
             Some(identity), None, 
-            ship_type.get_id(), 
-            SectorId::new(0), 
+            Some(sobj.get_id()), 
+            sobj.get_sector_id(), 
             ship_type.max_health.into(),
             ship_type.max_shield.into(),
             ship_type.max_energy.into(),
             ship_type.cargo_capacity, 
             None, None,
             ctx.timestamp)?;
-        let _shipobj = dsl.create_ship_object(ship.get_id(), sobj.get_id(), identity)?;
+        let _shipobj = dsl.create_ship_object(&ship, &sobj, sobj.get_sector_id(), identity)?;
 
         info!("Successfully created ship!");
         Ok(())

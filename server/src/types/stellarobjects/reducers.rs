@@ -6,39 +6,19 @@ use super::{utility::*, *};
 ///////////////////////////////////////////////////////////
 
 #[spacetimedb::reducer]
-pub fn create_sobj_player_window_from(ctx: &ReducerContext, sobj_id: u64) -> Result<(), String> {
-    let dsl = dsl(ctx);
-    
-    // Find who owns the object, if any
-    let mut owning_player = None;
-    for controlled in dsl.get_all_player_controlled_stellar_objects() {
-        if controlled.sobj_id == sobj_id {
-            owning_player = Some(controlled);
-            break;
-        }
-    }
-    if owning_player.is_none() {
-        return Err("Couldn't find owning player to create player window".to_string());
-    }
-
-    // Create the window for the object
-    create_sobj_player_window_for(ctx, owning_player.unwrap())
-}
-
-#[spacetimedb::reducer]
-pub fn create_sobj_player_window_for(ctx: &ReducerContext, controlled_sobj: PlayerControlledStellarObject) -> Result<(), String> {
+pub fn create_sobj_player_window_for(ctx: &ReducerContext, identity: Identity, sobj_id: StellarObjectId) -> Result<(), String> {
     let dsl = dsl(ctx);
 
     dsl.create_sobj_player_window(
-        controlled_sobj.identity, 
-        controlled_sobj.get_sobj_id(), 
+        identity, 
+        &sobj_id, 
         4000.0,
         2000.0,
         -2000.0,
         -2000.0,
         2000.0,
         2000.0)?;
-    info!("Created player window for {} and object #{}!", controlled_sobj.identity.to_abbreviated_hex().to_string(), controlled_sobj.sobj_id);
+    info!("Created player window for {} and object #{}!", identity.to_abbreviated_hex().to_string(), sobj_id.value);
     Ok(())
 }
 
@@ -99,6 +79,7 @@ pub fn update_sobj_velocity(
     is_server_or_owner(ctx, velocity.get_sobj_id())?;
 
     let mut update_velocity = velocity.clone();
+    //let ship_def = dsl.get_ship_type_definition_by_id(dsl.get_ship_instance_by_id())
     
     match dsl.get_sobj_velocity_by_sobj_id(velocity.get_sobj_id()) {
         Some(prev_velocity) => {

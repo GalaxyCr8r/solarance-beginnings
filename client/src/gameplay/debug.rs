@@ -85,7 +85,7 @@ pub fn debug_window(egui_ctx: &Context, game_state: &mut GameState) -> Option<eg
                 });
             }
 
-            for player_controlled in ctx.db.player_controlled_stellar_object().iter() {
+            for player_controlled in ctx.db.ship_object().iter() {
                 ui.label(format!(" - Player Controlled Obj #{} in Sec#{}", player_controlled.sobj_id, player_controlled.sector_id));
             }
 

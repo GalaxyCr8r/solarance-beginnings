@@ -19,7 +19,6 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
                         "SELECT * FROM sobj_low_res_transform",
                         "SELECT * FROM sobj_velocity",
                         "SELECT * FROM player",
-                        "SELECT * FROM player_controlled_stellar_object",
                         "SELECT * FROM asteroid",
                         "SELECT * FROM faction_definition",
                         "SELECT * FROM player_faction_standing",

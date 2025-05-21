@@ -2,11 +2,11 @@ use spacetimedb::{client_visibility_filter, Filter};
 
 // You can only see sector objects in your current sector. TODO: In the future, this might be expanded to include anyone in your faction.
 #[client_visibility_filter]
-const SO_OBJECT_FILTER: Filter = Filter::Sql(
+const SO_SHIPOBJECT_FILTER: Filter = Filter::Sql(
     "SELECT o.* 
     FROM stellar_object o
-    JOIN player_controlled_stellar_object p ON p.sector_id = o.sector_id
-    WHERE p.identity = :sender"
+    JOIN ship_object s ON s.sector_id = o.sector_id
+    WHERE s.player_id = :sender"
 );
 // #[client_visibility_filter]
 // const SO_HI_OBJECT_FILTER: Filter = Filter::Sql(

@@ -6,6 +6,8 @@ use crate::types::stellarobjects::StellarObjectId;
 use super::{common::{EntityAIState, EquipmentSlotType}, sector::SectorId};
 
 pub mod definitions;
+pub mod rls;
+pub mod utility;
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
 pub enum ShipClass {
@@ -59,11 +61,14 @@ pub struct ShipInstance {
     #[wrap]
     pub id: u64,
 
+    #[wrapped(path = ShipTypeDefinitionId)]
+    pub shiptype_id: u32,           // FK to ShipTypeDefinition.id
+
     pub owner_id: Option<Identity>,      // FK to player.id
     #[wrapped(path = crate::types::factions::FactionDefinitionId)]
     pub faction_id: Option<u32>,    // FK to faction.id
-    #[wrapped(path = ShipTypeDefinitionId)]
-    pub shiptype_id: u32,           // FK to ShipTypeDefinition.id
+    #[wrapped(path = StellarObjectId)]
+    pub sobj_id: Option<u64>, // FK: StellarObject
 
     #[index(btree)] // To easily find ships in a given sector
     #[wrapped(path = SectorId)]
@@ -82,7 +87,7 @@ pub struct ShipInstance {
 }
 
 #[dsl(plural_name = ship_objects)]
-#[table(name = ship_object, public)]
+#[table(name = ship_object, public)]//, index(name = ship_and_sobj, btree(columns = [ship_id, sobj_id])))]
 // This table duplicates PlayerControlledStellarObject, but because RLS doesn't allow NULLs we kind-of have to.
 pub struct ShipObject { 
     #[primary_key]
@@ -93,7 +98,12 @@ pub struct ShipObject {
     #[wrapped(path = StellarObjectId)]
     pub sobj_id: u64, // FK: StellarObject
 
-    pub player_id: Identity,   // FK to player.id // TODO: Do we want this? This will make it easy to find YOUR ship.
+    #[index(btree)]
+    #[wrapped(path = crate::types::sector::SectorId)]
+    pub sector_id: u64, // FK to Sector ID - Only because actually referencing the player's stellar object would require three table hits.
+
+    #[index(btree)]
+    pub player_id: Identity,   // FK to player.id
 }
 
 #[dsl(plural_name = ship_cargo_items)]
