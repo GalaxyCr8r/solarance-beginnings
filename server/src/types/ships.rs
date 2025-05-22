@@ -86,8 +86,8 @@ pub struct ShipInstance {
     pub last_update_ts: Timestamp, // For server-side logic or client interpolation
 }
 
-#[dsl(plural_name = ship_objects)]
-#[table(name = ship_object, public)]//, index(name = ship_and_sobj, btree(columns = [ship_id, sobj_id])))]
+#[dsl(plural_name = ship_objects, unique_index(name = ship_and_sobj))]
+#[table(name = ship_object, public, index(name = ship_and_sobj, btree(columns = [ship_id, sobj_id])))]
 // This table duplicates PlayerControlledStellarObject, but because RLS doesn't allow NULLs we kind-of have to.
 pub struct ShipObject { 
     #[primary_key]
