@@ -11,8 +11,9 @@ pub struct JumpGate {
     #[wrap]
     pub id: u64,
 
+    #[wrapped(path = crate::types::sector::SectorId)]
     #[index(btree)] // To find gates in a specific sector
-    pub current_sector_id: u32, // FK to SectorDefinition where this gate physically is
+    pub current_sector_id: u64, // FK to SectorDefinition where this gate physically is
 
     #[wrapped(path = crate::types::stellarobjects::StellarObjectId)]
     pub sobj_id: u64, // FK: StellarObject

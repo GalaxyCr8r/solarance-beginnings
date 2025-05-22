@@ -55,6 +55,17 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
         None
     )?;
 
+    // Space "Fuel"
+    dsl.create_item_definition(
+        1003,
+        "Space Fuel",
+        Some("Commonly called 'Space Fuel'. It's actually a variant of vodka using common supplies found in spaceships to make. Usually illegal due to its propensity to turn the users blind.".into()),
+        ItemCategory::Commodity,
+        50,
+        1,
+        None
+    )?;
+
 
     Ok(())
 }

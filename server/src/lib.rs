@@ -11,6 +11,7 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     log::info!("init identity: {:?}", ctx.identity());
     log::info!("init sender: {:?}", ctx.sender);
 
+    items::init(ctx)?;
     stellarobjects::init(ctx)?;
     ships::init(ctx)?;
 

@@ -6,6 +6,7 @@ use crate::types::stellarobjects::StellarObjectId;
 use super::{common::{EntityAIState, EquipmentSlotType}, sector::SectorId};
 
 pub mod definitions;
+pub mod reducers;
 pub mod rls;
 pub mod utility;
 
@@ -119,7 +120,7 @@ pub struct ShipCargoItem {
     pub ship_id: u64, // FK to Ship
     #[wrapped(path = crate::types::items::ItemDefinitionId)]
     pub item_id: u32, // FK to ItemDefinition
-    pub quantity: u32,
+    pub quantity: u16, // How many of this item are currently in the ships' hold
 }
 
 #[dsl(plural_name = ship_equipment_slots)]

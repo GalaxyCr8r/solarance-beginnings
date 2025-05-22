@@ -1,7 +1,18 @@
-use spacetimedb::{table, Identity, SpacetimeType, Timestamp};
+use spacetimedb::{table, Identity, ReducerContext, SpacetimeType, Timestamp};
 use spacetimedsl::dsl;
 
-use super::common::ItemCategory;
+pub mod definitions;
+pub mod utility;
+
+// Enum for different categories of items
+#[derive(SpacetimeType, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum ItemCategory {
+    ShipEquipment,
+    Commodity, // Tradable goods like ore, food
+    ManufacturedGood, // Components, advanced materials
+    Ammunition,
+    Special, // Quest items, blueprints, etc.
+}
 
 #[dsl(plural_name = item_definitions)]
 #[table(name = item_definition, public)]
@@ -16,7 +27,7 @@ pub struct ItemDefinition {
     pub category: ItemCategory,
 
     pub base_value: u32, // Base monetary value
-    pub volume_per_unit: f32, // How much cargo space one unit takes
+    pub volume_per_unit: u16, // How much cargo space one unit takes
     // For equipment, additional stats might be here or in a linked table:
     // E.g., damage: Option<u32>, shield_boost: Option<u32>, etc.
 
@@ -30,14 +41,28 @@ pub struct CargoCrate {
     #[auto_inc]
     pub id: u64,
 
+    #[wrapped(path = crate::types::sector::SectorId)]
     #[index(btree)] // To find crates in a specific sector
-    pub current_sector_id: u32, // FK to Sector.id
-    pub sobj_id: u64, // FK to StellarObject
+    pub current_sector_id: u64, // FK: Sector.id
 
-    pub item_id: u32, // FK to ItemDefinition
-    pub quantity: u32,
+    #[wrapped(path = crate::types::stellarobjects::StellarObjectId)]
+    pub sobj_id: u64, // FK: StellarObject
+
+    #[wrapped(path = ItemDefinitionId)]
+    pub item_id: u32, // FK: ItemDefinition
+    pub quantity: u16,
 
     pub despawn_ts: Option<Timestamp>, // When the crate should disappear if not collected
 
     pub gfx_key: Option<String>,
+}
+
+//////////////////////////////////////////////////////////////
+// Init
+//////////////////////////////////////////////////////////////
+
+pub fn init(ctx: &ReducerContext) -> Result<(), String> {
+    definitions::init(ctx)?;
+    
+    Ok(())
 }

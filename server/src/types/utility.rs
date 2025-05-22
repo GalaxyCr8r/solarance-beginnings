@@ -2,6 +2,8 @@ use log::info;
 use spacetimedb::{ Identity, ReducerContext };
 use spacetimedsl::{dsl, Wrapper};
 
+use crate::types::{items::utility::get_item_definition, ships::{utility::*}};
+
 use super::{ships::*, stellarobjects::{*, utility::*, reducers::*}};
 use super::{players::*, sector::* };
 
@@ -65,18 +67,23 @@ pub fn create_player_controlled_ship(ctx: &ReducerContext, identity: Identity, u
         let _ = create_sobj_player_window_for(ctx, player.identity, sobj.get_id())?;
 
         let ship_type = dsl.get_ship_type_definition_by_id(ShipTypeDefinitionId::new(1001)).ok_or("Failed to get ship type")?;
-        let ship = dsl.create_ship_instance(
-            ship_type.get_id(),
-            Some(identity), None, 
-            Some(sobj.get_id()), 
-            sobj.get_sector_id(), 
-            ship_type.max_health.into(),
-            ship_type.max_shield.into(),
-            ship_type.max_energy.into(),
-            ship_type.cargo_capacity, 
-            None, None,
-            ctx.timestamp)?;
+        let mut ship = create_ship_instance(
+            ctx,
+            ship_type,
+            player.identity,
+            sobj.clone()
+        )?;
         let _shipobj = dsl.create_ship_object(&ship, &sobj, sobj.get_sector_id(), identity)?;
+
+        {
+            let item = get_item_definition(ctx, 1000).ok_or("Failed to get item definition")?;
+            let _ = load_cargo_into_ship(ctx, &mut ship, &item, 5)?;
+        }
+
+        {
+            let item = get_item_definition(ctx, 1003).ok_or("Failed to get item definition")?;
+            let _ = load_cargo_into_ship(ctx, &mut ship, &item, 1)?;
+        }
 
         info!("Successfully created ship!");
         Ok(())

@@ -31,6 +31,8 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
                         "SELECT * FROM ship_object",
                         "SELECT * FROM ship_cargo_item",
                         "SELECT * FROM ship_equipment_slot",
+                        "SELECT * FROM item_definition",
+                        "SELECT * FROM cargo_crate",
                         "SELECT * FROM station",]);
 }
 

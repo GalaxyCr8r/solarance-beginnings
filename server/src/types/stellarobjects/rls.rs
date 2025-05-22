@@ -5,8 +5,7 @@ use spacetimedb::{client_visibility_filter, Filter};
 const SO_SHIPOBJECT_FILTER: Filter = Filter::Sql(
     "SELECT o.* 
     FROM stellar_object o
-    JOIN ship_object s
-    WHERE s.sector_id = o.sector_id"
+    JOIN ship_object s ON s.sector_id = o.sector_id"
 );
 
 /// You can only see your own window
@@ -23,8 +22,7 @@ const HR_OBJECT_FILTER: Filter = Filter::Sql( //// TODO: Add a sector_id check t
     "SELECT o.* 
     FROM sobj_hi_res_transform o
     JOIN sobj_player_window w
-    WHERE w.identity = :sender AND
-          (o.x > w.tl_x AND 
+    WHERE (o.x > w.tl_x AND 
           o.y > w.tl_y AND 
           o.x < w.br_x AND 
           o.y < w.br_y)"
@@ -37,8 +35,7 @@ const LR_OBJECT_FILTER: Filter = Filter::Sql( //// TODO: Add a sector_id check t
     "SELECT o.* 
     FROM sobj_low_res_transform o
     JOIN sobj_player_window w
-    WHERE w.identity = :sender AND
-          (o.x <= w.tl_x OR 
+    WHERE (o.x <= w.tl_x OR 
           o.y <= w.tl_y OR 
           o.x >= w.br_x OR 
           o.y >= w.br_y)"

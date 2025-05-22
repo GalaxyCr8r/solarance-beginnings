@@ -34,16 +34,6 @@ pub enum EquipmentSlotType {
     CargoExpansion,
 }
 
-// Enum for different categories of items
-#[derive(SpacetimeType, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum ItemCategory {
-    ShipEquipment,
-    Commodity, // Tradable goods like ore, food
-    ManufacturedGood, // Components, advanced materials
-    Ammunition,
-    Special, // Quest items, blueprints, etc.
-}
-
 // Enum for AI states or player commands, can be expanded
 #[derive(SpacetimeType, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum EntityAIState {
