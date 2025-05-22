@@ -22,6 +22,5 @@ const SI_SECTOR_FILTER: Filter = Filter::Sql(
 const SI_CARGO_FILTER: Filter = Filter::Sql(
      "SELECT ship_cargo_item.* 
       FROM ship_cargo_item
-      JOIN ship_object o ON ship_cargo_item.ship_id = o.ship_id
-      WHERE o.player_id = :sender"
+      JOIN ship_object o ON ship_cargo_item.ship_id = o.ship_id"
  );

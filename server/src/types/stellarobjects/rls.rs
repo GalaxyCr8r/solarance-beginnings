@@ -5,26 +5,21 @@ use spacetimedb::{client_visibility_filter, Filter};
 const SO_SHIPOBJECT_FILTER: Filter = Filter::Sql(
     "SELECT o.* 
     FROM stellar_object o
-    JOIN ship_object s ON s.sector_id = o.sector_id"
+    JOIN ship_object s
+    WHERE s.sector_id = o.sector_id"
 );
-// #[client_visibility_filter]
-// const SO_HI_OBJECT_FILTER: Filter = Filter::Sql(
-//     "SELECT o.* 
-//     FROM sobj_hi_res_transform o
-//     JOIN player_controlled_stellar_object p ON p.sector_id = o.sector_id
-//     WHERE p.identity = :sender"
-// );
-// #[client_visibility_filter]
-// const SO_LO_OBJECT_FILTER: Filter = Filter::Sql(
-//     "SELECT o.* 
-//     FROM sobj_low_res_transform o
-//     JOIN player_controlled_stellar_object p ON p.sector_id = o.sector_id
-//     WHERE p.identity = :sender"
-// );
+
+/// You can only see your own window
+#[client_visibility_filter]
+const OWN_WINDOW_FILTER: Filter = Filter::Sql(
+    "SELECT w.* 
+    FROM sobj_player_window w
+    WHERE w.identity = :sender"
+);
 
 /// You can only see high "resolution" transforms within your window.
 #[client_visibility_filter]
-const HR_OBJECT_FILTER: Filter = Filter::Sql(
+const HR_OBJECT_FILTER: Filter = Filter::Sql( //// TODO: Add a sector_id check to this which require adding sector_id to sobj_hi_res_transform & player window
     "SELECT o.* 
     FROM sobj_hi_res_transform o
     JOIN sobj_player_window w
@@ -38,7 +33,7 @@ const HR_OBJECT_FILTER: Filter = Filter::Sql(
 /// You can only see low "resolution" transforms outside your window. 
 /// (Might generalize this to ALL low-res transforms to avoid a second heavy "WHERE" clause)
 #[client_visibility_filter]
-const LR_OBJECT_FILTER: Filter = Filter::Sql(
+const LR_OBJECT_FILTER: Filter = Filter::Sql( //// TODO: Add a sector_id check to this which require adding sector_id to sobj_hi_res_transform & player window
     "SELECT o.* 
     FROM sobj_low_res_transform o
     JOIN sobj_player_window w
