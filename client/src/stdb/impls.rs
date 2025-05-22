@@ -1,4 +1,4 @@
-use macroquad::prelude::glam;
+use macroquad::prelude::{glam, info};
 
 use crate::module_bindings::*;
 

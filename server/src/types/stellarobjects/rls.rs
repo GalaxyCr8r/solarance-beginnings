@@ -5,8 +5,7 @@ use spacetimedb::{client_visibility_filter, Filter};
 const SO_SHIPOBJECT_FILTER: Filter = Filter::Sql(
     "SELECT o.* 
     FROM stellar_object o
-    JOIN ship_object s ON s.sector_id = o.sector_id
-    WHERE s.player_id = :sender"
+    JOIN ship_object s ON s.sector_id = o.sector_id"
 );
 // #[client_visibility_filter]
 // const SO_HI_OBJECT_FILTER: Filter = Filter::Sql(

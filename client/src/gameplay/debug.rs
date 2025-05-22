@@ -76,12 +76,12 @@ pub fn debug_window(egui_ctx: &Context, game_state: &mut GameState) -> Option<eg
                                 transform.y.to_string()
                             );
                             ui.label(string);
-                            return;
                         }
                         _ => {
                             ui.label("Position: n/a");
                         }
                     }
+                    ui.label(format!("- Sector #{}", object.sector_id));
                 });
             }
 

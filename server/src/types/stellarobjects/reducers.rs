@@ -43,7 +43,7 @@ pub fn create_stellar_object(
     sector_id: SectorId,
     transform: StellarObjectTransformInternal
 ) -> Result<(), String> {
-    server_only(ctx);
+    //server_only(ctx);
 
     match create_sobj_internal(ctx, kind, sector_id, transform) {
         Ok(_) => Ok(()),
@@ -53,7 +53,7 @@ pub fn create_stellar_object(
 
 #[spacetimedb::reducer]
 pub fn create_sobj_random(ctx: &ReducerContext, sector_id: u64) -> Result<(), String> {
-    server_only(ctx);
+    //server_only(ctx);
 
     create_stellar_object(
         ctx,
