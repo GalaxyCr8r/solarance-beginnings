@@ -1,4 +1,4 @@
-use std::{ collections::HashMap, sync::mpsc::{self, Sender} };
+use std:: sync::mpsc::{self, Sender} ;
 
 use macroquad::{ math::Vec2, prelude::*, ui };
 
@@ -13,6 +13,7 @@ mod chat;
 mod debug;
 mod player;
 mod render;
+pub mod resources;
 
 /// Register all the callbacks our app will use to respond to database events.
 pub fn register_callbacks(ctx: &DbConnection, global_chat_channel: Sender<GlobalChatMessage>) {
@@ -32,13 +33,13 @@ pub fn register_callbacks(ctx: &DbConnection, global_chat_channel: Sender<Global
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub async fn gameplay(textures : HashMap<&'static str, Texture2D>, token : Option<String>) {
+pub async fn gameplay(token : Option<String>) {
     // DB Connection & ECS World
     let ctx = connect_to_spacetime(token);
 
     let (global_chat_transmitter, global_chat_receiver) = mpsc::channel::<GlobalChatMessage>();
 
-    let mut game_state = state::initialize(textures, &ctx);
+    let mut game_state = state::initialize(&ctx);
 
     let _receiver = register_callbacks(&ctx, global_chat_transmitter);
 
