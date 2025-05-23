@@ -1,4 +1,4 @@
-use spacetimedb::{table, Identity, ReducerContext, SpacetimeType, Timestamp};
+use spacetimedb::{table, ReducerContext, SpacetimeType, Timestamp};
 use spacetimedsl::dsl;
 
 pub mod definitions;

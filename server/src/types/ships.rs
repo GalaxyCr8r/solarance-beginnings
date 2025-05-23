@@ -118,8 +118,8 @@ pub struct ShipCargoItem {
     #[wrap]
     pub id: u64,
 
-    #[wrapped(path = ShipInstanceId)]
     #[index(btree)] // To query all cargo for a specific ship
+    #[wrapped(path = ShipInstanceId)]
     pub ship_id: u64, // FK to Ship
     #[wrapped(path = crate::types::items::ItemDefinitionId)]
     pub item_id: u32, // FK to ItemDefinition

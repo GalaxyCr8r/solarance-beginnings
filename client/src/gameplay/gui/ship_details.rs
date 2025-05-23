@@ -54,7 +54,7 @@ pub fn window(egui_ctx: &Context, ctx: &DbConnection, state: &mut WindowState) -
         })
 }
 
-fn ship_contents(ui: &mut Ui, ctx: &DbConnection, ship_type: ShipTypeDefinition, player_ship: ShipInstance) {
+fn ship_contents(ui: &mut Ui, _ctx: &DbConnection, ship_type: ShipTypeDefinition, player_ship: ShipInstance) {
     ui.heading("Detailed Ship Status");
     ui.label(format!("Ship Type: {}", ship_type.name));
     ui.horizontal(|ui| {
@@ -103,6 +103,6 @@ fn cargo_contents(ui: &mut Ui, ctx: &DbConnection, ship_type: ShipTypeDefinition
     });
 }
 
-fn equipment_contents(ui: &mut Ui, ctx: &DbConnection, ship_type: ShipTypeDefinition, player_ship: ShipInstance) {
+fn equipment_contents(ui: &mut Ui, _ctx: &DbConnection, _ship_type: ShipTypeDefinition, _player_ship: ShipInstance) {
     ui.heading("Equipment/Modules");
 }
