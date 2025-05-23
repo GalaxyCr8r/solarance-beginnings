@@ -26,6 +26,8 @@ struct MenuAssets {
 async fn main() -> Result<(), FileError> {
     dotenv().ok();
 
+    request_new_screen_size(1024.0, 640.0);
+
     clear_background(BLACK);
     next_frame().await;
 
@@ -174,8 +176,8 @@ pub(crate) async fn login_screen() -> Option<String> {
     id_token
 }
 
-//// Loading Screen
-/// 
+// Loading Screen
+////////// 
 
 async fn loading_screen() {
     let menu_assets = storage::get::<MenuAssets>();

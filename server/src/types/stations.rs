@@ -1,4 +1,4 @@
-use spacetimedb::{table, ReducerContext, SpacetimeType, Timestamp};
+use spacetimedb::{table, SpacetimeType};
 use spacetimedsl::{dsl, Wrapper};
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]

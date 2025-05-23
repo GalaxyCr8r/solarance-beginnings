@@ -3,7 +3,7 @@ use spacetimedsl::dsl;
 
 use crate::types::stellarobjects::StellarObjectId;
 
-use super::{common::{EntityAIState, EquipmentSlotType}, sector::SectorId};
+use super::{common::{EntityAIState, EquipmentSlotType}, items::ItemDefinitionId, sector::SectorId};
 
 pub mod definitions;
 pub mod reducers;
@@ -118,8 +118,8 @@ pub struct ShipCargoItem {
     #[wrap]
     pub id: u64,
 
-    #[wrapped(path = ShipInstanceId)]
     #[index(btree)] // To query all cargo for a specific ship
+    #[wrapped(path = ShipInstanceId)]
     pub ship_id: u64, // FK to Ship
     #[wrapped(path = crate::types::items::ItemDefinitionId)]
     pub item_id: u32, // FK to ItemDefinition
@@ -140,7 +140,9 @@ pub struct ShipEquipmentSlot {
 
     pub slot_type: EquipmentSlotType,
     pub slot_index: u8, // E.g., Weapon Slot 0, Weapon Slot 1 within its type
-    pub equipped_item_id: Option<u32>, // FK to ItemDefinition (if an item is equipped)
+
+    #[wrapped(path = ItemDefinitionId)]
+    pub item_id: u32, // FK to ItemDefinition
 }
 
 //////////////////////////////////////////////////////////////

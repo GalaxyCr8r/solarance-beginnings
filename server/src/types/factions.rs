@@ -1,4 +1,4 @@
-use spacetimedb::{table, Identity, SpacetimeType};
+use spacetimedb::{table, Identity};
 use spacetimedsl::dsl;
 
 #[dsl(plural_name = faction_definitions)]

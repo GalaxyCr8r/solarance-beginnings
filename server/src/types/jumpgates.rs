@@ -1,4 +1,4 @@
-use spacetimedb::{table, ReducerContext, SpacetimeType, Timestamp};
+use spacetimedb::table;
 use spacetimedsl::{dsl, Wrapper};
 
 use super::common::Vec2;

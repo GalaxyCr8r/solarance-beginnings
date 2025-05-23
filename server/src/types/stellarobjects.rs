@@ -1,10 +1,10 @@
 use log::info;
 use spacetimedb::{
-    client_visibility_filter, rand::Rng, table, Filter, Identity, ReducerContext, SpacetimeType
+    rand::Rng, table, Identity, ReducerContext, SpacetimeType
 };
 use spacetimedsl::{dsl, Wrapper};
 
-use super::{utility::{ is_server_or_owner, server_only }, sector::SectorId};
+use super::{utility::is_server_or_owner, sector::SectorId};
 
 pub mod impls;
 pub mod reducers;

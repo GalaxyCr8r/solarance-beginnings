@@ -1,4 +1,6 @@
-use macroquad::prelude::{glam, info};
+use std::fmt::{self, Debug};
+
+use macroquad::prelude::{glam};
 
 use crate::module_bindings::*;
 
@@ -39,5 +41,17 @@ impl Player {
         } else {
             None
         }
+    }
+}
+
+impl fmt::Display for ShipClass {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        Debug::fmt(self, f)
+    }
+}
+
+impl fmt::Display for EquipmentSlotType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        Debug::fmt(self, f)
     }
 }
