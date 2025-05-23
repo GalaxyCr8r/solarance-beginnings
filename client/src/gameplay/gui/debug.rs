@@ -5,8 +5,7 @@ use crate::module_bindings::*;
 use spacetimedb_sdk::{ DbContext, Table };
 
 use crate::stdb::utils::*;
-
-use super::state::GameState;
+use crate::gameplay::state::GameState;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -14,15 +13,16 @@ use super::state::GameState;
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub fn debug_window(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::InnerResponse<Option<()>>> {
+pub fn window(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::InnerResponse<Option<()>>> {
     let ctx = game_state.ctx;
 
     egui::Window
-        ::new("Solarance:Beginnings")
+        ::new("Debug")
+        .title_bar(true)
         .resizable(false)
-        .collapsible(false)
+        .collapsible(true)
         .movable(false)
-        .anchor(Align2::LEFT_TOP, egui::Vec2::new(-5.0, 5.0))
+        .anchor(Align2::RIGHT_BOTTOM, egui::Vec2::new(-5.0, 5.0))
         .show(egui_ctx, |ui| {
             match ctx.db.player().identity().find(&ctx.identity()) {
                 Some(player) => {

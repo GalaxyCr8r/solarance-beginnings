@@ -1,9 +1,7 @@
 use macroquad::{camera::Camera2D, prelude::*};
 
 use crate::module_bindings::*;
-
-use super::{chat::ChatWindowState};
-
+use crate::gameplay::gui::chat::ChatWindowState;
 
 pub(crate) struct GameState<'a> {
     // Game-Wide States

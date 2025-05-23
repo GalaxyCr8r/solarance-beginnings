@@ -62,12 +62,15 @@ pub struct ShipInstance {
     #[wrap]
     pub id: u64,
 
+    #[index(btree)]
     #[wrapped(path = ShipTypeDefinitionId)]
     pub shiptype_id: u32,           // FK to ShipTypeDefinition.id
 
     pub owner_id: Option<Identity>,      // FK to player.id
+
     #[wrapped(path = crate::types::factions::FactionDefinitionId)]
     pub faction_id: Option<u32>,    // FK to faction.id
+
     #[wrapped(path = StellarObjectId)]
     pub sobj_id: Option<u64>, // FK: StellarObject
 

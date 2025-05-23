@@ -12,7 +12,8 @@ mod shader;
 pub mod gameplay;
 
 struct MenuAssets {
-    pub rings: Vec<Texture2D>
+    pub rings: Vec<Texture2D>,
+    pub logo: Texture2D
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -31,10 +32,11 @@ async fn main() -> Result<(), FileError> {
     set_pc_assets_folder("assets");
     storage::store(MenuAssets{
         rings: vec![
-            load_texture("Ring1.png").await.expect("Couldn't load file"),
-            load_texture("Ring2.png").await.expect("Couldn't load file"),
-            load_texture("Ring3.png").await.expect("Couldn't load file")
-        ]
+            load_texture("Ring1.png").await.expect("Couldn't load assets"),
+            load_texture("Ring2.png").await.expect("Couldn't load assets"),
+            load_texture("Ring3.png").await.expect("Couldn't load assets")
+        ],
+        logo: load_texture("Solarance_Logo.png").await.expect("Couldn't load assets")
     });
 
     loop {
@@ -94,7 +96,7 @@ pub(crate) async fn login_screen() -> Option<String> {
         }
 
         clear_background(DARKGRAY);
-        draw_circle(screen_width() / 2.0, screen_height() / 2.0, screen_height() * 2.0 / 3.0, BLACK);
+        draw_circle(screen_width() / 2.0, screen_height() / 2.0, screen_height() * 2.0 / 3.0, Color::from_hex(0x000311));
 
         for i in 0..3 {
             let (x, y) = mouse_position();
@@ -119,13 +121,18 @@ pub(crate) async fn login_screen() -> Option<String> {
             );
         }
 
+        draw_texture(menu_assets.logo,
+            screen_width() / 2.0 - menu_assets.logo.width() / 2.0,
+            screen_height() / 2.0 - menu_assets.logo.height() / 2.0,
+            WHITE);
+
         egui_macroquad::ui(|egui_ctx| {
             egui::Window
                 ::new("Solarance:Beginnings")
                 .resizable(false)
                 .collapsible(false)
                 .movable(false)
-                .anchor(Align2::CENTER_CENTER, egui::Vec2::new(0.0, 0.0))
+                .anchor(Align2::CENTER_BOTTOM, egui::Vec2::new(0.0, 0.0))
                 .show(egui_ctx, |ui| {
                     if !client_token_thread.as_ref().is_none() {
                         ui.label("Waiting on handshake...");
@@ -176,7 +183,7 @@ async fn loading_screen() {
     let mut resources_loading: Option<coroutines::Coroutine> = None;
     
     while resources_loading.is_none() || !resources_loading.unwrap().is_done() { 
-        clear_background(BLACK);
+        clear_background(Color::from_hex(0x000311));
 
         for i in 0..3 {
             draw_texture_ex(
@@ -184,7 +191,7 @@ async fn loading_screen() {
                 menu_assets.rings[i].width() / -3.0,
                 screen_height() - menu_assets.rings[i].height() / 3.0,
                 Color {
-                    a: 0.5,
+                    a: 0.05 + (i as f32 * 0.1),
                     ..Color::from_hex(0xbedaff)
                 },
                 DrawTextureParams {
@@ -193,6 +200,13 @@ async fn loading_screen() {
                 }
             );
         }
+        draw_texture(menu_assets.logo,
+            screen_width() / 2.0 - menu_assets.logo.width() / 2.0,
+            screen_height() / 2.0 - menu_assets.logo.height() / 2.0,
+            Color {
+                a: 0.25,
+                ..WHITE
+            });
 
         let text = format!(
             "Connecting to the Solarance galaxy  {}",
