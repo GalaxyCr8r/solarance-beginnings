@@ -4,7 +4,7 @@ use macroquad::prelude::*;
 use crate::{module_bindings::*, stdb::utils::get_username};
 
 #[derive(Default)]
-pub struct ChatWindowState {
+pub struct WindowState {
     pub global_chat_channel: Vec<GlobalChatMessage>,
     pub text: String,
     pub selected_tab: u8,
@@ -12,7 +12,7 @@ pub struct ChatWindowState {
     pub hidden: bool
 }
 
-fn contents_hidden(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut ChatWindowState) {
+fn contents_hidden(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut WindowState) {
     ui.horizontal(|ui| {
         if ui.button("^").clicked() {
             chat_window.hidden = false;
@@ -32,7 +32,7 @@ fn contents_hidden(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut ChatWindow
     }
 }
 
-pub fn window(egui_ctx: &Context, ctx: &DbConnection, chat_window: &mut ChatWindowState) -> Option<egui::InnerResponse<Option<()>>> {
+pub fn window(egui_ctx: &Context, ctx: &DbConnection, chat_window: &mut WindowState) -> Option<egui::InnerResponse<Option<()>>> {
     egui::Window
         ::new("Chat Window")
         .min_width(256.0)

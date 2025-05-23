@@ -80,6 +80,7 @@ pub async fn gameplay(token : Option<String>) {
             if get_player(&ctx.db, &ctx.identity()).is_some() {
                 gui::chat::window(&egui_ctx, &game_state.ctx, &mut game_state.chat_window);
                 gui::status::window(&egui_ctx, &ctx, &mut gui::status::WindowState::default());
+                gui::ship_details::window(&egui_ctx, &game_state.ctx, &mut game_state.details_window);
             }
         });
 
