@@ -1,3 +1,5 @@
+use std::{collections::btree_map::Range, fmt::Debug};
+
 use egui::{Align2, Color32, Context, Ui};
 use macroquad::prelude::*;
 use spacetimedb_sdk::Table;
@@ -14,27 +16,28 @@ enum CurrentTab {
 //#[derive(Default)]
 pub struct WindowState {
     pub open: bool,
-    current_tab: CurrentTab// = CurrentTab::Ship
+    current_tab: CurrentTab, // = CurrentTab::Ship
+    current_equipment_tab: EquipmentSlotType,
 }
 
 impl WindowState {
     pub fn new() -> Self {
         WindowState {
             open: false,
-            current_tab: CurrentTab::Ship
+            current_tab: CurrentTab::Ship,
+            current_equipment_tab: EquipmentSlotType::Weapon
         }
     }
 }
 
-pub fn window(egui_ctx: &Context, ctx: &DbConnection, state: &mut WindowState) -> Option<egui::InnerResponse<Option<()>>> {
+pub fn window(egui_ctx: &Context, ctx: &DbConnection, state: &mut WindowState,  open: &mut bool) -> Option<egui::InnerResponse<Option<()>>> {
     egui::Window
         ::new("Ship Details")
-        .open(&mut state.open)
+        .open(open)
         .title_bar(true)
         .resizable(true)
         .collapsible(true)
         .movable(true)
-        //.anchor(Align2::CENTER_BOTTOM, egui::Vec2::new(0.0, 0.0))
         .show(egui_ctx, |ui| {
             if let Some(player_ship) = get_player_ship_instance(ctx) {
                 if let Some(ship_type) = ctx.db.ship_type_definition().id().find(&player_ship.shiptype_id) {
@@ -45,34 +48,63 @@ pub fn window(egui_ctx: &Context, ctx: &DbConnection, state: &mut WindowState) -
                     });
 
                     match state.current_tab {
-                        CurrentTab::Ship => {ship_contents(ui, ctx, ship_type, player_ship);},
-                        CurrentTab::Cargo => {cargo_contents(ui, ctx, ship_type, player_ship);},
-                        CurrentTab::Equipment => {equipment_contents(ui, ctx, ship_type, player_ship);}
+                        CurrentTab::Ship => {ship_contents(ui, ctx, state, ship_type, player_ship);},
+                        CurrentTab::Cargo => {cargo_contents(ui, ctx, state, ship_type, player_ship);},
+                        CurrentTab::Equipment => {equipment_contents(ui, ctx, state, ship_type, player_ship);}
                     }
                 }
             }
         })
 }
 
-fn ship_contents(ui: &mut Ui, _ctx: &DbConnection, ship_type: ShipTypeDefinition, player_ship: ShipInstance) {
+fn ship_contents(ui: &mut Ui, _ctx: &DbConnection, _state: &mut WindowState, ship_type: ShipTypeDefinition, player_ship: ShipInstance) {
     ui.heading("Detailed Ship Status");
-    ui.label(format!("Ship Type: {}", ship_type.name));
+    ui.separator();
+    ui.horizontal(|ui| {
+        ui.vertical(|ui| {
+            ui.label(format!("Ship Type: {}", ship_type.name));
+            ui.label(format!("Class: {}", ship_type.class.to_string()));
+        });
+        ui.collapsing("Description", |ui| {
+            ui.horizontal_wrapped(|ui| {
+                ui.label(ship_type.description.unwrap_or("n/a".to_string()));
+            })
+        });
+    });
     ui.horizontal(|ui| {
         ui.vertical(|ui| {
             ui.label(format!("Health: {}", player_ship.health));
             ui.label(format!("Shield: {}", player_ship.shields));
             ui.label(format!("Energy: {}", player_ship.energy));
+            ui.label(format!("Cargo: {} / {}", player_ship.cargo_capacity, ship_type.cargo_capacity));
         });
+        ui.separator();
         ui.vertical(|ui| {
             ui.label(format!("Max Health: {}", ship_type.max_health));
             ui.label(format!("Max Shield: {}", ship_type.max_shield));
             ui.label(format!("Max Energy: {}", ship_type.max_energy));
         });
+        ui.separator();
+        ui.vertical(|ui| {
+            ui.label(format!("Speed: {}", ship_type.base_speed));
+            ui.label(format!("Acceleration: {}", ship_type.base_acceleration));
+            ui.label(format!("Turn Rate: {}", ship_type.base_turn_rate));
+        });
+    });
+    ui.horizontal(|ui| {
+        ui.vertical(|ui| {
+            ui.label(format!("Weapon Slots: ?/{}", ship_type.num_weapon_slots));
+            ui.label(format!("Shield Slots: ?/{}", ship_type.num_shield_slots));
+            ui.label(format!("Engine Slots: ?/{}", ship_type.num_engine_slots));
+            ui.label(format!("Minig Laser Slots: ?/{}", ship_type.num_mining_laser_slots));
+            ui.label(format!("Special Slots: ?/{}", ship_type.num_special_slots));
+        });
     });
 }
 
-fn cargo_contents(ui: &mut Ui, ctx: &DbConnection, ship_type: ShipTypeDefinition, player_ship: ShipInstance) {
+fn cargo_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, ship_type: ShipTypeDefinition, player_ship: ShipInstance) {
     ui.heading("Cargo Bay Contents");
+    ui.separator();
     let mut actual_cargo_remaining = ship_type.cargo_capacity;
     for cargo in ctx.db.ship_cargo_item().iter() {
         if cargo.ship_id == player_ship.id { // TECHNICALLY RLS should do this for us.
@@ -103,6 +135,44 @@ fn cargo_contents(ui: &mut Ui, ctx: &DbConnection, ship_type: ShipTypeDefinition
     });
 }
 
-fn equipment_contents(ui: &mut Ui, _ctx: &DbConnection, _ship_type: ShipTypeDefinition, _player_ship: ShipInstance) {
-    ui.heading("Equipment/Modules");
+fn equipment_contents(ui: &mut Ui, ctx: &DbConnection, state: &mut WindowState, ship_type: ShipTypeDefinition, _player_ship: ShipInstance) {
+    ui.heading("Equipment");
+    ui.separator();
+    ui.horizontal_top(|ui| {
+        ui.selectable_value(&mut state.current_equipment_tab, EquipmentSlotType::Weapon, "Weapon");
+        ui.selectable_value(&mut state.current_equipment_tab, EquipmentSlotType::Shield, "Shields");
+        ui.selectable_value(&mut state.current_equipment_tab, EquipmentSlotType::Engine, "Engine");
+        ui.selectable_value(&mut state.current_equipment_tab, EquipmentSlotType::MiningLaser, "Mining");
+        ui.selectable_value(&mut state.current_equipment_tab, EquipmentSlotType::Special, "Special");
+    });
+    ui.separator();
+    let max_slots = match state.current_equipment_tab {
+        EquipmentSlotType::Weapon => ship_type.num_weapon_slots,
+        EquipmentSlotType::Shield => ship_type.num_shield_slots,
+        EquipmentSlotType::Engine => ship_type.num_engine_slots,
+        EquipmentSlotType::MiningLaser => ship_type.num_mining_laser_slots,
+        EquipmentSlotType::Special => ship_type.num_special_slots,
+        EquipmentSlotType::CargoExpansion => todo!(),
+    };
+    let mut slots = max_slots;
+    for equipment in ctx.db.ship_equipment_slot().iter() {
+        if state.current_equipment_tab != equipment.slot_type {
+            continue;
+        }
+        ui.horizontal(|ui| {
+            ui.label(equipment.slot_type.to_string());
+            ui.add_enabled(false, egui::Label::new("---"));
+            if let Some(item) = ctx.db.item_definition().id().find(&equipment.item_id) {
+                ui.label(item.name);
+            }
+        });
+        slots -= 1;
+    }
+    for _empty_slot in 1..slots {
+        ui.add_enabled(false, egui::Label::new("--- Empty Slot"));
+    }
+    ui.separator();
+    ui.horizontal(|ui| {
+        ui.label(format!("Slots: {} / {}", max_slots-slots, max_slots));
+    });
 }

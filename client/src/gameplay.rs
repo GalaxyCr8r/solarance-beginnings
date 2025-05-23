@@ -48,6 +48,8 @@ pub async fn gameplay(token : Option<String>) {
     let render_target = render_target(320, 150);
     render_target.texture.set_filter(FilterMode::Linear);
 
+    let mut ship_details_window_open = false;
+
     // Setup Panic Handler
     set_panic_handler(|msg, _backtrace| async move {
         loop {
@@ -80,7 +82,7 @@ pub async fn gameplay(token : Option<String>) {
             if get_player(&ctx.db, &ctx.identity()).is_some() {
                 gui::chat::window(&egui_ctx, &game_state.ctx, &mut game_state.chat_window);
                 gui::status::window(&egui_ctx, &ctx, &mut gui::status::WindowState::default());
-                gui::ship_details::window(&egui_ctx, &game_state.ctx, &mut game_state.details_window);
+                gui::ship_details::window(&egui_ctx, &game_state.ctx, &mut game_state.details_window, &mut ship_details_window_open);
             }
         });
 
