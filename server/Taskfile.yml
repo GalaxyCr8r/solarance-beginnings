@@ -5,7 +5,7 @@ tasks:
   build:
     desc: "Server: Build with ST"
     cmds:
-      - cargo fix --lib -p solarance-spacetime-module --allow-dirty
+      - cargo fix --lib -p solarance-spacetime-module
       - spacetime build
 
   publish:

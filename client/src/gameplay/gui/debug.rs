@@ -103,7 +103,7 @@ pub fn window(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::In
                     game_state.done = true;
                 }
                 if ui.button("Ship Details").clicked() {
-                    game_state.details_window.open = !game_state.details_window.open;
+                    game_state.details_window_open = !game_state.details_window_open;
                 }
             });
         })

@@ -21,6 +21,7 @@ tasks:
     desc: "Client: Generate Bindings"
     cmds:
       - spacetime generate --lang rust --out-dir src/module_bindings --project-path ../server -y
+      - cargo fix --bin "solarance-beginnings" --allow-dirty
 
   run-full:
     desc: "Generate bindings, build, and run client"

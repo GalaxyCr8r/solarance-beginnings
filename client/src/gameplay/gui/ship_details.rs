@@ -1,6 +1,5 @@
-use std::{collections::btree_map::Range, fmt::Debug};
 
-use egui::{Align2, Color32, Context, Ui};
+use egui::{Context, Ui};
 use macroquad::prelude::*;
 use spacetimedb_sdk::Table;
 
@@ -15,7 +14,6 @@ enum CurrentTab {
 
 //#[derive(Default)]
 pub struct WindowState {
-    pub open: bool,
     current_tab: CurrentTab, // = CurrentTab::Ship
     current_equipment_tab: EquipmentSlotType,
 }
@@ -23,7 +21,6 @@ pub struct WindowState {
 impl WindowState {
     pub fn new() -> Self {
         WindowState {
-            open: false,
             current_tab: CurrentTab::Ship,
             current_equipment_tab: EquipmentSlotType::Weapon
         }
@@ -38,6 +35,7 @@ pub fn window(egui_ctx: &Context, ctx: &DbConnection, state: &mut WindowState,  
         .resizable(true)
         .collapsible(true)
         .movable(true)
+        .vscroll(true)
         .show(egui_ctx, |ui| {
             if let Some(player_ship) = get_player_ship_instance(ctx) {
                 if let Some(ship_type) = ctx.db.ship_type_definition().id().find(&player_ship.shiptype_id) {
@@ -57,7 +55,7 @@ pub fn window(egui_ctx: &Context, ctx: &DbConnection, state: &mut WindowState,  
         })
 }
 
-fn ship_contents(ui: &mut Ui, _ctx: &DbConnection, _state: &mut WindowState, ship_type: ShipTypeDefinition, player_ship: ShipInstance) {
+fn ship_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, ship_type: ShipTypeDefinition, player_ship: ShipInstance) {
     ui.heading("Detailed Ship Status");
     ui.separator();
     ui.horizontal(|ui| {
@@ -71,6 +69,8 @@ fn ship_contents(ui: &mut Ui, _ctx: &DbConnection, _state: &mut WindowState, shi
             })
         });
     });
+    ui.separator();
+    ui.heading("Stats");
     ui.horizontal(|ui| {
         ui.vertical(|ui| {
             ui.label(format!("Health: {}", player_ship.health));
@@ -91,13 +91,24 @@ fn ship_contents(ui: &mut Ui, _ctx: &DbConnection, _state: &mut WindowState, shi
             ui.label(format!("Turn Rate: {}", ship_type.base_turn_rate));
         });
     });
+    ui.heading("Equipment Slots");
     ui.horizontal(|ui| {
         ui.vertical(|ui| {
-            ui.label(format!("Weapon Slots: ?/{}", ship_type.num_weapon_slots));
-            ui.label(format!("Shield Slots: ?/{}", ship_type.num_shield_slots));
-            ui.label(format!("Engine Slots: ?/{}", ship_type.num_engine_slots));
-            ui.label(format!("Minig Laser Slots: ?/{}", ship_type.num_mining_laser_slots));
-            ui.label(format!("Special Slots: ?/{}", ship_type.num_special_slots));
+            ui.label(format!("Weapon Slots: {}/{}", 
+                player_ship.get_all_equipped_of_type(ctx, EquipmentSlotType::Weapon).iter().count(), 
+                ship_type.num_weapon_slots));
+            ui.label(format!("Shield Slots: {}/{}", 
+                player_ship.get_all_equipped_of_type(ctx, EquipmentSlotType::Shield).iter().count(), 
+                ship_type.num_shield_slots));
+            ui.label(format!("Engine Slots: {}/{}", 
+                player_ship.get_all_equipped_of_type(ctx, EquipmentSlotType::Engine).iter().count(), 
+                ship_type.num_engine_slots));
+            ui.label(format!("Minig Laser Slots: {}/{}", 
+                player_ship.get_all_equipped_of_type(ctx, EquipmentSlotType::MiningLaser).iter().count(), 
+                ship_type.num_mining_laser_slots));
+            ui.label(format!("Special Slots: {}/{}", 
+                player_ship.get_all_equipped_of_type(ctx, EquipmentSlotType::Special).iter().count(), 
+                ship_type.num_special_slots));
         });
     });
 }
@@ -146,6 +157,7 @@ fn equipment_contents(ui: &mut Ui, ctx: &DbConnection, state: &mut WindowState, 
         ui.selectable_value(&mut state.current_equipment_tab, EquipmentSlotType::Special, "Special");
     });
     ui.separator();
+
     let max_slots = match state.current_equipment_tab {
         EquipmentSlotType::Weapon => ship_type.num_weapon_slots,
         EquipmentSlotType::Shield => ship_type.num_shield_slots,
@@ -154,25 +166,29 @@ fn equipment_contents(ui: &mut Ui, ctx: &DbConnection, state: &mut WindowState, 
         EquipmentSlotType::Special => ship_type.num_special_slots,
         EquipmentSlotType::CargoExpansion => todo!(),
     };
-    let mut slots = max_slots;
+    let mut slots = 0;
+
     for equipment in ctx.db.ship_equipment_slot().iter() {
         if state.current_equipment_tab != equipment.slot_type {
             continue;
         }
         ui.horizontal(|ui| {
-            ui.label(equipment.slot_type.to_string());
+            ui.label(format!("{} --- {}", slots+1, equipment.slot_type.to_string()));
             ui.add_enabled(false, egui::Label::new("---"));
             if let Some(item) = ctx.db.item_definition().id().find(&equipment.item_id) {
                 ui.label(item.name);
             }
         });
-        slots -= 1;
+        slots += 1;
     }
-    for _empty_slot in 1..slots {
-        ui.add_enabled(false, egui::Label::new("--- Empty Slot"));
+    for empty_slot in slots..max_slots {
+        ui.add_enabled(false, egui::Label::new(format!("{} --- Empty Slot", empty_slot+1)));
     }
+    
+    ui.spacing();
+    // Maybe add a button to equip an item here?
     ui.separator();
     ui.horizontal(|ui| {
-        ui.label(format!("Slots: {} / {}", max_slots-slots, max_slots));
+        ui.label(format!("Slots: {} / {}", slots, max_slots));
     });
 }
