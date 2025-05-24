@@ -45,7 +45,7 @@ pub fn create_stellar_object(
 ) -> Result<(), String> {
     //server_only(ctx);
 
-    match create_sobj_internal(ctx, kind, sector_id, transform) {
+    match create_sobj_internal(ctx, kind, &sector_id, transform) {
         Ok(_) => Ok(()),
         Err(e) => Err(e),
     }

@@ -1,11 +1,10 @@
-
-version: '3'
+version: "3"
 
 tasks:
   build:
     desc: "Server: Build with ST"
     cmds:
-      - cargo fix --lib -p solarance-spacetime-module
+      - cargo fix --lib -p solarance-spacetime-module --allow-dirty
       - spacetime build
 
   publish:
