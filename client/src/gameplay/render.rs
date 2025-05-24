@@ -1,5 +1,5 @@
 
-use macroquad::{ math::Vec2, prelude::{collections::storage, *} };
+use macroquad::prelude::{collections::storage, *};
 
 use crate::module_bindings::*;
 use spacetimedb_sdk::*;
@@ -36,7 +36,6 @@ fn draw_ship(transform: &StellarObjectTransformHiRes, game_state: &mut GameState
 
 pub fn sector(game_state: &mut GameState) {
     let resources = storage::get::<Resources>();
-
     let sun = resources.sun_texture;
     draw_texture(sun, sun.width() * -0.5, sun.height() * -0.5, WHITE);
     

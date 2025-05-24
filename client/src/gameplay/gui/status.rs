@@ -5,10 +5,10 @@ use crate::{module_bindings::*, stdb::utils::get_player_ship_instance};
 
 #[derive(Default)]
 pub struct WindowState {
-    pub hidden: bool
+    //pub hidden: bool
 }
 
-pub fn window(egui_ctx: &Context, ctx: &DbConnection, state: &mut WindowState) -> Option<egui::InnerResponse<Option<()>>> {
+pub fn window(egui_ctx: &Context, ctx: &DbConnection, _state: &mut WindowState) -> Option<egui::InnerResponse<Option<()>>> {
     egui::Window
         ::new("Status Window")
         .title_bar(false)

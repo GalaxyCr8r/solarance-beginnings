@@ -1,4 +1,6 @@
 
+use std::f32::consts::PI;
+
 use egui::{Context, Ui};
 use macroquad::prelude::*;
 use spacetimedb_sdk::Table;
@@ -88,7 +90,7 @@ fn ship_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, ship
         ui.vertical(|ui| {
             ui.label(format!("Speed: {}", ship_type.base_speed));
             ui.label(format!("Acceleration: {}", ship_type.base_acceleration));
-            ui.label(format!("Turn Rate: {}", ship_type.base_turn_rate));
+            ui.label(format!("Turn Rate: {}d", ship_type.base_turn_rate * (180.0/PI)));
         });
     });
     ui.heading("Equipment Slots");

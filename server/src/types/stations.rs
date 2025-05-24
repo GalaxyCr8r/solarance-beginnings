@@ -1,5 +1,5 @@
 use spacetimedb::{table, SpacetimeType};
-use spacetimedsl::{dsl, Wrapper};
+use spacetimedsl::{dsl};
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
 pub enum StationKind {

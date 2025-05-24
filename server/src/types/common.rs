@@ -1,7 +1,7 @@
 use std::hash::Hasher;
 
 use spacetimedb::{table, ReducerContext, SpacetimeType, Timestamp};
-use spacetimedsl::{dsl, Wrapper};
+use spacetimedsl::{dsl};
 
 #[derive(SpacetimeType, Clone, Debug)]
 pub struct Vec2 {
