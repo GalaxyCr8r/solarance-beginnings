@@ -1,7 +1,7 @@
 use spacetimedb::{table, Identity, ReducerContext, Timestamp};
 use spacetimedsl::dsl;
 
-use super::stellarobjects::player_controlled_stellar_object;
+use super::ships::ship_object;
 
 #[dsl(plural_name = players)]
 #[table(name = player, public)]
@@ -11,6 +11,7 @@ pub struct Player {
 
     #[unique]
     pub username: String,
+    pub credits: u64,
 
     created_at: Timestamp,
     modified_at: Timestamp,
@@ -19,8 +20,8 @@ pub struct Player {
 //// Impls ///
 
 impl Player {
-    pub fn get_controlled_stellar_object(&self, ctx: &ReducerContext) -> Option<u64> {
-        if let Some(player_controlled_stellar_object) = ctx.db.player_controlled_stellar_object().identity().find(&self.identity) {
+    pub fn get_ship_id(&self, ctx: &ReducerContext) -> Option<u64> {
+        if let Some(player_controlled_stellar_object) = ctx.db.ship_object().player_id().filter(self.identity).last() {
             Some(player_controlled_stellar_object.sobj_id)
         } else {
             None

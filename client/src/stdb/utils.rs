@@ -49,6 +49,25 @@ pub fn get_player_sobj_id(ctx: &DbConnection) -> Option<u64> {
     }
 }
 
+pub fn get_player_ship_object(ctx: &DbConnection) -> Option<ShipObject> {
+    if let Some(this) = ctx.db.ship_object().sobj_id().find(&get_player_sobj_id(ctx)?) {
+        Some(this)
+    } else {
+        None
+    }
+}
+
+pub fn get_player_ship_instance(ctx: &DbConnection) -> Option<ShipInstance> {
+    if let Some(this) = get_player_ship_object(ctx) {
+        match ctx.db.ship_instance().id().find(&this.ship_id) {
+            Some(instance) => Some(instance),
+            None => None
+        }
+    } else {
+        None
+    }
+}
+
 pub fn get_player_transform(ctx: &DbConnection) -> Option<StellarObjectTransformHiRes> {
     if let Some(this) = get_player_sobj_id(ctx) {
         get_transform(ctx, this).ok()

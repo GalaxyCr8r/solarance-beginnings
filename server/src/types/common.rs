@@ -1,11 +1,16 @@
-use spacetimedb::{ReducerContext, Timestamp};
-use spacetimedsl::{dsl, Wrapper};
+use std::hash::Hasher;
 
-use super::{stellarobjects::{GetPlayerControlledStellarObjectRowOptionByIdentity, StellarObjectId}};
+use spacetimedb::{table, ReducerContext, SpacetimeType, Timestamp};
+use spacetimedsl::{dsl};
 
+#[derive(SpacetimeType, Clone, Debug)]
+pub struct Vec2 {
+    pub x: f32,
+    pub y: f32,
+}
 
 #[dsl(plural_name = global_configurations)]
-#[spacetimedb::table(name = global_config)]
+#[table(name = global_config)]
 pub struct GlobalConfig {
     #[primary_key]
     #[wrap]
@@ -18,6 +23,62 @@ pub struct GlobalConfig {
     modified_at: Timestamp,
 }
 
+// Enum for different types of equipment slots on a ship
+#[derive(SpacetimeType, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum EquipmentSlotType {
+    Weapon,
+    Shield,
+    Engine,
+    MiningLaser,
+    Special, // For things like cloaking devices, tractor beams etc.
+    CargoExpansion,
+}
+
+// Enum for AI states or player commands, can be expanded
+#[derive(SpacetimeType, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum EntityAIState {
+    Idle,
+    Patrolling,
+    MiningAsteroid(u64), // target asteroid_id
+    AttackingTarget(u64), // target ship_id or entity_id
+    MovingToPosition(Vec2),
+    Jumping(u64), // target gate_id
+    Docked(u64), // target station_id
+    Fleeing,
+    Trading,
+}
+
+///////////////////////////////////////////////////////////
+/// Impl ///
+///////////////////////////////////////////////////////////
+
+impl PartialEq for Vec2 {
+    fn eq(&self, other: &Self) -> bool {
+        // Compare the bit patterns of the floats.
+        // This means 0.0 and -0.0 are different, and NaN == NaN.
+        self.x.to_bits() == other.x.to_bits() && self.y.to_bits() == other.y.to_bits()
+    }
+}
+
+impl Eq for Vec2 {}
+
+impl std::hash::Hash for Vec2 {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        // Hash the bit patterns of the floats.
+        self.x.to_bits().hash(state);
+        self.y.to_bits().hash(state);
+    }
+}
+
+///////////////////////////////////////////////////////////
+/// Reducers ///
+///////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////////////////
+// Utility ///
+///////////////////////////////////////////////////////////
+
 pub fn are_there_active_players(ctx: &ReducerContext) -> bool {
     if let Some(config) = ctx.db.global_config().id().find(0) {
         if config.active_players == 0 {
@@ -25,42 +86,4 @@ pub fn are_there_active_players(ctx: &ReducerContext) -> bool {
         }
     }
     true
-}
-
-#[spacetimedb::reducer]
-pub fn try_server_only(ctx: &ReducerContext) -> Result<(), String> {
-    if ctx.sender == ctx.identity() {
-        //log::info!("I'm a server!");
-        return Ok(());
-    }
-    if ctx.sender.to_string().contains("eyJhbGciOiJSUzI1NiJ9.eyJzdWIiO") {
-        //log::info!("I'm Karl's desktop!");
-        return Ok(());
-    }
-    
-    Err("This reducer can only be called by SpacetimeDB!".to_string())
-}
-
-#[spacetimedb::reducer]
-pub fn server_only(ctx: &ReducerContext){
-    if try_server_only(ctx).is_err() {
-        panic!("This reducer can only be called by SpacetimeDB!");
-    }
-}
-
-const IS_SERVER_OR_OWNER_ERROR: &str = "This reducer can only be called by SpacetimeDB or the owner!";
-
-#[spacetimedb::reducer]
-pub fn is_server_or_owner(ctx: &ReducerContext, sobj_id: StellarObjectId) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
-    if ctx.sender == ctx.identity() {
-        return Ok(());
-    }
-    
-    let owner = dsl.get_player_controlled_stellar_object_by_identity(&ctx.sender).ok_or(IS_SERVER_OR_OWNER_ERROR)?;
-    if StellarObjectId::new(owner.sobj_id) == sobj_id {
-        return Ok(());
-    }
-    Err(IS_SERVER_OR_OWNER_ERROR.to_string())
 }

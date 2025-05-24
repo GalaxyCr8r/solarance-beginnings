@@ -21,6 +21,9 @@ impl Resources {
         let ship_texture: Texture2D =
             load_texture("ships/lc/phalanx.png").await?;
         ship_texture.set_filter(FilterMode::Nearest);
+        let ship2_texture: Texture2D =
+            load_texture("ships/rf/javelin.png").await?;
+        ship2_texture.set_filter(FilterMode::Nearest);
         let station_texture: Texture2D =
             load_texture("ships/lc/generic_station.png").await?;
             station_texture.set_filter(FilterMode::Nearest);
@@ -31,6 +34,7 @@ impl Resources {
         info!("Building texture atlas...");
         build_textures_atlas();
         ship_textures.insert("lc.phalanx", ship_texture);
+        ship_textures.insert("rf.javelin", ship2_texture);
 
         Ok(Resources {
             ship_textures,

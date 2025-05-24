@@ -3,7 +3,7 @@ use glam::Vec2;
 use spacetimedb::{ReducerContext};
 use spacetimedsl::{dsl};
 
-use crate::types::{common::{are_there_active_players, try_server_only}, stellarobjects::*};
+use crate::types::{common::*, ships::GetShipObjectRowsByPlayerId, stellarobjects::*, utility::*};
 
 #[dsl(plural_name = sobj_transform_timers)]
 #[spacetimedb::table(name = sobj_transform_timer, scheduled(recalculate_sobj_transforms))]
@@ -26,7 +26,9 @@ pub struct PlayerWindowsTimer {
     scheduled_at: spacetimedb::ScheduleAt,
 }
 
-/// Init ///
+//////////////////////////////////////////////////////////////
+// Init
+//////////////////////////////////////////////////////////////
 
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     let dsl = dsl(ctx); // Waiting for DSL implementation of timers
@@ -37,7 +39,9 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     Ok(())
 }
 
-/// Reducers ///
+//////////////////////////////////////////////////////////////
+// Reducers
+//////////////////////////////////////////////////////////////
 
 #[spacetimedb::reducer]
 pub fn recalculate_sobj_transforms(ctx: &ReducerContext, timer: TransformsTimer) -> Result<(), String> {
@@ -142,8 +146,8 @@ pub fn recalculate_player_windows(ctx: &ReducerContext, _timer: PlayerWindowsTim
     }
     
     for window in dsl.get_all_sobj_player_windows() {
-        if let Some(player) = dsl.get_player_controlled_stellar_object_by_identity(&window.identity) {
-            if let Some(transform) = dsl.get_sobj_internal_transform_by_sobj_id(player.get_sobj_id()) {
+        if let Some(ship_obj) = dsl.get_ship_objects_by_player_id(&window.identity).last() {
+            if let Some(transform) = dsl.get_sobj_internal_transform_by_sobj_id(ship_obj.get_sobj_id()) {
                 // Check to see if the player has moved too close to window's margin and recalculate the window if needed.
                 if transform.x < window.tl_x + window.margin || 
                    transform.x > window.br_x - window.margin ||

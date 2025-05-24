@@ -9,8 +9,7 @@ use super::stdb::connector::connect_to_spacetime;
 use crate::{shader::*, stdb::utils::*};
 
 mod state;
-mod chat;
-mod debug;
+mod gui;
 mod player;
 mod render;
 pub mod resources;
@@ -18,11 +17,11 @@ pub mod resources;
 /// Register all the callbacks our app will use to respond to database events.
 pub fn register_callbacks(ctx: &DbConnection, global_chat_channel: Sender<GlobalChatMessage>) {
     ctx.db.stellar_object().on_insert( |_ec, sobj| {
-        println!("Stellar Object Inserted: {:?}", sobj);
+        info!("Stellar Object Inserted: {:?}", sobj);
     });
 
     ctx.db.global_chat_message().on_insert(move |_ec, message| {
-        print!("{}: {}", message.identity.to_abbreviated_hex().to_string(), message.message);
+        info!("{}: {}", message.identity.to_abbreviated_hex().to_string(), message.message);
         let _ = global_chat_channel.send(message.clone());
     });
 }
@@ -76,10 +75,12 @@ pub async fn gameplay(token : Option<String>) {
         render::sector(&mut game_state);
 
         egui_macroquad::ui(|egui_ctx| {  
-            debug::debug_window(&egui_ctx, &mut game_state);
+            gui::debug::window(&egui_ctx, &mut game_state);
 
             if get_player(&ctx.db, &ctx.identity()).is_some() {
-                chat::chat_window(&egui_ctx, &game_state.ctx, &mut game_state.chat_window);
+                gui::chat::window(&egui_ctx, &game_state.ctx, &mut game_state.chat_window);
+                gui::status::window(&egui_ctx, &ctx, &mut gui::status::WindowState::default());
+                gui::ship_details::window(&egui_ctx, &game_state.ctx, &mut game_state.details_window, &mut game_state.details_window_open);
             }
         });
 

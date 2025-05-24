@@ -23,18 +23,22 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
         .find(&controlled_entity_id.unwrap())
         .ok_or("Player's controlled object doesn't have a velocity table entry!")?;
 
+    let ship_object = ctx.db.ship_object().sobj_id().find(&velocity.sobj_id).ok_or("control player ship_object error")?;
+    let ship_instance = ctx.db.ship_instance().id().find(&ship_object.ship_id).ok_or("control player ship_instance error")?;
+    let ship_type = ctx.db.ship_type_definition().id().find(&ship_instance.shiptype_id).ok_or("control player ship_type error")?;
+
     let vel = velocity.to_vec2();
     let mut changed = false;
     if is_key_down(KeyCode::Right) || is_key_down(KeyCode::D) {
-        velocity.rotation_radians += PI * 0.01337;
+        velocity.rotation_radians += PI * ship_type.base_turn_rate;
         changed = true;
     }
     if is_key_down(KeyCode::Left) || is_key_down(KeyCode::A) {
-        velocity.rotation_radians -= PI * 0.01337;
+        velocity.rotation_radians -= PI * ship_type.base_turn_rate;
         changed = true;
     }
     if is_key_down(KeyCode::Down) || is_key_down(KeyCode::S) {
-        velocity = velocity.from_vec2(vel * 0.75);
+        velocity = velocity.from_vec2(vel * ship_type.base_speed);
         changed = true;
     }
     if is_key_down(KeyCode::Up) || is_key_down(KeyCode::W) {

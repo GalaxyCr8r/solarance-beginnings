@@ -5,24 +5,24 @@ use crate::module_bindings::*;
 use spacetimedb_sdk::{ DbContext, Table };
 
 use crate::stdb::utils::*;
+use crate::gameplay::state::GameState;
 
-use super::state::GameState;
-
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
-/// Debug Gameplay Window
+// Debug Gameplay Window
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub fn debug_window(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::InnerResponse<Option<()>>> {
+pub fn window(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::InnerResponse<Option<()>>> {
     let ctx = game_state.ctx;
 
     egui::Window
-        ::new("Solarance:Beginnings")
+        ::new("Debug")
+        .title_bar(true)
         .resizable(false)
-        .collapsible(false)
+        .collapsible(true)
         .movable(false)
-        .anchor(Align2::LEFT_TOP, egui::Vec2::new(-5.0, 5.0))
+        .anchor(Align2::LEFT_BOTTOM, egui::Vec2::new(-5.0, 5.0))
         .show(egui_ctx, |ui| {
             match ctx.db.player().identity().find(&ctx.identity()) {
                 Some(player) => {
@@ -76,16 +76,16 @@ pub fn debug_window(egui_ctx: &Context, game_state: &mut GameState) -> Option<eg
                                 transform.y.to_string()
                             );
                             ui.label(string);
-                            return;
                         }
                         _ => {
                             ui.label("Position: n/a");
                         }
                     }
+                    ui.label(format!("- Sector #{}", object.sector_id));
                 });
             }
 
-            for player_controlled in ctx.db.player_controlled_stellar_object().iter() {
+            for player_controlled in ctx.db.ship_object().iter() {
                 ui.label(format!(" - Player Controlled Obj #{} in Sec#{}", player_controlled.sobj_id, player_controlled.sector_id));
             }
 
@@ -101,6 +101,9 @@ pub fn debug_window(egui_ctx: &Context, game_state: &mut GameState) -> Option<eg
             ui.horizontal(|ui| {
                 if ui.button("  Quit  ").clicked() {
                     game_state.done = true;
+                }
+                if ui.button("Ship Details").clicked() {
+                    game_state.details_window_open = !game_state.details_window_open;
                 }
             });
         })
