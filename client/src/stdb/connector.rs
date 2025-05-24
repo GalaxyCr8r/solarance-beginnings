@@ -1,6 +1,8 @@
 
+use macroquad::prelude::info;
 use spacetimedb_sdk::{credentials, Error, Identity};
-use std::env;
+use core::time;
+use std::{env, thread::sleep};
 
 use crate::module_bindings::*;
 
@@ -26,23 +28,40 @@ pub(crate) fn connect_to_spacetime(jwt_token:Option<String>) -> DbConnection {
         }
     };
 
-    let ctx = connect_to_db(host, match jwt_token {
-        Some(_) => jwt_token,
-        None => creds_store().load().expect("Error loading credentials") // TODO: Remove expect() and fail gracefully
-    });
+    // TODO: Move this to the login screen
+    if let Some(token) = jwt_token {
+        let _ = creds_store().save(token);
+    }
 
-    // Subscribe to SQL queries in order to construct a local partial replica of the database.
-    subscriptions::subscribe_to_tables(&ctx);
+    loop {
+        let stored_token = creds_store().load();
 
-    // Spawn a thread, where the connection will process messages and invoke callbacks.
-    ctx.run_threaded();
+        let result = connect_to_db(host.clone(), match stored_token {
+            Ok(token) => token,
+            Err(_) => None
+        });
+        if let Err(e) = result {
+            sleep(time::Duration::from_millis(1500));
+            info!("CONNECTION ERROR : {}", e);
+            info!("Failed to connect, retrying...");
+            continue;
+        }
 
-    ctx
+        let ctx = result.unwrap();
+
+        // Subscribe to SQL queries in order to construct a local partial replica of the database.
+        subscriptions::subscribe_to_tables(&ctx);
+
+        // Spawn a thread, where the connection will process messages and invoke callbacks.
+        ctx.run_threaded();
+
+        return ctx;
+    }
 }
 
 /// Load credentials from a file and connect to the database.
-fn connect_to_db(host: String, jwt_token:Option<String>) -> DbConnection {
-    DbConnection::builder()
+fn connect_to_db(host: String, jwt_token:Option<String>) -> Result<DbConnection, String> {
+    match DbConnection::builder()
         // Register our `on_connect` callback, which will save our auth token.
         .on_connect(on_connected)
         // Register our `on_connect_error` callback, which will print a message, then exit the process.
@@ -58,8 +77,10 @@ fn connect_to_db(host: String, jwt_token:Option<String>) -> DbConnection {
         // Set the URI of the SpacetimeDB host that's running our database.
         .with_uri(host)
         // Finalize configuration and connect!
-        .build()
-        .expect("Failed to connect") // TODO: Remove expect() and fail gracefully
+        .build() {
+        Ok(connection) => Ok(connection),
+        Err(e) => Err(e.to_string()),
+    }
 }
 
 fn creds_store() -> credentials::File {
@@ -68,7 +89,7 @@ fn creds_store() -> credentials::File {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
-//// Connection Callbacks
+// Connection Callbacks
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 

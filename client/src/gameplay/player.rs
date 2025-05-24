@@ -30,11 +30,11 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
     let vel = velocity.to_vec2();
     let mut changed = false;
     if is_key_down(KeyCode::Right) || is_key_down(KeyCode::D) {
-        velocity.rotation_radians += PI * ship_type.base_turn_rate;
+        velocity.rotation_radians = PI * ship_type.base_turn_rate;
         changed = true;
     }
     if is_key_down(KeyCode::Left) || is_key_down(KeyCode::A) {
-        velocity.rotation_radians -= PI * ship_type.base_turn_rate;
+        velocity.rotation_radians = PI * -ship_type.base_turn_rate;
         changed = true;
     }
     if is_key_down(KeyCode::Down) || is_key_down(KeyCode::S) {

@@ -89,6 +89,10 @@ pub async fn gameplay(token : Option<String>) {
 
         let _ = player::control_player_ship(&ctx, &mut game_state);
 
+        if is_key_down(KeyCode::R) {
+            game_state.details_window_open = !game_state.details_window_open;
+        }
+
         if let Ok(message) = global_chat_receiver.try_recv() {
             game_state.chat_window.global_chat_channel.push(message);
             game_state.chat_window.global_chat_channel.sort_by_key(|chat| chat.id);

@@ -26,7 +26,7 @@ struct MenuAssets {
 async fn main() -> Result<(), FileError> {
     dotenv().ok();
 
-    request_new_screen_size(1024.0, 640.0);
+    request_new_screen_size(720.0, 480.0);
 
     clear_background(BLACK);
     next_frame().await;
@@ -42,16 +42,15 @@ async fn main() -> Result<(), FileError> {
     });
 
     loop {
-        let id_token: Option<String> = login_screen().await;
-
-        if id_token.is_none() {
-            break;
+        let result = login_screen().await;
+        if !result.0 {
+            return Ok(());
         }
         
         loading_screen().await;
     
         info!("Calling gameplay from main");
-        gameplay::gameplay(id_token).await;
+        gameplay::gameplay(result.1).await;
     }
     Ok(())
 }
@@ -63,7 +62,7 @@ async fn main() -> Result<(), FileError> {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub(crate) async fn login_screen() -> Option<String> {
+pub(crate) async fn login_screen() -> (bool, Option<String>) {
     info!("Entering login screen");
 
     let mut client_token_thread: Option<JoinHandle<Result<String, String>>> = None;
@@ -72,6 +71,7 @@ pub(crate) async fn login_screen() -> Option<String> {
     let mut error_message: Option<String> = None;
 
     let mut break_the_loop = false;
+    let mut quit_game = false;
 
     let menu_assets = storage::get::<MenuAssets>();
     info!("Starting login screen");
@@ -154,13 +154,17 @@ pub(crate) async fn login_screen() -> Option<String> {
                                 thread::spawn(|| { oidc_auth_helper::get_client_token() })
                             );
                         }
-                        if id_token.is_some() && ui.button(RichText::new("\n      PLAY!      \n").size(32.0)).clicked() {
+                        if id_token.is_some() && ui.button(RichText::new("\n      PLAY via Auth0      \n").size(32.0)).clicked() {
+                            info!("CLICKED!");
+                            break_the_loop = true;
+                        }
+                        if ui.button(RichText::new("\n      PLAY via Temp      \n").size(32.0)).clicked() {
                             info!("CLICKED!");
                             break_the_loop = true;
                         }
                     }
                     if id_token.is_none() && ui.button("Quit").clicked() {
-                        break_the_loop = true;
+                        quit_game = true;
                     }
                 });
         });
@@ -168,12 +172,15 @@ pub(crate) async fn login_screen() -> Option<String> {
         egui_macroquad::draw();
         next_frame().await;
 
+        if quit_game {
+            return (false, None);
+        }
         if break_the_loop {
             break;
         }
     }
 
-    id_token
+    (true, id_token)
 }
 
 // Loading Screen
