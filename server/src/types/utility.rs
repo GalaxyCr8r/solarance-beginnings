@@ -2,7 +2,7 @@ use log::info;
 use spacetimedb::{ Identity, ReducerContext };
 use spacetimedsl::{dsl, Wrapper};
 
-use crate::types::{items::utility::get_item_definition, ships::{utility::*}};
+use crate::types::{chats::send_global_chat, items::utility::get_item_definition, ships::utility::*};
 
 use super::{ships::*, stellarobjects::{*, utility::*, reducers::*}};
 use super::{players::*, sector::* };
@@ -86,6 +86,7 @@ pub fn create_player_controlled_ship(ctx: &ReducerContext, identity: Identity, u
         }
 
         info!("Successfully created ship!");
+        send_global_chat(ctx, format!("{} has created a ship!", username))?;
         Ok(())
     } else {
         Err("Failed to create ship!".to_string())
