@@ -1,6 +1,7 @@
 use spacetimedb::{table, ReducerContext};
-use spacetimedsl::dsl;
+use spacetimedsl::{dsl, Wrapper};
 
+pub mod definitions;
 pub mod timers;
 
 #[dsl(plural_name = sectors)]
@@ -34,7 +35,11 @@ pub struct AsteroidSector {
 //////////////////////////////////////////////////////////////
 
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
+    let dsl = dsl(ctx);
+    
     timers::init(ctx)?;
+
+    dsl.create_asteroid_sector(SectorId::new(0), 10)?;
     
     Ok(())
 }

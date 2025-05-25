@@ -38,13 +38,13 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
         changed = true;
     }
     if is_key_down(KeyCode::Down) || is_key_down(KeyCode::S) {
-        velocity = velocity.from_vec2(vel * ship_type.base_speed);
+        velocity = velocity.from_vec2(vel * 0.9);
         changed = true;
     }
     if is_key_down(KeyCode::Up) || is_key_down(KeyCode::W) {
         info!("Orig. Velocity: {}, {}", velocity.x, velocity.y);
         let transform = get_transform(&ctx, velocity.sobj_id)?;
-        velocity = velocity.from_vec2(Vec2::from_angle(transform.rotation_radians) * 200.0);
+        velocity = velocity.from_vec2(Vec2::from_angle(transform.rotation_radians) * ship_type.base_speed);
         changed = true;
         info!("Updated Velocity: {}, {}", velocity.x, velocity.y);
     }

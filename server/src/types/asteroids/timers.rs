@@ -41,19 +41,21 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 #[spacetimedb::reducer]
 pub fn asteroid_sector_upkeep(ctx: &ReducerContext, timer: AsteroidSectorUpkeepTimer) -> Result<(), String> {
   let dsl = dsl(ctx);
-  let asteroid_sector = dsl.get_asteroid_sector_by_id(timer.get_sector_id());
-  if asteroid_sector.is_none() {
+  
+  if let Some(asteroid_sector) = dsl.get_asteroid_sector_by_id(timer.get_sector_id()) {
+
+    if dsl.get_asteroids_by_current_sector_id(timer.get_sector_id()).count() < (asteroid_sector.get_sparseness() * 25).into() { // 100
+      let field = 1024.0 + (asteroid_sector.sparseness as f32 * 512.0);//8192.0;
+      let pos = Vec2::new(
+        ctx.rng().gen_range(-field..field),
+        ctx.rng().gen_range(-field..field),
+      );
+      create_asteroid(ctx, pos, timer.get_sector_id(), ItemDefinitionId::new(1001), 1000);
+    } 
+  } else {
     return Err("Failed to find AsteroidSector".to_string());
   }
 
-  if dsl.get_asteroids_by_current_sector_id(timer.get_sector_id()).count() < (asteroid_sector.unwrap().get_sparseness() * 100).into() {
-    let field = 1024.0;//8192.0;
-    let pos = Vec2::new(
-      ctx.rng().gen_range(-field..field),
-      ctx.rng().gen_range(-field..field),
-    );
-    create_asteroid(ctx, pos, timer.get_sector_id(), ItemDefinitionId::new(1001), 1000);
-  }
 
   Ok(())
 }

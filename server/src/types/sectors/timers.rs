@@ -42,7 +42,7 @@ pub fn sector_upkeep(ctx: &ReducerContext, timer: SectorUpkeepTimer) -> Result<(
   for sector in dsl.get_all_asteroid_sectors() {
     //if dsl.get_asteroid_sector_upkeep_timers_by_sector_id(&sector) {
     if dsl.get_asteroid_sector_upkeep_timers_by_sector_id(sector.get_id()).count() == 0 {
-      dsl.create_asteroid_sector_upkeep_timer(spacetimedb::ScheduleAt::Interval(Duration::from_secs(60 * 60).into()), sector.get_id())?;
+      dsl.create_asteroid_sector_upkeep_timer(spacetimedb::ScheduleAt::Interval(Duration::from_secs(6 * 6).into()), sector.get_id())?; // TODO revert to 60*60
     }
   }
 
