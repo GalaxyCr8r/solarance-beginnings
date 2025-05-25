@@ -12,13 +12,6 @@ pub fn create_asteroid(ctx: &ReducerContext, position: Vec2, sector: SectorId, i
   // TODO Pick a random asteroid image
   let gfx_key = "asteroid.1".to_string();
 
-  /*
-  
-    ctx: &ReducerContext,
-    kind: StellarObjectKinds,
-    sector_id: SectorId,
-    transform: StellarObjectTransformInternal
-     */
   let sobj = create_sobj_internal(ctx,
     StellarObjectKinds::Asteroid, 
     &sector, 
