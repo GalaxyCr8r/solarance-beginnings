@@ -1,4 +1,5 @@
-use egui::{ Align2, Context };
+use egui::{ Align2, Context, ScrollArea };
+use macroquad::miniquad::date::now;
 use macroquad::prelude::*;
 
 use crate::module_bindings::*;
@@ -64,38 +65,48 @@ pub fn window(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::In
                 }
             }
 
-            for object in ctx.db.stellar_object().iter() {
-                ui.horizontal(|ui| {
-                    ui.label(format!("- Ship #{}", object.id));
+            ui.collapsing("Stellar Objects", |ui| {
+                ScrollArea::vertical()
+                .auto_shrink([false, true])
+                .stick_to_bottom(true)
+                .max_height(screen_height()/4.0)
+                .show(ui, |ui| {
+                    for object in ctx.db.stellar_object().iter() {
+                        ui.horizontal(|ui| {
+                            ui.label(format!("- Ship #{}", object.id));
 
-                    match get_transform(&ctx, object.id) {
-                        Ok(transform) => {
-                            let string = format!(
-                                "Position: {}, {}",
-                                transform.x.to_string(),
-                                transform.y.to_string()
-                            );
-                            ui.label(string);
-                        }
-                        _ => {
-                            ui.label("Position: n/a");
-                        }
+                            match get_transform(&ctx, object.id) {
+                                Ok(transform) => {
+                                    let string = format!(
+                                        "Position: {}, {}",
+                                        transform.x.to_string(),
+                                        transform.y.to_string()
+                                    );
+                                    ui.label(string);
+                                }
+                                _ => {
+                                    ui.label("Position: n/a");
+                                }
+                            }
+                            ui.label(format!("- Sector #{}", object.sector_id));
+                        });
                     }
-                    ui.label(format!("- Sector #{}", object.sector_id));
                 });
-            }
+            });
 
-            for player_controlled in ctx.db.ship_object().iter() {
-                ui.label(format!(" - Player Controlled Obj #{} in Sec#{}", player_controlled.sobj_id, player_controlled.sector_id));
-            }
+            // for player_controlled in ctx.db.ship_object().iter() {
+            //     ui.label(format!(" - Player Controlled Obj #{} in Sec#{}", player_controlled.sobj_id, player_controlled.sector_id));
+            // }
 
-            ui.label(
-                format!(
-                    "Camera: {}, {}",
-                    game_state.camera.target.x.to_string(),
-                    game_state.camera.target.y.to_string()
-                )
-            );
+            // ui.label(
+            //     format!(
+            //         "Camera: {}, {}",
+            //         game_state.camera.target.x.to_string(),
+            //         game_state.camera.target.y.to_string()
+            //     )
+            // );
+
+            ui.label(format!("Now: {}", now()));
 
             ui.add_space(8.0);
             ui.horizontal(|ui| {

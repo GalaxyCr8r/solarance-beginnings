@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{f32::consts::PI, time::Duration};
 
 use glam::Vec2;
 use spacetimedb::{rand::Rng, *};
@@ -45,17 +45,29 @@ pub fn asteroid_sector_upkeep(ctx: &ReducerContext, timer: AsteroidSectorUpkeepT
   if let Some(asteroid_sector) = dsl.get_asteroid_sector_by_id(timer.get_sector_id()) {
 
     if dsl.get_asteroids_by_current_sector_id(timer.get_sector_id()).count() < (asteroid_sector.get_sparseness() * 25).into() { // 100
-      let field = 1024.0 + (asteroid_sector.sparseness as f32 * 512.0);//8192.0;
-      let pos = Vec2::new(
-        ctx.rng().gen_range(-field..field),
-        ctx.rng().gen_range(-field..field),
-      );
-      create_asteroid(ctx, pos, timer.get_sector_id(), ItemDefinitionId::new(1001), 1000);
+      let field = asteroid_sector.cluster_extent;
+      let pos = match asteroid_sector.cluster_inner {
+        Some(inner_extent) => {
+          let dist = ctx.rng().gen_range(inner_extent..field); // Pick a distance between inner and outer bounds.
+
+          Vec2::from_angle(ctx.rng().gen_range(0.0..(2.0*PI))) * dist
+        },
+        None => Vec2::from_angle(ctx.rng().gen_range(0.0..(2.0*PI))) * field, // Pick a random angle and then multiply it by the extent of the cluster.
+      };
+
+      let item = ItemDefinitionId::new(match ctx.rng().gen_range(0..100) {
+        0 .. 75 => 1001,
+        75 .. 99 => 1002,
+        _ => 1003,
+      });
+
+      let amount = ctx.rng().gen_range(500..2000);
+
+      create_asteroid(ctx, pos, timer.get_sector_id(), item, amount);
     } 
   } else {
     return Err("Failed to find AsteroidSector".to_string());
   }
-
 
   Ok(())
 }

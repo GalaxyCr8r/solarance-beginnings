@@ -28,6 +28,8 @@ pub struct AsteroidSector {
     pub id: u64,
 
     pub sparseness: u8, // Relative amount of asteroids to spawn
+    pub cluster_extent: f32, // How far from 0,0 can asteroids spawn
+    pub cluster_inner: Option<f32> // How far from 0,0 can asteroids NOT spawn
 }
 
 //////////////////////////////////////////////////////////////
@@ -39,7 +41,7 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     
     timers::init(ctx)?;
 
-    dsl.create_asteroid_sector(SectorId::new(0), 10)?;
+    dsl.create_asteroid_sector(SectorId::new(0), 1, 3000.0, Some(1000.0))?;
     
     Ok(())
 }

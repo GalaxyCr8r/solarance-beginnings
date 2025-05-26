@@ -69,7 +69,7 @@ fn draw_asteroid(transform: &StellarObjectTransformHiRes, asteroid: Asteroid) {
         position.y - tex.height() * 0.5,
         WHITE,
         DrawTextureParams {
-            rotation: position.x + (now().to_radians() as f32),//transform.rotation_radians,
+            rotation: position.x + ((((now() * 8.0) + position.y as f64) % 360.0).to_radians() as f32),//transform.rotation_radians,
             ..DrawTextureParams::default()
         }
     );

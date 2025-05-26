@@ -81,6 +81,7 @@ pub async fn gameplay(token : Option<String>) {
                 gui::chat::window(&egui_ctx, &game_state.ctx, &mut game_state.chat_window);
                 gui::status::window(&egui_ctx, &ctx, &mut gui::status::WindowState::default());
                 gui::ship_details::window(&egui_ctx, &game_state.ctx, &mut game_state.details_window, &mut game_state.details_window_open);
+                gui::menu_bar::window(&egui_ctx, &ctx, &mut game_state);
             }
         });
 

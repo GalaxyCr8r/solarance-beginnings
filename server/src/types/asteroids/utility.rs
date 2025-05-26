@@ -1,6 +1,7 @@
 
 use glam::Vec2;
 use log::info;
+use spacetimedb::rand::Rng;
 
 use crate::types::{items::*, sectors::SectorId, stellarobjects::{utility::create_sobj_internal, *}};
 
@@ -9,8 +10,7 @@ use super::{*};
 pub fn create_asteroid(ctx: &ReducerContext, position: Vec2, sector: SectorId, item: ItemDefinitionId, resource_amount: u32) -> Option<Asteroid> {
   let dsl = dsl(ctx);
 
-  // TODO Pick a random asteroid image
-  let gfx_key = "asteroid.1".to_string();
+  let gfx_key = format!("asteroid.{}", ctx.rng().gen_range(1..=5)).to_string();
 
   let sobj = create_sobj_internal(ctx,
     StellarObjectKinds::Asteroid, 
