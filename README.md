@@ -34,15 +34,42 @@ If you have Taskfile, Rust, etc. installed you should just be able to run `task 
 
 ## Current State of the Project
 
-This is a very early prototype. Assuming SpacetimeDB will be able to support it, the following
-are the core features:
+The project is actively evolving from an early prototype to a playable game. Recent development has focused on several key areas:
 
- - Player-led Factions (PvP)
-   - Not just a group of players, Factions have numerous NPCs serving them.
-   - New players can choose to spawn as part of a faction if the faction allows it.
-   - Eventually I want Factions to be able to research new technologies that other factions don't have.
- - Ship Building and Upgrades (PvE)
- - Mining and Resource Management (PvE)
+### Recently Implemented Features
+
+- **Asteroid Fields and Mining System**
+  - Dynamic asteroid generation with varying resource types
+  - Ring-based asteroid cluster fields with configurable density
+  - Multiple asteroid types with different resource compositions
+  - Random asteroid sprite selection and rotation animations
+
+- **Ship Controls and UI**
+  - Improved ship movement and rotation controls
+  - Ship details window with cargo and equipment management
+  - Top menu bar with toggleable information panels
+  - Enhanced debug interface with collapsible sections
+
+- **Resource System**
+  - Multiple resource types (Iron, Silicon, Space Fuel)
+  - Resource collection mechanics (WIP)
+  - Cargo management interface
+
+### Planned Core Features
+
+- **Player-led Factions (PvP)**
+  - Not just a group of players, Factions have numerous NPCs serving them
+  - New players can choose to spawn as part of a faction if the faction allows it
+  - Eventually I want Factions to be able to research new technologies that other factions don't have
+
+- **Ship Building and Upgrades (PvE)**
+  - Ship customization with different equipment types
+  - Component-based ship damage system (planned)
+
+- **Economy and Trading (PvE)**
+  - Resource gathering from asteroids
+  - Station-based trading system (planned)
+  - Dynamic economy with supply and demand (planned)
 
 ### Contribution
 
