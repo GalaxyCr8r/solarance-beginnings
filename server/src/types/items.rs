@@ -46,6 +46,7 @@ pub struct CargoCrate {
     pub current_sector_id: u64, // FK: Sector.id
 
     #[wrapped(path = crate::types::stellarobjects::StellarObjectId)]
+    #[unique]
     pub sobj_id: u64, // FK: StellarObject
 
     #[wrapped(path = ItemDefinitionId)]

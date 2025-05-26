@@ -1,5 +1,4 @@
 use std::{collections::HashMap};
-use egui::text;
 use macroquad::prelude::*;
 
 pub struct Resources {
@@ -23,21 +22,6 @@ impl Resources {
 
         // Load asset textures
         info!("Loading textures...");
-        let sun_texture: Texture2D =
-            load_texture("stars/star.png").await?;
-        sun_texture.set_filter(FilterMode::Nearest);
-        let ship_texture: Texture2D =
-            load_texture("ships/lc/phalanx.png").await?;
-        ship_texture.set_filter(FilterMode::Nearest);
-        let ship2_texture: Texture2D =
-            load_texture("ships/rf/javelin.png").await?;
-        ship2_texture.set_filter(FilterMode::Nearest);
-        let station_texture: Texture2D =
-            load_texture("ships/lc/generic_station.png").await?;
-            station_texture.set_filter(FilterMode::Nearest);
-        let bullet_texture: Texture2D =
-            load_texture("ships/bullet02.png").await?;
-        bullet_texture.set_filter(FilterMode::Linear);
 
         resources.sun_textures.insert("star.1", load_linear_sprite("stars/star.png").await?);
         //resources.sun_textures.insert("star.2", load_linear_sprite("stars/star02.png").await?);
@@ -45,8 +29,8 @@ impl Resources {
         resources.ship_textures.insert("lc.phalanx", load_linear_sprite("ships/lc/phalanx.png").await?);
         resources.ship_textures.insert("rf.javelin", load_linear_sprite("ships/rf/javelin.png").await?);
 
-        resources.station_textures.insert("lc.station.1", load_linear_sprite("ships/lc/generic_station.png").await?);
-        resources.station_textures.insert("iwa.station.1", load_linear_sprite("ships/iwa/iwa_generic_station.PNG").await?);
+        resources.station_textures.insert("lc.station.1", load_linear_sprite("stations/lrak_outpost.png").await?);
+        resources.station_textures.insert("iwa.station.1", load_linear_sprite("stations/iwa_generic_station.PNG").await?);
 
         resources.effect_textures.insert("bullet.1", load_linear_sprite("ships/bullet01.png").await?);
         resources.effect_textures.insert("bullet.2", load_linear_sprite("ships/bullet02.png").await?);
@@ -57,6 +41,7 @@ impl Resources {
         resources.asteroid_textures.insert("asteroid.3", load_linear_sprite("asteroids/asteroid03.png").await?);
         resources.asteroid_textures.insert("asteroid.4", load_linear_sprite("asteroids/asteroid04.png").await?);
         resources.asteroid_textures.insert("asteroid.5", load_linear_sprite("asteroids/asteroid05.png").await?);
+        resources.asteroid_textures.insert("crate.0", load_linear_sprite("crate.png").await?);
 
         info!("Building texture atlas...");
         build_textures_atlas();

@@ -85,14 +85,14 @@ pub fn update_sobj_velocity(
         Some(prev_velocity) => {
             // Check if the acceleration required for the velocity change is too high
             let acceleration = (velocity.to_vec2() - prev_velocity.to_vec2()).length();
-            if acceleration > 2.0 {
+            if acceleration > 1.0 {
                 //// TODO: Make this variable per ship type
                 //log::info!("Acceleration too high! {:?}", acceleration);
 
                 // Reduce the acceleration down                
                 update_velocity = update_velocity.from_vec2(
                     prev_velocity.to_vec2() +
-                    (update_velocity.to_vec2() - prev_velocity.to_vec2()).normalize() * 2.0);
+                    (update_velocity.to_vec2() - prev_velocity.to_vec2()).normalize() * 1.0);
             }
 
             // Check if the absolute velocity is too fast for the ship.

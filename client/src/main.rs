@@ -26,7 +26,8 @@ struct MenuAssets {
 async fn main() -> Result<(), FileError> {
     dotenv().ok();
 
-    request_new_screen_size(720.0, 480.0);
+    //request_new_screen_size(720.0, 480.0);
+    request_new_screen_size(1280.0, 720.0);
 
     clear_background(BLACK);
     next_frame().await;

@@ -27,6 +27,8 @@ pub fn sector(game_state: &mut GameState) {
                 }
             } else if let Some(asteroid) = db.asteroid().sobj_id().find(&object.id) {
                 draw_asteroid(&transform, asteroid);
+            } else if let Some(cargo_crate) = db.cargo_crate().sobj_id().find(&object.id) {
+                draw_crate(&transform, cargo_crate);
             }
         }
     }
@@ -61,17 +63,35 @@ fn draw_ship(transform: &StellarObjectTransformHiRes, game_state: &mut GameState
 fn draw_asteroid(transform: &StellarObjectTransformHiRes, asteroid: Asteroid) {
     let resources = storage::get::<Resources>();
     let position = transform.to_vec2();
+    let angle = position.x + ((((now() * 8.0) + position.y as f64) % 360.0).to_radians() as f32);  // Make the rotation based on position and time
 
-    let tex = resources.asteroid_textures[asteroid.gfx_key.unwrap().as_str()];
+    let tex = resources.asteroid_textures[asteroid.gfx_key.unwrap_or("asteroid.1".to_string()).as_str()];
     draw_texture_ex(
         tex,
         position.x - tex.width() * 0.5,
         position.y - tex.height() * 0.5,
         WHITE,
         DrawTextureParams {
-            rotation: position.x + ((((now() * 8.0) + position.y as f64) % 360.0).to_radians() as f32),//transform.rotation_radians,
+            rotation: angle,
             ..DrawTextureParams::default()
         }
     );
 }
 
+fn draw_crate(transform: &StellarObjectTransformHiRes, cargo_crate: CargoCrate) {
+    let resources = storage::get::<Resources>();
+    let position = transform.to_vec2();
+    let angle = position.x + ((((now() * 8.0) + position.y as f64) % 360.0).to_radians() as f32); // Make the rotation based on position and time
+
+    let tex = resources.asteroid_textures[cargo_crate.gfx_key.unwrap_or("crate.0".to_string()).as_str()];
+    draw_texture_ex(
+        tex,
+        position.x - tex.width() * 0.5,
+        position.y - tex.height() * 0.5,
+        WHITE,
+        DrawTextureParams {
+            rotation: angle,
+            ..DrawTextureParams::default()
+        }
+    );
+}
