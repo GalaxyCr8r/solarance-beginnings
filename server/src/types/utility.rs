@@ -5,7 +5,7 @@ use spacetimedsl::{dsl, Wrapper};
 use crate::types::{chats::send_global_chat, items::utility::get_item_definition, ships::utility::*};
 
 use super::{ships::*, stellarobjects::{*, utility::*, reducers::*}};
-use super::{players::*, sector::* };
+use super::{players::*, sectors::* };
 
 /// For helper reducers that utilize several different tables
 ///
@@ -61,7 +61,7 @@ pub fn create_player_controlled_ship(ctx: &ReducerContext, identity: Identity, u
     if let Ok(sobj) = create_sobj_internal(
         ctx,
         super::stellarobjects::StellarObjectKinds::Ship,
-        SectorId::new(0), // TODO: Make this the proper sector id!
+        &SectorId::new(0), // TODO: Make this the proper sector id!
         super::stellarobjects::StellarObjectTransformInternal { x: 64.0, y: 64.0, rotation_radians: 0.0, sobj_id: 0 }
     ) {
         let _ = create_sobj_player_window_for(ctx, player.identity, sobj.get_id())?;

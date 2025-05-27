@@ -3,7 +3,7 @@ use spacetimedsl::dsl;
 
 use crate::types::stellarobjects::StellarObjectId;
 
-use super::{common::{EntityAIState, EquipmentSlotType}, items::ItemDefinitionId, sector::SectorId};
+use super::{common::{EntityAIState, EquipmentSlotType}, items::ItemDefinitionId, sectors::SectorId};
 
 pub mod definitions;
 pub mod reducers;
@@ -103,7 +103,7 @@ pub struct ShipObject {
     pub sobj_id: u64, // FK: StellarObject
 
     #[index(btree)]
-    #[wrapped(path = crate::types::sector::SectorId)]
+    #[wrapped(path = crate::types::sectors::SectorId)]
     pub sector_id: u64, // FK to Sector ID - Only because actually referencing the player's stellar object would require three table hits.
 
     #[index(btree)]

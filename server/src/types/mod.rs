@@ -8,7 +8,7 @@ pub mod factions;
 pub mod items;
 pub mod jumpgates;
 pub mod players;
-pub mod sector;
+pub mod sectors;
 pub mod ships;
 pub mod stations;
 pub mod stellarobjects;

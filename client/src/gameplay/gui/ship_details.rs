@@ -1,7 +1,7 @@
 
 use std::f32::consts::PI;
 
-use egui::{Context, Ui};
+use egui::{Context, FontId, RichText, Ui};
 use macroquad::prelude::*;
 use spacetimedb_sdk::Table;
 
@@ -42,10 +42,15 @@ pub fn window(egui_ctx: &Context, ctx: &DbConnection, state: &mut WindowState,  
             if let Some(player_ship) = get_player_ship_instance(ctx) {
                 if let Some(ship_type) = ctx.db.ship_type_definition().id().find(&player_ship.shiptype_id) {
                     ui.horizontal_top(|ui| {
-                        ui.selectable_value(&mut state.current_tab, CurrentTab::Ship, "Ship");
-                        ui.selectable_value(&mut state.current_tab, CurrentTab::Cargo, "Cargo");
-                        ui.selectable_value(&mut state.current_tab, CurrentTab::Equipment, "Equipment");
+                        ui.selectable_value(&mut state.current_tab, CurrentTab::Ship,
+                            RichText::new("Ship").font(FontId::proportional(20.0)));
+                        ui.selectable_value(&mut state.current_tab, CurrentTab::Cargo,
+                            RichText::new("Cargo").font(FontId::proportional(20.0)));
+                        ui.selectable_value(&mut state.current_tab, CurrentTab::Equipment,
+                            RichText::new("Equipment").font(FontId::proportional(20.0)));
                     });
+
+                    ui.separator();
 
                     match state.current_tab {
                         CurrentTab::Ship => {ship_contents(ui, ctx, state, ship_type, player_ship);},

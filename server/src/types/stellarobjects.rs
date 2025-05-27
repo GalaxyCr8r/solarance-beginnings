@@ -4,7 +4,7 @@ use spacetimedb::{
 };
 use spacetimedsl::{dsl, Wrapper};
 
-use super::{utility::is_server_or_owner, sector::SectorId};
+use super::{utility::is_server_or_owner, sectors::SectorId};
 
 pub mod impls;
 pub mod reducers;
@@ -34,7 +34,7 @@ pub struct StellarObject {
     pub kind: StellarObjectKinds,
 
     #[index(btree)]
-    #[wrapped(path = crate::types::sector::SectorId)]
+    #[wrapped(path = crate::types::sectors::SectorId)]
     pub sector_id: u64, // FK: SectorLocation
 }
 

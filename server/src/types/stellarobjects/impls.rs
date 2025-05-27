@@ -28,4 +28,5 @@ impl StellarObjectTransformInternal {
     pub fn from_vec2(&self, vec: glam::Vec2) -> StellarObjectTransformInternal {
         StellarObjectTransformInternal { x: vec.x, y: vec.y, ..*self }
     }
+
 }
