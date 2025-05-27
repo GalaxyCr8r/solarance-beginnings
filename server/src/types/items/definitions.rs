@@ -1,8 +1,10 @@
 use log::info;
 use spacetimedb::ReducerContext;
-use spacetimedsl::{dsl, DSL};
+use spacetimedsl::{dsl, Wrapper, DSL};
 
 use super::*;
+
+pub const DEFAULT_MINING_LASER_ID : u32 = 7000;
 
 //////////////////////////////////////////////////////////////
 // Init
@@ -63,6 +65,16 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
         ItemCategory::Commodity,
         50,
         1,
+        None
+    )?;
+
+    dsl.create_item_definition(
+        DEFAULT_MINING_LASER_ID,
+        "Basic Mining Laser",
+        Some("Manufactured by many, functionally the same.".into()),
+        ItemCategory::ShipEquipment,
+        500,
+        4,
         None
     )?;
 

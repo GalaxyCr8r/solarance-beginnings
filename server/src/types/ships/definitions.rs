@@ -34,10 +34,21 @@ fn fighters(dsl: &DSL) -> Result<(), String> {
         150.0, 0.0167, PI / 224.0,
         8,
         3, 1, 1,
-        0, 0,
+        0, 1,
         Some("lc.phalanx".into())
     )?;
     dsl.create_ship_type_definition(1001,
+        "Column", 
+        Some("A workhorse corvette. This chunky design has been in use for hundreds of years by all factions.".into()),
+        super::ShipClass::Shuttle,
+        500, 300, 200,
+        90.0, 0.0117, PI / 365.0,
+        64,
+        2, 2, 2,
+        1, 3,
+        Some("lc.column".into())
+    )?;
+    dsl.create_ship_type_definition(1011,
         "Javelin", 
         Some("The frontline fightercraft for the Rediar Federation.".into()),
         super::ShipClass::Fighter,

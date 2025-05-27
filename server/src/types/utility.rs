@@ -2,7 +2,7 @@ use log::info;
 use spacetimedb::{ Identity, ReducerContext };
 use spacetimedsl::{dsl, Wrapper};
 
-use crate::types::{chats::send_global_chat, items::utility::get_item_definition, ships::utility::*};
+use crate::types::{chats::send_global_chat, common::*, items::{definitions::*, utility::get_item_definition, ItemDefinitionId}, ships::utility::*};
 
 use super::{ships::*, stellarobjects::{*, utility::*, reducers::*}};
 use super::{players::*, sectors::* };
@@ -84,6 +84,8 @@ pub fn create_player_controlled_ship(ctx: &ReducerContext, identity: Identity, u
             let item = get_item_definition(ctx, 1003).ok_or("Failed to get item definition")?;
             let _ = load_cargo_into_ship(ctx, &mut ship, &item, 1)?;
         }
+
+        dsl.create_ship_equipment_slot(&ship, EquipmentSlotType::MiningLaser, 0, ItemDefinitionId::new(DEFAULT_MINING_LASER_ID))?;
 
         info!("Successfully created ship!");
         send_global_chat(ctx, format!("{} has created a ship!", username))?;

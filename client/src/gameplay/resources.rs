@@ -27,6 +27,7 @@ impl Resources {
         //resources.sun_textures.insert("star.2", load_linear_sprite("stars/star02.png").await?);
 
         resources.ship_textures.insert("lc.phalanx", load_linear_sprite("ships/lc/phalanx.png").await?);
+        resources.ship_textures.insert("lc.column", load_linear_sprite("ships/lc/Column.png").await?);
         resources.ship_textures.insert("rf.javelin", load_linear_sprite("ships/rf/javelin.png").await?);
 
         resources.station_textures.insert("lc.station.1", load_linear_sprite("stations/lrak_outpost.png").await?);
