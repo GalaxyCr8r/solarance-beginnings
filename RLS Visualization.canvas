@@ -1,0 +1,10 @@
+{
+	"nodes":[
+		{"id":"f7362cbf7afe0633","x":-240,"y":-200,"width":250,"height":60,"type":"text","text":"Player"},
+		{"id":"6f2993067912e20c","type":"text","text":"**PlayerWindow**\n * identity ","x":-240,"y":80,"width":250,"height":100},
+		{"id":"7f423ffeef0e9a7b","x":-240,"y":220,"width":320,"height":180,"type":"text","text":"**RLS**\n```\nSELECT *\nFROM player_window\nWHERE identity = :sender\n```\n"}
+	],
+	"edges":[
+		{"id":"e3accc0c28a1666d","fromNode":"7f423ffeef0e9a7b","fromSide":"top","toNode":"6f2993067912e20c","toSide":"bottom"}
+	]
+}
