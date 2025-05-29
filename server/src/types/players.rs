@@ -17,6 +17,36 @@ pub struct Player {
     modified_at: Timestamp,
 }
 
+#[dsl(plural_name = player_controllers)]
+#[table(name = player_controller, public)]
+pub struct PlayerController {
+    #[primary_key]
+    pub identity: Identity,
+
+    // Movement
+    pub up: bool,
+    pub down: bool,
+    pub left: bool,
+    pub right: bool,
+
+    // Equipment
+    pub activate_jump_drive: bool,
+    pub tractor_beam_on: bool,
+    pub mining_laser_on: bool,
+    pub cargo_bay_open: bool,
+
+    // Actions
+    pub dock: bool,
+    pub undock: bool,
+    pub shield_boost: bool,
+    pub fire_weapons: bool,
+    pub fire_missle: bool,
+
+    // Misc
+    pub targetted_sobj_id: Option<u64>, // FK to StellarObject
+}
+
+
 //// Impls ///
 
 impl Player {
