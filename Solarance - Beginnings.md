@@ -1,3 +1,4 @@
+![[blank_planet.png]]
 1. [[Introduction]]
 2. [[Core Gameplay Loops]]
 3. [[Faction System]]

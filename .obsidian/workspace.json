@@ -6,7 +6,6 @@
       {
         "id": "4f4125b0820ff4b3",
         "type": "tabs",
-        "dimension": 57.47232472324724,
         "children": [
           {
             "id": "11a01233a5fde1c6",
@@ -14,29 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Core Gameplay Loops.md",
+                "file": "GitHub Milestones/Core Gameplay Loops.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
               "title": "Core Gameplay Loops"
-            }
-          }
-        ]
-      },
-      {
-        "id": "c21954d141e210b4",
-        "type": "tabs",
-        "dimension": 42.52767527675277,
-        "children": [
-          {
-            "id": "db03dc2bc382be70",
-            "type": "leaf",
-            "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Graph view"
             }
           }
         ]
@@ -197,13 +179,16 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "db03dc2bc382be70",
+  "active": "11a01233a5fde1c6",
   "lastOpenFiles": [
-    "Core Gameplay Loops.md",
+    "GitHub Milestones/Core Gameplay Loops.md",
+    "GitHub Milestones/Introduction.md",
+    "Solarance - Beginnings.md",
+    "GitHub Milestones/Faction System.md",
+    "GDD Sections",
+    "GitHub Milestones",
     "Untitled.md",
     "RLS Visualization.canvas",
-    "Solarance - Beginnings.md",
-    "Introduction.md",
     "Factions",
     "().md",
     "make the vault.md",

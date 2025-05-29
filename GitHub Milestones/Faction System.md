@@ -1,0 +1,21 @@
+### 3.1. **Faction Creation & Joining:**
+*   Requirements for creation (cost, minimum members?).
+*   Joining mechanics (application, invitation).
+### 3.2. **Faction Tiers (1-5):**
+*   **Tier 1 (Party/Startup):** Basic shared hangar/storage, member limit, simple roles.
+*   **Tier 2 (Small Organization):** Ability to claim a small asteroid for a basic outpost, larger member limit, more defined roles, shared treasury.
+*   **Tier 3 (Established Guild):** Ability to build small stations (e.g., single production modules, basic defense platforms), unlock M-class ship construction for faction, advanced roles.
+*   **Tier 4 (Minor Power):** Ability to build medium/complex stations (multiple modules, shipyards for S/M ships), larger fleet command capabilities, regional influence mechanics.
+*   **Tier 5 (Empire):** Ability to build capital stations/shipyards (L/XL ships), advanced territorial control, ability to project significant power, galactic influence mechanics.
+*   **Progression between Tiers:** Define clear objectives (e.g., resource contribution, successful defense/offense, specific structures built, member count, wealth accumulated).
+### 3.3. **Faction Ranks & Permissions:**
+*   Customizable ranks (Leader, Officer, Member, Recruit, etc.).
+*   Granular permissions for: treasury access, station building/management, ship control, diplomatic actions, recruitment. (Critical for mitigating internal griefing).
+### 3.4. **Faction Economy & Resources:**
+*   Shared Faction Wallet/Treasury.
+*   Faction-owned stations and ships.
+*   Mechanisms for members to contribute resources/credits.
+### 3.5. **Faction Diplomacy:**
+*   War/Neutral/Ally states.
+*   Alliance formation mechanics.
+*   *(Potential for espionage mechanics at higher tiers).*
