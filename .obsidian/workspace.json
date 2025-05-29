@@ -6,7 +6,7 @@
       {
         "id": "4f4125b0820ff4b3",
         "type": "tabs",
-        "dimension": 44.07514450867052,
+        "dimension": 57.47232472324724,
         "children": [
           {
             "id": "11a01233a5fde1c6",
@@ -14,12 +14,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Solarance - Beginnings.md",
+                "file": "Core Gameplay Loops.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Solarance - Beginnings"
+              "title": "Core Gameplay Loops"
             }
           }
         ]
@@ -27,23 +27,16 @@
       {
         "id": "c21954d141e210b4",
         "type": "tabs",
-        "dimension": 55.92485549132948,
+        "dimension": 42.52767527675277,
         "children": [
           {
             "id": "db03dc2bc382be70",
             "type": "leaf",
             "state": {
-              "type": "canvas",
-              "state": {
-                "file": "RLS Visualization.canvas",
-                "viewState": {
-                  "x": 45.23046875,
-                  "y": 82.2540625,
-                  "zoom": 0
-                }
-              },
-              "icon": "lucide-layout-dashboard",
-              "title": "RLS Visualization"
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
             }
           }
         ]
@@ -204,12 +197,13 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "11a01233a5fde1c6",
+  "active": "db03dc2bc382be70",
   "lastOpenFiles": [
-    "Introduction.md",
+    "Core Gameplay Loops.md",
+    "Untitled.md",
     "RLS Visualization.canvas",
     "Solarance - Beginnings.md",
-    "Untitled.md",
+    "Introduction.md",
     "Factions",
     "().md",
     "make the vault.md",
