@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "GitHub Milestones/Core Gameplay Loops.md",
+                "file": "Game Design Doc/3. Faction System.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Core Gameplay Loops"
+              "title": "3. Faction System"
             }
           }
         ]
@@ -142,13 +142,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Solarance - Beginnings.md",
+                "file": "Game Design Doc/3. Faction System.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of Solarance - Beginnings"
+              "title": "Outline of 3. Faction System"
             }
           },
           {
@@ -162,7 +162,7 @@
             }
           }
         ],
-        "currentTab": 4
+        "currentTab": 3
       }
     ],
     "direction": "horizontal",
@@ -176,19 +176,37 @@
       "daily-notes:Open today's daily note": false,
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
-      "obsidian-git:Open Git source control": false
+      "obsidian-git:Open Git source control": false,
+      "obsidian-excalidraw-plugin:New drawing": false
     }
   },
   "active": "11a01233a5fde1c6",
   "lastOpenFiles": [
-    "GitHub Milestones/Core Gameplay Loops.md",
-    "GitHub Milestones/Introduction.md",
+    "Game Design Doc/2. Core Gameplay Loops.md",
+    "Game Design Doc/3. Faction System.md",
+    "Game Design Doc/14. Future Dev (Post Launch).md",
+    "Game Design Doc/13. Risks & Mitigation Strategies.md",
+    "Game Design Doc/12. Monetization.md",
+    "Game Design Doc/11. Technical Considerations.md",
+    "Game Design Doc/10. Art & Audio.md",
+    "Game Design Doc/9. UI & UX.md",
+    "Excalidraw/Drawing 2025-05-29 17.09.03.excalidraw.md",
+    "Excalidraw",
+    "Game Design Doc/8. Combat System.md",
+    "Game Design Doc/7. Universe & Exploration.md",
+    "Game Design Doc/6. Economy & Resources.md",
+    "Game Design Doc/5. Ship Gameplay.md",
     "Solarance - Beginnings.md",
-    "GitHub Milestones/Faction System.md",
-    "GDD Sections",
+    "Assets/blank_planet.png",
+    "Game Design Doc/4. Station Gameplay.md",
+    "Assets",
+    "Game Design Doc/1. Introduction.md",
+    "Game Design Doc",
+    "Core Gameplay Loops.md",
     "GitHub Milestones",
     "Untitled.md",
     "RLS Visualization.canvas",
+    "Introduction.md",
     "Factions",
     "().md",
     "make the vault.md",
