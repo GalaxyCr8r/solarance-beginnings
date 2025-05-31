@@ -1,5 +1,7 @@
 [
   "obsidian-git",
   "obsidian-excalidraw-plugin",
-  "url-into-selection"
+  "url-into-selection",
+  "dynamic-outline",
+  "github-embeds"
 ]
