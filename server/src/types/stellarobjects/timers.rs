@@ -49,11 +49,6 @@ pub fn recalculate_sobj_transforms(ctx: &ReducerContext, timer: TransformsTimer)
 
     try_server_only(ctx)?;
 
-    // Bail out ASAP if there's no players connected.
-    if !are_there_active_players(ctx) {
-        return Ok(());
-    }
-
     // We're using this value to determine whether or not to update the lower resolution table.
     let mut update = timer;
     let low_resolution = update.current_update == 0;
@@ -78,7 +73,7 @@ pub fn recalculate_sobj_transforms(ctx: &ReducerContext, timer: TransformsTimer)
 
     // Update all high res positions
     for row in dsl.get_all_sobj_internal_transforms() {
-        dsl.create_sobj_hi_res_transform(row.get_sobj_id(), row.x, row.y, row.rotation_radians)?;
+        dsl.create_sobj_hi_res_transform(row.get_sobj_id(), row.x, row.y, row.rotation_radians)?; // TODO, Only create hi-res transforms if a player is in-sector.
 
         // Update all low res positions
         if low_resolution {
@@ -109,10 +104,10 @@ pub fn __move_ship(ctx: &ReducerContext, sobj: StellarObject) -> Result<(), Stri
 
             // Add inertia to the velocity
             velocity=velocity.from_vec2(velocity.to_vec2() * 0.975); // TODO:: Milestone 10+ make these ship-type specific values.
-            if velocity.to_vec2().length() < 0.01337 {
+            if velocity.to_vec2().length() < 0.042 {
                 velocity = velocity.from_vec2(Vec2::ZERO);
             }
-            velocity.rotation_radians *= 0.75; // TODO:: Milestone 10+ make these ship-type specific values.
+            velocity.rotation_radians *= 0.875; // TODO:: Milestone 10+ make these ship-type specific values.
             
             dsl.update_sobj_velocity_by_sobj_id(velocity)?;
         }

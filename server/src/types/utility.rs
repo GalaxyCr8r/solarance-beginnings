@@ -1,8 +1,10 @@
+use std::time::Duration;
+
 use log::info;
 use spacetimedb::{ Identity, ReducerContext };
 use spacetimedsl::{dsl, Wrapper};
 
-use crate::types::{chats::send_global_chat, common::*, items::{definitions::*, utility::get_item_definition, ItemDefinitionId}, ships::utility::*};
+use crate::types::{chats::send_global_chat, common::*, items::{definitions::*, utility::get_item_definition, ItemDefinitionId}, players::timers::CreatePlayerControllerTimerRow, ships::utility::*};
 
 use super::{ships::*, stellarobjects::{*, utility::*, reducers::*}};
 use super::{players::*, sectors::* };
@@ -57,7 +59,7 @@ pub fn create_player_controlled_ship(ctx: &ReducerContext, identity: Identity, u
     }
 
     let player = dsl.create_player(identity, &username, 0)?; // TODO: Bust this out into its own reducer that the player needs to set up before calling this reducer.
-    
+
     if let Ok(sobj) = create_sobj_internal(
         ctx,
         super::stellarobjects::StellarObjectKinds::Ship,
@@ -65,6 +67,12 @@ pub fn create_player_controlled_ship(ctx: &ReducerContext, identity: Identity, u
         super::stellarobjects::StellarObjectTransformInternal { x: 64.0, y: 64.0, rotation_radians: 0.0, sobj_id: 0 }
     ) {
         let _ = create_sobj_player_window_for(ctx, player.identity, sobj.get_id())?;
+        let _ = dsl.create_player_controller(player.identity, Some(sobj.id),
+            false, false, false, false, 
+            CurrentAction::Idle, 
+            false, false, false, false, 
+            false, false, false, false, false, None)?;
+        let _ = dsl.create_player_controller_timer(spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 20).into()), player.identity);
 
         let ship_type = dsl.get_ship_type_definition_by_id(ShipTypeDefinitionId::new(1001)).ok_or("Failed to get ship type")?;
         let mut ship = create_ship_instance(

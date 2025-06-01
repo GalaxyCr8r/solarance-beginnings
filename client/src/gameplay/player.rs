@@ -1,6 +1,7 @@
 use std::f32::consts::PI;
 
 use macroquad::{ math::Vec2, prelude::* };
+use spacetimedb_sdk::DbContext;
 
 use crate::module_bindings::*;
 
@@ -9,6 +10,61 @@ use crate::stdb::utils::*;
 use super::state::GameState;
 
 pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Result<(), String> {
+    if game_state.chat_window.has_focus {
+        return Ok(())
+    }
+    let mut changed = false; // ONLY request an update if there's actually been a change!
+    if let Some(mut controller) = ctx.db.player_controller().identity().find(&ctx.identity()) {
+        if is_key_down(KeyCode::Right) || is_key_down(KeyCode::D) {
+            controller.right = true;
+            controller.left = false;
+            changed = true;
+        } else {
+            if controller.right {
+                controller.right = false;
+                changed = true;
+            }
+        }
+        if is_key_down(KeyCode::Left) || is_key_down(KeyCode::A) {
+            controller.right = false;
+            controller.left = true;
+            changed = true;
+        } else {
+            if controller.left {
+                controller.left = false;
+                changed = true;
+            }
+        }
+        if is_key_down(KeyCode::Down) || is_key_down(KeyCode::S) {
+            controller.up = false;
+            controller.down = true;
+            changed = true;
+        } else {
+            if controller.down {
+                controller.down = false;
+                changed = true;
+            }
+        }
+        if is_key_down(KeyCode::Up) || is_key_down(KeyCode::W) {
+            controller.up = true;
+            controller.down = false;
+            changed = true;
+        } else {
+            if controller.up {
+                controller.up = false;
+                changed = true;
+            }
+        }
+
+        if changed {
+            ctx.reducers.update_player_controller(controller).or_else(|err| Err(err.to_string()))?;
+        }
+    } 
+
+    Ok(())
+}
+
+pub fn _control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Result<(), String> {
     if game_state.chat_window.has_focus {
         return Ok(())
     }

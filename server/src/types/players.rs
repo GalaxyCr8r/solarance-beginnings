@@ -1,7 +1,10 @@
+use log::info;
 use spacetimedb::{table, Identity, ReducerContext, Timestamp};
 use spacetimedsl::dsl;
 
-use super::ships::ship_object;
+use super::{common::CurrentAction, ships::ship_object};
+
+pub mod timers;
 
 #[dsl(plural_name = players)]
 #[table(name = player, public)]
@@ -23,11 +26,16 @@ pub struct PlayerController {
     #[primary_key]
     pub identity: Identity,
 
+    pub stellar_object_id: Option<u64>,
+
     // Movement
     pub up: bool,
     pub down: bool,
     pub left: bool,
     pub right: bool,
+
+    /// Currently selected Autopilot Action
+    pub current_action: CurrentAction,
 
     // Equipment
     pub activate_jump_drive: bool,
@@ -71,9 +79,22 @@ pub fn get_username(ctx: &ReducerContext, id:Identity) -> String {
     }
 }
 
-//// Reducers ///
+//////////////////////////////////////////////////////////////
+// Reducers ///
+//////////////////////////////////////////////////////////////
 
+#[spacetimedb::reducer]
+pub fn update_player_controller(ctx: &ReducerContext, controller: PlayerController) -> Result<(), String> {
+    if ctx.sender != controller.identity {
+        info!("What doing? ID {} is trying to change player controller for ID {}!!!", ctx.sender, controller.identity);
+        return Err("ID Mismatch. This was reported to the system admin.".to_string());
+    }
 
+    ctx.db.player_controller().identity().update(controller.clone());
+    info!("Player controller changed! {:?}", controller);
+
+    Ok(())
+}
 
 //////////////////////////////////////////////////////////////
 // Init

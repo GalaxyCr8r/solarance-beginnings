@@ -3,6 +3,8 @@ use std::hash::Hasher;
 use spacetimedb::{table, ReducerContext, SpacetimeType, Timestamp};
 use spacetimedsl::{dsl};
 
+use super::{items::ItemDefinitionId, stations::StationId};
+
 #[derive(SpacetimeType, Clone, Debug)]
 pub struct Vec2 {
     pub x: f32,
@@ -34,18 +36,25 @@ pub enum EquipmentSlotType {
     CargoExpansion,
 }
 
+pub struct TradeCommand {
+    item_to_sell: ItemDefinitionId,
+    station: StationId
+}
+
 // Enum for AI states or player commands, can be expanded
-#[derive(SpacetimeType, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum EntityAIState {
+#[derive(SpacetimeType, Clone, Debug, PartialEq, Hash)]
+pub enum CurrentAction {
     Idle,
-    Patrolling,
+    Patrolling(Vec<Vec2>),
     MiningAsteroid(u64), // target asteroid_id
-    AttackingTarget(u64), // target ship_id or entity_id
+    AttackingTarget(u64), // target sobj_id
     MovingToPosition(Vec2),
-    Jumping(u64), // target gate_id
-    Docked(u64), // target station_id
-    Fleeing,
-    Trading,
+    JumpingWithGate(u64), // target gate_id
+    JumpingWithHyperdrive(u64), // target gate_id
+    Docking(u64), // target station_id
+    Undocking(u64), // target station_id
+    Fleeing(u64), // target sobj_id
+    Trading(u64), // target station_id
 }
 
 ///////////////////////////////////////////////////////////
@@ -60,7 +69,9 @@ impl PartialEq for Vec2 {
     }
 }
 
-impl Eq for Vec2 {}
+impl Eq for Vec2 {
+    // The PartialEq impl fulfills Eq's requirements.
+}
 
 impl std::hash::Hash for Vec2 {
     fn hash<H: Hasher>(&self, state: &mut H) {

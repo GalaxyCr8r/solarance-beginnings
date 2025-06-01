@@ -34,18 +34,18 @@ pub fn window(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::In
                             Ok(transform) => {
                                 ui.label(
                                     format!(
-                                        "Ship: {}, {}",
+                                        "SObj: {}, {}",
                                         transform.x.to_string(),
                                         transform.y.to_string()
                                     )
                                 );
                             }
                             _ => {
-                                ui.label("Ship: unknown");
+                                ui.label("SObj: unknown");
                             }
                         }
                     } else {
-                        ui.label("Ship: None");
+                        ui.label("WARNING - The player doesn't have a SObj!");
                     }
                 }
                 None => {
@@ -72,8 +72,18 @@ pub fn window(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::In
                 .max_height(screen_height()/4.0)
                 .show(ui, |ui| {
                     for object in ctx.db.stellar_object().iter() {
+                        let mut obj_type = "SObj";
+
+                        if ctx.db.asteroid().sobj_id().find(&object.id).is_some() {
+                            obj_type = "Asteroid";
+                        } else if ctx.db.ship_object().sobj_id().find(&object.id).is_some() {
+                            obj_type = "Ship";
+                        } else if ctx.db.jump_gate().sobj_id().find(&object.id).is_some() {
+                            obj_type = "Jumpgate";
+                        }
+
                         ui.horizontal(|ui| {
-                            ui.label(format!("- Ship #{}", object.id));
+                            ui.label(format!("- {} #{}", obj_type, object.id));
 
                             match get_transform(&ctx, object.id) {
                                 Ok(transform) => {
