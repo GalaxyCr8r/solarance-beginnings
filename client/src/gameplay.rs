@@ -101,8 +101,16 @@ pub async fn gameplay(token : Option<String>) {
 
         let _ = player::control_player_ship(&ctx, &mut game_state);
 
-        if is_key_down(KeyCode::R) {
-            game_state.details_window_open = !game_state.details_window_open;
+        if !game_state.chat_window.has_focus {
+            if is_key_down(KeyCode::R) {
+                game_state.details_window_open = !game_state.details_window_open;
+            }
+            if is_key_down(KeyCode::F) {
+                game_state.faction_window_open = !game_state.faction_window_open;
+            }
+            if is_key_down(KeyCode::T) {
+                game_state.assets_window_open = !game_state.assets_window_open;
+            }
         }
 
         if let Ok(message) = global_chat_receiver.try_recv() {
