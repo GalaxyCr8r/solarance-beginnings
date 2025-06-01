@@ -19,6 +19,7 @@ pub enum StellarObjectKinds {
     Asteroid,
     CargoCrate,
     Station,
+    JumpGate,
 }
 
 /// An object that exists inside a sector.

@@ -5,6 +5,7 @@ pub struct Resources {
     pub ship_textures: HashMap<&'static str, Texture2D>,
     pub asteroid_textures: HashMap<&'static str, Texture2D>,
     pub station_textures: HashMap<&'static str, Texture2D>,
+    pub jumpgate_textures: HashMap<&'static str, Texture2D>,
     pub effect_textures: HashMap<&'static str, Texture2D>,
     pub sun_textures: HashMap<&'static str, Texture2D>,
 }
@@ -16,6 +17,7 @@ impl Resources {
             ship_textures: HashMap::new(),
             asteroid_textures: HashMap::new(),
             station_textures: HashMap::new(),
+            jumpgate_textures: HashMap::new(),
             effect_textures: HashMap::new(),
             sun_textures: HashMap::new(),
         };
@@ -32,6 +34,11 @@ impl Resources {
 
         resources.station_textures.insert("lc.station.1", load_linear_sprite("stations/lrak_outpost.png").await?);
         resources.station_textures.insert("iwa.station.1", load_linear_sprite("stations/iwa_generic_station.PNG").await?);
+
+        resources.jumpgate_textures.insert("warpgate_north", load_linear_sprite("stations/warpgate_north.png").await?);
+        resources.jumpgate_textures.insert("warpgate_west", load_linear_sprite("stations/warpgate_west.png").await?);
+        resources.jumpgate_textures.insert("warpgate_south", load_linear_sprite("stations/warpgate_south.png").await?);
+        resources.jumpgate_textures.insert("warpgate_east", load_linear_sprite("stations/warpgate_east.png").await?);
 
         resources.effect_textures.insert("bullet.1", load_linear_sprite("ships/bullet01.png").await?);
         resources.effect_textures.insert("bullet.2", load_linear_sprite("ships/bullet02.png").await?);

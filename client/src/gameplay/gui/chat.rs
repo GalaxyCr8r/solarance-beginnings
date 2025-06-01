@@ -1,13 +1,29 @@
 use egui::{Align2, Color32, Context, RichText, ScrollArea, TextStyle, Ui};
 use macroquad::prelude::*;
+use spacetimedb_sdk::{DbContext, Timestamp};
 
-use crate::{module_bindings::*, stdb::utils::get_username};
+use crate::{module_bindings::*, stdb::utils::{get_player_ship_object, get_username}};
+
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
+enum GlobalChatMessageType {
+    Global,
+    Sector,
+    Alliance,
+    Faction
+}
+
+impl Default for GlobalChatMessageType {
+    fn default() -> Self {
+        GlobalChatMessageType::Global
+    }
+}
 
 #[derive(Default)]
 pub struct WindowState {
     pub global_chat_channel: Vec<GlobalChatMessage>,
+    pub sector_chat_channel: Vec<SectorChatMessage>,
     pub text: String,
-    pub selected_tab: u8,
+    pub selected_tab: GlobalChatMessageType,
     pub has_focus: bool,
     pub hidden: bool
 }
@@ -18,8 +34,10 @@ fn contents_hidden(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut WindowStat
             chat_window.hidden = false;
         }
 
-        ui.label(RichText::new(" Global ").color(if chat_window.selected_tab == 0 {Color32::DARK_GRAY} else {Color32::BLACK}));
-        ui.label(RichText::new(" Sector ").color(Color32::BLACK));
+        ui.label(RichText::new(" Global ").color(
+            if chat_window.selected_tab == GlobalChatMessageType::Global {Color32::DARK_GRAY} else {Color32::BLACK}));
+        ui.label(RichText::new(" Sector ").color(
+            if chat_window.selected_tab == GlobalChatMessageType::Sector {Color32::DARK_GRAY} else {Color32::BLACK}));
         ui.label(RichText::new(" Alliance ").color(Color32::BLACK));
         ui.label(RichText::new(" Faction ").color(Color32::BLACK));
     });
@@ -52,36 +70,23 @@ pub fn window(egui_ctx: &Context, ctx: &DbConnection, chat_window: &mut WindowSt
                     chat_window.hidden = true;
                 }
 
-                ui.selectable_value(&mut chat_window.selected_tab, 0, "Global");
-                ui.label(RichText::new(" Sector ").color(Color32::BLACK));
+                ui.selectable_value(&mut chat_window.selected_tab, GlobalChatMessageType::Global, "Global");
+                ui.selectable_value(&mut chat_window.selected_tab, GlobalChatMessageType::Sector, "Sector");
                 ui.label(RichText::new(" Alliance ").color(Color32::BLACK));
                 ui.label(RichText::new(" Faction ").color(Color32::BLACK));
-                // ui.selectable_value(&mut chat_window.selected_tab, 1, "Sector");
-                // ui.selectable_value(&mut chat_window.selected_tab, 2, "Alliance");
-                // ui.selectable_value(&mut chat_window.selected_tab, 3, "Faction");
             });
             ui.separator();
 
-            let text_style = TextStyle::Body;
-            let row_height = ui.text_style_height(&text_style);
-            ScrollArea::vertical()
-                .auto_shrink([false, true])
-                .stick_to_bottom(true)
-                .max_height(screen_height()/4.0)
-                .show_rows(
-                ui,
-                row_height,
-                chat_window.global_chat_channel.len(),
-                |ui, row_range| {
-                    let mut count = 0;
-                    for message in &chat_window.global_chat_channel {
-                        if row_range.contains(&count) {
-                            ui.label(format!("[{}]: {}", get_username(ctx, &message.identity), message.message));
-                        }
-                        count += 1;
-                    }
+            match chat_window.selected_tab {
+                GlobalChatMessageType::Global => {
+                    draw_global_chat(ctx, chat_window, ui);
                 },
-            );
+                GlobalChatMessageType::Sector => {
+                    draw_sector_chat(ctx, chat_window, ui);
+                },
+                GlobalChatMessageType::Alliance => todo!(),
+                GlobalChatMessageType::Faction => todo!(),
+            }
 
             ui.horizontal(|ui| {
                 chat_window.has_focus = false;
@@ -94,14 +99,93 @@ pub fn window(egui_ctx: &Context, ctx: &DbConnection, chat_window: &mut WindowSt
                 if ui.button("Send").clicked() || ui.input(|i| i.key_pressed(egui::Key::Enter))
                 {
                     if !chat_window.text.is_empty() {
-                        if let Err(error) = ctx.reducers.send_global_chat(chat_window.text.clone()) {
-                            info!("Failed to send message: {}", error);
-                            // TODO Add a message to chat log or do SOMETHING to alert the user it failed.
-                        } else {
-                            chat_window.text.clear();
-                        }
+                        send_message(ctx, chat_window);
                     }
                 }
             });
         })
+}
+
+fn send_message(ctx: &DbConnection, chat_window: &mut WindowState) {
+    match chat_window.selected_tab {
+        GlobalChatMessageType::Global => {
+                if let Err(error) = ctx.reducers.send_global_chat(chat_window.text.clone()) {
+                    info!("Failed to send message: {}", error);
+                    // TODO Add a message to chat log or do SOMETHING to alert the user it failed.
+                    chat_window.global_chat_channel.push(GlobalChatMessage {
+                        identity: ctx.identity(),
+                        id: 0,
+                        message: format!("Failed to send message: {}", chat_window.text.clone()),
+                        created_at: Timestamp::now(),
+                    });
+                } else {
+                    chat_window.text.clear();
+                }
+            },
+        GlobalChatMessageType::Sector => {
+                let sector_id = get_player_ship_object(ctx).unwrap().sector_id;
+                if let Err(error) = ctx.reducers.send_sector_chat(chat_window.text.clone(), sector_id) {
+                    info!("Failed to send message: {}", error);
+                    // TODO Add a message to chat log or do SOMETHING to alert the user it failed.
+                    chat_window.sector_chat_channel.push(SectorChatMessage {
+                        identity: ctx.identity(),
+                        id: 0,
+                        sector_id: sector_id,
+                        message: format!("Failed to send message: {}", chat_window.text.clone()),
+                        created_at: Timestamp::now(),
+                    });
+                } else {
+                    chat_window.text.clear();
+                }
+            },
+        GlobalChatMessageType::Alliance => todo!(),
+        GlobalChatMessageType::Faction => todo!(),
+    }
+}
+
+fn draw_global_chat(ctx: &DbConnection, chat_window: &mut WindowState, ui: &mut Ui) {
+    let text_style = TextStyle::Body;
+    let row_height = ui.text_style_height(&text_style);
+    ScrollArea::vertical()
+        .auto_shrink([false, true])
+        .stick_to_bottom(true)
+        .max_height(screen_height()/4.0)
+        .show_rows(
+        ui,
+        row_height,
+        chat_window.global_chat_channel.len(),
+        |ui, row_range| {
+            let mut count = 0;
+            for message in &chat_window.global_chat_channel {
+                if row_range.contains(&count) {
+                    ui.label(format!("[{}]: {}", get_username(ctx, &message.identity), message.message));
+                }
+                count += 1;
+            }
+        },
+    );
+}
+
+fn draw_sector_chat(ctx: &DbConnection, chat_window: &mut WindowState, ui: &mut Ui) {
+    let text_style = TextStyle::Body;
+    let row_height = ui.text_style_height(&text_style);
+
+    ScrollArea::vertical()
+        .auto_shrink([false, true])
+        .stick_to_bottom(true)
+        .max_height(screen_height()/4.0)
+        .show_rows(
+        ui,
+        row_height,
+        chat_window.sector_chat_channel.len(),
+        |ui, row_range| {
+            let mut count = 0;
+            for message in &chat_window.sector_chat_channel {
+                if row_range.contains(&count) {
+                    ui.label(format!("({}): {}", get_username(ctx, &message.identity), message.message));
+                }
+                count += 1;
+            }
+        },
+    );
 }

@@ -1,4 +1,4 @@
-use spacetimedb::{table, SpacetimeType};
+use spacetimedb::{table, ReducerContext, SpacetimeType};
 use spacetimedsl::{dsl};
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
@@ -23,10 +23,12 @@ pub struct Station {
     #[index(btree)]
     pub current_sector_id: u32, // FK to SectorDefinition
 
+    #[index(btree)]
     #[wrapped(path = crate::types::stellarobjects::StellarObjectId)]
     pub sobj_id: u64, // FK: StellarObject
 
     #[index(btree)]
+    #[wrapped(path = crate::types::factions::FactionDefinitionId)]
     pub owner_faction_id: u32, // FK to FactionDefinition
 
     pub name: String,
@@ -34,4 +36,13 @@ pub struct Station {
     // services_offered: Vec<StationServiceType>, // Could be an enum or FKs to service definitions
     
     pub gfx_key: Option<String>,
+}
+
+//////////////////////////////////////////////////////////////
+// Init
+//////////////////////////////////////////////////////////////
+
+pub fn init(_ctx: &ReducerContext) -> Result<(), String> {
+
+    Ok(())
 }

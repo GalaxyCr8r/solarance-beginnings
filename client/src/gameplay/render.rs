@@ -25,6 +25,8 @@ pub fn sector(game_state: &mut GameState) {
                         draw_ship(&transform, game_state, ship_type);
                     }
                 }
+            } else if let Some(jumpgate) = db.jump_gate().sobj_id().find(&object.id) {
+                draw_jumpgate(&transform, jumpgate);
             } else if let Some(asteroid) = db.asteroid().sobj_id().find(&object.id) {
                 draw_asteroid(&transform, asteroid);
             } else if let Some(cargo_crate) = db.cargo_crate().sobj_id().find(&object.id) {
@@ -93,5 +95,18 @@ fn draw_crate(transform: &StellarObjectTransformHiRes, cargo_crate: CargoCrate) 
             rotation: angle,
             ..DrawTextureParams::default()
         }
+    );
+}
+
+fn draw_jumpgate(transform: &StellarObjectTransformHiRes, jumpgate: JumpGate) {
+    let resources = storage::get::<Resources>();
+    let position = transform.to_vec2();
+
+    let tex = resources.jumpgate_textures[jumpgate.gfx_key.unwrap_or("jumpgate_north".to_string()).as_str()];
+    draw_texture(
+        tex,
+        position.x - tex.width() * 0.5,
+        position.y - tex.height() * 0.5,
+        WHITE
     );
 }

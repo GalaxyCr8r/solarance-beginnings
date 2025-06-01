@@ -14,6 +14,7 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
         .on_applied(on_sub_applied)
         .on_error(on_sub_error)
         .subscribe(["SELECT * FROM global_chat_message",
+                        "SELECT * FROM sector_chat_message",
                         "SELECT * FROM stellar_object",
                         "SELECT * FROM sobj_hi_res_transform",
                         "SELECT * FROM sobj_low_res_transform",

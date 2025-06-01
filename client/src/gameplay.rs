@@ -15,14 +15,19 @@ mod render;
 pub mod resources;
 
 /// Register all the callbacks our app will use to respond to database events.
-pub fn register_callbacks(ctx: &DbConnection, global_chat_channel: Sender<GlobalChatMessage>) {
+pub fn register_callbacks(ctx: &DbConnection, global_chat_channel: Sender<GlobalChatMessage>, sector_chat_channel: Sender<SectorChatMessage>) {
     ctx.db.stellar_object().on_insert( |_ec, sobj| {
         info!("Stellar Object Inserted: {:?}", sobj);
     });
 
     ctx.db.global_chat_message().on_insert(move |_ec, message| {
-        info!("{}: {}", message.identity.to_abbreviated_hex().to_string(), message.message);
+        info!("G{}: {}", message.identity.to_abbreviated_hex().to_string(), message.message);
         let _ = global_chat_channel.send(message.clone());
+    });
+
+    ctx.db.sector_chat_message().on_insert(move |_ec, message| {
+        info!("S{}: {}", message.identity.to_abbreviated_hex().to_string(), message.message);
+        let _ = sector_chat_channel.send(message.clone());
     });
 }
 
@@ -34,13 +39,19 @@ pub fn register_callbacks(ctx: &DbConnection, global_chat_channel: Sender<Global
 
 pub async fn gameplay(token : Option<String>) {
     // DB Connection & ECS World
-    let ctx = connect_to_spacetime(token);
+    let connection = connect_to_spacetime(token);
+    if connection.is_none() {
+        error!("Failed to connect to SpacetimeDB. Exiting...");
+        return;
+    }
+    let ctx = connection.unwrap();
 
     let (global_chat_transmitter, global_chat_receiver) = mpsc::channel::<GlobalChatMessage>();
+    let (sector_chat_transmitter, sector_chat_receiver) = mpsc::channel::<SectorChatMessage>();
 
     let mut game_state = state::initialize(&ctx);
 
-    let _receiver = register_callbacks(&ctx, global_chat_transmitter);
+    let _receiver = register_callbacks(&ctx, global_chat_transmitter, sector_chat_transmitter);
 
     // Load starfield shader
     info!("Loading shader...");
@@ -96,7 +107,15 @@ pub async fn gameplay(token : Option<String>) {
 
         if let Ok(message) = global_chat_receiver.try_recv() {
             game_state.chat_window.global_chat_channel.push(message);
-            game_state.chat_window.global_chat_channel.sort_by_key(|chat| chat.id);
+            game_state.chat_window.global_chat_channel.sort_by_key(|chat| chat.created_at);
+        }
+        if let Ok(message) = sector_chat_receiver.try_recv() {
+            let sector_id = get_player_ship_object(&ctx).unwrap().sector_id;
+            if game_state.chat_window.sector_chat_channel.iter().any(|msg| msg.sector_id != sector_id) {
+                game_state.chat_window.sector_chat_channel.retain(|msg| msg.sector_id == sector_id);
+            }
+            game_state.chat_window.sector_chat_channel.push(message);
+            game_state.chat_window.sector_chat_channel.sort_by_key(|chat| chat.created_at);
         }
 
         if game_state.done {

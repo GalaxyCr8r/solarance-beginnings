@@ -1,4 +1,4 @@
-use spacetimedb::SpacetimeType;
+use spacetimedb::{ReducerContext, SpacetimeType};
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
 pub enum ResourceType {
@@ -23,4 +23,13 @@ pub enum OrderType {
     HaulToStation(u64),       // station_id
     TradeAtStation(u64),      // station_id
     DefendSector(u64),        // sector_id
+}
+
+//////////////////////////////////////////////////////////////
+// Init
+//////////////////////////////////////////////////////////////
+
+pub fn init(_ctx: &ReducerContext) -> Result<(), String> {
+
+    Ok(())
 }
