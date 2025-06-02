@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Alpha Release/Milestone 1.md",
+                "file": "Solarance - Beginnings Game Design Doc.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Milestone 1"
+              "title": "Solarance - Beginnings Game Design Doc"
             }
           }
         ]
@@ -142,13 +142,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Alpha Release/Milestone 1.md",
+                "file": "Solarance - Beginnings Game Design Doc.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of Milestone 1"
+              "title": "Outline of Solarance - Beginnings Game Design Doc"
             }
           },
           {
@@ -180,17 +180,27 @@
       "obsidian-excalidraw-plugin:New drawing": false
     }
   },
-  "active": "80f1e4431ae67407",
+  "active": "11a01233a5fde1c6",
   "lastOpenFiles": [
-    "Game Design Doc/2. Core Gameplay Loops.md",
+    "Alpha Release/Alpha Release.md",
+    "Alpha Release/Milestone 2.md",
+    "Game Design Doc/3. Faction System.md",
     "Alpha Release/Milestone 1.md",
+    "Alpha Release/Milestone 10.md",
+    "Alpha Release/Milestone 9.md",
+    "Alpha Release/Milestone 8.md",
+    "Alpha Release/Milestone 7.md",
+    "Alpha Release/Milestone 6.md",
+    "Alpha Release/Milestone 5.md",
+    "Alpha Release/Milestone 4.md",
+    "Alpha Release/Milestone 3.md",
+    "Game Design Doc/2. Core Gameplay Loops.md",
     "Alpha Release",
     "Solarance - Beginnings Game Design Doc.md",
     "Game Design Doc/1. Introduction.md",
     "RLS Visualization.canvas",
     "Game Design Doc/4. Station Gameplay.md",
     "GDD Sections/Station Gameplay.md",
-    "Game Design Doc/3. Faction System.md",
     "Game Design Doc/14. Future Dev (Post Launch).md",
     "Game Design Doc/13. Risks & Mitigation Strategies.md",
     "Game Design Doc/12. Monetization.md",
@@ -201,19 +211,10 @@
     "Excalidraw",
     "Game Design Doc/8. Combat System.md",
     "Game Design Doc/7. Universe & Exploration.md",
-    "Game Design Doc/6. Economy & Resources.md",
-    "Game Design Doc/5. Ship Gameplay.md",
     "Assets/blank_planet.png",
     "Assets",
     "Game Design Doc",
-    "Core Gameplay Loops.md",
     "GitHub Milestones",
-    "Untitled.md",
-    "Introduction.md",
-    "Factions",
-    "().md",
-    "make the vault.md",
-    "Welcome.md",
-    "create a link.md"
+    "Factions"
   ]
 }

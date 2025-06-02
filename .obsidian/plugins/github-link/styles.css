@@ -1,0 +1,389 @@
+:root,
+body.theme-light {
+	--gh-color-fg-default: #1f2328;
+	--gh-color-fg-muted: #656d76;
+	--gh-color-fg-subtle: #6e7781;
+	--gh-color-fg-on-emphasis: #ffffff;
+	--gh-color-canvas-default: #ffffff;
+	--gh-color-canvas-overlay: #ffffff;
+	--gh-color-canvas-inset: #f6f8fa;
+	--gh-color-canvas-subtle: #f6f8fa;
+	--gh-color-border-default: #d0d7de;
+	--gh-color-border-muted: hsla(210, 18%, 87%, 1);
+	--gh-color-border-subtle: rgba(31, 35, 40, 0.15);
+	--gh-color-shadow-small: 0 1px 0 rgba(31, 35, 40, 0.04);
+	--gh-color-shadow-medium: 0 3px 6px rgba(140, 149, 159, 0.15);
+	--gh-color-shadow-large: 0 8px 24px rgba(140, 149, 159, 0.2);
+	--gh-color-shadow-extra-large: 0 12px 28px rgba(140, 149, 159, 0.3);
+	--gh-color-neutral-emphasis-plus: #24292f;
+	--gh-color-neutral-emphasis: #6e7781;
+	--gh-color-neutral-muted: rgba(175, 184, 193, 0.2);
+	--gh-color-neutral-subtle: rgba(234, 238, 242, 0.5);
+	--gh-color-accent-fg: #0969da;
+	--gh-color-accent-emphasis: #0969da;
+	--gh-color-accent-muted: rgba(84, 174, 255, 0.4);
+	--gh-color-accent-subtle: #ddf4ff;
+	--gh-color-success-fg: #1a7f37;
+	--gh-color-success-emphasis: #1f883d;
+	--gh-color-success-muted: rgba(74, 194, 107, 0.4);
+	--gh-color-success-subtle: #dafbe1;
+	--gh-color-attention-fg: #9a6700;
+	--gh-color-attention-emphasis: #9a6700;
+	--gh-color-attention-muted: rgba(212, 167, 44, 0.4);
+	--gh-color-attention-subtle: #fff8c5;
+	--gh-color-severe-fg: #bc4c00;
+	--gh-color-severe-emphasis: #bc4c00;
+	--gh-color-severe-muted: rgba(251, 143, 68, 0.4);
+	--gh-color-severe-subtle: #fff1e5;
+	--gh-color-danger-fg: #d1242f;
+	--gh-color-danger-emphasis: #cf222e;
+	--gh-color-danger-muted: rgba(255, 129, 130, 0.4);
+	--gh-color-danger-subtle: #ffebe9;
+	--gh-color-open-fg: #1a7f37;
+	--gh-color-open-emphasis: #1f883d;
+	--gh-color-open-muted: rgba(74, 194, 107, 0.4);
+	--gh-color-open-subtle: #dafbe1;
+	--gh-color-closed-fg: #d1242f;
+	--gh-color-closed-emphasis: #cf222e;
+	--gh-color-closed-muted: rgba(255, 129, 130, 0.4);
+	--gh-color-closed-subtle: #ffebe9;
+	--gh-color-done-fg: #8250df;
+	--gh-color-done-emphasis: #8250df;
+	--gh-color-done-muted: rgba(194, 151, 255, 0.4);
+	--gh-color-done-subtle: #fbefff;
+	--gh-color-sponsors-fg: #bf3989;
+	--gh-color-sponsors-emphasis: #bf3989;
+	--gh-color-sponsors-muted: rgba(255, 128, 200, 0.4);
+	--gh-color-sponsors-subtle: #ffeff7;
+	--gh-color-primer-fg-disabled: #8c959f;
+	--gh-color-primer-canvas-backdrop: rgba(31, 35, 40, 0.5);
+	--gh-color-primer-canvas-sticky: rgba(255, 255, 255, 0.95);
+	--gh-color-primer-border-active: #fd8c73;
+	--gh-color-primer-border-contrast: rgba(31, 35, 40, 0.1);
+	--gh-color-primer-shadow-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+	--gh-color-primer-shadow-inset: inset 0 1px 0 rgba(208, 215, 222, 0.2);
+	--status-color: var(--gh-color-canvas-subtle);
+}
+
+body.theme-dark {
+	--gh-color-fg-default: #e6edf3;
+	--gh-color-fg-muted: #848d97;
+	--gh-color-fg-subtle: #6e7681;
+	--gh-color-fg-on-emphasis: #ffffff;
+	--gh-color-canvas-default: #0d1117;
+	--gh-color-canvas-overlay: #161b22;
+	--gh-color-canvas-inset: #010409;
+	--gh-color-canvas-subtle: #161b22;
+	--gh-color-border-default: #30363d;
+	--gh-color-border-muted: #21262d;
+	--gh-color-border-subtle: rgba(240, 246, 252, 0.1);
+	--gh-color-shadow-small: 0 0 transparent;
+	--gh-color-shadow-medium: 0 3px 6px #010409;
+	--gh-color-shadow-large: 0 8px 24px #010409;
+	--gh-color-shadow-extra-large: 0 12px 48px #010409;
+	--gh-color-neutral-emphasis-plus: #6e7681;
+	--gh-color-neutral-emphasis: #6e7681;
+	--gh-color-neutral-muted: rgba(110, 118, 129, 0.4);
+	--gh-color-neutral-subtle: rgba(110, 118, 129, 0.1);
+	--gh-color-accent-fg: #2f81f7;
+	--gh-color-accent-emphasis: #1f6feb;
+	--gh-color-accent-muted: rgba(56, 139, 253, 0.4);
+	--gh-color-accent-subtle: rgba(56, 139, 253, 0.1);
+	--gh-color-success-fg: #3fb950;
+	--gh-color-success-emphasis: #238636;
+	--gh-color-success-muted: rgba(46, 160, 67, 0.4);
+	--gh-color-success-subtle: rgba(46, 160, 67, 0.15);
+	--gh-color-attention-fg: #d29922;
+	--gh-color-attention-emphasis: #9e6a03;
+	--gh-color-attention-muted: rgba(187, 128, 9, 0.4);
+	--gh-color-attention-subtle: rgba(187, 128, 9, 0.15);
+	--gh-color-severe-fg: #db6d28;
+	--gh-color-severe-emphasis: #bd561d;
+	--gh-color-severe-muted: rgba(219, 109, 40, 0.4);
+	--gh-color-severe-subtle: rgba(219, 109, 40, 0.1);
+	--gh-color-danger-fg: #f85149;
+	--gh-color-danger-emphasis: #da3633;
+	--gh-color-danger-muted: rgba(248, 81, 73, 0.4);
+	--gh-color-danger-subtle: rgba(248, 81, 73, 0.1);
+	--gh-color-open-fg: #3fb950;
+	--gh-color-open-emphasis: #238636;
+	--gh-color-open-muted: rgba(46, 160, 67, 0.4);
+	--gh-color-open-subtle: rgba(46, 160, 67, 0.15);
+	--gh-color-closed-fg: #f85149;
+	--gh-color-closed-emphasis: #da3633;
+	--gh-color-closed-muted: rgba(248, 81, 73, 0.4);
+	--gh-color-closed-subtle: rgba(248, 81, 73, 0.15);
+	--gh-color-done-fg: #a371f7;
+	--gh-color-done-emphasis: #8957e5;
+	--gh-color-done-muted: rgba(163, 113, 247, 0.4);
+	--gh-color-done-subtle: rgba(163, 113, 247, 0.1);
+	--gh-color-sponsors-fg: #db61a2;
+	--gh-color-sponsors-emphasis: #bf4b8a;
+	--gh-color-sponsors-muted: rgba(219, 97, 162, 0.4);
+	--gh-color-sponsors-subtle: rgba(219, 97, 162, 0.1);
+	--gh-color-primer-fg-disabled: #484f58;
+	--gh-color-primer-canvas-backdrop: rgba(1, 4, 9, 0.8);
+	--gh-color-primer-canvas-sticky: rgba(13, 17, 23, 0.95);
+	--gh-color-primer-border-active: #f78166;
+	--gh-color-primer-border-contrast: rgba(255, 255, 255, 0.2);
+	--gh-color-primer-shadow-highlight: 0 0 transparent;
+	--gh-color-primer-shadow-inset: 0 0 transparent;
+}
+
+.gh-auth-modal {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.gh-auth-code-section {
+	display: flex;
+	gap: 10px;
+	justify-content: center;
+	align-items: center;
+}
+
+.auth-code {
+	font-size: 3em;
+}
+
+.github-link-sub-setting {
+	padding-left: 2rem;
+}
+
+.github-link-slider-input {
+	width: 3rem;
+}
+
+.github-link-inline {
+	display: inline-flex;
+	background-color: var(--gh-color-canvas-default);
+	border-radius: 4px;
+	border: 1px solid var(--gh-color-border-default);
+	text-decoration: none;
+	color: var(--gh-color-fg-default);
+	align-items: stretch;
+	max-width: 100%;
+	font-size: 0.75em;
+}
+
+.github-link-inline:hover {
+	color: var(--gh-color-fg-default);
+	text-decoration: none;
+}
+
+.github-link-inline-section {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0 5px;
+	overflow: hidden;
+}
+
+.github-link-inline-section:first-child {
+	border-radius: 3.5px 0 0 3.5px;
+}
+
+.github-link-inline-section:last-child {
+	border-radius: 0 3.5px 3.5px 0;
+}
+
+.github-link-inline-icon {
+	display: inline-flex;
+	padding: 2px 0;
+}
+
+.github-link-inline-icon > svg {
+	width: var(--icon-s);
+	height: var(--icon-s);
+	stroke-width: var(--icon-s-stroke-width);
+}
+
+.github-link-inline-section:has(> .github-link-inline-icon) {
+	background-color: var(--gh-color-canvas-inset);
+}
+
+.github-link-status-icon[data-status="open"] {
+	color: var(--gh-color-open-fg);
+}
+.github-link-status-icon[data-status="closed"] {
+	color: var(--gh-color-closed-fg);
+}
+.github-link-status-icon.pull-request[data-status="closed"] {
+	color: var(--gh-color-closed-fg);
+}
+.github-link-status-icon.issue[data-status="closed"] {
+	color: var(--gh-color-fg-muted);
+}
+.github-link-status-icon[data-status="done"] {
+	color: var(--gh-color-done-fg);
+}
+.github-link-inline-pr-mergeable-icon[data-status="true"] {
+	color: var(--gh-color-success-fg);
+}
+.github-link-inline-pr-mergeable-icon[data-status="false"] {
+	color: var(--gh-color-danger-fg);
+}
+
+.github-link-inline-section:has(> .github-link-inline-icon[data-status="open"]) {
+	background-color: var(--gh-color-open-subtle);
+	border-color: var(--gh-color-open-emphasis);
+}
+
+.github-link-inline-section:has(> .github-link-inline-icon[data-status="closed"]) {
+	background-color: var(--gh-color-closed-subtle);
+	border-color: var(--gh-color-closed-emphasis);
+}
+
+.github-link-inline-section:has(> .github-link-inline-icon.pull-request[data-status="closed"]) {
+	background-color: var(--gh-color-closed-subtle);
+	border-color: var(--gh-color-closed-emphasis);
+}
+
+.github-link-inline-section:has(> .github-link-inline-icon.issue[data-status="closed"]) {
+	background-color: var(--gh-color-canvas-subtle);
+	border-color: var(--gh-color-fg-on-emphasis);
+}
+
+.github-link-inline-section:has(> .github-link-inline-icon[data-status="done"]) {
+	background-color: var(--gh-color-done-subtle);
+	border-color: var(--gh-color-done-emphasis);
+}
+
+.github-link-inline-section:has(> .github-link-inline-pr-mergeable-icon[data-status="true"]) {
+	background-color: var(--gh-color-success-subtle);
+	border-color: var(--gh-color-success-emphasis);
+}
+.github-link-inline-section:has(> .github-link-inline-pr-mergeable-icon[data-status="false"]) {
+	background-color: var(--gh-color-danger-subtle);
+	border-color: var(--gh-color-danger-emphasis);
+}
+.github-link-inline-section:has(> .github-link-inline-error-icon) {
+	color: var(--gh-color-closed-fg);
+	background-color: var(--gh-color-danger-subtle);
+	border-color: var(--gh-color-danger-emphasis);
+}
+
+.github-link-inline-section:has(> .github-link-inline-repo) {
+	background-color: var(--gh-color-accent-subtle);
+	color: var(--gh-color-accent-fg);
+	border-color: var(--gh-color-accent-emphasis);
+	flex-shrink: 0;
+}
+
+.github-link-inline-repo {
+	text-wrap: nowrap;
+	line-height: var(--line-height-normal);
+}
+
+.github-link-inline-pr-title,
+.github-link-inline-issue-title,
+.github-link-inline-issue-title-section,
+.github-link-inline-file {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	text-wrap: nowrap;
+	line-height: var(--line-height-normal);
+}
+.github-link-inline-issue-number {
+	color: var(--gh-color-fg-muted);
+}
+
+.github-link-inline-file,
+.github-link-inline-issue-title-section {
+	display: flex;
+	gap: 2px;
+}
+.github-link-inline-file > .github-link-inline-file-line-number,
+.github-link-inline-file > .github-link-inline-file-branch {
+	color: var(--gh-color-fg-muted);
+}
+
+.github-link-table-wrapper {
+	margin-block-end: var(--p-spacing);
+}
+
+.github-link-table-scroll-wrapper {
+	display: block;
+	overflow-x: auto;
+	white-space: nowrap;
+}
+
+.github-link-table-footer {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.github-link-table-pagination {
+	display: flex;
+	gap: 2px;
+}
+
+.github-link-table-footer-external-link {
+	font-size: 0.75rem;
+}
+
+.github-link-table-footer > button > svg {
+	width: var(--icon-s);
+	height: var(--icon-s);
+	stroke-width: var(--icon-s-stroke-width);
+}
+
+table.github-link-table {
+	margin-block-end: 0;
+}
+
+.github-link-table th {
+	font-weight: var(--font-bold);
+}
+
+.github-link-table td {
+	vertical-align: middle;
+}
+
+.github-link-table a {
+	text-decoration: none;
+}
+.github-link-table a:hover {
+	text-decoration: underline;
+}
+
+.github-link-table-avatar {
+	width: max(24px, var(--icon-l));
+	height: max(24px, var(--icon-l));
+}
+
+.github-link-table-status,
+.github-link-table-author,
+.github-link-table-labels {
+	display: flex;
+	gap: 6px;
+	align-items: center;
+}
+
+.github-link-table-author {
+	width: max-content;
+}
+
+.github-link-table-labels {
+	height: 100%;
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+.github-link-table-label {
+	border-radius: 2em;
+	font-size: 0.8em;
+	padding: 0 6px;
+	border: 1px solid var(--status-color);
+}
+
+body.theme-light .github-link-table .github-link-table-labels .github-link-table-label {
+	background-color: color-mix(in srgb, var(--status-color) 50%, transparent);
+	color: var(--text-normal);
+}
+body.theme-dark .github-link-table .github-link-table-labels .github-link-table-label {
+	background-color: color-mix(in srgb, var(--status-color) 20%, transparent);
+	color: var(--status-color);
+}
