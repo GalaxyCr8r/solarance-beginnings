@@ -107,7 +107,7 @@ pub struct ShipObject {
     pub sector_id: u64, // FK to Sector ID - Only because actually referencing the player's stellar object would require three table hits.
 
     #[index(btree)]
-    pub player_id: Identity,   // FK to player.id
+    pub player_id: Identity, // FK to player.id
 }
 
 #[dsl(plural_name = ship_cargo_items)]

@@ -101,13 +101,6 @@ pub fn __move_ship(ctx: &ReducerContext, sobj: StellarObject) -> Result<(), Stri
             if transform.rotation_radians.abs() > PI * 2.0 {
                 transform.rotation_radians = transform.rotation_radians.abs() % PI * 2.0;
             }
-
-            // Add inertia to the velocity
-            velocity=velocity.from_vec2(velocity.to_vec2() * 0.975); // TODO:: Milestone 10+ make these ship-type specific values.
-            if velocity.to_vec2().length() < 0.042 {
-                velocity = velocity.from_vec2(Vec2::ZERO);
-            }
-            velocity.rotation_radians *= 0.875; // TODO:: Milestone 10+ make these ship-type specific values.
             
             dsl.update_sobj_velocity_by_sobj_id(velocity)?;
         }

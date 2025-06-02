@@ -22,21 +22,21 @@ pub fn sector(game_state: &mut GameState) {
             if let Some(ship_object) = db.ship_object().sobj_id().find(&transform.sobj_id) {
                 if let Some(ship_instance) = db.ship_instance().id().find(&ship_object.ship_id) {
                     if let Some(ship_type) = db.ship_type_definition().id().find(&ship_instance.shiptype_id) {
-                        draw_ship(&transform, game_state, ship_type);
+                        draw_ship(&transform, ship_type, game_state);
                     }
                 }
             } else if let Some(jumpgate) = db.jump_gate().sobj_id().find(&object.id) {
-                draw_jumpgate(&transform, jumpgate);
+                draw_jumpgate(&transform, jumpgate, game_state);
             } else if let Some(asteroid) = db.asteroid().sobj_id().find(&object.id) {
-                draw_asteroid(&transform, asteroid);
+                draw_asteroid(&transform, asteroid, game_state);
             } else if let Some(cargo_crate) = db.cargo_crate().sobj_id().find(&object.id) {
-                draw_crate(&transform, cargo_crate);
+                draw_crate(&transform, cargo_crate, game_state);
             }
         }
     }
 }
 
-fn draw_ship(transform: &StellarObjectTransformHiRes, game_state: &mut GameState, ship_type: ShipTypeDefinition) {
+fn draw_ship(transform: &StellarObjectTransformHiRes, ship_type: ShipTypeDefinition, game_state: &mut GameState) {
     let resources = storage::get::<Resources>();
     let position = transform.to_vec2();
 
@@ -60,9 +60,11 @@ fn draw_ship(transform: &StellarObjectTransformHiRes, game_state: &mut GameState
             ..DrawTextureParams::default()
         }
     );
+
+    // TODO: Targeting bracket
 }
 
-fn draw_asteroid(transform: &StellarObjectTransformHiRes, asteroid: Asteroid) {
+fn draw_asteroid(transform: &StellarObjectTransformHiRes, asteroid: Asteroid, game_state: &mut GameState) {
     let resources = storage::get::<Resources>();
     let position = transform.to_vec2();
     let angle = position.x + ((((now() * 8.0) + position.y as f64) % 360.0).to_radians() as f32);  // Make the rotation based on position and time
@@ -78,9 +80,11 @@ fn draw_asteroid(transform: &StellarObjectTransformHiRes, asteroid: Asteroid) {
             ..DrawTextureParams::default()
         }
     );
+    
+    // TODO: Targeting bracket
 }
 
-fn draw_crate(transform: &StellarObjectTransformHiRes, cargo_crate: CargoCrate) {
+fn draw_crate(transform: &StellarObjectTransformHiRes, cargo_crate: CargoCrate, game_state: &mut GameState) {
     let resources = storage::get::<Resources>();
     let position = transform.to_vec2();
     let angle = position.x + ((((now() * 8.0) + position.y as f64) % 360.0).to_radians() as f32); // Make the rotation based on position and time
@@ -96,9 +100,11 @@ fn draw_crate(transform: &StellarObjectTransformHiRes, cargo_crate: CargoCrate) 
             ..DrawTextureParams::default()
         }
     );
+    
+    // TODO: Targeting bracket
 }
 
-fn draw_jumpgate(transform: &StellarObjectTransformHiRes, jumpgate: JumpGate) {
+fn draw_jumpgate(transform: &StellarObjectTransformHiRes, jumpgate: JumpGate, game_state: &mut GameState) {
     let resources = storage::get::<Resources>();
     let position = transform.to_vec2();
 
@@ -109,4 +115,6 @@ fn draw_jumpgate(transform: &StellarObjectTransformHiRes, jumpgate: JumpGate) {
         position.y - tex.height() * 0.5,
         WHITE
     );
+    
+    // TODO: Targeting bracket
 }
