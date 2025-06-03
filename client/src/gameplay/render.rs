@@ -6,7 +6,7 @@ use spacetimedb_sdk::*;
 
 use crate::stdb::utils::*;
 
-use super::{resources::Resources, state::GameState};
+use super::{resources::Resources, state::{GameState, Targets}};
 
 pub fn sector(game_state: &mut GameState) {
     let resources = storage::get::<Resources>();
@@ -61,7 +61,12 @@ fn draw_ship(transform: &StellarObjectTransformHiRes, ship_type: ShipTypeDefinit
         }
     );
 
-    // TODO: Targeting bracket
+    if let Targets::Ship(target) = &game_state.current_target {
+        if target.clone() == transform.sobj_id {
+            let size = (tex.width() + tex.height()) * 0.5;
+            draw_targeting_bracket(position, size, Color::from_rgba(255, 255, 255, 200));
+        }
+    }
 }
 
 fn draw_asteroid(transform: &StellarObjectTransformHiRes, asteroid: Asteroid, game_state: &mut GameState) {
@@ -81,7 +86,13 @@ fn draw_asteroid(transform: &StellarObjectTransformHiRes, asteroid: Asteroid, ga
         }
     );
     
-    // TODO: Targeting bracket
+    // Targeting bracket
+    if let Targets::Asteroid(target) = &game_state.current_target {
+        if target.clone() == asteroid.sobj_id {
+            let size = (tex.width() + tex.height()) * 0.5;
+            draw_targeting_bracket(position, size, Color::from_rgba(255, 255, 255, 200));
+        }
+    }
 }
 
 fn draw_crate(transform: &StellarObjectTransformHiRes, cargo_crate: CargoCrate, game_state: &mut GameState) {
@@ -101,7 +112,12 @@ fn draw_crate(transform: &StellarObjectTransformHiRes, cargo_crate: CargoCrate, 
         }
     );
     
-    // TODO: Targeting bracket
+    if let Targets::CargoCrate(target) = &game_state.current_target {
+        if target.clone() == cargo_crate.sobj_id {
+            let size = (tex.width() + tex.height()) * 0.5;
+            draw_targeting_bracket(position, size, Color::from_rgba(255, 255, 255, 200));
+        }
+    }
 }
 
 fn draw_jumpgate(transform: &StellarObjectTransformHiRes, jumpgate: JumpGate, game_state: &mut GameState) {
@@ -116,5 +132,14 @@ fn draw_jumpgate(transform: &StellarObjectTransformHiRes, jumpgate: JumpGate, ga
         WHITE
     );
     
-    // TODO: Targeting bracket
+    if let Targets::JumpGate(target) = &game_state.current_target {
+        if target.clone() == jumpgate.sobj_id {
+            let size = (tex.width() + tex.height()) * 0.33;
+            draw_targeting_bracket(position, size, Color::from_rgba(255, 255, 255, 200));
+        }
+    }
+}
+
+fn draw_targeting_bracket(pos: glam::Vec2, size: f32, color: Color) {
+    draw_hexagon(pos.x, pos.y, size, if size < 512.0 { 1.0 } else { size / 512.0 }, true, color, Color::from_rgba(0, 0, 0, 0));
 }

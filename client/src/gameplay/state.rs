@@ -3,13 +3,14 @@ use macroquad::{camera::Camera2D, prelude::*};
 use crate::module_bindings::*;
 use crate::gameplay::gui::*;
 
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub enum Targets {
     None,
-    Asteroid(StellarObjectId),
-    Ship(StellarObjectId),
-    Station(StellarObjectId),
-    CargoCrate(StellarObjectId),
-    JumpGate(StellarObjectId)
+    Asteroid(u64),
+    Ship(u64),
+    Station(u64),
+    CargoCrate(u64),
+    JumpGate(u64)
 }
 
 pub(crate) struct GameState<'a> {

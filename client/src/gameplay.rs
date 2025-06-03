@@ -90,7 +90,7 @@ pub async fn gameplay(token : Option<String>) {
 
             if get_player(&ctx.db, &ctx.identity()).is_some() {
                 gui::chat::window(&egui_ctx, &game_state.ctx, &mut game_state.chat_window);
-                gui::status::window(&egui_ctx, &ctx, &mut gui::status::WindowState::default());
+                gui::status::window(&egui_ctx, &ctx, &mut game_state);
                 gui::ship_details::window(&egui_ctx, &game_state.ctx, &mut game_state.details_window, &mut game_state.details_window_open);
                 gui::menu_bar::window(&egui_ctx, &ctx, &mut game_state);
             }
@@ -102,13 +102,16 @@ pub async fn gameplay(token : Option<String>) {
         let _ = player::control_player_ship(&ctx, &mut game_state);
 
         if !game_state.chat_window.has_focus {
-            if is_key_down(KeyCode::R) {
+            if is_key_pressed(KeyCode::E) {
+                let _ = player::target_closest_stellar_object(&ctx, &mut game_state);
+            }
+            if is_key_pressed(KeyCode::R) {
                 game_state.details_window_open = !game_state.details_window_open;
             }
-            if is_key_down(KeyCode::F) {
+            if is_key_pressed(KeyCode::F) {
                 game_state.faction_window_open = !game_state.faction_window_open;
             }
-            if is_key_down(KeyCode::T) {
+            if is_key_pressed(KeyCode::T) {
                 game_state.assets_window_open = !game_state.assets_window_open;
             }
         }

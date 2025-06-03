@@ -71,6 +71,7 @@ pub fn window(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::In
                 .stick_to_bottom(true)
                 .max_height(screen_height()/4.0)
                 .show(ui, |ui| {
+                    let player_transform = get_player_transform_vec2(ctx, glam::Vec2::ZERO);
                     for object in ctx.db.stellar_object().iter() {
                         let mut obj_type = "SObj";
 
@@ -83,14 +84,15 @@ pub fn window(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::In
                         }
 
                         ui.horizontal(|ui| {
-                            ui.label(format!("- {} #{}", obj_type, object.id));
+                            ui.label(format!("{} #{}", obj_type, object.id));
 
                             match get_transform(&ctx, object.id) {
                                 Ok(transform) => {
                                     let string = format!(
-                                        "Position: {}, {}",
+                                        "Position: {}, {} Distance: {}",
                                         transform.x.to_string(),
-                                        transform.y.to_string()
+                                        transform.y.to_string(),
+                                        player_transform.distance(transform.to_vec2())
                                     );
                                     ui.label(string);
                                 }
