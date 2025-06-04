@@ -36,7 +36,7 @@ impl StellarObjectTransformHiRes {
 }
 
 impl Player {
-    pub fn get_controlled_stellar_object(&self, ctx: &DbConnection) -> Option<u64> {
+    pub fn get_controlled_stellar_object_id(&self, ctx: &DbConnection) -> Option<u64> {
         if let Some(player_window) = ctx.db.sobj_player_window().identity().find(&self.identity) {
             Some(player_window.sobj_id)
         } else {

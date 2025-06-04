@@ -57,6 +57,19 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
             }
         }
 
+        if is_key_pressed(KeyCode::Z) {
+            controller.cargo_bay_open = !controller.cargo_bay_open;
+            changed = true;
+        }
+        if is_key_pressed(KeyCode::X) {
+            controller.mining_laser_on = !controller.mining_laser_on;
+            changed = true;
+        }
+        if is_key_pressed(KeyCode::C) {
+            controller.dock = !controller.dock;
+            changed = true;
+        }
+
         if changed {
             ctx.reducers.update_player_controller(controller).or_else(|err| Err(err.to_string()))?;
         }
@@ -65,9 +78,10 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
     Ok(())
 }
 
-pub fn target_closest_stellar_object(ctx: &DbConnection, game_state: &mut GameState) -> Result<(), String> {
+pub fn target_closest_stellar_object(ctx: &DbConnection, game_state: &mut GameState) -> Result<Targets, String> {
+    use Targets::*;
     if game_state.chat_window.has_focus {
-        return Ok(())
+        return Ok(None);
     }
 
     //let player_id = ctx.identity();
@@ -75,7 +89,7 @@ pub fn target_closest_stellar_object(ctx: &DbConnection, game_state: &mut GameSt
     let player_transform = get_transform(ctx, player_ship_id)?.to_vec2();
     
     let mut closest_distance = f32::MAX;
-    let mut closest_sobj_id = None;
+    let mut closest_sobj_id = Option::None;
 
     for sobj in ctx.db.stellar_object().iter() {
         if sobj.id == player_ship_id || sobj.sector_id != 0 {
@@ -90,29 +104,27 @@ pub fn target_closest_stellar_object(ctx: &DbConnection, game_state: &mut GameSt
         }
     }
 
-    if let Some(sobj_id) = closest_sobj_id {
+    Ok(if let Some(sobj_id) = closest_sobj_id {
         if let Some(target) = ctx.db.asteroid().sobj_id().find(&sobj_id) {
-            game_state.current_target = Targets::Asteroid(target.sobj_id);
             info!("Targeted closest asteroid: {}", target.sobj_id);
-        } else if let Some(target) = ctx.db.jump_gate().sobj_id().find(&sobj_id) {
-            game_state.current_target = Targets::JumpGate(target.sobj_id);
+            Targets::Asteroid(target.sobj_id)
+        } else if let Some(target) = ctx.db.jump_gate().sobj_id().find(&sobj_id) {;
             info!("Targeted closest jump gate: {}", target.sobj_id);
+            Targets::JumpGate(target.sobj_id)
         } else if let Some(target) = ctx.db.cargo_crate().sobj_id().find(&sobj_id) {
-            game_state.current_target = Targets::CargoCrate(target.sobj_id);
             info!("Targeted closest cargo crate: {}", target.sobj_id);
+            Targets::CargoCrate(target.sobj_id)
         } else if let Some(target) = ctx.db.ship_object().sobj_id().find(&sobj_id) {
-            game_state.current_target = Targets::Ship(sobj_id);
             info!("Targeted closest ship: {}", target.sobj_id);
+            Targets::Ship(sobj_id)
         } else {
-            game_state.current_target = Targets::None;
             info!("Could not find type for stellar object: {}", sobj_id);
+            Targets::None
         }
-        info!("Targeted closest stellar object: {}", sobj_id);
     } else {
         info!("No stellar objects found to target.");
-    }
-
-    Ok(())
+        Targets::None
+    })
 }
 
 // pub fn _control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Result<(), String> {

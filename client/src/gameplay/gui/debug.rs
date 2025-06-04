@@ -28,7 +28,7 @@ pub fn window(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::In
             match ctx.db.player().identity().find(&ctx.identity()) {
                 Some(player) => {
                     ui.heading(format!("Player: {}", player.username));
-                    if let Some(controlled) = player.get_controlled_stellar_object(&ctx) {
+                    if let Some(controlled) = player.get_controlled_stellar_object_id(&ctx) {
                         match get_transform(&ctx, controlled)
                         {
                             Ok(transform) => {
@@ -73,15 +73,7 @@ pub fn window(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::In
                 .show(ui, |ui| {
                     let player_transform = get_player_transform_vec2(ctx, glam::Vec2::ZERO);
                     for object in ctx.db.stellar_object().iter() {
-                        let mut obj_type = "SObj";
-
-                        if ctx.db.asteroid().sobj_id().find(&object.id).is_some() {
-                            obj_type = "Asteroid";
-                        } else if ctx.db.ship_object().sobj_id().find(&object.id).is_some() {
-                            obj_type = "Ship";
-                        } else if ctx.db.jump_gate().sobj_id().find(&object.id).is_some() {
-                            obj_type = "Jumpgate";
-                        }
+                        let obj_type = format!("{:?}", object.kind);
 
                         ui.horizontal(|ui| {
                             ui.label(format!("{} #{}", obj_type, object.id));

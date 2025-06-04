@@ -6,7 +6,7 @@ use super::module_bindings::*;
 use spacetimedb_sdk::{ DbContext, Table };
 use super::stdb::connector::connect_to_spacetime;
 
-use crate::{shader::*, stdb::utils::*};
+use crate::{gameplay::state::Targets, shader::*, stdb::utils::*};
 
 mod state;
 mod gui;
@@ -103,7 +103,14 @@ pub async fn gameplay(token : Option<String>) {
 
         if !game_state.chat_window.has_focus {
             if is_key_pressed(KeyCode::E) {
-                let _ = player::target_closest_stellar_object(&ctx, &mut game_state);
+                if let Ok(target) = player::target_closest_stellar_object(&ctx, &mut game_state) {
+                    // Deselect target if it's already selected
+                    if game_state.current_target == target {
+                        game_state.current_target = Targets::None;
+                    } else {
+                        game_state.current_target = target;
+                    }
+                }
             }
             if is_key_pressed(KeyCode::R) {
                 game_state.details_window_open = !game_state.details_window_open;
