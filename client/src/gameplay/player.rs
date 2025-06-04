@@ -3,7 +3,6 @@ use std::f32::consts::PI;
 use macroquad::{ math::Vec2, prelude::* };
 use spacetimedb_sdk::{DbContext, Table};
 
-use crate::gameplay::state::Targets;
 use crate::module_bindings::*;
 
 use crate::stdb::utils::*;
@@ -16,13 +15,9 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
     }
     let mut changed = false; // ONLY request an update if there's actually been a change!
     if let Some(mut controller) = ctx.db.player_controller().identity().find(&ctx.identity()) {
-        controller.targetted_sobj_id = match game_state.current_target { // TODO: Use targetted_sobj_id instead of current_target
-            Targets::Asteroid(sobj_id) => Some(sobj_id),
-            Targets::JumpGate(sobj_id) => Some(sobj_id),
-            Targets::CargoCrate(sobj_id) => Some(sobj_id),
-            Targets::Ship(sobj_id) => Some(sobj_id),
-            _ => None,
-        };
+        game_state.current_target_sobj = controller.targetted_sobj_id.and_then(|id| {
+            ctx.db.stellar_object().id().find(&id)
+        });
 
         if is_key_down(KeyCode::Right) || is_key_down(KeyCode::D) {
             controller.right = true;
@@ -86,10 +81,9 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
     Ok(())
 }
 
-pub fn target_closest_stellar_object(ctx: &DbConnection, game_state: &mut GameState) -> Result<Targets, String> {
-    use Targets::*;
+pub fn target_closest_stellar_object(ctx: &DbConnection, game_state: &mut GameState) -> Result<StellarObject, String> {
     if game_state.chat_window.has_focus {
-        return Ok(None);
+        return Err("Chat window has focus. Cannot target objects.".to_string());
     }
 
     //let player_id = ctx.identity();
@@ -97,7 +91,7 @@ pub fn target_closest_stellar_object(ctx: &DbConnection, game_state: &mut GameSt
     let player_transform = get_transform(ctx, player_ship_id)?.to_vec2();
     
     let mut closest_distance = f32::MAX;
-    let mut closest_sobj_id = Option::None;
+    let mut closest_sobj = Option::None;
 
     for sobj in ctx.db.stellar_object().iter() {
         if sobj.id == player_ship_id || sobj.sector_id != 0 {
@@ -107,32 +101,26 @@ pub fn target_closest_stellar_object(ctx: &DbConnection, game_state: &mut GameSt
             let distance = transform.to_vec2().distance_squared(player_transform);
             if distance < closest_distance {
                 closest_distance = distance;
-                closest_sobj_id = Some(sobj.id);
+                closest_sobj = Some(sobj);
             }
         }
     }
 
-    Ok(if let Some(sobj_id) = closest_sobj_id {
-        if let Some(target) = ctx.db.asteroid().sobj_id().find(&sobj_id) {
-            info!("Targeted closest asteroid: {}", target.sobj_id);
-            Targets::Asteroid(target.sobj_id)
-        } else if let Some(target) = ctx.db.jump_gate().sobj_id().find(&sobj_id) {;
-            info!("Targeted closest jump gate: {}", target.sobj_id);
-            Targets::JumpGate(target.sobj_id)
-        } else if let Some(target) = ctx.db.cargo_crate().sobj_id().find(&sobj_id) {
-            info!("Targeted closest cargo crate: {}", target.sobj_id);
-            Targets::CargoCrate(target.sobj_id)
-        } else if let Some(target) = ctx.db.ship_object().sobj_id().find(&sobj_id) {
-            info!("Targeted closest ship: {}", target.sobj_id);
-            Targets::Ship(sobj_id)
-        } else {
-            info!("Could not find type for stellar object: {}", sobj_id);
-            Targets::None
+    if let Some(sobj) = closest_sobj {
+        match sobj.kind {
+            // None => {
+            //     info!("Could not find type for stellar object: {}", sobj.id);
+            //     Err("Could not find type for targeted stellar object.".to_string())
+            // },
+            _ => {
+                info!("Targeted closest {:?}: {}", sobj.kind, sobj.id);
+                Ok(sobj)
+            }
         }
     } else {
         info!("No stellar objects found to target.");
-        Targets::None
-    })
+        Err("Could not find a stellar object to target.".to_string())
+    }
 }
 
 // pub fn _control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Result<(), String> {

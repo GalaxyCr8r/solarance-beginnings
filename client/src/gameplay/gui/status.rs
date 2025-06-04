@@ -3,7 +3,7 @@ use macroquad::{miniquad::date::now, prelude::*};
 use spacetimedb_sdk::DbContext;
 
 use crate::{
-    gameplay::state::{ GameState, Targets },
+    gameplay::state::{ GameState },
     module_bindings::*,
     stdb::utils::{
         get_player_ship_instance,
@@ -45,12 +45,12 @@ pub fn window(
                         ship_status(ui, ship_type, player_ship);
                         ui.separator();
 
-                        if game_state.current_target != Targets::None {
+                        if game_state.current_target_sobj != None {
                             ui.vertical(|ui| {
                                 let _ = add_targeted_object_status(
                                     ui,
                                     ctx,
-                                    &game_state.current_target
+                                    &game_state.current_target_sobj.clone().unwrap()
                                 );
                             });
                         } else {
@@ -122,23 +122,12 @@ fn ship_function_status(ctx: &DbConnection, ui: &mut Ui) {
 fn add_targeted_object_status(
     ui: &mut Ui,
     ctx: &DbConnection,
-    current_target: &Targets
+    target: &StellarObject
 ) -> Result<(), String> {
     let mut kind = "Unknown Object".to_string();
     let distance = {
-        let current_target_sobj_id = match current_target {
-            Targets::Asteroid(id) => *id,
-            Targets::Ship(id) => *id,
-            Targets::Station(id) => *id,
-            Targets::CargoCrate(id) => *id,
-            Targets::JumpGate(id) => *id,
-            _ => {
-                return Ok(());
-            }
-        };
-
         if let Some(player_ship) = get_player_transform(ctx) {
-            if let Ok(target_object) = get_transform(ctx, current_target_sobj_id) {
+            if let Ok(target_object) = get_transform(ctx, target.id) {
                 if let Some(sobj) = ctx.db.stellar_object().id().find(&target_object.sobj_id) {
                     kind = format!("{:?}", sobj.kind);
                 }
@@ -157,9 +146,9 @@ fn add_targeted_object_status(
     ui.label(format!("Target: {}", kind));
     ui.label(format!("Distance: {:.0}", distance));
 
-    match current_target {
-        Targets::Asteroid(id) => {
-            if let Some(asteroid) = ctx.db.asteroid().sobj_id().find(id) {
+    match target.kind {
+        StellarObjectKinds::Asteroid => {
+            if let Some(asteroid) = ctx.db.asteroid().sobj_id().find(&target.id) {
                 add_status_bar(
                     ui,
                     "Resources",
@@ -170,8 +159,8 @@ fn add_targeted_object_status(
                 );
             }
         }
-        Targets::Ship(id) => {
-            if let Some(ship_instance) = ctx.db.ship_instance().id().find(id) {
+        StellarObjectKinds::Ship => {
+            if let Some(ship_instance) = ctx.db.ship_instance().id().find(&target.id) {
                 if
                     let Some(ship_type) = ctx.db
                         .ship_type_definition()
@@ -205,18 +194,18 @@ fn add_targeted_object_status(
                 }
             }
         }
-        Targets::Station(_id) => {
+        StellarObjectKinds::Station => {
             // if let Some(station) = ctx.db.station().sobj_id().find(id) {
             //     add_status_bar(ui, "Health", station.max_health as f32, station.health, Color32::from_rgb(242, 0, 32));
             // }
         }
-        Targets::CargoCrate(_id) => {
+        StellarObjectKinds::CargoCrate => {
             // if let Some(crate_) = ctx.db.cargo_crate().sobj_id().find(id) {
             //     add_status_bar(ui, "Health", crate_.max_health as f32, crate_.health, Color32::from_rgb(242, 0, 32));
             // }
         }
-        Targets::JumpGate(id) => {
-            if let Some(jump_gate) = ctx.db.jump_gate().sobj_id().find(id) {
+        StellarObjectKinds::JumpGate => {
+            if let Some(jump_gate) = ctx.db.jump_gate().sobj_id().find(&target.id) {
                 ui.horizontal(|ui| {
                     ui.label("Destination:");
                     if let Some(sector) = ctx.db.sector().id().find(&jump_gate.target_sector_id) {

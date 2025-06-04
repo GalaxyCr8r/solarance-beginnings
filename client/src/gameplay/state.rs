@@ -3,16 +3,6 @@ use macroquad::{camera::Camera2D, prelude::*};
 use crate::module_bindings::*;
 use crate::gameplay::gui::*;
 
-#[derive(Clone, Debug, PartialEq, PartialOrd)]
-pub enum Targets {
-    None,
-    Asteroid(u64),
-    Ship(u64),
-    Station(u64),
-    CargoCrate(u64),
-    JumpGate(u64)
-}
-
 pub(crate) struct GameState<'a> {
     // Game-Wide States
     pub done: bool,
@@ -29,7 +19,7 @@ pub(crate) struct GameState<'a> {
     pub assets_window_open: bool,
 
     // Gameplay States
-    pub current_target: Targets,
+    pub current_target_sobj: Option<StellarObject>,
 }
 
 
@@ -48,6 +38,6 @@ pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
         faction_window_open: false,
         assets_window_open: false,
 
-        current_target: Targets::None
+        current_target_sobj: None
     }
 }

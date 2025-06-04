@@ -5,7 +5,7 @@ use spacetimedb_sdk::*;
 
 use crate::stdb::utils::*;
 
-use super::{ resources::Resources, state::{ GameState, Targets } };
+use super::{ resources::Resources, state::GameState };
 
 pub fn sector(game_state: &mut GameState) {
     let resources = storage::get::<Resources>();
@@ -56,27 +56,28 @@ pub fn sector(game_state: &mut GameState) {
         let actual_player_transform = player_transform.unwrap();
 
         if controller.mining_laser_on {
-            if let Targets::Asteroid(sobj_id) = game_state.current_target {
+            if let Some(target) = &game_state.current_target_sobj {
                 // Draw a mining laser effect if the player is in range
-                if let Ok(transform) = get_transform(game_state.ctx, sobj_id) {
-                    draw_line(
-                        transform.x,
-                        transform.y,
-                        actual_player_transform.x,
-                        actual_player_transform.y,
-                        6.0,
-                        Color::from_rgba(128, 0, 0, ((now() * 100.0) % 255.0) as u8)
-                    );
-                    draw_line(
-                        transform.x,
-                        transform.y,
-                        actual_player_transform.x,
-                        actual_player_transform.y,
-                        (now() as f32 * 100.0) % 3.0,
-                        RED
-                    );
+                if target.kind == StellarObjectKinds::Asteroid {
+                    if let Ok(transform) = get_transform(game_state.ctx, target.id) {
+                        draw_line(
+                            transform.x,
+                            transform.y,
+                            actual_player_transform.x,
+                            actual_player_transform.y,
+                            6.0,
+                            Color::from_rgba(128, 0, 0, ((now() * 100.0) % 255.0) as u8)
+                        );
+                        draw_line(
+                            transform.x,
+                            transform.y,
+                            actual_player_transform.x,
+                            actual_player_transform.y,
+                            (now() as f32 * 100.0) % 3.0,
+                            RED
+                        );
+                    }
                 }
-                //draw_line(x1, y1, x2, y2, thickness, color);
             }
         }
 
@@ -114,8 +115,8 @@ fn draw_ship(
         }
     );
 
-    if let Targets::Ship(target) = &game_state.current_target {
-        if target.clone() == transform.sobj_id {
+    if let Some(target) = &game_state.current_target_sobj {
+        if target.id == transform.sobj_id {
             let size = (tex.width() + tex.height()) * 0.5;
             draw_targeting_bracket(position, size, Color::from_rgba(255, 255, 255, 200));
         }
@@ -145,8 +146,8 @@ fn draw_asteroid(
     );
 
     // Targeting bracket
-    if let Targets::Asteroid(target) = &game_state.current_target {
-        if target.clone() == asteroid.sobj_id {
+    if let Some(target) = &game_state.current_target_sobj {
+        if target.id == asteroid.sobj_id {
             let size = (tex.width() + tex.height()) * 0.5;
             draw_targeting_bracket(position, size, Color::from_rgba(255, 255, 255, 200));
         }
@@ -175,8 +176,8 @@ fn draw_crate(
         }
     );
 
-    if let Targets::CargoCrate(target) = &game_state.current_target {
-        if target.clone() == cargo_crate.sobj_id {
+    if let Some(target) = &game_state.current_target_sobj {
+        if target.id == cargo_crate.sobj_id {
             let size = (tex.width() + tex.height()) * 0.5;
             draw_targeting_bracket(position, size, Color::from_rgba(255, 255, 255, 200));
         }
@@ -196,8 +197,8 @@ fn draw_jumpgate(
             [jumpgate.gfx_key.unwrap_or("jumpgate_north".to_string()).as_str()];
     draw_texture(tex, position.x - tex.width() * 0.5, position.y - tex.height() * 0.5, WHITE);
 
-    if let Targets::JumpGate(target) = &game_state.current_target {
-        if target.clone() == jumpgate.sobj_id {
+    if let Some(target) = &game_state.current_target_sobj {
+        if target.id == jumpgate.sobj_id {
             let size = (tex.width() + tex.height()) * 0.33;
             draw_targeting_bracket(position, size, Color::from_rgba(255, 255, 255, 200));
         }
