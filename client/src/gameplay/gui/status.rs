@@ -1,5 +1,5 @@
 use egui::{ Align2, Color32, Context, RichText, Ui };
-use macroquad::prelude::*;
+use macroquad::{miniquad::date::now, prelude::*};
 use spacetimedb_sdk::DbContext;
 
 use crate::{
@@ -95,7 +95,13 @@ fn ship_function_status(ctx: &DbConnection, ui: &mut Ui) {
     ui.vertical(|ui| {
         if let Some(controller) = ctx.db.player_controller().identity().find(&ctx.identity()) {
             if controller.cargo_bay_open {
-                ui.label("Cargo Bay: Open");
+                ui.label(RichText::new("Cargo Bay: Open").color({
+                    if now() % 1.0 < 0.333 {
+                        Color32::YELLOW
+                    } else {
+                        Color32::BLACK
+                    }
+                }));
             } else {
                 ui.label(RichText::new("Cargo Bay: Closed").color(Color32::DARK_GRAY));
             }

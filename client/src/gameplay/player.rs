@@ -16,6 +16,14 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
     }
     let mut changed = false; // ONLY request an update if there's actually been a change!
     if let Some(mut controller) = ctx.db.player_controller().identity().find(&ctx.identity()) {
+        controller.targetted_sobj_id = match game_state.current_target { // TODO: Use targetted_sobj_id instead of current_target
+            Targets::Asteroid(sobj_id) => Some(sobj_id),
+            Targets::JumpGate(sobj_id) => Some(sobj_id),
+            Targets::CargoCrate(sobj_id) => Some(sobj_id),
+            Targets::Ship(sobj_id) => Some(sobj_id),
+            _ => None,
+        };
+
         if is_key_down(KeyCode::Right) || is_key_down(KeyCode::D) {
             controller.right = true;
             controller.left = false;

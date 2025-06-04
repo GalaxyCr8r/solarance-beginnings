@@ -1,6 +1,8 @@
 use log::info;
 use spacetimedb::{table, Identity, ReducerContext, Timestamp};
-use spacetimedsl::dsl;
+use spacetimedsl::{dsl, Wrapper};
+
+use crate::types::{ships::GetShipObjectRowsByPlayerId, stellarobjects::{GetStellarObjectPlayerWindowRowOptionByIdentity, GetStellarObjectRowOptionById, StellarObjectId}};
 
 use super::{common::CurrentAction, ships::ship_object};
 
@@ -85,13 +87,30 @@ pub fn get_username(ctx: &ReducerContext, id:Identity) -> String {
 
 #[spacetimedb::reducer]
 pub fn update_player_controller(ctx: &ReducerContext, controller: PlayerController) -> Result<(), String> {
+    let dsl = dsl(ctx);
+
     if ctx.sender != controller.identity {
         info!("What doing? ID {} is trying to change player controller for ID {}!!!", ctx.sender, controller.identity);
         return Err("ID Mismatch. This was reported to the system admin.".to_string());
     }
 
+    // If the player targetted a stellar object, make sure it is in the same sector
+    if let Some(target_id) = controller.targetted_sobj_id {
+        if let Some(window) = dsl.get_sobj_player_window_by_identity(&controller.identity) {
+            if let Some(player_sobj) = dsl.get_stellar_object_by_id(StellarObjectId::new(window.sobj_id)) {
+                if let Some(target_sobj) = dsl.get_stellar_object_by_id(StellarObjectId::new(target_id)) {
+                    if player_sobj.sector_id != target_sobj.sector_id {
+                        info!("Player {} tried to target a stellar object in a different sector! Player SOBJ ID: {}, Target SOBJ ID: {}", 
+                            get_username(ctx, controller.identity), player_sobj.id, target_sobj.id);
+                        return Err("You cannot target objects in different sectors!".to_string());
+                    }
+                }
+            }
+        }
+    }
+
     ctx.db.player_controller().identity().update(controller.clone());
-    info!("Player controller changed! {:?}", controller);
+    //info!("Player controller changed! {:?}", controller);
 
     Ok(())
 }

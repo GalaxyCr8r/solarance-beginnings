@@ -6,7 +6,7 @@ use super::module_bindings::*;
 use spacetimedb_sdk::{ DbContext, Table };
 use super::stdb::connector::connect_to_spacetime;
 
-use crate::{gameplay::state::Targets, shader::*, stdb::utils::*};
+use crate::{gameplay::state::{GameState, Targets}, shader::*, stdb::utils::*};
 
 mod state;
 mod gui;
