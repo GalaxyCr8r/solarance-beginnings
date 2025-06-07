@@ -3,6 +3,7 @@ use spacetimedsl::dsl;
 
 use crate::types::stellarobjects::StellarObjectId;
 
+pub mod rls;
 pub mod timers;
 pub mod utility;
 
@@ -15,7 +16,7 @@ pub struct Asteroid {
 
     #[index(btree)] // To find asteroids in a specific sector
     #[wrapped(path = crate::types::sectors::SectorId)]
-    pub current_sector_id: u64, // FK to Sector.id
+    pub current_sector_id: u64, // FK to Sector.id // Because asteroid_sector.id exists, this can't be named sector_id.
 
     pub size_radius: f32, // For collision
     

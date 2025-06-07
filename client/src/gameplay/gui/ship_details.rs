@@ -145,10 +145,8 @@ fn cargo_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, shi
     }
     ui.separator();
     ui.horizontal(|ui| {
-        //let current_cargo = ship_type.cargo_capacity - player_ship.cargo_capacity; // this is still whack due to how ships are currently created
-
         ui.label("Cargo Capacity:");
-        ui.add_enabled(actual_cargo_remaining != 0, egui::Label::new(format!("{} /", actual_cargo_remaining)));
+        ui.add_enabled(ship_type.cargo_capacity-actual_cargo_remaining != 0, egui::Label::new(format!("{} /", ship_type.cargo_capacity-actual_cargo_remaining)));
         ui.label(format!("{} units", ship_type.cargo_capacity));
     });
 }

@@ -1,9 +1,20 @@
 
 use log::info;
 
-use crate::types::{items::ItemDefinition, stellarobjects::StellarObject};
+use crate::types::{items::ItemDefinition, stellarobjects::{GetStellarObjectRowOptionById, StellarObject}};
 
 use super::{*};
+
+pub fn same_sector_from_ids(ctx: &ReducerContext, id1: &StellarObjectId, id2: &StellarObjectId) -> bool {
+    let dsl = dsl(ctx);
+
+    if let Some(sobj1) = dsl.get_stellar_object_by_id(id1) {
+        if let Some(sobj2) = dsl.get_stellar_object_by_id(id2) {
+            return sobj1.get_sector_id() == sobj2.get_sector_id();
+        }
+    }
+    false
+}
 
 pub fn create_ship_instance(ctx: &ReducerContext, ship_type: ShipTypeDefinition, identity: Identity, sobj: StellarObject) -> Result<ShipInstance, String> {
     let dsl = dsl(ctx);

@@ -28,24 +28,24 @@ pub fn window(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::In
             match ctx.db.player().identity().find(&ctx.identity()) {
                 Some(player) => {
                     ui.heading(format!("Player: {}", player.username));
-                    if let Some(controlled) = player.get_controlled_stellar_object(&ctx) {
+                    if let Some(controlled) = player.get_controlled_stellar_object_id(&ctx) {
                         match get_transform(&ctx, controlled)
                         {
                             Ok(transform) => {
                                 ui.label(
                                     format!(
-                                        "Ship: {}, {}",
+                                        "SObj: {}, {}",
                                         transform.x.to_string(),
                                         transform.y.to_string()
                                     )
                                 );
                             }
                             _ => {
-                                ui.label("Ship: unknown");
+                                ui.label("SObj: unknown");
                             }
                         }
                     } else {
-                        ui.label("Ship: None");
+                        ui.label("WARNING - The player doesn't have a SObj!");
                     }
                 }
                 None => {
@@ -71,16 +71,20 @@ pub fn window(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::In
                 .stick_to_bottom(true)
                 .max_height(screen_height()/4.0)
                 .show(ui, |ui| {
+                    let player_transform = get_player_transform_vec2(ctx, glam::Vec2::ZERO);
                     for object in ctx.db.stellar_object().iter() {
+                        let obj_type = format!("{:?}", object.kind);
+
                         ui.horizontal(|ui| {
-                            ui.label(format!("- Ship #{}", object.id));
+                            ui.label(format!("{} #{}", obj_type, object.id));
 
                             match get_transform(&ctx, object.id) {
                                 Ok(transform) => {
                                     let string = format!(
-                                        "Position: {}, {}",
+                                        "Position: {}, {} Distance: {}",
                                         transform.x.to_string(),
-                                        transform.y.to_string()
+                                        transform.y.to_string(),
+                                        player_transform.distance(transform.to_vec2())
                                     );
                                     ui.label(string);
                                 }

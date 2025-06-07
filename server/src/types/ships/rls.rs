@@ -1,8 +1,8 @@
 use spacetimedb::{client_visibility_filter, Filter};
 
-///You can only see ship objects in your sector.
+// You can see your ship object.
 #[client_visibility_filter]
-const SO_SECTOR_FILTER: Filter = Filter::Sql(
+const SO_PLAYER_FILTER: Filter = Filter::Sql(
     "SELECT o.* 
      FROM ship_object o
      WHERE o.player_id = :sender"

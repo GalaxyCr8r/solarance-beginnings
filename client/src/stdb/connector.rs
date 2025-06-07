@@ -1,8 +1,7 @@
 
 use macroquad::prelude::info;
 use spacetimedb_sdk::{credentials, Error, Identity};
-use core::time;
-use std::{env, thread::sleep};
+use std::env;
 
 use crate::module_bindings::*;
 
@@ -16,7 +15,8 @@ const LOCAL_HOST: &str = "http://localhost:3000";
 /// The database name we chose when we published our module.
 const DB_NAME: &str = "solarance-beginnings";
 
-pub(crate) fn connect_to_spacetime(jwt_token:Option<String>) -> DbConnection {
+pub(crate) fn connect_to_spacetime(jwt_token: Option<String>) -> Option<DbConnection> {
+    info!(" Connecting to SpacetimeDB ...");
 
     // Connect to the database
     let host = {
@@ -28,23 +28,38 @@ pub(crate) fn connect_to_spacetime(jwt_token:Option<String>) -> DbConnection {
         }
     };
 
-    // TODO: Move this to the login screen
-    if let Some(token) = jwt_token {
-        let _ = creds_store().save(token);
-    }
+    let mut tried_loaded_token = false;
+    let mut current_token = match creds_store().load() {
+            Ok(token) => token,
+            Err(_) => {
+                if jwt_token.clone().is_some() {
+                    tried_loaded_token = true;
+                    jwt_token.clone()
+                } else {
+                    None
+                }
+            }
+        };
+    // let mut current_token  = token.clone();
 
     loop {
-        let stored_token = creds_store().load();
-
-        let result = connect_to_db(host.clone(), match stored_token {
-            Ok(token) => token,
-            Err(_) => None
-        });
+        let result = connect_to_db(host.clone(), current_token.clone());
         if let Err(e) = result {
-            sleep(time::Duration::from_millis(1500));
             info!("CONNECTION ERROR : {}", e);
-            info!("Failed to connect, retrying...");
+            if !tried_loaded_token {
+                tried_loaded_token = true;
+                current_token = jwt_token.clone();
+                info!("Failed to connect, retrying...");
+            } else {
+                return None;
+            }
+
             continue;
+        }
+
+        if current_token.is_some() {
+            info!("Token connected successfully. Storing for future use.");
+            let _ = creds_store().save(current_token.unwrap());
         }
 
         let ctx = result.unwrap();
@@ -55,7 +70,7 @@ pub(crate) fn connect_to_spacetime(jwt_token:Option<String>) -> DbConnection {
         // Spawn a thread, where the connection will process messages and invoke callbacks.
         ctx.run_threaded();
 
-        return ctx;
+        return Some(ctx);
     }
 }
 

@@ -3,9 +3,9 @@ use std::time::Duration;
 use spacetimedb::*;
 use spacetimedsl::dsl;
 
-use crate::types::{asteroids::timers::{CreateAsteroidSectorUpkeepTimerRow, GetAllAsteroidSectorUpkeepTimerRows, GetAsteroidSectorUpkeepTimerRowsBySectorId}, utility::try_server_only};
+use crate::types::{asteroids::timers::{CreateAsteroidSectorUpkeepTimerRow, GetAsteroidSectorUpkeepTimerRowsBySectorId}, utility::try_server_only};
 
-use super::{GetAllAsteroidSectorRows, GetAllSectorRows};
+use super::GetAllAsteroidSectorRows;
 
 #[dsl(plural_name = sector_upkeep_timers)]
 #[spacetimedb::table(name = sector_upkeep_timer, scheduled(sector_upkeep))]

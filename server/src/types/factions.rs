@@ -1,4 +1,4 @@
-use spacetimedb::{table, Identity};
+use spacetimedb::{table, Identity, ReducerContext};
 use spacetimedsl::dsl;
 
 #[dsl(plural_name = faction_definitions)]
@@ -25,7 +25,17 @@ pub struct PlayerFactionStanding {
     pub player_identity: Identity,
 
     #[index(btree)] // To find all players with standing for a faction
+    #[wrapped(path = crate::types::factions::FactionDefinitionId)]
     pub faction_id: u32, // FK to FactionDefinition
 
     pub reputation_score: i32,
+}
+
+//////////////////////////////////////////////////////////////
+// Init
+//////////////////////////////////////////////////////////////
+
+pub fn init(_ctx: &ReducerContext) -> Result<(), String> {
+
+    Ok(())
 }

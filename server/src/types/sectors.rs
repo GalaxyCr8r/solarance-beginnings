@@ -1,6 +1,8 @@
 use spacetimedb::{table, ReducerContext};
 use spacetimedsl::{dsl, Wrapper};
 
+use super::jumpgates::create_jumpgate_in_sector;
+
 pub mod definitions;
 pub mod timers;
 
@@ -40,9 +42,32 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     let dsl = dsl(ctx);
     
     timers::init(ctx)?;
-
-    dsl.create_asteroid_sector(SectorId::new(0), 1, 3000.0, Some(1000.0))?;
+    definitions::init(ctx)?;
     
     Ok(())
 }
 
+
+//////////////////////////////////////////////////////////////
+// Utilities
+//////////////////////////////////////////////////////////////
+
+/// Creates a jumpgate in each sector, using the direction of the each other sector's position
+fn connect_sectors_with_warpgates(ctx: &ReducerContext, a: &Sector, b: &Sector) -> Result<(), String> {
+    let a_pos = glam::Vec2::new(a.x, a.y);
+    let b_pos = glam::Vec2::new(b.x, b.y);
+    //info!("Sector Positions: A{} B{}", a_pos, b_pos);
+
+    let a_angle = (b_pos-a_pos).to_angle();
+    let b_angle = (a_pos-b_pos).to_angle();
+    //info!("Sector Angles: A{} B{}", a_angle, b_angle);
+
+    let a_wp_pos = glam::Vec2::from_angle(a_angle) * 5000.0;
+    let b_wp_pos = glam::Vec2::from_angle(b_angle) * 5000.0;
+    //info!("Sector WP Pos: A{} B{}", a_wp_pos, b_wp_pos);
+
+    create_jumpgate_in_sector(ctx, a.id, a_wp_pos.x, a_wp_pos.y, b.id, b_wp_pos.x, b_wp_pos.y)?;
+    create_jumpgate_in_sector(ctx, b.id, b_wp_pos.x, b_wp_pos.y, a.id, a_wp_pos.x, a_wp_pos.y)?;
+
+    Ok(())
+}

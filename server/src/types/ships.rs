@@ -3,11 +3,12 @@ use spacetimedsl::dsl;
 
 use crate::types::stellarobjects::StellarObjectId;
 
-use super::{common::{EntityAIState, EquipmentSlotType}, items::ItemDefinitionId, sectors::SectorId};
+use super::{common::*, items::ItemDefinitionId, sectors::SectorId};
 
 pub mod definitions;
 pub mod reducers;
 pub mod rls;
+pub mod timers;
 pub mod utility;
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
@@ -84,7 +85,7 @@ pub struct ShipInstance {
 
     pub cargo_capacity: u16, // Needs to be manually maintained via ShipCargoItem
 
-    pub ai_state: Option<EntityAIState>, // Current high-level AI state or player command
+    pub ai_state: Option<CurrentAction>, // Current high-level AI state or player command
     pub docked_at_station_id: Option<u64>, // FK to a potential Station table
 
     pub last_update_ts: Timestamp, // For server-side logic or client interpolation
@@ -107,7 +108,7 @@ pub struct ShipObject {
     pub sector_id: u64, // FK to Sector ID - Only because actually referencing the player's stellar object would require three table hits.
 
     #[index(btree)]
-    pub player_id: Identity,   // FK to player.id
+    pub player_id: Identity, // FK to player.id
 }
 
 #[dsl(plural_name = ship_cargo_items)]

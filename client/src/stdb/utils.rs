@@ -43,7 +43,7 @@ pub fn get_player(db: &RemoteTables, id: &Identity) -> Option<Player> {
 
 pub fn get_player_sobj_id(ctx: &DbConnection) -> Option<u64> {
     if let Some(this) = get_current_player(ctx) {
-        this.get_controlled_stellar_object(ctx)
+        this.get_controlled_stellar_object_id(ctx)
     } else {
         None
     }

@@ -12,28 +12,30 @@ use crate::module_bindings::*;
 pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
     ctx.subscription_builder()
         .on_applied(on_sub_applied)
-        .on_error(on_sub_error)
-        .subscribe(["SELECT * FROM global_chat_message",
-                        "SELECT * FROM stellar_object",
-                        "SELECT * FROM sobj_hi_res_transform",
-                        "SELECT * FROM sobj_low_res_transform",
-                        "SELECT * FROM sobj_velocity",
-                        "SELECT * FROM sobj_player_window",
-                        "SELECT * FROM player",
-                        "SELECT * FROM asteroid",
-                        "SELECT * FROM faction_definition",
-                        "SELECT * FROM player_faction_standing",
-                        "SELECT * FROM item_definition",
-                        "SELECT * FROM cargo_crate",
-                        "SELECT * FROM jump_gate",
-                        "SELECT * FROM ship_type_definition",
-                        "SELECT * FROM ship_instance",
-                        "SELECT * FROM ship_object",
-                        "SELECT * FROM ship_cargo_item",
-                        "SELECT * FROM ship_equipment_slot",
-                        "SELECT * FROM item_definition",
-                        "SELECT * FROM cargo_crate",
-                        "SELECT * FROM station",]);
+        .on_error(on_sub_error).subscribe_to_all_tables();
+        // .subscribe(["SELECT * FROM global_chat_message",
+        //                 "SELECT * FROM sector_chat_message",
+        //                 "SELECT * FROM stellar_object",
+        //                 "SELECT * FROM sobj_hi_res_transform",
+        //                 "SELECT * FROM sobj_low_res_transform",
+        //                 "SELECT * FROM sobj_velocity",
+        //                 "SELECT * FROM sobj_player_window",
+        //                 "SELECT * FROM player",
+        //                 "SELECT * FROM player_controller",
+        //                 "SELECT * FROM asteroid",
+        //                 "SELECT * FROM faction_definition",
+        //                 "SELECT * FROM player_faction_standing",
+        //                 "SELECT * FROM item_definition",
+        //                 "SELECT * FROM cargo_crate",
+        //                 "SELECT * FROM jump_gate",
+        //                 "SELECT * FROM ship_type_definition",
+        //                 "SELECT * FROM ship_instance",
+        //                 "SELECT * FROM ship_object",
+        //                 "SELECT * FROM ship_cargo_item",
+        //                 "SELECT * FROM ship_equipment_slot",
+        //                 "SELECT * FROM item_definition",
+        //                 "SELECT * FROM cargo_crate",
+        //                 "SELECT * FROM station",]);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
