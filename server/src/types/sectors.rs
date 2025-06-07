@@ -1,4 +1,3 @@
-use log::info;
 use spacetimedb::{table, ReducerContext};
 use spacetimedsl::{dsl, Wrapper};
 

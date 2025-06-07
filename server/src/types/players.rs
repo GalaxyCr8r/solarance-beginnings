@@ -2,7 +2,7 @@ use log::info;
 use spacetimedb::{table, Identity, ReducerContext, Timestamp};
 use spacetimedsl::{dsl, Wrapper};
 
-use crate::types::{ships::GetShipObjectRowsByPlayerId, stellarobjects::{GetStellarObjectPlayerWindowRowOptionByIdentity, GetStellarObjectRowOptionById, StellarObjectId}};
+use crate::types::stellarobjects::{GetStellarObjectPlayerWindowRowOptionByIdentity, GetStellarObjectRowOptionById, StellarObjectId};
 
 use super::{common::CurrentAction, ships::ship_object};
 

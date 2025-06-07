@@ -1,11 +1,11 @@
-use std::{f32::consts::PI, time::Duration};
+use std::f32::consts::PI;
 
 use glam::Vec2;
 use log::info;
-use spacetimedb::{rand::Rng, *};
+use spacetimedb::*;
 use spacetimedsl::*;
 
-use crate::types::{ships::*, stellarobjects::*};
+use crate::types::{ships::{timers::{create_mining_timer_for_ship, DeleteShipMiningTimerRowByScheduledId, GetShipMiningTimerRowsByShipSobjId}, *}, stellarobjects::*};
 
 use super::GetPlayerControllerRowOptionByIdentity;
 
@@ -59,6 +59,26 @@ pub fn player_controller_upkeep(ctx: &ReducerContext, timer: PlayerControllerTim
     velocity=velocity.from_vec2(velocity.to_vec2() * 0.975); // TODO:: Milestone 10+ make these ship-type specific values.
     if velocity.to_vec2().length() < 0.042 {
         velocity = velocity.from_vec2(Vec2::ZERO);
+    }
+  }
+
+  // If the player is trying to mine and is targetting an asteroid, create a mining timer.
+  if controller.mining_laser_on && controller.targetted_sobj_id.is_some() {
+  //if controller.current_action == CurrentAction::Mining && controller.targetted_sobj_id.is_some() { // Use if we move away from targetted_sobj_id
+    if let Some(asteroid_sobj) = dsl.get_stellar_object_by_id(StellarObjectId::new(controller.targetted_sobj_id.unwrap())) {
+      if asteroid_sobj.kind == StellarObjectKinds::Asteroid {
+        info!("Player {} is mining asteroid {}!", timer.player.to_abbreviated_hex(), asteroid_sobj.id);
+        let _ = create_mining_timer_for_ship(ctx, &ship_object.get_sobj_id(), &asteroid_sobj.get_id())?;
+      } else {
+        info!("Player {} tried to mine a non-asteroid object: {}", timer.player.to_abbreviated_hex(), asteroid_sobj.id);
+      }
+    } else {
+      info!("Player {} tried to mine a non-existent object: {}", timer.player.to_abbreviated_hex(), controller.targetted_sobj_id.unwrap());
+    }
+  } else if !controller.mining_laser_on {
+    for mining_timer in dsl.get_ship_mining_timers_by_ship_sobj_id(ship_object.get_sobj_id()) {
+      info!("Player {} stopped trying to mine a asteroid: {}", timer.player.to_abbreviated_hex(), mining_timer.asteroid_sobj_id);
+      dsl.delete_ship_mining_timer_by_scheduled_id(&mining_timer);
     }
   }
 

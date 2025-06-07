@@ -4,7 +4,7 @@ use spacetimedb::{
 };
 use spacetimedsl::{dsl, Wrapper};
 
-use super::{utility::is_server_or_owner, sectors::SectorId};
+use super::sectors::SectorId;
 
 pub mod impls;
 pub mod reducers;
