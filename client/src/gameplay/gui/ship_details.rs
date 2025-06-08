@@ -83,7 +83,7 @@ fn ship_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, ship
             ui.label(format!("Health: {}", player_ship.health));
             ui.label(format!("Shield: {}", player_ship.shields));
             ui.label(format!("Energy: {}", player_ship.energy));
-            ui.label(format!("Cargo: {} / {}", player_ship.cargo_capacity, ship_type.cargo_capacity));
+            ui.label(format!("Cargo: {} / {}", player_ship.used_cargo_capacity, player_ship.max_cargo_capacity));
         });
         ui.separator();
         ui.vertical(|ui| {
@@ -123,19 +123,20 @@ fn ship_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, ship
 fn cargo_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, ship_type: ShipTypeDefinition, player_ship: ShipInstance) {
     ui.heading("Cargo Bay Contents");
     ui.separator();
-    let mut actual_cargo_remaining = ship_type.cargo_capacity;
+    let mut actual_cargo_remaining = ship_type.cargo_capacity as i32;
     for cargo in ctx.db.ship_cargo_item().iter() {
         if cargo.ship_id == player_ship.id { // TECHNICALLY RLS should do this for us.
             if let Some(item) = ctx.db.item_definition().id().find(&cargo.item_id) {
-                actual_cargo_remaining -= item.volume_per_unit * cargo.quantity;
-                ui.collapsing(format!("Cargo: {} x {} @ {}u", item.name, cargo.quantity, item.volume_per_unit * cargo.quantity), |ui| {
+                actual_cargo_remaining -= (item.volume_per_unit * cargo.quantity) as i32;
+                ui.collapsing(format!("Cargo: {} x {}u @ {}v", item.name, cargo.quantity, item.volume_per_unit * cargo.quantity), |ui| {
                     ui.heading(item.name);
                     ui.horizontal_wrapped(|ui| {
                         ui.label(item.description.unwrap_or("n/a".to_string()));
                     });
                     ui.horizontal(|ui| {
-                        ui.label(format!("Volume: {} per unit, ", item.volume_per_unit));
-                        ui.label(format!("{} total", item.volume_per_unit * cargo.quantity));
+                        ui.label(format!("Volume: {} per unit,", item.volume_per_unit));
+                        ui.label(format!("{} units per stack,", item.units_per_stack));
+                        ui.label(format!("{} total volume", item.volume_per_unit * cargo.quantity));
                     });
                     ui.separator();
                     ui.label(format!("Base Value: {} credits", item.base_value));
@@ -146,8 +147,9 @@ fn cargo_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, shi
     ui.separator();
     ui.horizontal(|ui| {
         ui.label("Cargo Capacity:");
-        ui.add_enabled(ship_type.cargo_capacity-actual_cargo_remaining != 0, egui::Label::new(format!("{} /", ship_type.cargo_capacity-actual_cargo_remaining)));
-        ui.label(format!("{} units", ship_type.cargo_capacity));
+        ui.add_enabled(ship_type.cargo_capacity as i32 - actual_cargo_remaining != 0,
+            egui::Label::new(format!("{} /", ship_type.cargo_capacity as i32 - actual_cargo_remaining)));
+        ui.label(format!("{} volume", ship_type.cargo_capacity));
     });
 }
 

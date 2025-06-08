@@ -1,4 +1,4 @@
-use crate::types::items::ItemDefinition;
+use crate::types::{items::ItemDefinition, utility::try_server_only};
 
 use super::*;
 
@@ -6,15 +6,16 @@ use super::*;
 // Reducers ///
 ///////////////////////////////////////////////////////////
 
-#[spacetimedb::reducer]
-pub fn attempt_to_load_cargo_into_ship(ctx: &ReducerContext, ship: ShipInstance, item: ItemDefinition, amount: u16) -> Result<(), String> {
-    let dsl = dsl(ctx);
+// #[spacetimedb::reducer]
+// pub fn try_create_ship_cargo_item(ctx: &ReducerContext, ship: ShipInstance, item: ItemDefinition, amount: u16) -> Result<(), String> {
+//     try_server_only(ctx)?;
+//     let dsl = dsl(ctx);
 
-    if *ship.get_cargo_capacity() >= *item.get_volume_per_unit() * amount {
-        let _ = dsl.create_ship_cargo_item(&ship, &item, 5)?;
+//     if ship.get_remaining_cargo_space() >= *item.get_volume_per_unit() * amount {
+//         let _ = dsl.create_ship_cargo_item(&ship, &item, amount)?; // IF this function is going to stay - it also needs to update the ship instance's used cargo space
 
-        Ok(())
-    } else {
-        Err("Not enough cargo space".to_string())
-    }
-}
+//         Ok(())
+//     } else {
+//         Err("Not enough cargo space".to_string())
+//     }
+// }

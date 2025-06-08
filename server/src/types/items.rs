@@ -46,6 +46,7 @@ pub struct ItemDefinition {
 
     pub base_value: u32, // Base monetary value
     pub volume_per_unit: u16, // How much cargo space one unit takes
+    pub units_per_stack: u8, // How units can be stacked in cargo slot
     // For equipment, additional stats might be here or in a linked table:
     // E.g., damage: Option<u32>, shield_boost: Option<u32>, etc.
     pub metadata: Vec<ItemMetadata>,

@@ -1,7 +1,7 @@
 use spacetimedb::{table, Identity, ReducerContext, SpacetimeType, Timestamp};
-use spacetimedsl::dsl;
+use spacetimedsl::{dsl, Wrapper};
 
-use crate::types::stellarobjects::StellarObjectId;
+use crate::types::{items::utility::get_item_definition, stellarobjects::StellarObjectId};
 
 use super::{common::*, items::ItemDefinitionId, sectors::SectorId};
 
@@ -83,7 +83,8 @@ pub struct ShipInstance {
     pub shields: f32,
     pub energy: f32,
 
-    pub cargo_capacity: u16, // Needs to be manually maintained via ShipCargoItem
+    pub used_cargo_capacity: u16, // Needs to be manually maintained via ShipCargoItem
+    pub max_cargo_capacity: u16, // Needs to be manually maintained via ShipCargoItem
 
     pub ai_state: Option<CurrentAction>, // Current high-level AI state or player command
     pub docked_at_station_id: Option<u64>, // FK to a potential Station table
@@ -124,7 +125,9 @@ pub struct ShipCargoItem {
     pub ship_id: u64, // FK to Ship
     #[wrapped(path = crate::types::items::ItemDefinitionId)]
     pub item_id: u32, // FK to ItemDefinition
-    pub quantity: u16, // How many of this item are currently in the ships' hold
+
+    pub quantity: u16, // How many of this item are currently in this stack
+    //pub stack_size: u8, // TODO: Do we keep this value here to save query time?
 }
 
 #[dsl(plural_name = ship_equipment_slots)]
@@ -156,3 +159,27 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     Ok(())
 }
 
+
+//////////////////////////////////////////////////////////////
+// Impls
+//////////////////////////////////////////////////////////////
+
+impl ShipInstance {
+    pub fn get_remaining_cargo_space(&self) -> u16 {
+        self.get_max_cargo_capacity() - self.get_used_cargo_capacity()
+    }
+    
+    pub fn calculate_used_cargo_space(&self, ctx: &ReducerContext) -> u16 {
+        let dsl = dsl(ctx);
+        let mut used_cargo_space = 0;
+
+        // Collect all the ship items and calculate their volume usage
+        for item in dsl.get_ship_cargo_items_by_ship_id(self.get_id()) {
+            if let Some(item_def) = get_item_definition(ctx, item.get_item_id().value()) {
+                used_cargo_space = item.quantity * item_def.get_volume_per_unit();
+            }
+        }
+
+        used_cargo_space
+    }
+}

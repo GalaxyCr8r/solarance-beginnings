@@ -23,8 +23,8 @@ pub struct Asteroid {
     #[wrapped(path = crate::types::items::ItemDefinitionId)]
     pub resource_item_id: u32, // FK to ItemDefinition (e.g., Iron Ore, Silicon)
 
-    pub current_resources: u32, // Amount of resources left
-    pub initial_resources: u32, // Original amount, for reference or respawn logic
+    pub current_resources: u16, // Amount of resources left
+    pub initial_resources: u16, // Original amount, for reference or respawn logic
 
     pub gfx_key: Option<String>, // For client side
 }

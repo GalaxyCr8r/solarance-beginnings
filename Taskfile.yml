@@ -19,7 +19,7 @@ includes:
 tasks:
 
   # /// SpacetimeDB ///
-  start-spacetime:
+  start:
     desc: "STDB: Start SpacetimeDB"
     cmds:
       - spacetime start
@@ -28,22 +28,22 @@ tasks:
     generates: []
 #    interactive: true
 
-  show-login-token:
+  show-token:
     desc: "STDB: Show Login Token"
     cmds:
       - spacetime login show --token
 
-  list-local-dbs:
+  list-local:
     desc: "STDB: List Local ST Databases"
     cmds:
       - spacetime list
 
-  list-maincloud-dbs:
+  list-maincloud:
     desc: "STDB: List Maincloud ST Databases"
     cmds:
       - spacetime list -s maincloud
 
-  view-logs:
+  logs:
     desc: "STDB: View Logs for Solarance"
     cmds:
       - spacetime logs solarance-beginnings

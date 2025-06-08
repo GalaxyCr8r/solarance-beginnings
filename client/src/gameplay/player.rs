@@ -1,6 +1,5 @@
-use std::f32::consts::PI;
 
-use macroquad::{ math::Vec2, prelude::* };
+use macroquad::prelude::*;
 use spacetimedb_sdk::{DbContext, Table};
 
 use crate::module_bindings::*;
@@ -15,9 +14,11 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
     }
     let mut changed = false; // ONLY request an update if there's actually been a change!
     if let Some(mut controller) = ctx.db.player_controller().identity().find(&ctx.identity()) {
-        game_state.current_target_sobj = controller.targetted_sobj_id.and_then(|id| {
-            ctx.db.stellar_object().id().find(&id)
-        });
+        // Synchronize the controller with the game state.
+         game_state.current_target_sobj = match controller.targetted_sobj_id {
+            Some(id) => ctx.db.stellar_object().id().find(&id),
+            None => None,
+        };
 
         if is_key_down(KeyCode::Right) || is_key_down(KeyCode::D) {
             controller.right = true;

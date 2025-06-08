@@ -2,7 +2,7 @@ use log::info;
 use spacetimedb::{table, Identity, ReducerContext, Timestamp};
 use spacetimedsl::{dsl, Wrapper};
 
-use crate::types::stellarobjects::{GetStellarObjectPlayerWindowRowOptionByIdentity, GetStellarObjectRowOptionById, StellarObjectId};
+use crate::types::{ships::timers::{DeleteShipMiningTimerRowByScheduledId, GetShipMiningTimerRowsByShipSobjId}, stellarobjects::{GetStellarObjectPlayerWindowRowOptionByIdentity, GetStellarObjectRowOptionById, StellarObjectId}};
 
 use super::{common::CurrentAction, ships::ship_object};
 
@@ -105,6 +105,18 @@ pub fn update_player_controller(ctx: &ReducerContext, controller: PlayerControll
                         return Err("You cannot target objects in different sectors!".to_string());
                     }
                 }
+            }
+        }
+    }
+
+    // Clean up player's ship timers.
+    if let Some(previous_controller) = dsl.get_player_controller_by_identity(&controller.identity) {
+        // Check if the player had been trying to mine, if so, remove the mining timers.
+        if previous_controller.mining_laser_on && !controller.mining_laser_on {
+            info!("Player {} no longer mining, removing mining timers.", 
+                get_username(ctx, controller.identity));
+            for mining_timer in dsl.get_ship_mining_timers_by_ship_sobj_id(StellarObjectId::new(previous_controller.stellar_object_id.unwrap())) {
+                dsl.delete_ship_mining_timer_by_scheduled_id(&mining_timer);
             }
         }
     }

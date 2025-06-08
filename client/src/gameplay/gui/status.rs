@@ -8,7 +8,6 @@ use crate::{
     stdb::utils::{
         get_player_ship_instance,
         get_player_transform,
-        get_player_transform_vec2,
         get_transform,
     },
 };
@@ -216,7 +215,7 @@ fn add_targeted_object_status(
                 });
             }
         }
-        _ => {}
+        //_ => {}
     }
     Ok(())
 }

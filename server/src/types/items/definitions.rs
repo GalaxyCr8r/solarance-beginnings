@@ -39,7 +39,8 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
         ItemCategory::Commodity,
         20,
         1,
-        vec![Stacks(COMPACT_STACK_SIZE)],
+        COMPACT_STACK_SIZE,
+        vec![],
         None
     )?;
 
@@ -51,7 +52,8 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
         ItemCategory::Commodity,
         100,
         8,
-        vec![Stacks(LOOSE_STACK_SIZE)],
+        LOOSE_STACK_SIZE,
+        vec![],
         None
     )?;
 
@@ -63,7 +65,8 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
         ItemCategory::Commodity,
         100,
         8,
-        vec![Stacks(LOOSE_STACK_SIZE)],
+        LOOSE_STACK_SIZE,
+        vec![],
         None
     )?;
 
@@ -75,7 +78,8 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
         ItemCategory::Commodity,
         50,
         1,
-        vec![Stacks(COMPACT_STACK_SIZE)],
+        COMPACT_STACK_SIZE,
+        vec![],
         None
     )?;
 
@@ -86,7 +90,8 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
         ItemCategory::ShipEquipment,
         500,
         4,
-        vec![Stacks(LARGE_STACK_SIZE), MiningSpeedMultiplier(1.0), EnergyConsumption(1.75)],
+        LARGE_STACK_SIZE,
+        vec![MiningSpeedMultiplier(1.0), EnergyConsumption(1.75)],
         None
     )?;
 

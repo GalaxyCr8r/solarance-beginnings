@@ -41,7 +41,7 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 pub fn player_controller_upkeep(ctx: &ReducerContext, timer: PlayerControllerTimer) -> Result<(), String> {
   let dsl = dsl(ctx);
 
-  info!("Player con upkeep!");
+  //info!("Player con upkeep!");
 
   let controller = dsl.get_player_controller_by_identity(&timer.player)
     .ok_or(format!("Failed to find the player's controller! ID:{}", timer.player))?;
@@ -65,10 +65,15 @@ pub fn player_controller_upkeep(ctx: &ReducerContext, timer: PlayerControllerTim
   // If the player is trying to mine and is targetting an asteroid, create a mining timer.
   if controller.mining_laser_on && controller.targetted_sobj_id.is_some() {
   //if controller.current_action == CurrentAction::Mining && controller.targetted_sobj_id.is_some() { // Use if we move away from targetted_sobj_id
+    //info!("Player {} is trying to mine asteroid: {}", timer.player.to_abbreviated_hex(), controller.targetted_sobj_id.unwrap());
     if let Some(asteroid_sobj) = dsl.get_stellar_object_by_id(StellarObjectId::new(controller.targetted_sobj_id.unwrap())) {
       if asteroid_sobj.kind == StellarObjectKinds::Asteroid {
-        info!("Player {} is mining asteroid {}!", timer.player.to_abbreviated_hex(), asteroid_sobj.id);
-        let _ = create_mining_timer_for_ship(ctx, &ship_object.get_sobj_id(), &asteroid_sobj.get_id())?;
+        // Check if the player is already mining this asteroid
+        if !dsl.get_ship_mining_timers_by_ship_sobj_id(&ship_object.get_sobj_id()).any(|timer| timer.asteroid_sobj_id == asteroid_sobj.id) {
+          // Only add if there is no mining timer for this ship and asteroid.
+          info!("Player {} started mining asteroid {}!", timer.player.to_abbreviated_hex(), asteroid_sobj.id);
+          let _ = create_mining_timer_for_ship(ctx, &ship_object.get_sobj_id(), &asteroid_sobj.get_id())?;
+        }
       } else {
         info!("Player {} tried to mine a non-asteroid object: {}", timer.player.to_abbreviated_hex(), asteroid_sobj.id);
       }
@@ -86,7 +91,7 @@ pub fn player_controller_upkeep(ctx: &ReducerContext, timer: PlayerControllerTim
     dsl.update_sobj_velocity_by_sobj_id(velocity)?;
     return Ok(()) // Bail out early, nothing else to change!
   }
-  info!("Player changes found!");
+  //info!("Player changes found!");
 
   let ship_instance = dsl.get_ship_instance_by_id(ship_object.get_ship_id())
     .ok_or(format!("Failed to find the player's ship instance! ID:{}", timer.player))?;

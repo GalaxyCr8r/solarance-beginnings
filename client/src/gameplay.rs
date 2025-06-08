@@ -99,7 +99,7 @@ pub async fn gameplay(token : Option<String>) {
         egui_macroquad::draw();
         next_frame().await;
 
-        let _ = player::control_player_ship(&ctx, &mut game_state);
+        let _ = player::control_player_ship(&ctx, &mut game_state); // TODO Alert player of error
 
         if !game_state.chat_window.has_focus {
             if is_key_pressed(KeyCode::E) {
@@ -113,6 +113,7 @@ pub async fn gameplay(token : Option<String>) {
                             controller.targetted_sobj_id = Some(target.id);
                             game_state.current_target_sobj = Some(target);
                         }
+                        let _ = ctx.reducers.update_player_controller(controller); // TODO Alert player of error
                     }
                 }
             }
