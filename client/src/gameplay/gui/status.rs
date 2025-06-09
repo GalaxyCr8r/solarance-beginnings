@@ -194,14 +194,17 @@ fn add_targeted_object_status(
             }
         }
         StellarObjectKinds::Station => {
-            // if let Some(station) = ctx.db.station().sobj_id().find(id) {
+            // if let Some(station) = ctx.db.station().sobj_id().find(&target.id) {
             //     add_status_bar(ui, "Health", station.max_health as f32, station.health, Color32::from_rgb(242, 0, 32));
             // }
         }
         StellarObjectKinds::CargoCrate => {
-            // if let Some(crate_) = ctx.db.cargo_crate().sobj_id().find(id) {
-            //     add_status_bar(ui, "Health", crate_.max_health as f32, crate_.health, Color32::from_rgb(242, 0, 32));
-            // }
+            if let Some(cargo_crate) = ctx.db.cargo_crate().sobj_id().find(&target.id) {
+                if let Some(item_def) = ctx.db.item_definition().id().find(&cargo_crate.item_id) {
+                    ui.label(format!("Contains: {}x {}", cargo_crate.quantity, item_def.name));
+                }
+                //add_status_bar(ui, "Health", crate_.max_health as f32, crate_.health, Color32::from_rgb(242, 0, 32));
+            }
         }
         StellarObjectKinds::JumpGate => {
             if let Some(jump_gate) = ctx.db.jump_gate().sobj_id().find(&target.id) {
