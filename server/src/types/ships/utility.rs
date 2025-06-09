@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use glam::Vec2;
 use log::info;
-use spacetimedb::rand::Rng;
+use spacetimedb::{rand::Rng, TimeDuration};
 
 use crate::types::{items::*, ships::timers::CreateShipEnergyAndShieldTimerRow, stellarobjects::{utility::*, *}};
 
@@ -45,7 +45,7 @@ pub fn create_ship_instance(ctx: &ReducerContext, ship_type: ShipTypeDefinition,
 }
 
 /// Loads cargo into a ship's cargo hold, preferring existing cargo items. It creates new cargo items if necessary, but if it can't it will crate a cargo crate instead.
-pub fn load_cargo_into_ship(ctx: &ReducerContext, ship: &mut ShipInstance, item_def: &ItemDefinition, amount: u16) -> Result<(), String> {
+pub fn attempt_to_load_cargo_into_ship(ctx: &ReducerContext, ship: &mut ShipInstance, item_def: &ItemDefinition, amount: u16) -> Result<(), String> {
     let dsl = dsl(ctx);
     let mut remaining_amount = amount;
     let mut overflow_amount = 0; // How many items could NEVER had fit in the ship and must be made into a crate.
@@ -56,16 +56,17 @@ pub fn load_cargo_into_ship(ctx: &ReducerContext, ship: &mut ShipInstance, item_
     }
 
     ship.used_cargo_capacity = ship.calculate_used_cargo_space(ctx); // Just go through and make sure everything is ship-shape.
-    info!("Attempting to load {}x {} into ship #{} with remaining cargo space of {}v", 
-        amount, item_def.name, ship.id, ship.get_remaining_cargo_space());
+    info!("Attempting to load {}x {} ({}v) into ship #{} with remaining cargo space of {}v", 
+        amount, item_def.name, amount * item_def.volume_per_unit, ship.id, ship.get_remaining_cargo_space());
 
     // First check how many items can actually fit inside the cargo hold
     let additional_items_that_can_fit = ship.get_remaining_cargo_space() / item_def.volume_per_unit;
     if additional_items_that_can_fit < amount {
         overflow_amount = amount - additional_items_that_can_fit;
         remaining_amount = additional_items_that_can_fit;
-        info!("Houston, we have a problem. We can only fit {} more items, but we've been requested to add {}. Sending {} to overflow",
+        info!("WARN: We can only fit {} more items, but we've been requested to add {}. Sending {} to overflow",
             additional_items_that_can_fit, amount, overflow_amount);
+        info!("Expected final used cargo capacity: {} / {}", ship.get_used_cargo_capacity() + (additional_items_that_can_fit * item_def.volume_per_unit), ship.max_cargo_capacity)
     }
 
     // Update already existing stacks of the item in the ship's cargo
@@ -83,7 +84,7 @@ pub fn load_cargo_into_ship(ctx: &ReducerContext, ship: &mut ShipInstance, item_
                     remaining_amount = cargo_item.get_quantity() + remaining_amount - units_per_stack;
                     units_per_stack
                 } else {
-                    info!("Found an existing stack of {} {}, filling to up by {}", cargo_item.get_quantity(), item_def.name, remaining_amount);
+                    info!("Found an existing stack of {} {}, adding {}", cargo_item.get_quantity(), item_def.name, remaining_amount);
                     let tmp_amount = remaining_amount;
                     remaining_amount = 0; // We are loading the rest of the amount!
                     cargo_item.get_quantity() + tmp_amount
@@ -154,7 +155,7 @@ fn create_cargo_crate_nearby_ship(ctx: &ReducerContext, ship: &ShipInstance, ite
         );
     }
     let sobj = create_sobj_with_random_velocity(
-        ctx, StellarObjectKinds::CargoCrate, &ship.get_current_sector_id(), pos.x, pos.y, 0.125);
+        ctx, StellarObjectKinds::CargoCrate, &ship.get_current_sector_id(), pos.x, pos.y, 0.125, Some(0.9995));
     if sobj.is_err() {
         return Err(format!("Failed to create cargo crate for ship {:?}: {}", ship.get_id(), sobj.unwrap_err()));
     }
@@ -163,7 +164,7 @@ fn create_cargo_crate_nearby_ship(ctx: &ReducerContext, ship: &ShipInstance, ite
         sobj.unwrap().get_id(),
         item_def.get_id(),
         quantity,
-        None, // TODO: Set a despawn duration
+        ctx.timestamp.checked_add(TimeDuration::from_duration(Duration::from_secs(24 * 60 * 60))), // TODO cargo crate timer to despawn them
         None
     )?;
     Ok(())

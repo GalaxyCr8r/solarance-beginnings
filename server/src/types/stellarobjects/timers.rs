@@ -53,7 +53,7 @@ pub fn recalculate_sobj_transforms(ctx: &ReducerContext, timer: TransformsTimer)
     let mut update = timer;
     let low_resolution = update.current_update == 0;
 
-    move_ships(ctx)?;
+    move_stellar_objects(ctx)?;
 
     // Update the value in the config table
     update.current_update = (update.current_update + 1) % 5; // TODO: Make this configurable
@@ -83,43 +83,46 @@ pub fn recalculate_sobj_transforms(ctx: &ReducerContext, timer: TransformsTimer)
     Ok(())
 }
 
-pub fn __move_ship(ctx: &ReducerContext, sobj: StellarObject) -> Result<(), String> {
+pub fn __move_stellar_object(ctx: &ReducerContext, sobj: StellarObject) -> Result<(), String> {
     let dsl = dsl(ctx);
     
-    if let Some(mut transform) = dsl.get_sobj_internal_transform_by_sobj_id(&sobj) {
-        if let Some(mut velocity) = dsl.get_sobj_velocity_by_sobj_id(&sobj) {
-            // TODO: Remove this code, this is ONLY for early milestones!
-            if let Some(_) = dsl.get_sobj_turn_left_controller_by_sobj_id(&sobj) {
-                velocity = velocity.from_vec2(Vec2::from_angle(transform.rotation_radians) * 25.0);
-                transform.rotation_radians += PI * 0.01337;
-            }
-            // TODO:RM
-            
-            // Apply velocity to transform
-            transform=transform.from_vec2(transform.to_vec2() + velocity.to_vec2());
-            transform.rotation_radians += velocity.rotation_radians;
-            if transform.rotation_radians.abs() > PI * 2.0 {
-                transform.rotation_radians = transform.rotation_radians.abs() % PI * 2.0;
-            }
-            
-            dsl.update_sobj_velocity_by_sobj_id(velocity)?;
-        }
+    let mut transform = dsl.get_sobj_internal_transform_by_sobj_id(&sobj).ok_or("Couldn't find transform")?;
 
+    if let Some(mut velocity) = dsl.get_sobj_velocity_by_sobj_id(&sobj) {
+        // TODO: Remove this code, this is ONLY for early milestones!
+        if let Some(_) = dsl.get_sobj_turn_left_controller_by_sobj_id(&sobj) {
+            velocity = velocity.from_vec2(Vec2::from_angle(transform.rotation_radians) * 25.0);
+            transform.rotation_radians += PI * 0.01337;
+        }
+        // TODO:RM
+
+        if let Some(dampen) = velocity.auto_dampen {
+            velocity=velocity.from_vec2(velocity.to_vec2() * dampen);
+        }
+        
+        // Apply velocity to transform
+        transform=transform.from_vec2(transform.to_vec2() + velocity.to_vec2());
+        transform.rotation_radians += velocity.rotation_radians;
+        if transform.rotation_radians.abs() > PI * 2.0 {
+            transform.rotation_radians = transform.rotation_radians.abs() % PI * 2.0;
+        }
+        
+        dsl.update_sobj_velocity_by_sobj_id(velocity)?;
         dsl.update_sobj_internal_transform_by_sobj_id(transform)?;
     }
+
     Ok(())
 }
 
 #[spacetimedb::reducer]
-pub fn move_ships(ctx: &ReducerContext) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
+pub fn move_stellar_objects(ctx: &ReducerContext) -> Result<(), String> {
     try_server_only(ctx)?;
+    let dsl = dsl(ctx);
 
     // TODO Cache which sectors have players in them and only do fine updates in those.
 
     for object in dsl.get_all_stellar_objects() {
-        __move_ship(ctx, object)?;
+        __move_stellar_object(ctx, object)?;
     }
     Ok(())
 }

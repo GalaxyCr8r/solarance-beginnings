@@ -122,7 +122,7 @@ pub fn ship_energy_and_shield_timer_reducer(ctx: &ReducerContext, timer: ShipEne
 
     // TODO: Grab shield regen from attached shield modules and the current ship type
     if ship.shields < ship_type.max_shield as f32 {
-        ship.shields += 5.525175;
+        ship.shields += 0.525175;
     }
     if ship.energy > ship_type.max_shield as f32 {
         ship.shields = ship_type.max_shield as f32;
@@ -130,7 +130,7 @@ pub fn ship_energy_and_shield_timer_reducer(ctx: &ReducerContext, timer: ShipEne
 
     // TODO: Grab energy regen from attached special modules and the current ship type
     if ship.energy < ship_type.max_energy as f32 {
-        ship.energy += 5.1275;
+        ship.energy += 0.1275;
     }
     if ship.energy > ship_type.max_energy as f32 {
         ship.energy = ship_type.max_energy as f32;
@@ -232,7 +232,7 @@ pub fn ship_add_cargo_timer_reducer(ctx: &ReducerContext, timer: ShipAddCargoTim
             .ok_or(format!("Failed to get item def for {}", timer.item_id))?;
 
         // Attempt to load it into the ship
-        load_cargo_into_ship(ctx, &mut ship_instance, &item_def, timer.amount)?;
+        attempt_to_load_cargo_into_ship(ctx, &mut ship_instance, &item_def, timer.amount)?;
         
         Ok(())
     } else {

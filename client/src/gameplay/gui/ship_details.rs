@@ -120,14 +120,15 @@ fn ship_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, ship
     });
 }
 
-fn cargo_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, ship_type: ShipTypeDefinition, player_ship: ShipInstance) {
+fn cargo_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, _ship_type: ShipTypeDefinition, player_ship: ShipInstance) {
     ui.heading("Cargo Bay Contents");
     ui.separator();
-    let mut actual_cargo_remaining = ship_type.cargo_capacity as i32;
+    let mut total_cargo_usage = 0;
     for cargo in ctx.db.ship_cargo_item().iter() {
         if cargo.ship_id == player_ship.id { // TECHNICALLY RLS should do this for us.
             if let Some(item) = ctx.db.item_definition().id().find(&cargo.item_id) {
-                actual_cargo_remaining -= (item.volume_per_unit * cargo.quantity) as i32;
+                total_cargo_usage += (item.volume_per_unit * cargo.quantity) as i32;
+
                 ui.collapsing(format!("Cargo: {} x {}u @ {}v", item.name, cargo.quantity, item.volume_per_unit * cargo.quantity), |ui| {
                     ui.heading(item.name);
                     ui.horizontal_wrapped(|ui| {
@@ -147,9 +148,9 @@ fn cargo_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, shi
     ui.separator();
     ui.horizontal(|ui| {
         ui.label("Cargo Capacity:");
-        ui.add_enabled(ship_type.cargo_capacity as i32 - actual_cargo_remaining != 0,
-            egui::Label::new(format!("{} /", ship_type.cargo_capacity as i32 - actual_cargo_remaining)));
-        ui.label(format!("{} volume", ship_type.cargo_capacity));
+        ui.add_enabled(total_cargo_usage != 0,
+            egui::Label::new(format!("{} /", total_cargo_usage)));
+        ui.label(format!("{} volume", player_ship.max_cargo_capacity));
     });
 }
 

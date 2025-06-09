@@ -85,12 +85,12 @@ pub fn create_player_controlled_ship(ctx: &ReducerContext, identity: Identity, u
 
         {
             let item = get_item_definition(ctx, 1000).ok_or("Failed to get item definition")?;
-            let _ = load_cargo_into_ship(ctx, &mut ship, &item, 5)?;
+            let _ = attempt_to_load_cargo_into_ship(ctx, &mut ship, &item, 5)?;
         }
 
         {
             let item = get_item_definition(ctx, 1003).ok_or("Failed to get item definition")?;
-            let _ = load_cargo_into_ship(ctx, &mut ship, &item, 1)?;
+            let _ = attempt_to_load_cargo_into_ship(ctx, &mut ship, &item, 1)?;
         }
 
         dsl.create_ship_equipment_slot(&ship, EquipmentSlotType::MiningLaser, 0, ItemDefinitionId::new(DEFAULT_MINING_LASER_ID))?;

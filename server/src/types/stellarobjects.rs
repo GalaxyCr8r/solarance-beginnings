@@ -51,6 +51,8 @@ pub struct StellarObjectVelocity {
     pub x: f32,
     pub y: f32,
     pub rotation_radians: f32,
+
+    pub auto_dampen: Option<f32>,
 }
 
 /// The current exact transform of a stellar object. Used to populate low/high resolution tables.
