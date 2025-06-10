@@ -1,5 +1,5 @@
 
-use std::{f32::consts::PI, fmt::format, intrinsics::floorf32};
+use std::{f32::consts::PI, fmt::format};
 
 use egui::{Context, FontId, RichText, Ui};
 use macroquad::prelude::*;
@@ -152,8 +152,8 @@ fn cargo_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, _sh
                             // yolo
                             let _ = ctx.reducers.jettison_cargo_from_ship(cargo.ship_id, cargo.id, 2);
                         }
-                        let half = (cargo.quantity / 2.0);
-                        if half > 2 && ui.button(format!("-{}-",,half)).clicked() {
+                        let half = (cargo.quantity as f32 / 2.0).floor() as u16;
+                        if half > 2 && ui.button(format!("-{}-",half)).clicked() {
                             // yolo
                             let _ = ctx.reducers.jettison_cargo_from_ship(cargo.ship_id, cargo.id, half);
                         }

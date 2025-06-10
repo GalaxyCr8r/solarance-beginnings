@@ -29,15 +29,15 @@ pub fn window(egui_ctx: &Context, ctx: &DbConnection, game_state: &mut GameState
         .anchor(Align2::CENTER_TOP, egui::Vec2::new(0.0, 0.0))
         .show(egui_ctx, |ui| {
             ui.horizontal(|ui| {
-              if ui.selectable_label(game_state.details_window_open, RichText::new("SHIP").font(FontId::proportional(20.0))).clicked() {
+              if ui.selectable_label(game_state.details_window_open, RichText::new("[R] SHIP").font(FontId::proportional(20.0))).clicked() {
                 game_state.details_window_open = !game_state.details_window_open;
               }
               ui.separator();
-              if ui.selectable_label(game_state.faction_window_open, RichText::new("FACTION").font(FontId::proportional(20.0))).clicked() {
+              if ui.selectable_label(game_state.faction_window_open, RichText::new("[F]ACTION").font(FontId::proportional(20.0))).clicked() {
                 game_state.faction_window_open = !game_state.faction_window_open;
               }
               ui.separator();
-              if ui.selectable_label(game_state.assets_window_open, RichText::new("ASSETS").font(FontId::proportional(20.0))).clicked() {
+              if ui.selectable_label(game_state.assets_window_open, RichText::new("ASSE[T]S").font(FontId::proportional(20.0))).clicked() {
                 game_state.assets_window_open = !game_state.assets_window_open;
               }
             });
