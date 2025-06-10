@@ -4,6 +4,13 @@ use spacetimedsl::{dsl, DSL};
 
 use super::*;
 
+pub const DEFAULT_MINING_LASER_ID : u32 = 7000;
+
+pub const COMPACT_STACK_SIZE: u8 = 64;
+pub const LOOSE_STACK_SIZE: u8 = 32;
+pub const LARGE_STACK_SIZE: u8 = 16;
+pub const MASSIVE_STACK_SIZE: u8 = 4;
+
 //////////////////////////////////////////////////////////////
 // Init
 //////////////////////////////////////////////////////////////
@@ -22,6 +29,8 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 //////////////////////////////////////////////////////////////
 
 fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
+    use ItemMetadata::*;
+
     // Energy Cells
     dsl.create_item_definition(
         1000,
@@ -30,6 +39,8 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
         ItemCategory::Commodity,
         20,
         1,
+        COMPACT_STACK_SIZE,
+        vec![],
         None
     )?;
 
@@ -41,6 +52,8 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
         ItemCategory::Commodity,
         100,
         8,
+        LOOSE_STACK_SIZE,
+        vec![],
         None
     )?;
 
@@ -52,6 +65,8 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
         ItemCategory::Commodity,
         100,
         8,
+        LOOSE_STACK_SIZE,
+        vec![],
         None
     )?;
 
@@ -63,6 +78,20 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
         ItemCategory::Commodity,
         50,
         1,
+        COMPACT_STACK_SIZE,
+        vec![],
+        None
+    )?;
+
+    dsl.create_item_definition(
+        DEFAULT_MINING_LASER_ID,
+        "Basic Mining Laser",
+        Some("Manufactured by many, functionally the same.".into()),
+        ItemCategory::ShipEquipment,
+        500,
+        4,
+        LARGE_STACK_SIZE,
+        vec![MiningSpeedMultiplier(1.0), EnergyConsumption(1.75)],
         None
     )?;
 

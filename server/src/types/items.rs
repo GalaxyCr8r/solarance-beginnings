@@ -1,3 +1,4 @@
+
 use spacetimedb::{table, ReducerContext, SpacetimeType, Timestamp};
 use spacetimedsl::dsl;
 
@@ -14,6 +15,23 @@ pub enum ItemCategory {
     Special, // Quest items, blueprints, etc.
 }
 
+// Enum for different categories of items
+#[derive(SpacetimeType, Clone, Debug, PartialEq)]
+pub enum ItemMetadata {
+    DamageBoost(f32), // Effects damage output
+    ShieldBoost(f32),
+    CargoCapacityBoost(u16),
+    MiningSpeedMultiplier(f32), // From 0.001 to 10.0
+    EnergyConsumption(f32), // How much energy this item consumes per second.
+    SpecialEffect(String),
+
+    Stacks(u8), // How many of this item can exist in a single stack
+    NoStacking, // This item cannot be stacked in ship cargo
+    NoTrade, // This item cannot be traded
+    NoSell, // This item cannot be sold
+    NoDrop, // Cannot be dropped from inventory
+}
+
 #[dsl(plural_name = item_definitions)]
 #[table(name = item_definition, public)]
 pub struct ItemDefinition {
@@ -28,8 +46,10 @@ pub struct ItemDefinition {
 
     pub base_value: u32, // Base monetary value
     pub volume_per_unit: u16, // How much cargo space one unit takes
+    pub units_per_stack: u8, // How units can be stacked in cargo slot
     // For equipment, additional stats might be here or in a linked table:
     // E.g., damage: Option<u32>, shield_boost: Option<u32>, etc.
+    pub metadata: Vec<ItemMetadata>,
 
     pub gfx_key: Option<String>, // For items that have a visual representation
 }

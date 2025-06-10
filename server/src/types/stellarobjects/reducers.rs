@@ -68,50 +68,50 @@ pub fn create_sobj_random(ctx: &ReducerContext, sector_id: u64) -> Result<(), St
     )
 }
 
-/// Called by clients to update their ships. Will limit the acceleration and etc.
-#[spacetimedb::reducer]
-pub fn update_sobj_velocity(
-    ctx: &ReducerContext,
-    velocity: StellarObjectVelocity
-) -> Result<(), String> {
-    let dsl = dsl(ctx);
+//// Called by clients to update their ships. Will limit the acceleration and etc.
+// #[spacetimedb::reducer]
+// pub fn update_sobj_velocity(
+//     ctx: &ReducerContext,
+//     velocity: StellarObjectVelocity
+// ) -> Result<(), String> {
+//     let dsl = dsl(ctx);
 
-    is_server_or_owner(ctx, velocity.get_sobj_id())?;
+//     is_server_or_owner(ctx, velocity.get_sobj_id())?;
 
-    let mut update_velocity = velocity.clone();
-    //let ship_def = dsl.get_ship_type_definition_by_id(dsl.get_ship_instance_by_id())
+//     let mut update_velocity = velocity.clone();
+//     //let ship_def = dsl.get_ship_type_definition_by_id(dsl.get_ship_instance_by_id())
     
-    match dsl.get_sobj_velocity_by_sobj_id(velocity.get_sobj_id()) {
-        Some(prev_velocity) => {
-            // Check if the acceleration required for the velocity change is too high
-            let acceleration = (velocity.to_vec2() - prev_velocity.to_vec2()).length();
-            if acceleration > 1.0 {
-                //// TODO: Make this variable per ship type
-                //log::info!("Acceleration too high! {:?}", acceleration);
+//     match dsl.get_sobj_velocity_by_sobj_id(velocity.get_sobj_id()) {
+//         Some(prev_velocity) => {
+//             // Check if the acceleration required for the velocity change is too high
+//             let acceleration = (velocity.to_vec2() - prev_velocity.to_vec2()).length();
+//             if acceleration > 1.0 {
+//                 //// TODO: Make this variable per ship type
+//                 //log::info!("Acceleration too high! {:?}", acceleration);
 
-                // Reduce the acceleration down                
-                update_velocity = update_velocity.from_vec2(
-                    prev_velocity.to_vec2() +
-                    (update_velocity.to_vec2() - prev_velocity.to_vec2()).normalize() * 1.0);
-            }
+//                 // Reduce the acceleration down                
+//                 update_velocity = update_velocity.from_vec2(
+//                     prev_velocity.to_vec2() +
+//                     (update_velocity.to_vec2() - prev_velocity.to_vec2()).normalize() * 1.0);
+//             }
 
-            // Check if the absolute velocity is too fast for the ship.
-            if update_velocity.to_vec2().length() > 50.0 {
-                //// TODO: Make this variable per ship type
-                //log::info!("Velocity too high! {:?}", update_velocity.to_vec2().length());
+//             // Check if the absolute velocity is too fast for the ship.
+//             if update_velocity.to_vec2().length() > 50.0 {
+//                 //// TODO: Make this variable per ship type
+//                 //log::info!("Velocity too high! {:?}", update_velocity.to_vec2().length());
 
-                // Reduce the velocity down
-                let new_velocity = update_velocity.to_vec2().normalize() * 50.0;
-                update_velocity = update_velocity.from_vec2(new_velocity);
-            }
-        }
-        None => {
-            return Err("Stellar object's velocity table entry was not found!".to_string());
-        }
-    }
+//                 // Reduce the velocity down
+//                 let new_velocity = update_velocity.to_vec2().normalize() * 50.0;
+//                 update_velocity = update_velocity.from_vec2(new_velocity);
+//             }
+//         }
+//         None => {
+//             return Err("Stellar object's velocity table entry was not found!".to_string());
+//         }
+//     }
 
-    if let Err(e) = dsl.update_sobj_velocity_by_sobj_id(update_velocity) {
-        return Err(e.to_string())
-    }
-    Ok(())
-}
+//     if let Err(e) = dsl.update_sobj_velocity_by_sobj_id(update_velocity) {
+//         return Err(e.to_string())
+//     }
+//     Ok(())
+// }

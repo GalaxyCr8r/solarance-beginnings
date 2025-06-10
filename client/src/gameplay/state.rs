@@ -17,6 +17,9 @@ pub(crate) struct GameState<'a> {
     pub details_window_open: bool,
     pub faction_window_open: bool,
     pub assets_window_open: bool,
+
+    // Gameplay States
+    pub current_target_sobj: Option<StellarObject>,
 }
 
 
@@ -34,5 +37,7 @@ pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
         details_window_open: false,
         faction_window_open: false,
         assets_window_open: false,
+
+        current_target_sobj: None
     }
 }

@@ -5,6 +5,7 @@ tasks:
   build:
     desc: "Client: Build"
     cmds:
+      - cargo fix --bin "solarance-beginnings" --allow-dirty
       - cargo build
 
   build-release:
@@ -17,15 +18,14 @@ tasks:
     cmds:
       - cargo run
 
-  generate-bindings:
+  generate:
     desc: "Client: Generate Bindings"
     cmds:
       - spacetime generate --lang rust --out-dir src/module_bindings --project-path ../server -y
-      - cargo fix --bin "solarance-beginnings" --allow-dirty
 
   run-full:
     desc: "Generate bindings, build, and run client"
     deps:
-      - generate-bindings
+      - generate
       - build
       - run

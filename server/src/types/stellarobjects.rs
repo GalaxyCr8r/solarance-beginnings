@@ -4,7 +4,7 @@ use spacetimedb::{
 };
 use spacetimedsl::{dsl, Wrapper};
 
-use super::{utility::is_server_or_owner, sectors::SectorId};
+use super::sectors::SectorId;
 
 pub mod impls;
 pub mod reducers;
@@ -19,6 +19,7 @@ pub enum StellarObjectKinds {
     Asteroid,
     CargoCrate,
     Station,
+    JumpGate,
 }
 
 /// An object that exists inside a sector.
@@ -50,6 +51,8 @@ pub struct StellarObjectVelocity {
     pub x: f32,
     pub y: f32,
     pub rotation_radians: f32,
+
+    pub auto_dampen: Option<f32>,
 }
 
 /// The current exact transform of a stellar object. Used to populate low/high resolution tables.

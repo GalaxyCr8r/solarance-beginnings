@@ -1,11 +1,11 @@
 {
   "folder-color.pathColors": [
     {
-      "folderPath": "solarance-rust-server\\server\\",
+      "folderPath": "solarance-beginnings-game\\server\\",
       "badge": "🖥️"
     },
     {
-      "folderPath": "solarance-rust-server\\client\\",
+      "folderPath": "solarance-beginnings-game\\client\\",
       "badge": "🕹️"
     },
     {

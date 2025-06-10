@@ -12,7 +12,7 @@ tasks:
     cmds:
       - spacetime publish solarance-beginnings
 
-  publish-clear-db:
+  publish-clear:
     desc: "Server: Publish to Local ST & Clears DB"
     cmds:
       - spacetime publish -c solarance-beginnings -y
@@ -22,7 +22,7 @@ tasks:
     cmds:
       - spacetime publish -s maincloud solarance-beginnings -y
 
-  publish-clear-db-mc:
+  publish-clear-mc:
     desc: "Server: Publish to Local ST & Clears DB"
     cmds:
       - spacetime publish -s maincloud -c solarance-beginnings -y
@@ -32,7 +32,7 @@ tasks:
     cmds:
       - spacetime delete -s maincloud solarance-beginnings
 
-  clear-db:
+  clear:
     desc: "Server: Clear ST Database"
     cmds:
       - spacetime publish solarance-beginnings --delete-data
