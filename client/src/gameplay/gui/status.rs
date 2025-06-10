@@ -95,7 +95,7 @@ fn ship_function_status(ctx: &DbConnection, ui: &mut Ui) {
         if let Some(controller) = ctx.db.player_controller().identity().find(&ctx.identity()) {
             if controller.cargo_bay_open {
                 ui.label(RichText::new("Cargo Bay: Open").color({
-                    if now() % 1.0 < 0.333 {
+                    if now() % 1.0 < 0.45 {
                         Color32::YELLOW
                     } else {
                         Color32::BLACK
@@ -105,12 +105,24 @@ fn ship_function_status(ctx: &DbConnection, ui: &mut Ui) {
                 ui.label(RichText::new("Cargo Bay: Closed").color(Color32::DARK_GRAY));
             }
             if controller.mining_laser_on {
-                ui.label("Mining Beam: On");
+                ui.label(RichText::new("Mining Beam: On").color({
+                    if now() % 1.0 < 0.45 {
+                        Color32::RED
+                    } else {
+                        Color32::BLACK
+                    }
+                }));
             } else {
                 ui.label(RichText::new("Mining Beam: Off").color(Color32::DARK_GRAY));
             }
             if controller.dock {
-                ui.label("Autodocking: On");
+                ui.label(RichText::new("Autodocking: On").color({
+                    if now() % 1.0 < 0.45 {
+                        Color32::LIGHT_BLUE
+                    } else {
+                        Color32::BLACK
+                    }
+                }));
             } else {
                 ui.label(RichText::new("Autodocking: Off").color(Color32::DARK_GRAY));
             }

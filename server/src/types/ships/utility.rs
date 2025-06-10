@@ -54,6 +54,9 @@ pub fn attempt_to_load_cargo_into_ship(ctx: &ReducerContext, ship: &mut ShipInst
     if amount == 0 {
         return Err(format!("Tried to load 0 amount of {} into ship #{:?}", item_def.name, ship.get_id()));
     }
+    if ship.get_sobj_id().is_none() {
+        return Err(format!("attempt_to_load_cargo_into_ship: {:?} has no stellar object!?", ship.get_id()));
+    }
 
     ship.used_cargo_capacity = ship.calculate_used_cargo_space(ctx); // Just go through and make sure everything is ship-shape.
     info!("Attempting to load {}x {} ({}v) into ship #{} with remaining cargo space of {}v", 
@@ -127,7 +130,7 @@ pub fn attempt_to_load_cargo_into_ship(ctx: &ReducerContext, ship: &mut ShipInst
         info!("Not enough cargo space: Remaining {} / Required {}", ship.get_used_cargo_capacity(), item_def.get_volume_per_unit() * overflow_amount);
 
         // If not enough space, create a cargo crate instead
-        create_cargo_crate_nearby_ship(ctx, ship, item_def, overflow_amount)?;
+        create_cargo_crate_nearby_ship(ctx, &ship.get_sobj_id().unwrap(), item_def, overflow_amount)?;
     }
 
     ship.used_cargo_capacity = ship.calculate_used_cargo_space(ctx); // Just go through and make sure everything is ship-shape FINALLY.
@@ -139,29 +142,32 @@ pub fn attempt_to_load_cargo_into_ship(ctx: &ReducerContext, ship: &mut ShipInst
 }
 
 /// Crates a cargo crate nearby the given ship instance. If the ship instance doesn't have an stellarObject, it'll place it randomly in its last known sector.
-fn create_cargo_crate_nearby_ship(ctx: &ReducerContext, ship: &ShipInstance, item_def: &ItemDefinition, quantity: u16) -> Result<(), String> {
+pub fn create_cargo_crate_nearby_ship(ctx: &ReducerContext, ship_sobj: &StellarObjectId, item_def: &ItemDefinition, quantity: u16) -> Result<(), String> {
     let dsl = dsl(ctx);
 
     let mut pos = Vec2::ZERO;
-    if let Some(ship_sobj) = ship.get_sobj_id() {
-        if let Some(transform) = dsl.get_sobj_internal_transform_by_sobj_id(ship_sobj) {
-            pos = transform.to_vec2();
-        }
+    let sobj = dsl.get_stellar_object_by_id(ship_sobj).ok_or(
+        format!("Blah11") // TODO error message here
+    )?;
+    if let Some(transform) = dsl.get_sobj_internal_transform_by_sobj_id(ship_sobj) {
+        pos = transform.to_vec2();
     }
     if pos == Vec2::ZERO {
+        info!("Could not find ship's stellar object, placing randomly...");
         pos = Vec2::new(
             ctx.rng().gen_range(-2048.0..2048.0),
             ctx.rng().gen_range(-2048.0..2048.0)
         );
     }
-    let sobj = create_sobj_with_random_velocity(
-        ctx, StellarObjectKinds::CargoCrate, &ship.get_current_sector_id(), pos.x, pos.y, 0.125, Some(0.9995));
-    if sobj.is_err() {
-        return Err(format!("Failed to create cargo crate for ship {:?}: {}", ship.get_id(), sobj.unwrap_err()));
+    let new_sobj = create_sobj_with_random_velocity(
+        ctx, StellarObjectKinds::CargoCrate, &sobj.get_sector_id(), pos.x, pos.y, 0.125, Some(0.9995));
+    info!("Created cargo crate in sector #{:?} at {}, {}!", &sobj.get_sector_id(), pos.x, pos.y);
+    if new_sobj.is_err() { // TODO this is stupid, and should be done via inline stuff. Fix it.
+        return Err(format!("Failed to create cargo crate for ship {:?}: {}", sobj.id, new_sobj.unwrap_err()));
     }
     let _ = dsl.create_cargo_crate(
-        ship.get_current_sector_id(),
-        sobj.unwrap().get_id(),
+        sobj.get_sector_id(),
+        new_sobj.unwrap().get_id(),
         item_def.get_id(),
         quantity,
         ctx.timestamp.checked_add(TimeDuration::from_duration(Duration::from_secs(24 * 60 * 60))), // TODO cargo crate timer to despawn them

@@ -123,7 +123,7 @@ fn try_mining(ctx: &ReducerContext, controller: &PlayerController, ship_object: 
     let asteroid_sobj = dsl.get_stellar_object_by_id(StellarObjectId::new(controller.targetted_sobj_id.unwrap()))
       .ok_or(format!("Player {} tried to mine a non-existent object: {}", get_username(ctx, controller.identity), controller.targetted_sobj_id.unwrap()))?;
 
-    if asteroid_sobj.kind == StellarObjectKinds::Asteroid {
+    if asteroid_sobj.kind != StellarObjectKinds::Asteroid {
       return Err(format!("Player {} tried to mine a non-asteroid object: {}", get_username(ctx, controller.identity), asteroid_sobj.id));
     }
 

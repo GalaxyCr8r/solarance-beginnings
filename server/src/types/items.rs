@@ -2,6 +2,8 @@
 use spacetimedb::{table, ReducerContext, SpacetimeType, Timestamp};
 use spacetimedsl::dsl;
 
+use crate::types::ships::ShipInstance;
+
 pub mod definitions;
 pub mod utility;
 
@@ -86,4 +88,14 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     definitions::init(ctx)?;
     
     Ok(())
+}
+
+//////////////////////////////////////////////////////////////
+// Impls
+//////////////////////////////////////////////////////////////
+
+impl ItemDefinition {
+    pub fn can_any_of_this_fit_inside_this_ship(&self, ship: &ShipInstance) -> bool {
+        (ship.get_remaining_cargo_space() / self.volume_per_unit) > 0
+    }
 }
