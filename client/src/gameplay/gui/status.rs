@@ -1,4 +1,4 @@
-use egui::{ Align2, Color32, Context, RichText, Ui };
+use egui::{ Align2, Color32, Context, RichText, Ui, Vec2 };
 use macroquad::{miniquad::date::now, prelude::*};
 use spacetimedb_sdk::DbContext;
 
@@ -53,7 +53,14 @@ pub fn window(
                                 );
                             });
                         } else {
-                            ui.label("No Target");
+                            ui.allocate_ui(Vec2 { x: 96.0, y: 32.0 }, |ui| {
+                                ui.vertical(|ui| {
+                                    ui.add_enabled_ui(false, |ui| {
+                                        ui.label("No Target");
+                                    });
+                                    ui.label("Press [E]");
+                                });
+                            });
                         }
                     }
                 }
@@ -94,25 +101,37 @@ fn ship_function_status(ctx: &DbConnection, ui: &mut Ui) {
     ui.vertical(|ui| {
         if let Some(controller) = ctx.db.player_controller().identity().find(&ctx.identity()) {
             if controller.cargo_bay_open {
-                ui.label(RichText::new("Cargo Bay: Open").color({
-                    if now() % 1.0 < 0.333 {
+                ui.label(RichText::new("[Z] Cargo Bay: Open").color({
+                    if now() % 1.0 < 0.45 {
                         Color32::YELLOW
                     } else {
                         Color32::BLACK
                     }
                 }));
             } else {
-                ui.label(RichText::new("Cargo Bay: Closed").color(Color32::DARK_GRAY));
+                ui.label(RichText::new("[Z] Cargo Bay: Closed").color(Color32::DARK_GRAY));
             }
             if controller.mining_laser_on {
-                ui.label("Mining Beam: On");
+                ui.label(RichText::new("[X] Mining Beam: On").color({
+                    if now() % 1.0 < 0.45 {
+                        Color32::RED
+                    } else {
+                        Color32::BLACK
+                    }
+                }));
             } else {
-                ui.label(RichText::new("Mining Beam: Off").color(Color32::DARK_GRAY));
+                ui.label(RichText::new("[X] Mining Beam: Off").color(Color32::DARK_GRAY));
             }
             if controller.dock {
-                ui.label("Autodocking: On");
+                ui.label(RichText::new("[C] Autodocking: On").color({
+                    if now() % 1.0 < 0.45 {
+                        Color32::LIGHT_BLUE
+                    } else {
+                        Color32::BLACK
+                    }
+                }));
             } else {
-                ui.label(RichText::new("Autodocking: Off").color(Color32::DARK_GRAY));
+                ui.label(RichText::new("[C] Autodocking: Off").color(Color32::DARK_GRAY));
             }
         }
     });
@@ -142,7 +161,7 @@ fn add_targeted_object_status(
         }
     };
 
-    ui.label(format!("Target: {}", kind));
+    ui.label(format!("[E] Target: {}", kind));
     ui.label(format!("Distance: {:.0}", distance));
 
     match target.kind {

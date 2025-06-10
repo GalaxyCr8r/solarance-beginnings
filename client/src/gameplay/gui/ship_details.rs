@@ -1,5 +1,5 @@
 
-use std::f32::consts::PI;
+use std::{f32::consts::PI, fmt::format};
 
 use egui::{Context, FontId, RichText, Ui};
 use macroquad::prelude::*;
@@ -141,6 +141,27 @@ fn cargo_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, _sh
                     });
                     ui.separator();
                     ui.label(format!("Base Value: {} credits", item.base_value));
+
+                    ui.horizontal(|ui| {
+                        ui.label("Jettison:");
+                        if ui.button("-1-").clicked() {
+                            // yolo
+                            let _ = ctx.reducers.jettison_cargo_from_ship(cargo.ship_id, cargo.id, 1);
+                        }
+                        if cargo.quantity > 1 && ui.button("-2-").clicked() {
+                            // yolo
+                            let _ = ctx.reducers.jettison_cargo_from_ship(cargo.ship_id, cargo.id, 2);
+                        }
+                        let half = (cargo.quantity as f32 / 2.0).floor() as u16;
+                        if half > 2 && ui.button(format!("-{}-",half)).clicked() {
+                            // yolo
+                            let _ = ctx.reducers.jettison_cargo_from_ship(cargo.ship_id, cargo.id, half);
+                        }
+                        if ui.button("-All-").clicked() {
+                            // yolo
+                            let _ = ctx.reducers.jettison_cargo_from_ship(cargo.ship_id, cargo.id, cargo.quantity);
+                        }
+                    });
                 });
             }
         }
