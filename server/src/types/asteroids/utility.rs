@@ -1,7 +1,7 @@
 
 use glam::Vec2;
 use log::info;
-use spacetimedb::{rand::Rng, spacetimedb_lib::operator::Op};
+use spacetimedb::rand::Rng;
 
 use crate::types::{items::*, sectors::SectorId, stellarobjects::{utility::create_sobj_internal, *}};
 

@@ -1,6 +1,6 @@
 
 
-use crate::types::{asteroids::DeleteAsteroidRowBySobjId, items::DeleteCargoCrateRowBySobjId, jumpgates::DeleteJumpGateRowBySobjId, ships::{timers::DeleteShipMiningTimerRowsByShipSobjId, DeleteShipCargoItemRowsByShipId, DeleteShipEquipmentSlotRowsByShipId, DeleteShipInstanceRowById, DeleteShipObjectRowBySobjId, GetShipInstanceRowOptionById, GetShipObjectRowOptionBySobjId}, stations::DeleteStationRowsBySobjId};
+use crate::types::{asteroids::DeleteAsteroidRowBySobjId, items::DeleteCargoCrateRowBySobjId, jumpgates::DeleteJumpGateRowBySobjId, ships::{timers::DeleteShipMiningTimerRowsByShipSobjId, DeleteShipCargoItemRowsByShipId, DeleteShipEquipmentSlotRowsByShipId, DeleteShipInstanceRowById, DeleteShipObjectRowBySobjId, GetShipObjectRowOptionBySobjId}, stations::DeleteStationRowsBySobjId};
 
 use super::*;
 
@@ -83,9 +83,9 @@ impl StellarObjectVelocity {
 }
 
 impl StellarObjectTransformInternal {
-    // pub fn new(x: f32, y: f32) -> Self {
-    //     Self { x, y }
-    // }
+    pub fn get(ctx: &ReducerContext, id: &StellarObjectId) -> Option<StellarObjectTransformInternal> {
+        dsl(ctx).get_sobj_internal_transform_by_sobj_id(id)
+    }
 
     pub fn to_vec2(&self) -> glam::Vec2 {
         glam::Vec2 { x: self.x, y: self.y }

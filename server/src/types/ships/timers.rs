@@ -1,4 +1,4 @@
-use std::{any::Any, time::Duration};
+use std::time::Duration;
 
 use log::info;
 use spacetimedb::*;
