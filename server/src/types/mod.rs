@@ -13,3 +13,4 @@ pub mod ships;
 pub mod stations;
 pub mod stellarobjects;
 pub mod utility;
+pub mod auth;

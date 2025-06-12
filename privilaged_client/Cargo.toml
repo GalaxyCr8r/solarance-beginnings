@@ -1,0 +1,11 @@
+[package]
+name = "privilaged_client"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+dotenv = "0.15.0"
+egui = "0.31.1"
+egui-macroquad = "0.17.3"
+macroquad = "0.4.14"
+spacetimedb-sdk = "1.1.1"

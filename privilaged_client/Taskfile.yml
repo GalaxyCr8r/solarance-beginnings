@@ -1,0 +1,30 @@
+version: '3'
+
+tasks:
+  build:
+    desc: "PClient: Build"
+    cmds:
+      - cargo fix --bin "solarance-beginnings" --allow-dirty
+      - cargo build
+
+  build-release:
+    desc: "PClient: Build Release"
+    cmds:
+      - cargo build --release
+    
+  run:
+    desc: "PClient: Run"
+    cmds:
+      - cargo run
+
+  generate:
+    desc: "PClient: Generate Bindings"
+    cmds:
+      - spacetime generate --lang rust --out-dir src/module_bindings --project-path ../server -y
+
+  run-full:
+    desc: "Generate bindings, build, and run client"
+    deps:
+      - generate
+      - build
+      - run
