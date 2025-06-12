@@ -239,6 +239,7 @@ fn try_update_target_specific_functions(
         Err(error) => {
             info!("WARNING: {}", error);
             controller.targetted_sobj_id = None;
+            dsl.update_player_controller_by_identity(controller.clone())?;
         }
     }
     Ok(())

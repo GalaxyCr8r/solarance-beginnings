@@ -89,13 +89,14 @@ pub fn target_closest_stellar_object(ctx: &DbConnection, game_state: &mut GameSt
 
     //let player_id = ctx.identity();
     let player_ship_id = get_player_sobj_id(ctx).ok_or("Player doesn't control a stellar object yet!")?;
+    let player_sobj = ctx.db.stellar_object().id().find(&player_ship_id).ok_or("Player doesn't control a stellar object yet!")?;
     let player_transform = get_transform(ctx, player_ship_id)?.to_vec2();
     
     let mut closest_distance = f32::MAX;
     let mut closest_sobj = Option::None;
 
     for sobj in ctx.db.stellar_object().iter() {
-        if sobj.id == player_ship_id || sobj.sector_id != 0 {
+        if sobj.id == player_ship_id || sobj.sector_id != player_sobj.sector_id {
             continue; // Skip the player's ship and non-sector objects
         }
         if let Ok(transform) = get_transform(ctx, sobj.id) {

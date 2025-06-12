@@ -18,9 +18,6 @@ pub fn sector(game_state: &mut GameState) {
 
     let db = &game_state.ctx.db;
     for object in db.stellar_object().iter() {
-        if object.sector_id != 0 {
-            continue;
-        }
         if let Ok(transform) = get_transform(game_state.ctx, object.id) {
             if let Some(ship_object) = db.ship_object().sobj_id().find(&transform.sobj_id) {
                 if let Some(ship_instance) = db.ship_instance().id().find(&ship_object.ship_id) {

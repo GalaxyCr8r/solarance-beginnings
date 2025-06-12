@@ -110,7 +110,7 @@ fn ship_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, ship
             ui.label(format!("Engine Slots: {}/{}", 
                 player_ship.get_all_equipped_of_type(ctx, EquipmentSlotType::Engine).iter().count(), 
                 ship_type.num_engine_slots));
-            ui.label(format!("Minig Laser Slots: {}/{}", 
+            ui.label(format!("Mining Laser Slots: {}/{}", 
                 player_ship.get_all_equipped_of_type(ctx, EquipmentSlotType::MiningLaser).iter().count(), 
                 ship_type.num_mining_laser_slots));
             ui.label(format!("Special Slots: {}/{}", 
@@ -145,20 +145,16 @@ fn cargo_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, _sh
                     ui.horizontal(|ui| {
                         ui.label("Jettison:");
                         if ui.button("-1-").clicked() {
-                            // yolo
                             let _ = ctx.reducers.jettison_cargo_from_ship(cargo.ship_id, cargo.id, 1);
                         }
                         if cargo.quantity > 1 && ui.button("-2-").clicked() {
-                            // yolo
                             let _ = ctx.reducers.jettison_cargo_from_ship(cargo.ship_id, cargo.id, 2);
                         }
                         let half = (cargo.quantity as f32 / 2.0).floor() as u16;
                         if half > 2 && ui.button(format!("-{}-",half)).clicked() {
-                            // yolo
                             let _ = ctx.reducers.jettison_cargo_from_ship(cargo.ship_id, cargo.id, half);
                         }
                         if ui.button("-All-").clicked() {
-                            // yolo
                             let _ = ctx.reducers.jettison_cargo_from_ship(cargo.ship_id, cargo.id, cargo.quantity);
                         }
                     });
