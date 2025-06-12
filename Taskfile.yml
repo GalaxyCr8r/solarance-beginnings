@@ -15,6 +15,9 @@ includes:
   client: 
     taskfile: ./client/Taskfile.yml
     dir: client
+  privileged_client: 
+    taskfile: ./privileged_client/Taskfile.yml
+    dir: privileged_client
 
 tasks:
 

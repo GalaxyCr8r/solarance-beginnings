@@ -4,7 +4,7 @@ use log::info;
 use spacetimedb::{ Identity, ReducerContext, Table };
 use spacetimedsl::{dsl, Wrapper};
 
-use crate::types::{auth::{privilaged_client, PrivilagedClient}, chats::send_global_chat, common::*, items::{definitions::*, utility::get_item_definition, ItemDefinitionId}, players::timers::CreatePlayerControllerTimerRow, ships::utility::*};
+use crate::types::{auth::{privileged_client}, chats::send_global_chat, common::*, items::{definitions::*, utility::get_item_definition, ItemDefinitionId}, players::timers::CreatePlayerControllerTimerRow, ships::utility::*};
 
 use super::{ships::*, stellarobjects::{*, utility::*, reducers::*}};
 use super::{players::*, sectors::* };
@@ -20,13 +20,13 @@ pub fn try_server_only(ctx: &ReducerContext) -> Result<(), String> {
         return Ok(());
     }
 
-    // TODO: Move to privilaged client check? Use security levels
-    if ctx.db.privilaged_client().identity().find(ctx.sender).is_some() {
-        //log::info!("I'm a privilaged client!");
+    // TODO: Move to privileged client check? Use security levels
+    if ctx.db.privileged_client().identity().find(ctx.sender).is_some() {
+        //log::info!("I'm a privileged client!");
         return Ok(());
     }
 
-    // TODO: Add karl's desktop as a privilaged client
+    // TODO: Add karl's desktop as a privileged client
     if ctx.sender.to_string().contains("eyJhbGciOiJSUzI1NiJ9.eyJzdWIiO") {
         //log::info!("I'm Karl's desktop!");
         return Ok(());
