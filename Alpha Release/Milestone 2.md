@@ -18,5 +18,5 @@ outputType: table
 queryType: issue
 columns: [number, title, author, status]
 sort: updated
-query: repo:galaxycr8r/solarance-beginnings is:issue milestone:"# Milestone 2 🚀"
+query: repo:galaxycr8r/solarance-beginnings is:issue milestone:"Milestone 2 🚀"
 ```
