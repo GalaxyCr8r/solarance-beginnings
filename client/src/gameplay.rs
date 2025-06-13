@@ -77,8 +77,8 @@ pub async fn gameplay(token : Option<String>) {
         set_camera(&game_state.camera);
         
         apply_shader_to_screen(
-            render_target,
-            sf_shader,
+            &render_target,
+            &sf_shader,
             game_state.camera.target,
             game_state.camera.target * 0.0001337
         );

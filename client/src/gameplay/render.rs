@@ -9,7 +9,7 @@ use super::{ resources::Resources, state::GameState };
 
 pub fn sector(game_state: &mut GameState) {
     let resources = storage::get::<Resources>();
-    let sun = resources.sun_textures["star.1"];
+    let sun = &resources.sun_textures["star.1"];
     draw_texture(sun, sun.width() * -0.5, sun.height() * -0.5, WHITE);
 
     let mut player_transform = None;
@@ -100,7 +100,7 @@ fn draw_ship(
         });
     }
 
-    let tex = resources.ship_textures[ship_type.gfx_key.unwrap().as_str()];
+    let tex = &resources.ship_textures[ship_type.gfx_key.unwrap().as_str()];
     draw_texture_ex(
         tex,
         position.x - tex.width() * 0.5,
@@ -130,7 +130,7 @@ fn draw_asteroid(
     let angle = position.x + (((now() * 8.0 + (position.y as f64)) % 360.0).to_radians() as f32); // Make the rotation based on position and time
 
     let tex =
-        resources.asteroid_textures[asteroid.gfx_key.unwrap_or("asteroid.1".to_string()).as_str()];
+        &resources.asteroid_textures[asteroid.gfx_key.unwrap_or("asteroid.1".to_string()).as_str()];
     draw_texture_ex(
         tex,
         position.x - tex.width() * 0.5,
@@ -161,7 +161,7 @@ fn draw_crate(
     let angle = position.x + (((now() * 8.0 + (position.y as f64)) % 360.0).to_radians() as f32); // Make the rotation based on position and time
 
     let tex =
-        resources.asteroid_textures[cargo_crate.gfx_key.unwrap_or("crate.0".to_string()).as_str()];
+        &resources.asteroid_textures[cargo_crate.gfx_key.unwrap_or("crate.0".to_string()).as_str()];
     draw_texture_ex(
         tex,
         position.x - tex.width() * 0.5,
@@ -190,7 +190,7 @@ fn draw_jumpgate(
     let position = transform.to_vec2();
 
     let tex =
-        resources.jumpgate_textures
+        &resources.jumpgate_textures
             [jumpgate.gfx_key.unwrap_or("jumpgate_north".to_string()).as_str()];
     draw_texture(tex, position.x - tex.width() * 0.5, position.y - tex.height() * 0.5, WHITE);
 
