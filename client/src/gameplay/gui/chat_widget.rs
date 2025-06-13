@@ -19,7 +19,7 @@ impl Default for GlobalChatMessageType {
 }
 
 #[derive(Default)]
-pub struct WindowState {
+pub struct State {
     pub global_chat_channel: Vec<GlobalChatMessage>,
     pub sector_chat_channel: Vec<SectorChatMessage>,
     pub text: String,
@@ -28,7 +28,7 @@ pub struct WindowState {
     pub hidden: bool
 }
 
-fn contents_hidden(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut WindowState) {
+fn contents_hidden(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
     ui.horizontal(|ui| {
         if ui.button("^").clicked() {
             chat_window.hidden = false;
@@ -50,7 +50,7 @@ fn contents_hidden(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut WindowStat
     }
 }
 
-pub fn window(egui_ctx: &Context, ctx: &DbConnection, chat_window: &mut WindowState) -> Option<egui::InnerResponse<Option<()>>> {
+pub fn draw(egui_ctx: &Context, ctx: &DbConnection, chat_window: &mut State) -> Option<egui::InnerResponse<Option<()>>> {
     egui::Window
         ::new("Chat Window")
         .min_width(256.0)
@@ -106,7 +106,7 @@ pub fn window(egui_ctx: &Context, ctx: &DbConnection, chat_window: &mut WindowSt
         })
 }
 
-fn send_message(ctx: &DbConnection, chat_window: &mut WindowState) {
+fn send_message(ctx: &DbConnection, chat_window: &mut State) {
     match chat_window.selected_tab {
         GlobalChatMessageType::Global => {
                 if let Err(error) = ctx.reducers.send_global_chat(chat_window.text.clone()) {
@@ -143,7 +143,7 @@ fn send_message(ctx: &DbConnection, chat_window: &mut WindowState) {
     }
 }
 
-fn draw_global_chat(ctx: &DbConnection, chat_window: &mut WindowState, ui: &mut Ui) {
+fn draw_global_chat(ctx: &DbConnection, chat_window: &mut State, ui: &mut Ui) {
     let text_style = TextStyle::Body;
     let row_height = ui.text_style_height(&text_style);
     ScrollArea::vertical()
@@ -166,7 +166,7 @@ fn draw_global_chat(ctx: &DbConnection, chat_window: &mut WindowState, ui: &mut 
     );
 }
 
-fn draw_sector_chat(ctx: &DbConnection, chat_window: &mut WindowState, ui: &mut Ui) {
+fn draw_sector_chat(ctx: &DbConnection, chat_window: &mut State, ui: &mut Ui) {
     let text_style = TextStyle::Body;
     let row_height = ui.text_style_height(&text_style);
 

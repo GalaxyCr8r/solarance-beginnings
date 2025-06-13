@@ -12,11 +12,14 @@ pub(crate) struct GameState<'a> {
     pub camera: Camera2D,
 
     // GUI States
-    pub chat_window: chat::WindowState,
-    pub details_window: ship_details::WindowState,
+    pub chat_window: chat_widget::State,
+    pub details_window: ship_details_window::State,
+
+    // GUI Window Booleans
+    pub assets_window_open: bool,
     pub details_window_open: bool,
     pub faction_window_open: bool,
-    pub assets_window_open: bool,
+    pub map_window_open: bool,
 
     // Gameplay States
     pub current_target_sobj: Option<StellarObject>,
@@ -30,13 +33,15 @@ pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
 
         camera: Camera2D::from_display_rect(Rect { x: 0.0, y: 0.0, w: screen_width(), h: screen_height() }),
 
-        chat_window: chat::WindowState {
+        chat_window: chat_widget::State {
             ..Default::default()
         },
-        details_window: ship_details::WindowState::new(),
+        details_window: ship_details_window::State::new(),
+
+        assets_window_open: false,
         details_window_open: false,
         faction_window_open: false,
-        assets_window_open: false,
+        map_window_open: false,
 
         current_target_sobj: None
     }

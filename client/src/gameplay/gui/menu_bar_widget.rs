@@ -4,21 +4,21 @@ use egui::{Align2, Context, FontId, RichText};
 use crate::{gameplay::state::GameState, module_bindings::*};
 
 //#[derive(Default)]
-pub struct WindowState {
+pub struct State {
     // current_tab: CurrentTab, // = CurrentTab::Ship
     // current_equipment_tab: EquipmentSlotType,
 }
 
-impl WindowState {
+impl State {
     pub fn new() -> Self {
-        WindowState {
+        State {
             // current_tab: CurrentTab::Ship,
             // current_equipment_tab: EquipmentSlotType::Weapon
         }
     }
 }
 
-pub fn window(egui_ctx: &Context, ctx: &DbConnection, game_state: &mut GameState) -> Option<egui::InnerResponse<Option<()>>> {
+pub fn draw(egui_ctx: &Context, ctx: &DbConnection, game_state: &mut GameState) -> Option<egui::InnerResponse<Option<()>>> {
     egui::Window
         ::new("Menu Bar")
         .title_bar(false)

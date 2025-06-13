@@ -15,21 +15,21 @@ enum CurrentTab {
 }
 
 //#[derive(Default)]
-pub struct WindowState {
+pub struct State {
     current_tab: CurrentTab, // = CurrentTab::Ship
     current_equipment_tab: EquipmentSlotType,
 }
 
-impl WindowState {
+impl State {
     pub fn new() -> Self {
-        WindowState {
+        State {
             current_tab: CurrentTab::Ship,
             current_equipment_tab: EquipmentSlotType::Weapon
         }
     }
 }
 
-pub fn window(egui_ctx: &Context, ctx: &DbConnection, state: &mut WindowState,  open: &mut bool) -> Option<egui::InnerResponse<Option<()>>> {
+pub fn draw(egui_ctx: &Context, ctx: &DbConnection, state: &mut State,  open: &mut bool) -> Option<egui::InnerResponse<Option<()>>> {
     egui::Window
         ::new("Ship Details")
         .open(open)
@@ -62,7 +62,7 @@ pub fn window(egui_ctx: &Context, ctx: &DbConnection, state: &mut WindowState,  
         })
 }
 
-fn ship_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, ship_type: ShipTypeDefinition, player_ship: ShipInstance) {
+fn ship_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut State, ship_type: ShipTypeDefinition, player_ship: ShipInstance) {
     ui.heading("Detailed Ship Status");
     ui.separator();
     ui.horizontal(|ui| {
@@ -120,7 +120,7 @@ fn ship_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, ship
     });
 }
 
-fn cargo_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, _ship_type: ShipTypeDefinition, player_ship: ShipInstance) {
+fn cargo_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut State, _ship_type: ShipTypeDefinition, player_ship: ShipInstance) {
     ui.heading("Cargo Bay Contents");
     ui.separator();
     let mut total_cargo_usage = 0;
@@ -171,7 +171,7 @@ fn cargo_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, _sh
     });
 }
 
-fn equipment_contents(ui: &mut Ui, ctx: &DbConnection, state: &mut WindowState, ship_type: ShipTypeDefinition, _player_ship: ShipInstance) {
+fn equipment_contents(ui: &mut Ui, ctx: &DbConnection, state: &mut State, ship_type: ShipTypeDefinition, _player_ship: ShipInstance) {
     ui.heading("Equipment");
     ui.separator();
     ui.horizontal_top(|ui| {

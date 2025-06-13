@@ -86,13 +86,14 @@ pub async fn gameplay(token : Option<String>) {
         render::sector(&mut game_state);
 
         egui_macroquad::ui(|egui_ctx| {  
-            gui::debug::window(&egui_ctx, &mut game_state);
+            gui::debug_widget::draw(&egui_ctx, &mut game_state);
+            gui::minimap_widget::draw(&egui_ctx, &mut game_state);
 
             if get_player(&ctx.db, &ctx.identity()).is_some() {
-                gui::chat::window(&egui_ctx, &game_state.ctx, &mut game_state.chat_window);
-                gui::status::window(&egui_ctx, &ctx, &mut game_state);
-                gui::ship_details::window(&egui_ctx, &game_state.ctx, &mut game_state.details_window, &mut game_state.details_window_open);
-                gui::menu_bar::window(&egui_ctx, &ctx, &mut game_state);
+                gui::chat_widget::draw(&egui_ctx, &game_state.ctx, &mut game_state.chat_window);
+                gui::status_widget::window(&egui_ctx, &ctx, &mut game_state);
+                gui::ship_details_window::draw(&egui_ctx, &game_state.ctx, &mut game_state.details_window, &mut game_state.details_window_open);
+                gui::menu_bar_widget::draw(&egui_ctx, &ctx, &mut game_state);
             }
         });
 
