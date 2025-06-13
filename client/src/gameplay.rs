@@ -50,6 +50,7 @@ pub async fn gameplay(token : Option<String>) {
     let (sector_chat_transmitter, sector_chat_receiver) = mpsc::channel::<SectorChatMessage>();
 
     let mut game_state = state::initialize(&ctx);
+    game_state.camera.zoom.y *= -1.0;
 
     let _receiver = register_callbacks(&ctx, global_chat_transmitter, sector_chat_transmitter);
 
