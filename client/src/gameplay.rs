@@ -132,6 +132,9 @@ pub async fn gameplay(token : Option<String>) {
             if is_key_pressed(KeyCode::T) {
                 game_state.assets_window_open = !game_state.assets_window_open;
             }
+            if is_key_pressed(KeyCode::M) {
+                game_state.map_window_open = !game_state.map_window_open;
+            }
         }
 
         if let Ok(message) = global_chat_receiver.try_recv() {

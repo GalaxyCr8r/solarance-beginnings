@@ -1,6 +1,5 @@
-use egui::{Context, FontId, RichText, Ui};
+use egui::{Context, FontId, RichText};
 use macroquad::prelude::*;
-use spacetimedb_sdk::Table;
 
 use crate::{module_bindings::*, stdb::utils::get_player_ship_instance};
 

@@ -1,6 +1,4 @@
-use egui::{Align2, Context, FontId, RichText, Ui};
-use macroquad::prelude::*;
-use spacetimedb_sdk::Table;
+use egui::{Align2, Context};
 
 use crate::{gameplay::state::GameState, module_bindings::*, stdb::utils::get_player_ship_instance};
 

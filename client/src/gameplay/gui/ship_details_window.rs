@@ -1,5 +1,5 @@
 
-use std::{f32::consts::PI, fmt::format};
+use std::f32::consts::PI;
 
 use egui::{Context, FontId, RichText, Ui};
 use macroquad::prelude::*;

@@ -1,6 +1,5 @@
-use egui::{Context, FontId, RichText, Ui};
+use egui::Context;
 use macroquad::prelude::*;
-use spacetimedb_sdk::Table;
 
 use crate::{module_bindings::*, stdb::utils::*};
 
@@ -24,7 +23,7 @@ impl State {
 
 pub fn draw(egui_ctx: &Context, ctx: &DbConnection, state: &mut State,  open: &mut bool) -> Option<egui::InnerResponse<Option<()>>> {
     egui::Window
-        ::new("Window")
+        ::new("Galaxy Map")
         .open(open)
         .title_bar(true)
         .resizable(true)
