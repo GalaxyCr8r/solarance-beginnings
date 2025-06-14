@@ -14,20 +14,24 @@ pub fn sector(game_state: &mut GameState) {
 
     let mut player_transform = None;
     let mut player_ship_type = None;
-    let player_sobj_id = get_player_sobj_id(game_state.ctx);
+    let player_sobj_id = get_player_ship_object(game_state.ctx);
 
     let db = &game_state.ctx.db;
     for object in db.stellar_object().iter() {
+        // Don't continue if isn't in the same sector.
+        if player_sobj_id.as_ref().is_some_and(|ship_obj| ship_obj.sector_id != object.sector_id) {
+            continue;
+        }
+
         if let Ok(transform) = get_transform(game_state.ctx, object.id) {
             if let Some(ship_object) = db.ship_object().sobj_id().find(&transform.sobj_id) {
                 if let Some(ship_instance) = db.ship_instance().id().find(&ship_object.ship_id) {
-                    if
-                        let Some(ship_type) = db
-                            .ship_type_definition()
-                            .id()
-                            .find(&ship_instance.shiptype_id)
+                    if let Some(ship_type) = db
+                        .ship_type_definition()
+                        .id()
+                        .find(&ship_instance.shiptype_id)
                     {
-                        if player_sobj_id.is_some_and(|id| id == object.id) {
+                        if player_sobj_id.as_ref().is_some_and(|ship_obj| ship_obj.sobj_id == object.id) {
                             // Store for later use
                             player_transform = Some(transform);
                             player_ship_type = Some(ship_type);

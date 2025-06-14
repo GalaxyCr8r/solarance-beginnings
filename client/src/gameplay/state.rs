@@ -14,6 +14,7 @@ pub(crate) struct GameState<'a> {
     // GUI States
     pub chat_window: chat_widget::State,
     pub details_window: ship_details_window::State,
+    pub map_window: map_window::State,
 
     // GUI Window Booleans
     pub assets_window_open: bool,
@@ -37,6 +38,7 @@ pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
             ..Default::default()
         },
         details_window: ship_details_window::State::new(),
+        map_window: map_window::State::new(),
 
         assets_window_open: false,
         details_window_open: false,

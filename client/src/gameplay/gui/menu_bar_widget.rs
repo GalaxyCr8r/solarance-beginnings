@@ -1,5 +1,5 @@
 
-use egui::{Align2, Context, FontId, RichText};
+use egui::{Align2, Color32, Context, FontId, Frame, RichText, Shadow};
 
 use crate::{gameplay::state::GameState, module_bindings::*};
 
@@ -26,6 +26,7 @@ pub fn draw(egui_ctx: &Context, ctx: &DbConnection, game_state: &mut GameState) 
         .collapsible(false)
         .movable(false)
         .vscroll(false)
+        .frame(Frame::group(&egui_ctx.style()).fill(Color32::from_rgb(15, 15, 15)).shadow(Shadow::NONE))
         .anchor(Align2::CENTER_TOP, egui::Vec2::new(0.0, 0.0))
         .show(egui_ctx, |ui| {
             ui.horizontal(|ui| {

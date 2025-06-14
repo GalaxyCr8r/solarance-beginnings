@@ -104,6 +104,31 @@ pub fn draw(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::Inne
                 });
             });
 
+            ui.collapsing("Players", |ui| {
+                ScrollArea::vertical()
+                .auto_shrink([false, true])
+                .stick_to_bottom(true)
+                .max_height(screen_height()/4.0)
+                .show(ui, |ui| {
+                    for player in ctx.db.player().iter() {
+                        ui.horizontal(|ui| {
+                            ui.label(format!("[{}] Credits: {}", player.username, player.credits));
+                            if let Some(window) = ctx.db.sobj_player_window().identity().find(&player.identity) {
+                                ui.label(format!("- #{}: {}, {}, {}, {}", window.window, window.tl_x, window.tl_y, window.br_x, window.br_y));
+                            }
+                            if let Some(_controller) = ctx.db.player_controller().identity().find(&player.identity) {
+                                ui.label("Has Controller");
+                            }
+                        });
+                    }
+                    for ship_objs in ctx.db.ship_object().iter() {
+                        ui.horizontal(|ui| {
+                            ui.label(format!("{}: Sector: {}, Ship: {}, SO: {}", ship_objs.player_id.to_abbreviated_hex(), ship_objs.sector_id, ship_objs.ship_id, ship_objs.sobj_id));
+                        });
+                    }
+                });
+            });
+
             // for player_controlled in ctx.db.ship_object().iter() {
             //     ui.label(format!(" - Player Controlled Obj #{} in Sec#{}", player_controlled.sobj_id, player_controlled.sector_id));
             // }

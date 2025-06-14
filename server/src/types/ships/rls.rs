@@ -1,20 +1,19 @@
 use spacetimedb::{client_visibility_filter, Filter};
 
 // You can see your ship object.
-#[client_visibility_filter]
-const SO_PLAYER_FILTER: Filter = Filter::Sql(
-    "SELECT o.* 
-     FROM ship_object o
-     WHERE o.player_id = :sender"
-);
+// #[client_visibility_filter]
+// const SO_PLAYER_FILTER: Filter = Filter::Sql(
+//     "SELECT o.* 
+//      FROM ship_object o
+//      WHERE o.player_id = :sender" // This doesn't matter unless the sector filter will work... so for now the client will have to limit it.
+// );
 
-// // You can see your ship object.
+// You can see your ship object.
 // #[client_visibility_filter]
 // const SO_SECTOR_FILTER: Filter = Filter::Sql(
 //     "SELECT o.* 
 //      FROM ship_object o
-//      JOIN ship_object s
-//      WHERE s.sector_id = o.sector_id" // WILL NOT WORK because, somehow, it causes you no longer to see your player row....????
+//      JOIN ship_object s ON s.sector_id = o.sector_id" // WILL NOT WORK until they fix RLS.
 // );
 
 // You can only see ship instances of ship objects you can see.
