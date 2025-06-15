@@ -63,7 +63,7 @@ pub fn create_player_controlled_ship(
         let ship_type = dsl
             .get_ship_type_definition_by_id(ShipTypeDefinitionId::new(1001))
             .ok_or("Failed to get ship type")?;
-        let mut ship = create_ship_instance(ctx, ship_type, identity, sobj.clone())?;
+        let mut ship = create_ship(ctx, ship_type, identity, sobj.clone())?;
         let _shipobj = dsl.create_ship_object(&ship, &sobj, sobj.get_sector_id(), identity)?;
 
         {

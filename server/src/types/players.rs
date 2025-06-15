@@ -2,16 +2,20 @@
 use spacetimedb::{table, Identity, ReducerContext, Timestamp};
 use spacetimedsl::{dsl, Wrapper};
 
-use super::{common::CurrentAction, ships::ship_object};
+use super::{common::CurrentAction, ships::*};
 
-pub mod timers;
-pub mod reducers;
+//pub mod definitions; // Definitions for initial ingested data.
+pub mod impls; // Impls for this file's structs
+pub mod reducers; // SpacetimeDB Reducers for this file's structs.
+pub mod rls; // Row-level-security rules for this file's structs.
+pub mod timers; // Timers related to this file's structs.
+pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
 #[dsl(plural_name = players)]
 #[table(name = player, public)]
 pub struct Player {
     #[primary_key]
-    pub identity: Identity,
+    pub player_id: Identity,
 
     #[unique]
     pub username: String,
@@ -25,7 +29,7 @@ pub struct Player {
 #[table(name = player_controller, public)]
 pub struct PlayerController {
     #[primary_key]
-    pub identity: Identity,
+    pub player_id: Identity,
 
     pub stellar_object_id: Option<u64>,
 
@@ -53,33 +57,6 @@ pub struct PlayerController {
 
     // Misc
     pub targetted_sobj_id: Option<u64>, // FK to StellarObject
-}
-
-
-//////////////////////////////////////////////////////////////
-// Impls ///
-//////////////////////////////////////////////////////////////
-
-impl Player {
-    pub fn get_ship_id(&self, ctx: &ReducerContext) -> Option<u64> {
-        if let Some(player_controlled_stellar_object) = ctx.db.ship_object().player_id().filter(self.identity).last() {
-            Some(player_controlled_stellar_object.sobj_id)
-        } else {
-            None
-        }
-    }
-}
-
-pub fn get_username(ctx: &ReducerContext, id:Identity) -> String {
-    if let Some(player) = ctx.db.player().identity().find(id) {
-        player.username
-    } else {
-        if ctx.sender == ctx.identity() {
-            "SERVER".to_string()
-        } else {
-            id.to_abbreviated_hex().to_string()
-        }
-    }
 }
 
 //////////////////////////////////////////////////////////////

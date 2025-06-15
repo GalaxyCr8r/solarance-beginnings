@@ -1,6 +1,6 @@
 
 
-use crate::types::{asteroids::DeleteAsteroidRowBySobjId, items::DeleteCargoCrateRowBySobjId, jumpgates::DeleteJumpGateRowBySobjId, ships::{timers::DeleteShipMiningTimerRowsByShipSobjId, DeleteShipCargoItemRowsByShipId, DeleteShipEquipmentSlotRowsByShipId, DeleteShipInstanceRowById, DeleteShipObjectRowBySobjId, GetShipObjectRowOptionBySobjId}, stations::DeleteStationRowsBySobjId};
+use crate::types::{asteroids::*, items::*, jumpgates::*, ships::{timers::*, *}, stations::*};
 
 use super::*;
 

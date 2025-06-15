@@ -1,6 +1,13 @@
 use spacetimedb::{table, Identity, ReducerContext};
 use spacetimedsl::dsl;
 
+// pub mod definitions; // Definitions for initial ingested data.
+// pub mod impls; // Impls for this file's structs
+// pub mod reducers; // SpacetimeDB Reducers for this file's structs.
+// pub mod rls; // Row-level-security rules for this file's structs.
+// pub mod timers; // Timers related to this file's structs.
+// pub mod utility; // Utility functions (NOT reducers) for this file's structs.
+
 #[dsl(plural_name = faction_definitions)]
 #[table(name = faction_definition, public)]
 pub struct FactionDefinition {

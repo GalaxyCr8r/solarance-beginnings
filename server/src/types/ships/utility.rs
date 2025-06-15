@@ -5,7 +5,7 @@ use glam::Vec2;
 use log::info;
 use spacetimedb::{rand::Rng, TimeDuration};
 
-use crate::types::{items::*, ships::timers::CreateShipEnergyAndShieldTimerRow, stellarobjects::{utility::*, *}};
+use crate::types::{factions::FactionDefinitionId, items::*, ships::timers::CreateShipEnergyAndShieldTimerRow, stellarobjects::{utility::*, *}};
 
 use super::{*};
 
@@ -20,61 +20,119 @@ pub fn same_sector_from_ids(ctx: &ReducerContext, id1: &StellarObjectId, id2: &S
     false
 }
 
-pub fn create_ship_instance(ctx: &ReducerContext, ship_type: ShipTypeDefinition, identity: Identity, sobj: StellarObject) -> Result<ShipInstance, String> {
+pub fn create_ship_from_sobj(ctx: &ReducerContext, ship_type: ShipTypeDefinition, identity: Identity, sobj: StellarObject) -> Result<Ship, String> {
     let dsl = dsl(ctx);
 
-    match dsl.create_ship_instance(
-            ship_type.get_id(),
-            Some(identity), None, 
-            Some(sobj.get_id()), 
-            sobj.get_sector_id(), 
-            ship_type.max_health.into(),
-            ship_type.max_shield.into(),
-            ship_type.max_energy.into(),
-            0,
-            ship_type.cargo_capacity, 
-            None, None,
-            ctx.timestamp) {
-                Ok(ship) => {
-                    dsl.create_ship_energy_and_shield_timer(
-                        spacetimedb::ScheduleAt::Interval(Duration::from_millis(500).into()), ship.get_id())?;
-                    Ok(ship)
-                },
-                Err(e) => Err(e.to_string())
-            }
+    let ship_global = dsl.create_ship_global()?;
+
+    let ship = match dsl.create_ship(
+        &ship_global,
+        ship_type.get_id(),
+        &sobj,
+        sobj.get_sector_id(),
+        identity,
+        FactionDefinitionId::new(0)) {
+            Ok(ship) => {
+                dsl.create_ship_energy_and_shield_timer(
+                    spacetimedb::ScheduleAt::Interval(Duration::from_millis(500).into()), 
+                    ship.get_id(), 
+                    ship_type.get_id())?;
+                Ok(ship)
+            },
+            Err(e) => Err(e.to_string())
+        }?;
+
+    dsl.create_ship_status(&ship_global, 
+        sobj.get_sector_id(), 
+        identity, 
+        ship_type.max_health as f32,
+        ship_type.max_shields as f32,
+        ship_type.max_energy as f32,
+        0,
+        ship_type.cargo_capacity,
+        None)?;
+
+    return Ok(ship);
 }
 
-/// Loads cargo into a ship's cargo hold, preferring existing cargo items. It creates new cargo items if necessary, but if it can't it will crate a cargo crate instead.
-pub fn attempt_to_load_cargo_into_ship(ctx: &ReducerContext, ship: &mut ShipInstance, item_def: &ItemDefinition, amount: u16) -> Result<(), String> {
+pub fn create_ship_docked_at_station(ctx: &ReducerContext, ship_type: ShipTypeDefinition, identity: Identity, station: Station) -> Result<DockedShip, String> {
+    let dsl = dsl(ctx);
+
+    let ship_global = dsl.create_ship_global()?;
+
+    let ship = match dsl.create_docked_ship(
+        &ship_global,
+        ship_type.get_id(),
+        &station,
+        station.get_sector_id(),
+        identity,
+        FactionDefinitionId::new(0)) {
+            Ok(ship) => {
+                dsl.create_ship_energy_and_shield_timer(
+                    spacetimedb::ScheduleAt::Interval(Duration::from_millis(500).into()), 
+                    ship.get_id(), 
+                    ship_type.get_id())?;
+                Ok(ship)
+            },
+            Err(e) => Err(e.to_string())
+        }?;
+
+    dsl.create_ship_status(&ship_global, 
+        station.get_sector_id(), 
+        identity, 
+        ship_type.max_health as f32,
+        ship_type.max_shields as f32,
+        ship_type.max_energy as f32,
+        0,
+        ship_type.cargo_capacity,
+        None)?;
+
+    return Ok(ship);
+}
+
+/// Docks the given Ship to the given station it is docking at and returns the new DockedShip row.
+pub fn dock_ship(ctx: &ReducerContext, docking_ship: Ship, station: Station) -> Result<DockedShip, String> {
+    todo!()
+}
+
+/// Undocks the given DockedShip on top of the station it was docked at and returns the new Ship row.
+pub fn undock_ship(ctx: &ReducerContext, docked_ship: DockedShip) -> Result<Ship, String> {
+    todo!()
+}
+
+/// Loads cargo into a ship's cargo hold, preferring existing cargo items. 
+/// It creates new cargo items if necessary, but if it can't it will crate a cargo crate instead.
+pub fn attempt_to_load_cargo_into_ship(ctx: &ReducerContext, 
+        ship_status: &mut ShipStatus, 
+        ship_object: Ship,
+        item_def: &ItemDefinition, 
+        amount: u16) -> Result<(), String> {
     let dsl = dsl(ctx);
     let mut remaining_amount = amount;
     let mut overflow_amount = 0; // How many items could NEVER had fit in the ship and must be made into a crate.
     let units_per_stack = *item_def.get_units_per_stack() as u16;
 
     if amount == 0 {
-        return Err(format!("Tried to load 0 amount of {} into ship #{:?}", item_def.name, ship.get_id()));
-    }
-    if ship.get_sobj_id().is_none() {
-        return Err(format!("attempt_to_load_cargo_into_ship: {:?} has no stellar object!?", ship.get_id()));
+        return Err(format!("Tried to load 0 amount of {} into ship #{:?}", item_def.name, ship_status.get_id()));
     }
 
-    ship.used_cargo_capacity = ship.calculate_used_cargo_space(ctx); // Just go through and make sure everything is ship-shape.
+    ship_status.used_cargo_capacity = ship_status.calculate_used_cargo_space(ctx); // Just go through and make sure everything is ship-shape.
     info!("Attempting to load {}x {} ({}v) into ship #{} with remaining cargo space of {}v", 
-        amount, item_def.name, amount * item_def.volume_per_unit, ship.id, ship.get_remaining_cargo_space());
+        amount, item_def.name, amount * item_def.volume_per_unit, ship_status.id, ship_status.get_remaining_cargo_space());
 
     // First check how many items can actually fit inside the cargo hold
-    let additional_items_that_can_fit = ship.get_remaining_cargo_space() / item_def.volume_per_unit;
+    let additional_items_that_can_fit = ship_status.get_remaining_cargo_space() / item_def.volume_per_unit;
     if additional_items_that_can_fit < amount {
         overflow_amount = amount - additional_items_that_can_fit;
         remaining_amount = additional_items_that_can_fit;
         info!("WARN: We can only fit {} more items, but we've been requested to add {}. Sending {} to overflow",
             additional_items_that_can_fit, amount, overflow_amount);
-        info!("Expected final used cargo capacity: {} / {}", ship.get_used_cargo_capacity() + (additional_items_that_can_fit * item_def.volume_per_unit), ship.max_cargo_capacity)
+        info!("Expected final used cargo capacity: {} / {}", ship_status.get_used_cargo_capacity() + (additional_items_that_can_fit * item_def.volume_per_unit), ship_status.max_cargo_capacity)
     }
 
     // Update already existing stacks of the item in the ship's cargo
     if remaining_amount > 0 {
-        for mut cargo_item in dsl.get_ship_cargo_items_by_ship_id(ship.get_id()) {
+        for mut cargo_item in dsl.get_ship_cargo_items_by_ship_id(ship_status.get_id()) {
             if cargo_item.get_item_id() == item_def.get_id() {
                 // If it exists, then try to fill the stack.
                 if cargo_item.quantity == units_per_stack {
@@ -95,7 +153,7 @@ pub fn attempt_to_load_cargo_into_ship(ctx: &ReducerContext, ship: &mut ShipInst
 
                 // If we got this far, then we're updating the cargo item.
                 cargo_item.set_quantity(new_amount);
-                info!("Updating cargo item for ship #{:?}: {}x {}", ship.get_id(), new_amount, item_def.name);
+                info!("Updating cargo item for ship #{:?}: {}x {}", ship_status.get_id(), new_amount, item_def.name);
                 let _ = dsl.update_ship_cargo_item_by_id(cargo_item)?;
             }
         }
@@ -104,7 +162,7 @@ pub fn attempt_to_load_cargo_into_ship(ctx: &ReducerContext, ship: &mut ShipInst
     // If there's still remaining amount that isn't in the overflow, then that must mean we still have cargo space for them.
     if remaining_amount > 0 {
         info!("Remaining amount to load {}x {} into ship #{} with remaining cargo space of {}v", 
-            remaining_amount, item_def.name, ship.id, ship.get_remaining_cargo_space());
+            remaining_amount, item_def.name, ship_status.id, ship_status.get_remaining_cargo_space());
         
         // Make as many stacks as you need to.
         while remaining_amount > 0 {
@@ -117,27 +175,27 @@ pub fn attempt_to_load_cargo_into_ship(ctx: &ReducerContext, ship: &mut ShipInst
             remaining_amount -= stack_amount;
 
             // Create the cargo item
-            info!("Creating cargo item for ship #{:?}: {}x {}", ship.get_id(), stack_amount, item_def.name);
-            if let Err(e) = dsl.create_ship_cargo_item(ship.get_id(), item_def, stack_amount.into()) {
-                info!("Failed to create cargo item for ship {:?}, adding {} to overflow: {}", ship.get_id(), stack_amount, e);
+            info!("Creating cargo item for ship #{:?}: {}x {}", ship_status.get_id(), stack_amount, item_def.name);
+            if let Err(e) = dsl.create_ship_cargo_item(ship_status.get_id(), item_def, stack_amount.into()) {
+                info!("Failed to create cargo item for ship {:?}, adding {} to overflow: {}", ship_status.get_id(), stack_amount, e);
                 overflow_amount += stack_amount;
             }
         }
     }
-    ship.used_cargo_capacity = ship.calculate_used_cargo_space(ctx); // Just go through and make sure everything is ship-shape.
+    ship_status.used_cargo_capacity = ship_status.calculate_used_cargo_space(ctx); // Just go through and make sure everything is ship-shape.
 
     if overflow_amount > 0 {
-        info!("Not enough cargo space: Remaining {} / Required {}", ship.get_used_cargo_capacity(), item_def.get_volume_per_unit() * overflow_amount);
+        info!("Not enough cargo space: Remaining {} / Required {}", ship_status.get_used_cargo_capacity(), item_def.get_volume_per_unit() * overflow_amount);
 
         // If not enough space, create a cargo crate instead
-        create_cargo_crate_nearby_ship(ctx, &ship.get_sobj_id().unwrap(), item_def, overflow_amount)?;
+        create_cargo_crate_nearby_ship(ctx, &ship_object.get_sobj_id(), item_def, overflow_amount)?;
     }
 
-    ship.used_cargo_capacity = ship.calculate_used_cargo_space(ctx); // Just go through and make sure everything is ship-shape FINALLY.
-    if ship.used_cargo_capacity > ship.max_cargo_capacity {
+    ship_status.used_cargo_capacity = ship_status.calculate_used_cargo_space(ctx); // Just go through and make sure everything is ship-shape FINALLY.
+    if ship_status.used_cargo_capacity > ship_status.max_cargo_capacity {
         return Err("Despite our best efforts, we ended up with more cargo used than is maximum!".to_string());
     }
-    let _ = dsl.update_ship_instance_by_id(ship.clone())?;
+    let _ = dsl.update_ship_status_by_id(ship_status.clone())?;
     Ok(())
 }
 
@@ -145,29 +203,27 @@ pub fn attempt_to_load_cargo_into_ship(ctx: &ReducerContext, ship: &mut ShipInst
 pub fn create_cargo_crate_nearby_ship(ctx: &ReducerContext, ship_sobj: &StellarObjectId, item_def: &ItemDefinition, quantity: u16) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    let mut pos = Vec2::ZERO;
     let sobj = dsl.get_stellar_object_by_id(ship_sobj).ok_or(
-        format!("Blah11") // TODO error message here
+        format!("Could not find Stellar Object #{} for a Ship!", ship_sobj.value()) // TODO error message here
     )?;
-    if let Some(transform) = dsl.get_sobj_internal_transform_by_sobj_id(ship_sobj) {
-        pos = transform.to_vec2();
-    }
-    if pos == Vec2::ZERO {
-        info!("Could not find ship's stellar object, placing randomly...");
-        pos = Vec2::new(
+    let pos= if let Some(transform) = dsl.get_sobj_internal_transform_by_sobj_id(ship_sobj) {
+        transform.to_vec2()
+    } else {
+        info!("Could not find ship's stellar object transform, placing randomly...");
+        Vec2::new(
             ctx.rng().gen_range(-2048.0..2048.0),
             ctx.rng().gen_range(-2048.0..2048.0)
-        );
-    }
+        )
+    };
+
     let new_sobj = create_sobj_with_random_velocity(
-        ctx, StellarObjectKinds::CargoCrate, &sobj.get_sector_id(), pos.x, pos.y, 0.125, Some(0.9995));
+        ctx, StellarObjectKinds::CargoCrate, &sobj.get_sector_id(), pos.x, pos.y, 0.125, Some(0.9995))?;
+
     info!("Created cargo crate in sector #{:?} at {}, {}!", &sobj.get_sector_id(), pos.x, pos.y);
-    if new_sobj.is_err() { // TODO this is stupid, and should be done via inline stuff. Fix it.
-        return Err(format!("Failed to create cargo crate for ship {:?}: {}", sobj.id, new_sobj.unwrap_err()));
-    }
+    
     let _ = dsl.create_cargo_crate(
         sobj.get_sector_id(),
-        new_sobj.unwrap().get_id(),
+        new_sobj.get_id(),
         item_def.get_id(),
         quantity,
         ctx.timestamp.checked_add(TimeDuration::from_duration(Duration::from_secs(24 * 60 * 60))), // TODO cargo crate timer to despawn them

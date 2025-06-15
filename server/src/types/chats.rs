@@ -2,9 +2,14 @@ use log::info;
 use spacetimedb::{table, Identity, ReducerContext, Timestamp};
 use spacetimedsl::{dsl, Wrapper};
 
-use crate::types::{players::get_username, sectors::SectorId, ships::GetShipObjectRowsByPlayerId};
+use crate::types::{players::get_username, sectors::SectorId, ships::*};
 
-pub mod rls;
+pub mod definitions; // Definitions for initial ingested data.
+pub mod impls; // Impls for this file's structs
+pub mod reducers; // SpacetimeDB Reducers for this file's structs.
+pub mod rls; // Row-level-security rules for this file's structs.
+pub mod timers; // Timers related to this file's structs.
+pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
 #[dsl(plural_name = global_chat_messages)]
 #[table(name = global_chat_message, public)]
@@ -14,7 +19,7 @@ pub struct GlobalChatMessage {
     #[wrap]
     pub id: u64,
 
-    pub identity: Identity, // FK to Player
+    pub player_id: Identity, // FK to Player
 
     pub message: String,
 
@@ -29,7 +34,7 @@ pub struct SectorChatMessage {
     #[wrap]
     pub id: u64,
 
-    pub identity: Identity, // FK to Player
+    pub player_id: Identity, // FK to Player
 
     #[index(btree)] // To find asteroids in a specific sector
     #[wrapped(path = crate::types::sectors::SectorId)]
@@ -48,7 +53,7 @@ pub struct FactionChatMessage {
     #[wrap]
     pub id: u64,
 
-    pub identity: Identity, // FK to Player
+    pub player_id: Identity, // FK to Player
 
     #[index(btree)]
     #[wrapped(path = crate::types::factions::FactionDefinitionId)]

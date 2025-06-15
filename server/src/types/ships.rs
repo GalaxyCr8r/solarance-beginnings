@@ -2,15 +2,14 @@ use log::info;
 use spacetimedb::{table, Identity, ReducerContext, SpacetimeType, Timestamp};
 use spacetimedsl::{dsl, Wrapper};
 
-use crate::types::{items::utility::get_item_definition, stellarobjects::StellarObjectId};
+use crate::types::{items::utility::*, stellarobjects::StellarObjectId, common::*, items::*, sectors::*, stations::*};
 
-use super::{common::*, items::ItemDefinitionId, sectors::SectorId};
-
-pub mod definitions;
-pub mod reducers;
-pub mod rls;
-pub mod timers;
-pub mod utility;
+pub mod definitions; // Definitions for initial ingested data.
+pub mod impls; // Impls for this file's structs
+pub mod reducers; // SpacetimeDB Reducers for this file's structs.
+pub mod rls; // Row-level-security rules for this file's structs.
+pub mod timers; // Timers related to this file's structs.
+pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
 pub enum ShipClass {
@@ -38,7 +37,7 @@ pub struct ShipTypeDefinition {
     pub class: ShipClass,
 
     pub max_health: u16,
-    pub max_shield: u16,
+    pub max_shields: u16,
     pub max_energy: u16,
 
     pub base_speed: f32,
@@ -56,29 +55,20 @@ pub struct ShipTypeDefinition {
     pub gfx_key: Option<String>, // Key for client to look up 2D sprite/model
 }
 
-#[dsl(plural_name = ship_instances)]
-#[table(name = ship_instance, public)]
-pub struct ShipInstance {
+
+#[dsl(plural_name = ship_statuses)]
+#[table(name = ship_status, public)]
+pub struct ShipStatus {
     #[primary_key]
-    #[auto_inc]
-    #[wrap]
+    #[wrapped(path = ShipGlobalId)]
     pub id: u64,
-
-    #[index(btree)]
-    #[wrapped(path = ShipTypeDefinitionId)]
-    pub shiptype_id: u32,           // FK to ShipTypeDefinition.id
-
-    pub owner_id: Option<Identity>,      // FK to player.id
-
-    #[wrapped(path = crate::types::factions::FactionDefinitionId)]
-    pub faction_id: Option<u32>,    // FK to faction.id
-
-    #[wrapped(path = StellarObjectId)]
-    pub sobj_id: Option<u64>, // FK: StellarObject
 
     #[index(btree)] // To easily find ships in a given sector
     #[wrapped(path = SectorId)]
-    pub current_sector_id: u64, // FK to Sector.id // Needs to be kept in sync with StellarObject.sector_id
+    pub sector_id: u64, // FK to Sector.id // Needs to be kept in sync with StellarObject.sector_id
+
+    #[index(btree)]
+    pub player_id: Identity,      // FK to player.id // You should only be able to see your ship, or other ships in your sector.
 
     pub health: f32,
     pub shields: f32,
@@ -88,18 +78,28 @@ pub struct ShipInstance {
     pub max_cargo_capacity: u16, // Needs to be manually maintained via ShipCargoItem
 
     pub ai_state: Option<CurrentAction>, // Current high-level AI state or player command
-    pub docked_at_station_id: Option<u64>, // FK to a potential Station table
-
-    pub last_update_ts: Timestamp, // For server-side logic or client interpolation
 }
 
-#[dsl(plural_name = ship_objects, unique_index(name = ship_and_sobj))]
-#[table(name = ship_object, public, index(name = ship_and_sobj, btree(columns = [ship_id, sobj_id])))]
-// This table duplicates PlayerControlledStellarObject, but because RLS doesn't allow NULLs we kind-of have to.
-pub struct ShipObject { 
+/// Because we can have ships created both docked and not docked - we need a central table to create the IDs in a controlled way.
+#[dsl(plural_name = ship_globals)]
+#[table(name = ship_global, public)]
+pub struct ShipGlobal { 
+    #[primary_key] // Due to Ship/DockedShip tables both wanting the use the same ID, we can no longer use AutoInc for them
+    #[auto_inc]
+    #[wrap]
+    pub id: u64,
+}
+
+#[dsl(plural_name = ships)]
+#[table(name = ship, public)]
+pub struct Ship { 
     #[primary_key]
-    #[wrapped(path = ShipInstanceId)]
-    pub ship_id: u64, // FK: Ship
+    #[wrapped(path = ShipGlobalId)]
+    pub id: u64,
+
+    #[index(btree)]
+    #[wrapped(path = ShipTypeDefinitionId)]
+    pub shiptype_id: u32, // FK to ShipTypeDefinition.id
 
     #[unique]
     #[wrapped(path = StellarObjectId)]
@@ -111,6 +111,35 @@ pub struct ShipObject {
 
     #[index(btree)]
     pub player_id: Identity, // FK to player.id
+    
+    #[wrapped(path = crate::types::factions::FactionDefinitionId)]
+    pub faction_id: u32, // FK to faction.id
+}
+
+#[dsl(plural_name = docked_ships)]
+#[table(name = docked_ship, public)] // TODO Create utility functions to switch ships between docked and non-docked
+pub struct DockedShip { 
+    #[primary_key]
+    #[wrapped(path = ShipGlobalId)]
+    pub id: u64,
+
+    #[index(btree)]
+    #[wrapped(path = ShipTypeDefinitionId)]
+    pub shiptype_id: u32, // FK to ShipTypeDefinition.id
+
+    #[index(btree)]
+    #[wrapped(path = StationId)]
+    pub station_id: u64, // FK: Station
+
+    #[index(btree)]
+    #[wrapped(path = SectorId)]
+    pub sector_id: u64, // FK to Sector ID - Only because actually referencing the player's stellar object would require three table hits.
+
+    #[index(btree)]
+    pub player_id: Identity, // FK to player.id
+    
+    #[wrapped(path = crate::types::factions::FactionDefinitionId)]
+    pub faction_id: u32, // FK to faction.id
 }
 
 #[dsl(plural_name = ship_cargo_items)]
@@ -122,8 +151,9 @@ pub struct ShipCargoItem {
     pub id: u64,
 
     #[index(btree)] // To query all cargo for a specific ship
-    #[wrapped(path = ShipInstanceId)]
-    pub ship_id: u64, // FK to Ship
+    #[wrapped(path = ShipGlobalId)]
+    pub ship_id: u64, // FK to ShipGlobal
+
     #[wrapped(path = crate::types::items::ItemDefinitionId)]
     pub item_id: u32, // FK to ItemDefinition
 
@@ -139,9 +169,9 @@ pub struct ShipEquipmentSlot {
     #[wrap]
     pub id: u64,
 
-    #[wrapped(path = ShipInstanceId)]
     #[index(btree)] // To query all equipment for a specific ship
-    pub ship_id: u64, // FK to Ship
+    #[wrapped(path = ShipGlobalId)]
+    pub ship_id: u64, // FK to ShipGlobal
 
     pub slot_type: EquipmentSlotType,
     pub slot_index: u8, // E.g., Weapon Slot 0, Weapon Slot 1 within its type
@@ -156,40 +186,8 @@ pub struct ShipEquipmentSlot {
 
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     definitions::init(ctx)?;
+    timers::init(ctx)?;
     
     Ok(())
 }
 
-
-//////////////////////////////////////////////////////////////
-// Impls
-//////////////////////////////////////////////////////////////
-
-impl ShipInstance {
-    pub fn get(ctx: &ReducerContext, id: &ShipInstanceId) -> Option<ShipInstance> {
-        dsl(ctx).get_ship_instance_by_id(id)
-    }
-
-    pub fn get_remaining_cargo_space(&self) -> u16 {
-        self.get_max_cargo_capacity() - self.get_used_cargo_capacity()
-    }
-
-    pub fn calculate_used_cargo_space(&self, ctx: &ReducerContext) -> u16 {
-        let dsl = dsl(ctx);
-        let mut used_cargo_space = 0;
-
-        info!("Calculating cargo space usage for ship #{}. (Max cargo {}v)", self.id, self.max_cargo_capacity);
-
-        // Collect all the ship items and calculate their volume usage
-        for item in dsl.get_ship_cargo_items_by_ship_id(self.get_id()) {
-            if let Some(item_def) = get_item_definition(ctx, item.get_item_id().value()) {
-                let volume_usage = item.quantity * item_def.get_volume_per_unit();
-                info!("     Stack of {}x {}: {} volume used", item.quantity, item_def.name, volume_usage);
-                used_cargo_space += volume_usage;
-            }
-        }
-        info!("Total cargo space usage for ship #{}: {}", self.id, used_cargo_space);
-
-        used_cargo_space
-    }
-}
