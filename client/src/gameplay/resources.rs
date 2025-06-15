@@ -11,7 +11,7 @@ pub struct Resources {
 }
 
 impl Resources {
-    pub async fn new() -> Result<Resources, FileError>
+    pub async fn new() -> Result<Resources, macroquad::Error>
     {
         let mut resources = Resources {
             ship_textures: HashMap::new(),
@@ -58,7 +58,7 @@ impl Resources {
     }
 }
 
-async fn load_linear_sprite(path: &str) -> Result<Texture2D, FileError> {
+async fn load_linear_sprite(path: &str) -> Result<Texture2D, macroquad::Error> {
     let texture = load_texture(path).await?;
     texture.set_filter(FilterMode::Nearest);
     Ok(texture)

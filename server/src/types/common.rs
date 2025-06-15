@@ -81,6 +81,12 @@ impl std::hash::Hash for Vec2 {
     }
 }
 
+impl Vec2 {
+    pub fn to_glam(&self) -> glam::Vec2 {
+        glam::Vec2 { x: self.x, y: self.y }
+    }
+}
+
 ///////////////////////////////////////////////////////////
 // Reducers
 ///////////////////////////////////////////////////////////

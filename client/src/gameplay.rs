@@ -50,6 +50,7 @@ pub async fn gameplay(token : Option<String>) {
     let (sector_chat_transmitter, sector_chat_receiver) = mpsc::channel::<SectorChatMessage>();
 
     let mut game_state = state::initialize(&ctx);
+    game_state.camera.zoom.y *= -1.0;
 
     let _receiver = register_callbacks(&ctx, global_chat_transmitter, sector_chat_transmitter);
 
@@ -77,8 +78,8 @@ pub async fn gameplay(token : Option<String>) {
         set_camera(&game_state.camera);
         
         apply_shader_to_screen(
-            render_target,
-            sf_shader,
+            &render_target,
+            &sf_shader,
             game_state.camera.target,
             game_state.camera.target * 0.0001337
         );
@@ -86,13 +87,18 @@ pub async fn gameplay(token : Option<String>) {
         render::sector(&mut game_state);
 
         egui_macroquad::ui(|egui_ctx| {  
-            gui::debug::window(&egui_ctx, &mut game_state);
+            gui::debug_widget::draw(&egui_ctx, &mut game_state);
 
             if get_player(&ctx.db, &ctx.identity()).is_some() {
-                gui::chat::window(&egui_ctx, &game_state.ctx, &mut game_state.chat_window);
-                gui::status::window(&egui_ctx, &ctx, &mut game_state);
-                gui::ship_details::window(&egui_ctx, &game_state.ctx, &mut game_state.details_window, &mut game_state.details_window_open);
-                gui::menu_bar::window(&egui_ctx, &ctx, &mut game_state);
+                // Widgets
+                gui::minimap_widget::draw(&egui_ctx, &mut game_state);
+                gui::chat_widget::draw(&egui_ctx, &game_state.ctx, &mut game_state.chat_window);
+                gui::status_widget::window(&egui_ctx, &ctx, &mut game_state);
+                gui::menu_bar_widget::draw(&egui_ctx, &ctx, &mut game_state);
+                
+                // Windows
+                gui::ship_details_window::draw(&egui_ctx, &game_state.ctx, &mut game_state.details_window, &mut game_state.details_window_open);
+                gui::map_window::draw(egui_ctx, &ctx, &mut game_state.map_window, &mut game_state.map_window_open);
             }
         });
 
@@ -125,6 +131,9 @@ pub async fn gameplay(token : Option<String>) {
             }
             if is_key_pressed(KeyCode::T) {
                 game_state.assets_window_open = !game_state.assets_window_open;
+            }
+            if is_key_pressed(KeyCode::M) {
+                game_state.map_window_open = !game_state.map_window_open;
             }
         }
 

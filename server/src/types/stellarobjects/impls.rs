@@ -1,6 +1,72 @@
 
 
+use crate::types::{asteroids::DeleteAsteroidRowBySobjId, items::DeleteCargoCrateRowBySobjId, jumpgates::DeleteJumpGateRowBySobjId, ships::{timers::DeleteShipMiningTimerRowsByShipSobjId, DeleteShipCargoItemRowsByShipId, DeleteShipEquipmentSlotRowsByShipId, DeleteShipInstanceRowById, DeleteShipObjectRowBySobjId, GetShipObjectRowOptionBySobjId}, stations::DeleteStationRowsBySobjId};
+
 use super::*;
+
+impl StellarObject {
+    pub fn get(ctx: &ReducerContext, id: &StellarObjectId) -> Option<StellarObject> {
+        let dsl = dsl(ctx);
+        dsl.get_stellar_object_by_id(id)
+    }
+
+    /// Attempts to delete the StellarObject. Returns the object if found.
+    pub fn delete_from_id(ctx: &ReducerContext, id: &StellarObjectId) -> Option<StellarObject> {
+        StellarObject::get(ctx, id).inspect(|sobj| sobj.delete(ctx))
+    }
+
+    pub fn distance_squared(&self, ctx: &ReducerContext, target: &StellarObject) -> Option<f32> {
+        let dsl = dsl(ctx);
+
+        let transform = dsl.get_sobj_internal_transform_by_sobj_id(self);
+        let target_transform = dsl.get_sobj_internal_transform_by_sobj_id(target);
+
+        if transform.is_some() && target_transform.is_some() {
+            Some(transform.unwrap().to_vec2().distance_squared(target_transform.unwrap().to_vec2()))
+        } else {
+            None
+        }
+    }
+
+    /// Attempts to smartly delete everything related to this stellar object.
+    pub fn delete(&self, ctx: &ReducerContext) {
+        let dsl = dsl(ctx);
+
+        dsl.delete_stellar_object_by_id(self);
+        dsl.delete_sobj_player_window_by_sobj_id(self);
+        dsl.delete_sobj_internal_transform_by_sobj_id(self);
+        dsl.delete_sobj_low_res_transform_by_sobj_id(self);
+        dsl.delete_sobj_hi_res_transform_by_sobj_id(self);
+        dsl.delete_sobj_turn_left_controller_by_sobj_id(self);
+        
+        // Timers
+        dsl.delete_ship_mining_timers_by_ship_sobj_id(self);
+
+        // Kind-specific
+        match self.kind {
+            StellarObjectKinds::Ship => {
+                if let Some(ship_object) = dsl.get_ship_object_by_sobj_id(self) {
+                    dsl.delete_ship_instance_by_id(ship_object.get_ship_id());
+                    dsl.delete_ship_cargo_items_by_ship_id(ship_object.get_ship_id());
+                    dsl.delete_ship_equipment_slots_by_ship_id(ship_object.get_ship_id());
+                }
+                dsl.delete_ship_object_by_sobj_id(self);
+            },
+            StellarObjectKinds::Asteroid => {
+                dsl.delete_asteroid_by_sobj_id(self);
+            },
+            StellarObjectKinds::CargoCrate => {
+                dsl.delete_cargo_crate_by_sobj_id(self);
+            },
+            StellarObjectKinds::Station => {
+                dsl.delete_stations_by_sobj_id(self);
+            },
+            StellarObjectKinds::JumpGate => {
+                dsl.delete_jump_gate_by_sobj_id(self);
+            },
+        }
+    }
+}
 
 impl StellarObjectVelocity {
     // pub fn new(x: f32, y: f32) -> Self {
@@ -17,9 +83,9 @@ impl StellarObjectVelocity {
 }
 
 impl StellarObjectTransformInternal {
-    // pub fn new(x: f32, y: f32) -> Self {
-    //     Self { x, y }
-    // }
+    pub fn get(ctx: &ReducerContext, id: &StellarObjectId) -> Option<StellarObjectTransformInternal> {
+        dsl(ctx).get_sobj_internal_transform_by_sobj_id(id)
+    }
 
     pub fn to_vec2(&self) -> glam::Vec2 {
         glam::Vec2 { x: self.x, y: self.y }

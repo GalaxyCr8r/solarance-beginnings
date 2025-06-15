@@ -1,7 +1,7 @@
 
 use glam::Vec2;
 use log::info;
-use spacetimedb::{rand::Rng, spacetimedb_lib::operator::Op};
+use spacetimedb::rand::Rng;
 
 use crate::types::{items::*, sectors::SectorId, stellarobjects::{utility::create_sobj_internal, *}};
 
@@ -35,12 +35,4 @@ pub fn create_asteroid(ctx: &ReducerContext, position: Vec2, sector: SectorId, i
       None
     }
   }
-}
-
-pub fn delete_asteroid(ctx: &ReducerContext, asteroid: &Asteroid) {
-  let dsl = dsl(ctx);
-
-  dsl.delete_asteroid_by_sobj_id(&asteroid.get_sobj_id());
-  dsl.delete_stellar_object_by_id(asteroid.get_sobj_id());
-  dsl.delete_sobj_internal_transform_by_sobj_id(asteroid.get_sobj_id());
 }

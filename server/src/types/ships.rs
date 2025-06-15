@@ -166,6 +166,10 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 //////////////////////////////////////////////////////////////
 
 impl ShipInstance {
+    pub fn get(ctx: &ReducerContext, id: &ShipInstanceId) -> Option<ShipInstance> {
+        dsl(ctx).get_ship_instance_by_id(id)
+    }
+
     pub fn get_remaining_cargo_space(&self) -> u16 {
         self.get_max_cargo_capacity() - self.get_used_cargo_capacity()
     }
