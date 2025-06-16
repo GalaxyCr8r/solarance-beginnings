@@ -14,7 +14,7 @@ use crate::gameplay::state::GameState;
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub fn window(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::InnerResponse<Option<()>>> {
+pub fn draw(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::InnerResponse<Option<()>>> {
     let ctx = game_state.ctx;
 
     egui::Window
@@ -46,6 +46,12 @@ pub fn window(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::In
                         }
                     } else {
                         ui.label("WARNING - The player doesn't have a SObj!");
+
+                        if ui.button("Create Ship").clicked(){
+                            info!("Creating ship");
+                            let _ = ctx.reducers.create_player_controlled_ship(ctx.identity(), game_state.chat_window.text.clone());
+                            game_state.chat_window.text.clear();
+                        }
                     }
                 }
                 None => {
@@ -57,10 +63,10 @@ pub fn window(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::In
                         ui.text_edit_singleline(&mut game_state.chat_window.text);
                     });
 
-                    if ui.button("Create Player & Ship").clicked() && game_state.chat_window.text.len() > 1{
-                        info!("Creating player and ship");
-                        let _ = ctx.reducers.create_player_controlled_ship(ctx.identity(), game_state.chat_window.text.clone());
-                        game_state.chat_window.text.clear();
+                    if ui.button("Create Player").clicked() && game_state.chat_window.text.len() > 1{
+                        info!("Creating player");
+                        let _ = ctx.reducers.register_playername(ctx.identity(), game_state.chat_window.text.clone());
+                        //game_state.chat_window.text.clear(); // Replace later maybe?
                     }
                 }
             }
@@ -93,6 +99,31 @@ pub fn window(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::In
                                 }
                             }
                             ui.label(format!("- Sector #{}", object.sector_id));
+                        });
+                    }
+                });
+            });
+
+            ui.collapsing("Players", |ui| {
+                ScrollArea::vertical()
+                .auto_shrink([false, true])
+                .stick_to_bottom(true)
+                .max_height(screen_height()/4.0)
+                .show(ui, |ui| {
+                    for player in ctx.db.player().iter() {
+                        ui.horizontal(|ui| {
+                            ui.label(format!("[{}] Credits: {}", player.username, player.credits));
+                            if let Some(window) = ctx.db.sobj_player_window().identity().find(&player.identity) {
+                                ui.label(format!("- #{}: {}, {}, {}, {}", window.window, window.tl_x, window.tl_y, window.br_x, window.br_y));
+                            }
+                            if let Some(_controller) = ctx.db.player_controller().identity().find(&player.identity) {
+                                ui.label("Has Controller");
+                            }
+                        });
+                    }
+                    for ship_objs in ctx.db.ship_object().iter() {
+                        ui.horizontal(|ui| {
+                            ui.label(format!("{}: Sector: {}, Ship: {}, SO: {}", ship_objs.player_id.to_abbreviated_hex(), ship_objs.sector_id, ship_objs.ship_id, ship_objs.sobj_id));
                         });
                     }
                 });

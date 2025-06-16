@@ -1,13 +1,9 @@
-use std::time::Duration;
 
-use log::info;
-use spacetimedb::{ Identity, ReducerContext };
+use spacetimedb::ReducerContext;
 use spacetimedsl::{dsl, Wrapper};
 
-use crate::types::{chats::send_global_chat, common::*, items::{definitions::*, utility::get_item_definition, ItemDefinitionId}, players::timers::CreatePlayerControllerTimerRow, ships::utility::*};
 
-use super::{ships::*, stellarobjects::{*, utility::*, reducers::*}};
-use super::{players::*, sectors::* };
+use super::{ships::*, stellarobjects::*};
 
 /// For helper reducers that utilize several different tables
 ///
@@ -36,7 +32,7 @@ pub fn server_only(ctx: &ReducerContext){
 const IS_SERVER_OR_OWNER_ERROR: &str = "This reducer can only be called by SpacetimeDB or the owner!";
 
 #[spacetimedb::reducer]
-pub fn is_server_or_owner(ctx: &ReducerContext, sobj_id: StellarObjectId) -> Result<(), String> {
+pub fn is_server_or_sobj_owner(ctx: &ReducerContext, sobj_id: StellarObjectId) -> Result<(), String> {
     let dsl = dsl(ctx);
 
     if ctx.sender == ctx.identity() {
@@ -51,54 +47,16 @@ pub fn is_server_or_owner(ctx: &ReducerContext, sobj_id: StellarObjectId) -> Res
 }
 
 #[spacetimedb::reducer]
-pub fn create_player_controlled_ship(ctx: &ReducerContext, identity: Identity, username: String) -> Result<(), String> {
+pub fn is_server_or_ship_owner(ctx: &ReducerContext, ship_id: ShipInstanceId) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    if dsl.get_player_by_username(&username).is_some() {
-        return Err("Username already taken!".to_string());
+    if ctx.sender == ctx.identity() {
+        return Ok(());
     }
-
-    let player = dsl.create_player(identity, &username, 0)?; // TODO: Bust this out into its own reducer that the player needs to set up before calling this reducer.
-
-    if let Ok(sobj) = create_sobj_internal(
-        ctx,
-        super::stellarobjects::StellarObjectKinds::Ship,
-        &SectorId::new(0), // TODO: Make this the proper sector id!
-        super::stellarobjects::StellarObjectTransformInternal { x: 64.0, y: 64.0, rotation_radians: 0.0, sobj_id: 0 }
-    ) {
-        let _ = create_sobj_player_window_for(ctx, player.identity, sobj.get_id())?;
-        let _ = dsl.create_player_controller(player.identity, Some(sobj.id),
-            false, false, false, false, 
-            CurrentAction::Idle, 
-            false, false, false, false, 
-            false, false, false, false, false, None)?;
-        let _ = dsl.create_player_controller_timer(spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 20).into()), player.identity);
-
-        let ship_type = dsl.get_ship_type_definition_by_id(ShipTypeDefinitionId::new(1001)).ok_or("Failed to get ship type")?;
-        let mut ship = create_ship_instance(
-            ctx,
-            ship_type,
-            player.identity,
-            sobj.clone()
-        )?;
-        let _shipobj = dsl.create_ship_object(&ship, &sobj, sobj.get_sector_id(), identity)?;
-
-        {
-            let item = get_item_definition(ctx, 1000).ok_or("Failed to get item definition")?;
-            let _ = attempt_to_load_cargo_into_ship(ctx, &mut ship, &item, 5)?;
-        }
-
-        {
-            let item = get_item_definition(ctx, 1003).ok_or("Failed to get item definition")?;
-            let _ = attempt_to_load_cargo_into_ship(ctx, &mut ship, &item, 1)?;
-        }
-
-        dsl.create_ship_equipment_slot(&ship, EquipmentSlotType::MiningLaser, 0, ItemDefinitionId::new(DEFAULT_MINING_LASER_ID))?;
-
-        info!("Successfully created ship!");
-        send_global_chat(ctx, format!("{} has created a ship!", username))?;
-        Ok(())
-    } else {
-        Err("Failed to create ship!".to_string())
+    
+    let owner = dsl.get_ship_instance_by_id(ship_id).ok_or(IS_SERVER_OR_OWNER_ERROR)?;
+    if owner.owner_id.ok_or("Ship Instance doesn't exist!")? == ctx.sender {
+        return Ok(());
     }
+    Err(IS_SERVER_OR_OWNER_ERROR.to_string())
 }

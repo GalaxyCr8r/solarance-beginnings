@@ -1,10 +1,10 @@
-use std::{any::Any, time::Duration};
+use std::time::Duration;
 
 use log::info;
 use spacetimedb::*;
 use spacetimedsl::{dsl, Wrapper};
 
-use crate::types::{asteroids::{utility::delete_asteroid, *}, items::{utility::*, *}, ships::utility::*, utility::*};
+use crate::types::{asteroids::*, items::{utility::*, *}, ships::utility::*, stellarobjects::StellarObject, utility::*};
 
 use super::{*};
 
@@ -153,7 +153,7 @@ pub fn ship_mining_timer_reducer(ctx: &ReducerContext, mut timer: ShipMiningTime
 
     if asteroid_object.current_resources == 0 {
         dsl.delete_ship_mining_timer_by_scheduled_id(timer.get_scheduled_id());
-        delete_asteroid(ctx, &asteroid_object);
+        StellarObject::delete_from_id(ctx, &asteroid_object.get_sobj_id());
         return Err(format!("Asteroid #{} exhausted of resources! Timer deleted", asteroid_object.sobj_id));
     }
 

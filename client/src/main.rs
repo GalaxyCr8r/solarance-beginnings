@@ -23,7 +23,7 @@ struct MenuAssets {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[macroquad::main("Solarance:Beginnings")]
-async fn main() -> Result<(), FileError> {
+async fn main() -> Result<(), macroquad::Error> {
     dotenv().ok();
 
     //request_new_screen_size(720.0, 480.0);
@@ -109,7 +109,7 @@ pub(crate) async fn login_screen() -> (bool, Option<String>) {
                 _ => { f32::cos((-time::get_time() as f32) * 0.25 + (y / 2048.0)) }
             };
             draw_texture_ex(
-                menu_assets.rings[i],
+                &menu_assets.rings[i],
                 screen_width() / 2.0 - menu_assets.rings[i].width() / 4.0,
                 screen_height() / 2.0 - menu_assets.rings[i].height() / 4.0,
                 Color {
@@ -124,7 +124,7 @@ pub(crate) async fn login_screen() -> (bool, Option<String>) {
             );
         }
 
-        draw_texture(menu_assets.logo,
+        draw_texture(&menu_assets.logo,
             screen_width() / 2.0 - menu_assets.logo.width() / 2.0,
             screen_height() / 2.0 - menu_assets.logo.height() / 2.0,
             WHITE);
@@ -197,7 +197,7 @@ async fn loading_screen() {
 
         for i in 0..3 {
             draw_texture_ex(
-                menu_assets.rings[i],
+                &menu_assets.rings[i],
                 menu_assets.rings[i].width() / -3.0,
                 screen_height() - menu_assets.rings[i].height() / 3.0,
                 Color {
@@ -210,7 +210,7 @@ async fn loading_screen() {
                 }
             );
         }
-        draw_texture(menu_assets.logo,
+        draw_texture(&menu_assets.logo,
             screen_width() / 2.0 - menu_assets.logo.width() / 2.0,
             screen_height() / 2.0 - menu_assets.logo.height() / 2.0,
             Color {

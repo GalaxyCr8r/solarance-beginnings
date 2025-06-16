@@ -9,28 +9,29 @@ use super::{ resources::Resources, state::GameState };
 
 pub fn sector(game_state: &mut GameState) {
     let resources = storage::get::<Resources>();
-    let sun = resources.sun_textures["star.1"];
+    let sun = &resources.sun_textures["star.1"];
     draw_texture(sun, sun.width() * -0.5, sun.height() * -0.5, WHITE);
 
     let mut player_transform = None;
     let mut player_ship_type = None;
-    let player_sobj_id = get_player_sobj_id(game_state.ctx);
+    let player_sobj_id = get_player_ship_object(game_state.ctx);
 
     let db = &game_state.ctx.db;
     for object in db.stellar_object().iter() {
-        if object.sector_id != 0 {
+        // Don't continue if isn't in the same sector.
+        if player_sobj_id.as_ref().is_some_and(|ship_obj| ship_obj.sector_id != object.sector_id) {
             continue;
         }
+
         if let Ok(transform) = get_transform(game_state.ctx, object.id) {
             if let Some(ship_object) = db.ship_object().sobj_id().find(&transform.sobj_id) {
                 if let Some(ship_instance) = db.ship_instance().id().find(&ship_object.ship_id) {
-                    if
-                        let Some(ship_type) = db
-                            .ship_type_definition()
-                            .id()
-                            .find(&ship_instance.shiptype_id)
+                    if let Some(ship_type) = db
+                        .ship_type_definition()
+                        .id()
+                        .find(&ship_instance.shiptype_id)
                     {
-                        if player_sobj_id.is_some_and(|id| id == object.id) {
+                        if player_sobj_id.as_ref().is_some_and(|ship_obj| ship_obj.sobj_id == object.id) {
                             // Store for later use
                             player_transform = Some(transform);
                             player_ship_type = Some(ship_type);
@@ -103,7 +104,7 @@ fn draw_ship(
         });
     }
 
-    let tex = resources.ship_textures[ship_type.gfx_key.unwrap().as_str()];
+    let tex = &resources.ship_textures[ship_type.gfx_key.unwrap().as_str()];
     draw_texture_ex(
         tex,
         position.x - tex.width() * 0.5,
@@ -133,7 +134,7 @@ fn draw_asteroid(
     let angle = position.x + (((now() * 8.0 + (position.y as f64)) % 360.0).to_radians() as f32); // Make the rotation based on position and time
 
     let tex =
-        resources.asteroid_textures[asteroid.gfx_key.unwrap_or("asteroid.1".to_string()).as_str()];
+        &resources.asteroid_textures[asteroid.gfx_key.unwrap_or("asteroid.1".to_string()).as_str()];
     draw_texture_ex(
         tex,
         position.x - tex.width() * 0.5,
@@ -164,7 +165,7 @@ fn draw_crate(
     let angle = position.x + (((now() * 8.0 + (position.y as f64)) % 360.0).to_radians() as f32); // Make the rotation based on position and time
 
     let tex =
-        resources.asteroid_textures[cargo_crate.gfx_key.unwrap_or("crate.0".to_string()).as_str()];
+        &resources.asteroid_textures[cargo_crate.gfx_key.unwrap_or("crate.0".to_string()).as_str()];
     draw_texture_ex(
         tex,
         position.x - tex.width() * 0.5,
@@ -193,7 +194,7 @@ fn draw_jumpgate(
     let position = transform.to_vec2();
 
     let tex =
-        resources.jumpgate_textures
+        &resources.jumpgate_textures
             [jumpgate.gfx_key.unwrap_or("jumpgate_north".to_string()).as_str()];
     draw_texture(tex, position.x - tex.width() * 0.5, position.y - tex.height() * 0.5, WHITE);
 

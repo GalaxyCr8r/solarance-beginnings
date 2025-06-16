@@ -1,6 +1,10 @@
 
-pub mod chat;
-pub mod debug;
-pub mod menu_bar;
-pub mod ship_details;
-pub mod status;
+pub mod assets_window;
+pub mod chat_widget;
+pub mod debug_widget;
+pub mod faction_window;
+pub mod map_window;
+pub mod menu_bar_widget;
+pub mod minimap_widget;
+pub mod ship_details_window;
+pub mod status_widget;

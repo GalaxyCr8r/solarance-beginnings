@@ -1,24 +1,48 @@
-use std::f32::consts::PI;
+use std::{ f32::consts::PI, time::Duration };
 
 use glam::Vec2;
 use log::info;
 use spacetimedb::*;
-use spacetimedsl::*;
+use spacetimedsl::{ dsl, Wrapper };
 
-use crate::types::{players::{get_username, PlayerController}, ships::{timers::{create_mining_timer_for_ship, DeleteShipMiningTimerRowByScheduledId, GetShipMiningTimerRowsByShipSobjId}, *}, stellarobjects::*};
+use crate::types::{
+    items::*,
+    jumpgates::{ GetJumpGateRowOptionBySobjId, JumpGate },
+    players::*,
+    ships::{ reducers::*, timers::*, * },
+    stellarobjects::*,
+};
 
 use super::GetPlayerControllerRowOptionByIdentity;
 
-#[dsl(plural_name = player_controller_timers)]
-#[spacetimedb::table(name = player_controller_timer, scheduled(player_controller_upkeep))]
-pub struct PlayerControllerTimer {
+#[dsl(plural_name = player_controller_update_timers)]
+#[spacetimedb::table(
+    name = player_controller_update_timer,
+    scheduled(player_controller_update_upkeep)
+)]
+pub struct PlayerControllerUpdateTimer {
     #[primary_key]
     #[auto_inc]
     #[wrap]
     pub scheduled_id: u64,
     scheduled_at: spacetimedb::ScheduleAt,
 
-    pub player: Identity
+    pub player: Identity,
+}
+
+#[dsl(plural_name = player_controller_logic_timers)]
+#[spacetimedb::table(
+    name = player_controller_logic_timer,
+    scheduled(player_controller_logic_upkeep)
+)]
+pub struct PlayerControllerLogicTimer {
+    #[primary_key]
+    #[auto_inc]
+    #[wrap]
+    pub scheduled_id: u64,
+    scheduled_at: spacetimedb::ScheduleAt,
+
+    pub player: Identity,
 }
 
 //////////////////////////////////////////////////////////////
@@ -33,115 +57,418 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     Ok(())
 }
 
+pub fn init_timers(
+    ctx: &ReducerContext,
+    identity: Identity,
+    sobj: &StellarObject
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
+
+    let _controller = dsl.create_player_controller(
+        identity,
+        Some(sobj.id),
+        false,
+        false,
+        false,
+        false,
+        CurrentAction::Idle,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        None
+    )?;
+    let _update = dsl.create_player_controller_update_timer(
+        spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 20).into()),
+        identity
+    )?;
+    let _logic = dsl.create_player_controller_logic_timer(
+        spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 2).into()),
+        identity
+    )?;
+    Ok(())
+}
+
 //////////////////////////////////////////////////////////////
 // Reducers
 //////////////////////////////////////////////////////////////
 
+/// Update the movement-related controls.
 #[spacetimedb::reducer]
-pub fn player_controller_upkeep(ctx: &ReducerContext, timer: PlayerControllerTimer) -> Result<(), String> {
-  let dsl = dsl(ctx);
+pub fn player_controller_update_upkeep(
+    ctx: &ReducerContext,
+    timer: PlayerControllerUpdateTimer
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
 
-  //info!("Player con upkeep!");
+    //info!("Player con upkeep!");
 
-  let controller = dsl.get_player_controller_by_identity(&timer.player)
-    .ok_or(format!("Failed to find the player's controller! ID:{}", timer.player))?;
+    let controller = dsl
+        .get_player_controller_by_identity(&timer.player)
+        .ok_or(format!("Failed to find the player's controller! ID:{}", timer.player))?;
 
-  let ship_object = dsl.get_ship_object_by_sobj_id(StellarObjectId::new(controller.get_stellar_object_id().unwrap()))
-    .ok_or(format!("Failed to find the player's ship object! ID:{}", timer.player))?;
-  let mut velocity = dsl.get_sobj_velocity_by_sobj_id(ship_object.get_sobj_id())
-    .ok_or(format!("Failed to find the player's ship velocity! ID:{}", timer.player))?;
+    let ship_object = dsl
+        .get_ship_object_by_sobj_id(
+            StellarObjectId::new(controller.get_stellar_object_id().unwrap())
+        )
+        .ok_or(format!("Failed to find the player's ship object! ID:{}", timer.player))?;
+    let mut velocity = dsl
+        .get_sobj_velocity_by_sobj_id(ship_object.get_sobj_id())
+        .ok_or(format!("Failed to find the player's ship velocity! ID:{}", timer.player))?;
 
-  if !controller.left && !controller.right {
-    velocity.rotation_radians *= 0.875; // TODO:: Milestone 10+ make these ship-type specific values.
-  }
-  if !controller.up && !controller.down {
-    // Add inertia to the velocity
-    velocity=velocity.from_vec2(velocity.to_vec2() * 0.975); // TODO:: Milestone 10+ make these ship-type specific values.
-    if velocity.to_vec2().length() < 0.042 {
-        velocity = velocity.from_vec2(Vec2::ZERO);
+    // If no input was given, slow down the rotation & speed
+    if !controller.left && !controller.right {
+        velocity.rotation_radians *= 0.875; // TODO:: Milestone 10+ make these ship-type specific values.
     }
-  }
+    if !controller.up && !controller.down {
+        // Add inertia to the velocity
+        velocity = velocity.from_vec2(velocity.to_vec2() * 0.975); // TODO:: Milestone 10+ make these ship-type specific values.
+        if velocity.to_vec2().length() < 0.042 {
+            velocity = velocity.from_vec2(Vec2::ZERO);
+        }
+    }
 
-  try_mining(ctx, &controller, &ship_object)?;
+    if controller.left || controller.right || controller.up || controller.down {
+        try_update_ship_velocity(ctx, &mut velocity, &controller, &ship_object)?;
+    }
 
-  if !controller.left && !controller.right && !controller.up && !controller.down {
     dsl.update_sobj_velocity_by_sobj_id(velocity)?;
-    return Ok(()) // Bail out early, nothing else to change!
-  }
-  //info!("Player changes found!");
 
-  let ship_instance = dsl.get_ship_instance_by_id(ship_object.get_ship_id())
-    .ok_or(format!("Failed to find the player's ship instance! ID:{}", timer.player))?;
-  let ship_type = dsl.get_ship_type_definition_by_id(ship_instance.get_shiptype_id())
-    .ok_or(format!("Failed to find the player's ship type defintion! ID:{}", timer.player))?;
-  let transform = dsl.get_sobj_internal_transform_by_sobj_id(ship_object.get_sobj_id())
-    .ok_or(format!("Failed to find the player's ship transform! ID:{}", timer.player))?;
-
-  // Based on the controller's settings and the ship definition and ship status, update the velocity.
-  if controller.up {
-    let mut vec = (Vec2::from_angle(transform.rotation_radians) * ship_type.base_acceleration) + velocity.to_vec2();
-      
-    // Check if the absolute velocity is too fast for the ship.
-    if vec.length() > ship_type.base_speed {
-        // Set the velocity
-        vec = vec.normalize() * ship_type.base_speed;
-    }
-
-    velocity = velocity.from_vec2(vec);
-  }
-  if controller.right {
-    velocity.rotation_radians = PI * ship_type.base_turn_rate;
-  }
-  if controller.left {
-    velocity.rotation_radians = PI * -ship_type.base_turn_rate;
-  }
-  if controller.down {
-    let mul = 0.965f32;
-    velocity.x *= mul;
-    velocity.y *= mul;
-  }
-
-  dsl.update_sobj_velocity_by_sobj_id(velocity)?;
-
-  Ok(())
+    Ok(())
 }
 
-fn try_mining(ctx: &ReducerContext, controller: &PlayerController, ship_object: &ShipObject) -> Result<(), String> {
-  let dsl = dsl(ctx);
+/// Update the logical features that players control that aren't as time sensitive.
+#[spacetimedb::reducer]
+pub fn player_controller_logic_upkeep(
+    ctx: &ReducerContext,
+    timer: PlayerControllerLogicTimer
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
 
-  if !controller.mining_laser_on {
-    for mining_timer in dsl.get_ship_mining_timers_by_ship_sobj_id(ship_object.get_sobj_id()) {
-      info!("Player {} stopped trying to mine a asteroid: {}", get_username(ctx, controller.identity), mining_timer.asteroid_sobj_id);
-      dsl.delete_ship_mining_timer_by_scheduled_id(&mining_timer);
-      return Ok(())
+    let controller = dsl
+        .get_player_controller_by_identity(&timer.player)
+        .ok_or(format!("Failed to find the player's controller! ID:{}", timer.player))?;
+    let ship_object = dsl
+        .get_ship_object_by_sobj_id(
+            StellarObjectId::new(controller.get_stellar_object_id().unwrap())
+        )
+        .ok_or(format!("Failed to find the player's ship object! ID:{}", timer.player))?;
+
+    try_mining(ctx, &controller, &ship_object)?;
+    try_update_target_specific_functions(ctx, &mut controller.clone(), &ship_object)?;
+
+    Ok(())
+}
+
+//////////////////////////////////////////////////////////////
+// Helpers
+//////////////////////////////////////////////////////////////
+
+fn try_update_target_specific_functions(
+    ctx: &ReducerContext,
+    controller: &mut PlayerController,
+    ship_object: &ShipObject
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
+
+    // Check target-specific things.
+    if controller.targetted_sobj_id.is_none() || controller.stellar_object_id.is_none() {
+        return Ok(());
     }
-  }
 
-  // If the player is trying to mine and is targetting an asteroid, create a mining timer.
-  if controller.mining_laser_on && controller.targetted_sobj_id.is_some() {
-  //if controller.current_action == CurrentAction::Mining && controller.targetted_sobj_id.is_some() { // Use if we move away from targetted_sobj_id
-    let asteroid_sobj = dsl.get_stellar_object_by_id(StellarObjectId::new(controller.targetted_sobj_id.unwrap()))
-      .ok_or(format!("Player {} tried to mine a non-existent object: {}", get_username(ctx, controller.identity), controller.targetted_sobj_id.unwrap()))?;
+    let player_sobj = dsl
+        .get_stellar_object_by_id(ship_object.get_sobj_id())
+        .ok_or(
+            format!(
+                "ERROR: Player {} has stellar object #{} that does not exist!",
+                get_username(ctx, controller.identity),
+                controller.stellar_object_id.unwrap()
+            )
+        )?;
 
-    if asteroid_sobj.kind == StellarObjectKinds::Asteroid {
-      return Err(format!("Player {} tried to mine a non-asteroid object: {}", get_username(ctx, controller.identity), asteroid_sobj.id));
-    }
+    match verify_target(ctx, &controller, &player_sobj) {
+        // These "Do things if nearby target" should be in their own timer. As-is things will ONLY happen if you are updating your controller when nearby!!!
+        Ok(target_sobj) => {
+            match target_sobj.kind {
+                // StellarObjectKinds::Ship => {
+                //     // Nothing to do.. yet
 
-    if let Some(transform) = dsl.get_sobj_internal_transform_by_sobj_id(ship_object.get_sobj_id()) {
-      if let Some(ast_transform) = dsl.get_sobj_internal_transform_by_sobj_id(asteroid_sobj.get_id()) {
-        if transform.to_vec2().distance(ast_transform.to_vec2()) < 500.0 {
-          // Check if the player is already mining this asteroid
-          if !dsl.get_ship_mining_timers_by_ship_sobj_id(&ship_object.get_sobj_id()).any(|timer| timer.asteroid_sobj_id == asteroid_sobj.id) {
-            // Only add if there is no mining timer for this ship and asteroid.
-            info!("Player {} started mining asteroid {}!", get_username(ctx, controller.identity), asteroid_sobj.id);
-            let _ = create_mining_timer_for_ship(ctx, &ship_object.get_sobj_id(), &asteroid_sobj.get_id())?;
-          }
-        } else {
-          // TODO: Let player know they're too far away?
+                //     // Maybe implement ship scanning?
+                // }
+                // StellarObjectKinds::Asteroid => {
+                //     // Nothing to do.. yet
+
+                //     // Maybe implement asteroid scanning?
+                // }
+                StellarObjectKinds::CargoCrate => {
+                    if
+                        controller.cargo_bay_open &&
+                        player_sobj
+                            .distance_squared(ctx, &target_sobj)
+                            .is_some_and(|d| d < 1000.0) &&
+                        attempt_to_pickup_cargo_crate(ctx, &ship_object, &target_sobj)
+                    {
+                        // Picking up the crate!
+                        controller.targetted_sobj_id = None;
+                        target_sobj.delete(ctx);
+                    }
+                }
+                // StellarObjectKinds::Station => {
+                //     // Nothing to do.. yet
+                // }
+                StellarObjectKinds::JumpGate => {
+                    if
+                        controller.dock &&
+                        player_sobj.distance_squared(ctx, &target_sobj).is_some_and(|d| d < 1000.0)
+                    {
+                        if let Some(jumpgate) = dsl.get_jump_gate_by_sobj_id(&target_sobj) {
+                            attempt_to_jump(ctx, ship_object, &jumpgate)?;
+                        }
+                    }
+                }
+                _ => {
+                    // Do nothing
+                }
+            }
         }
-      }
+        Err(error) => {
+            info!("WARNING: {}", error);
+            controller.targetted_sobj_id = None;
+            dsl.update_player_controller_by_identity(controller.clone())?;
+        }
     }
-  }
+    Ok(())
+}
 
-  Ok(())
+/// Verifies the controller's targetted stellar object exists and retrieves it.
+fn verify_target(
+    ctx: &ReducerContext,
+    controller: &PlayerController,
+    player_sobj: &StellarObject
+) -> Result<StellarObject, String> {
+    let dsl = dsl(ctx);
+
+    if
+        let Some(target_sobj) = dsl.get_stellar_object_by_id(
+            StellarObjectId::new(controller.targetted_sobj_id.unwrap())
+        )
+    {
+        if player_sobj.sector_id != target_sobj.sector_id {
+            Err(
+                format!(
+                    "Player {} tried to target a stellar object in a different sector! Player SOBJ ID: {}, Target SOBJ ID: {}",
+                    get_username(ctx, controller.identity),
+                    player_sobj.id,
+                    target_sobj.id
+                )
+            )
+        } else {
+            Ok(target_sobj)
+        }
+    } else {
+        Err(
+            format!(
+                "Player {} tried targetting a non-existant stellar object #{}!",
+                get_username(ctx, controller.identity),
+                controller.targetted_sobj_id.unwrap()
+            )
+        )
+    }
+}
+
+fn attempt_to_pickup_cargo_crate(
+    ctx: &ReducerContext,
+    player_ship_obj: &ShipObject,
+    crate_sobj: &StellarObject
+) -> bool {
+    let dsl = dsl(ctx);
+
+    if let Some(cargo_crate) = dsl.get_cargo_crate_by_sobj_id(crate_sobj) {
+        if let Some(item_def) = dsl.get_item_definition_by_id(cargo_crate.get_item_id()) {
+            if let Some(ship) = dsl.get_ship_instance_by_id(player_ship_obj.get_ship_id()) {
+                if item_def.can_any_of_this_fit_inside_this_ship(&ship) {
+                    return create_timer_to_add_cargo_to_ship(
+                        ctx,
+                        ship.get_id(),
+                        item_def.get_id(),
+                        cargo_crate.quantity
+                    )
+                        .inspect_err(|e| info!("WARNING: Couldn't add cargo crate timer: {}", e))
+                        .is_ok();
+                }
+            }
+        }
+    }
+
+    false
+}
+
+fn attempt_to_jump(
+    ctx: &ReducerContext,
+    player_ship_obj: &ShipObject,
+    jumpgate: &JumpGate
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
+
+    if let Some(mut ship) = dsl.get_ship_instance_by_id(player_ship_obj.get_ship_id()) {
+        // Subtract energy
+        ship.energy -= 13.37; // TODO: Make this not a flat value. If some ship had crazy energy regen then.. they wouldn't be able to use jump gates.
+        if ship.energy < 0.0 {
+            ship.energy = 0.0;
+        }
+
+        // Jump once less than 10 energy
+        if ship.energy < 10.0 {
+            teleport_via_jumpgate(ctx, ship.clone(), jumpgate)?;
+        } else {
+            // Teleporting will update the ship instance, otherwise we will need to do it ourselves
+            dsl.update_ship_instance_by_id(ship)?;
+        }
+    }
+    Ok(())
+}
+
+fn try_update_ship_velocity(
+    ctx: &ReducerContext,
+    velocity: &mut StellarObjectVelocity,
+    controller: &PlayerController,
+    ship_object: &ShipObject
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
+
+    let ship_instance = dsl
+        .get_ship_instance_by_id(ship_object.get_ship_id())
+        .ok_or(
+            format!("Failed to find the player's ship instance! ID:{:?}", ship_object.get_ship_id())
+        )?;
+    let ship_type = dsl
+        .get_ship_type_definition_by_id(ship_instance.get_shiptype_id())
+        .ok_or(
+            format!(
+                "Failed to find the player's ship type defintion! ID:{:?}",
+                ship_instance.get_shiptype_id()
+            )
+        )?;
+    let transform = dsl
+        .get_sobj_internal_transform_by_sobj_id(ship_object.get_sobj_id())
+        .ok_or(
+            format!(
+                "Failed to find the player's ship transform! ID:{:?}",
+                ship_object.get_sobj_id()
+            )
+        )?;
+
+    // Based on the controller's settings and the ship definition and ship status, update the velocity.
+    if controller.up {
+        let mut vec =
+            Vec2::from_angle(transform.rotation_radians) * ship_type.base_acceleration +
+            velocity.to_vec2();
+
+        // Check if the absolute velocity is too fast for the ship.
+        if vec.length() > ship_type.base_speed {
+            // Set the velocity
+            vec = vec.normalize() * ship_type.base_speed;
+        }
+
+        *velocity = velocity.from_vec2(vec);
+    }
+    if controller.right {
+        velocity.rotation_radians = PI * ship_type.base_turn_rate;
+    }
+    if controller.left {
+        velocity.rotation_radians = PI * -ship_type.base_turn_rate;
+    }
+    if controller.down {
+        let mul = 0.965f32;
+        velocity.x *= mul;
+        velocity.y *= mul;
+    }
+
+    Ok(())
+}
+
+fn try_mining(
+    ctx: &ReducerContext,
+    controller: &PlayerController,
+    ship_object: &ShipObject
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
+
+    if !controller.mining_laser_on {
+        for mining_timer in dsl.get_ship_mining_timers_by_ship_sobj_id(ship_object.get_sobj_id()) {
+            info!(
+                "Player {} stopped trying to mine a asteroid: {}",
+                get_username(ctx, controller.identity),
+                mining_timer.asteroid_sobj_id
+            );
+            dsl.delete_ship_mining_timer_by_scheduled_id(&mining_timer);
+            return Ok(());
+        }
+    }
+
+    // If the player is trying to mine and is targetting an asteroid, create a mining timer.
+    if controller.mining_laser_on && controller.targetted_sobj_id.is_some() {
+        //if controller.current_action == CurrentAction::Mining && controller.targetted_sobj_id.is_some() { // Use if we move away from targetted_sobj_id
+        let asteroid_sobj = dsl
+            .get_stellar_object_by_id(StellarObjectId::new(controller.targetted_sobj_id.unwrap()))
+            .ok_or(
+                format!(
+                    "Player {} tried to mine a non-existent object: {}",
+                    get_username(ctx, controller.identity),
+                    controller.targetted_sobj_id.unwrap()
+                )
+            )?;
+
+        if asteroid_sobj.kind != StellarObjectKinds::Asteroid {
+            return Err(
+                format!(
+                    "Player {} tried to mine a non-asteroid object: {}",
+                    get_username(ctx, controller.identity),
+                    asteroid_sobj.id
+                )
+            );
+        }
+
+        if
+            let Some(transform) = dsl.get_sobj_internal_transform_by_sobj_id(
+                ship_object.get_sobj_id()
+            )
+        {
+            if
+                let Some(ast_transform) = dsl.get_sobj_internal_transform_by_sobj_id(
+                    asteroid_sobj.get_id()
+                )
+            {
+                if transform.to_vec2().distance(ast_transform.to_vec2()) < 500.0 {
+                    // Check if the player is already mining this asteroid
+                    if
+                        !dsl
+                            .get_ship_mining_timers_by_ship_sobj_id(&ship_object.get_sobj_id())
+                            .any(|timer| timer.asteroid_sobj_id == asteroid_sobj.id)
+                    {
+                        // Only add if there is no mining timer for this ship and asteroid.
+                        info!(
+                            "Player {} started mining asteroid {}!",
+                            get_username(ctx, controller.identity),
+                            asteroid_sobj.id
+                        );
+                        let _ = create_mining_timer_for_ship(
+                            ctx,
+                            &ship_object.get_sobj_id(),
+                            &asteroid_sobj.get_id()
+                        )?;
+                    }
+                } else {
+                    // TODO: Let player know they're too far away?
+                }
+            }
+        }
+    }
+
+    Ok(())
 }

@@ -33,6 +33,15 @@ pub struct AsteroidSector {
     pub cluster_extent: f32, // How far from 0,0 can asteroids spawn
     pub cluster_inner: Option<f32> // How far from 0,0 can asteroids NOT spawn
 }
+//////////////////////////////////////////////////////////////
+// Impls
+//////////////////////////////////////////////////////////////
+
+impl Sector {
+    pub fn get(ctx: &ReducerContext, id: &SectorId) -> Option<Sector> {
+        dsl(ctx).get_sector_by_id(id)
+    }
+}
 
 //////////////////////////////////////////////////////////////
 // Init
@@ -70,4 +79,13 @@ fn connect_sectors_with_warpgates(ctx: &ReducerContext, a: &Sector, b: &Sector) 
     create_jumpgate_in_sector(ctx, b.id, b_wp_pos.x, b_wp_pos.y, a.id, a_wp_pos.x, a_wp_pos.y)?;
 
     Ok(())
+}
+
+/// For jumpdrive-enabled ships, calculates the incoming vector the ship should be entering from.
+pub fn get_entrance_angle(departing: &Sector, destination: &Sector) -> f32 {
+    let a_pos = glam::Vec2::new(departing.x, departing.y);
+    let b_pos = glam::Vec2::new(destination.x, destination.y);
+
+    // Destination entrance angle
+    (a_pos-b_pos).to_angle()
 }

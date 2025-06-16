@@ -15,21 +15,21 @@ enum CurrentTab {
 }
 
 //#[derive(Default)]
-pub struct WindowState {
+pub struct State {
     current_tab: CurrentTab, // = CurrentTab::Ship
     current_equipment_tab: EquipmentSlotType,
 }
 
-impl WindowState {
+impl State {
     pub fn new() -> Self {
-        WindowState {
+        State {
             current_tab: CurrentTab::Ship,
             current_equipment_tab: EquipmentSlotType::Weapon
         }
     }
 }
 
-pub fn window(egui_ctx: &Context, ctx: &DbConnection, state: &mut WindowState,  open: &mut bool) -> Option<egui::InnerResponse<Option<()>>> {
+pub fn draw(egui_ctx: &Context, ctx: &DbConnection, state: &mut State,  open: &mut bool) -> Option<egui::InnerResponse<Option<()>>> {
     egui::Window
         ::new("Ship Details")
         .open(open)
@@ -62,7 +62,7 @@ pub fn window(egui_ctx: &Context, ctx: &DbConnection, state: &mut WindowState,  
         })
 }
 
-fn ship_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, ship_type: ShipTypeDefinition, player_ship: ShipInstance) {
+fn ship_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut State, ship_type: ShipTypeDefinition, player_ship: ShipInstance) {
     ui.heading("Detailed Ship Status");
     ui.separator();
     ui.horizontal(|ui| {
@@ -110,7 +110,7 @@ fn ship_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, ship
             ui.label(format!("Engine Slots: {}/{}", 
                 player_ship.get_all_equipped_of_type(ctx, EquipmentSlotType::Engine).iter().count(), 
                 ship_type.num_engine_slots));
-            ui.label(format!("Minig Laser Slots: {}/{}", 
+            ui.label(format!("Mining Laser Slots: {}/{}", 
                 player_ship.get_all_equipped_of_type(ctx, EquipmentSlotType::MiningLaser).iter().count(), 
                 ship_type.num_mining_laser_slots));
             ui.label(format!("Special Slots: {}/{}", 
@@ -120,7 +120,7 @@ fn ship_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, ship
     });
 }
 
-fn cargo_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, _ship_type: ShipTypeDefinition, player_ship: ShipInstance) {
+fn cargo_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut State, _ship_type: ShipTypeDefinition, player_ship: ShipInstance) {
     ui.heading("Cargo Bay Contents");
     ui.separator();
     let mut total_cargo_usage = 0;
@@ -141,6 +141,23 @@ fn cargo_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, _sh
                     });
                     ui.separator();
                     ui.label(format!("Base Value: {} credits", item.base_value));
+
+                    ui.horizontal(|ui| {
+                        ui.label("Jettison:");
+                        if ui.button("-1-").clicked() {
+                            let _ = ctx.reducers.jettison_cargo_from_ship(cargo.ship_id, cargo.id, 1);
+                        }
+                        if cargo.quantity > 1 && ui.button("-2-").clicked() {
+                            let _ = ctx.reducers.jettison_cargo_from_ship(cargo.ship_id, cargo.id, 2);
+                        }
+                        let half = (cargo.quantity as f32 / 2.0).floor() as u16;
+                        if half > 2 && ui.button(format!("-{}-",half)).clicked() {
+                            let _ = ctx.reducers.jettison_cargo_from_ship(cargo.ship_id, cargo.id, half);
+                        }
+                        if ui.button("-All-").clicked() {
+                            let _ = ctx.reducers.jettison_cargo_from_ship(cargo.ship_id, cargo.id, cargo.quantity);
+                        }
+                    });
                 });
             }
         }
@@ -154,7 +171,7 @@ fn cargo_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut WindowState, _sh
     });
 }
 
-fn equipment_contents(ui: &mut Ui, ctx: &DbConnection, state: &mut WindowState, ship_type: ShipTypeDefinition, _player_ship: ShipInstance) {
+fn equipment_contents(ui: &mut Ui, ctx: &DbConnection, state: &mut State, ship_type: ShipTypeDefinition, _player_ship: ShipInstance) {
     ui.heading("Equipment");
     ui.separator();
     ui.horizontal_top(|ui| {
