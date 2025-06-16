@@ -2,7 +2,7 @@ use egui::{Align2, Color32, Context, RichText, ScrollArea, TextStyle, Ui};
 use macroquad::prelude::*;
 use spacetimedb_sdk::{DbContext, Timestamp};
 
-use crate::{module_bindings::*, stdb::utils::{get_player_ship_object, get_username}};
+use crate::{module_bindings::*, stdb::utils::*};
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 enum GlobalChatMessageType {
@@ -46,7 +46,7 @@ fn contents_hidden(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
 
     ui.label(RichText::new("...").color(Color32::DARK_GRAY));
     for message in chat_window.global_chat_channel.iter().rev().take(3).rev() {
-        ui.label(RichText::new(format!("[{}]: {}", get_username(ctx, &message.identity), message.message)).color(Color32::DARK_GRAY));
+        ui.label(RichText::new(format!("[{}]: {}", get_username(ctx, &message.player_id), message.message)).color(Color32::DARK_GRAY));
     }
 }
 
@@ -113,7 +113,7 @@ fn send_message(ctx: &DbConnection, chat_window: &mut State) {
                     info!("Failed to send message: {}", error);
                     // TODO Add a message to chat log or do SOMETHING to alert the user it failed.
                     chat_window.global_chat_channel.push(GlobalChatMessage {
-                        identity: ctx.identity(),
+                        player_id: ctx.identity(),
                         id: 0,
                         message: format!("Failed to send message: {}", chat_window.text.clone()),
                         created_at: Timestamp::now(),
@@ -123,12 +123,12 @@ fn send_message(ctx: &DbConnection, chat_window: &mut State) {
                 }
             },
         GlobalChatMessageType::Sector => {
-                let sector_id = get_player_ship_object(ctx).unwrap().sector_id;
+                let sector_id = get_player_ship(ctx).unwrap().sector_id;
                 if let Err(error) = ctx.reducers.send_sector_chat(chat_window.text.clone(), sector_id) {
                     info!("Failed to send message: {}", error);
                     // TODO Add a message to chat log or do SOMETHING to alert the user it failed.
                     chat_window.sector_chat_channel.push(SectorChatMessage {
-                        identity: ctx.identity(),
+                        player_id: ctx.identity(),
                         id: 0,
                         sector_id: sector_id,
                         message: format!("Failed to send message: {}", chat_window.text.clone()),
@@ -158,7 +158,7 @@ fn draw_global_chat(ctx: &DbConnection, chat_window: &mut State, ui: &mut Ui) {
             let mut count = 0;
             for message in &chat_window.global_chat_channel {
                 if row_range.contains(&count) {
-                    ui.label(format!("[{}]: {}", get_username(ctx, &message.identity), message.message));
+                    ui.label(format!("[{}]: {}", get_username(ctx, &message.player_id), message.message));
                 }
                 count += 1;
             }
@@ -182,7 +182,7 @@ fn draw_sector_chat(ctx: &DbConnection, chat_window: &mut State, ui: &mut Ui) {
             let mut count = 0;
             for message in &chat_window.sector_chat_channel {
                 if row_range.contains(&count) {
-                    ui.label(format!("({}): {}", get_username(ctx, &message.identity), message.message));
+                    ui.label(format!("({}): {}", get_username(ctx, &message.player_id), message.message));
                 }
                 count += 1;
             }

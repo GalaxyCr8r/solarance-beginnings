@@ -5,7 +5,7 @@ use spacetimedb::{client_visibility_filter, Filter};
 const CHAT_SECTOR_FILTER: Filter = Filter::Sql(
      "SELECT c.* 
       FROM sector_chat_message c
-      JOIN ship_object o
+      JOIN ship o
       WHERE o.sector_id = c.sector_id"
  );
 

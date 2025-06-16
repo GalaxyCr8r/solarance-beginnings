@@ -1,7 +1,7 @@
 use egui::{Context, FontId, RichText};
 use macroquad::prelude::*;
 
-use crate::{module_bindings::*, stdb::utils::get_player_ship_instance};
+use crate::{module_bindings::*, stdb::utils::*};
 
 #[derive(PartialEq)]
 enum CurrentTab {
@@ -31,7 +31,7 @@ pub fn draw(egui_ctx: &Context, ctx: &DbConnection, state: &mut State,  open: &m
         .movable(true)
         .vscroll(true)
         .show(egui_ctx, |ui| {
-            if let Some(player_ship) = get_player_ship_instance(ctx) {
+            if let Some(player_ship) = get_player_ship(ctx) {
                 if let Some(ship_type) = ctx.db.ship_type_definition().id().find(&player_ship.shiptype_id) {
                     ui.horizontal_top(|ui| {
                         ui.selectable_value(&mut state.current_tab, CurrentTab::Ship,

@@ -45,7 +45,7 @@ pub fn create_player_controlled_ship(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    if dsl.get_player_by_player_id(&identity).is_none() {
+    if dsl.get_player_by_identifier(&identity).is_none() {
         return Err("Client hasn't created a username yet!".to_string());
     }
 

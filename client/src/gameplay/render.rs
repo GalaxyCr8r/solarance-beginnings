@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use macroquad::{ miniquad::date::now, prelude::{ collections::storage, * } };
 
 use crate::module_bindings::*;
@@ -14,30 +16,28 @@ pub fn sector(game_state: &mut GameState) {
 
     let mut player_transform = None;
     let mut player_ship_type = None;
-    let player_sobj_id = get_player_ship_object(game_state.ctx);
+    let player_ship = get_player_ship(game_state.ctx);
 
     let db = &game_state.ctx.db;
     for object in db.stellar_object().iter() {
         // Don't continue if isn't in the same sector.
-        if player_sobj_id.as_ref().is_some_and(|ship_obj| ship_obj.sector_id != object.sector_id) {
+        if player_ship.as_ref().is_some_and(|ship_obj| ship_obj.sector_id != object.sector_id) {
             continue;
         }
 
         if let Ok(transform) = get_transform(game_state.ctx, object.id) {
-            if let Some(ship_object) = db.ship_object().sobj_id().find(&transform.sobj_id) {
-                if let Some(ship_instance) = db.ship_instance().id().find(&ship_object.ship_id) {
-                    if let Some(ship_type) = db
-                        .ship_type_definition()
-                        .id()
-                        .find(&ship_instance.shiptype_id)
-                    {
-                        if player_sobj_id.as_ref().is_some_and(|ship_obj| ship_obj.sobj_id == object.id) {
-                            // Store for later use
-                            player_transform = Some(transform);
-                            player_ship_type = Some(ship_type);
-                        } else {
-                            draw_ship(&transform, ship_type, game_state);
-                        }
+            if let Some(ship_object) = db.ship().sobj_id().find(&transform.sobj_id) {
+                if let Some(ship_type) = db
+                    .ship_type_definition()
+                    .id()
+                    .find(&ship_object.shiptype_id)
+                {
+                    if player_ship.as_ref().is_some_and(|ship_obj| ship_obj.sobj_id == object.id) {
+                        // Store for later use
+                        player_transform = Some(transform);
+                        player_ship_type = Some(ship_type);
+                    } else {
+                        draw_ship(&transform, ship_type, game_state);
                     }
                 }
             } else if let Some(jumpgate) = db.jump_gate().sobj_id().find(&object.id) {
@@ -50,11 +50,25 @@ pub fn sector(game_state: &mut GameState) {
         }
     }
 
-    if let Some(controller) = db.player_controller().identity().find(&game_state.ctx.identity()) {
+    if let Some(controller) = db.player_ship_controller().player_id().find(&game_state.ctx.identity()) {
         if player_transform.is_none() || player_ship_type.is_none() {
             return;
         }
         let actual_player_transform = player_transform.unwrap();
+
+        // Draw a line to your target from your ship, but only if it's far enough away.
+        if let Some(target) = &game_state.current_target_sobj {
+            if let Ok(transform) = get_transform(&game_state.ctx, target.id) {
+                let player_vec = actual_player_transform.to_vec2();
+                let target_vec = transform.to_vec2();
+                if player_vec.distance(target_vec) > 300. {
+                    let angle = (target_vec-player_vec).to_angle();
+                    let from = player_vec + (glam::Vec2::from_angle(angle) * 150.0);
+                    let to = target_vec + (glam::Vec2::from_angle(angle + PI) * 150.0);
+                    draw_line(from.x, from.y, to.x, to.y, 1.337, Color::from_rgba(255, 255, 255, 200));
+                }
+            }
+        }
 
         if controller.mining_laser_on {
             if let Some(target) = &game_state.current_target_sobj {

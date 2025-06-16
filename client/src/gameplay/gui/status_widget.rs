@@ -5,11 +5,7 @@ use spacetimedb_sdk::DbContext;
 use crate::{
     gameplay::state::{ GameState },
     module_bindings::*,
-    stdb::utils::{
-        get_player_ship_instance,
-        get_player_transform,
-        get_transform,
-    },
+    stdb::utils::*,
 };
 
 #[derive(Default)]
@@ -31,17 +27,24 @@ pub fn window(
         .anchor(Align2::CENTER_BOTTOM, egui::Vec2::new(0.0, 0.0))
         .show(egui_ctx, |ui| {
             ui.horizontal(|ui| {
-                if let Some(player_ship) = get_player_ship_instance(ctx) {
-                    if
-                        let Some(ship_type) = ctx.db
-                            .ship_type_definition()
-                            .id()
-                            .find(&player_ship.shiptype_id)
+                if let Some(player_ship) = get_player_ship(ctx) {
+                    if let Some(ship_type) = ctx.db
+                        .ship_type_definition()
+                        .id()
+                        .find(&player_ship.shiptype_id)
                     {
                         ship_function_status(ctx, ui);
 
                         ui.separator();
-                        ship_status(ui, ship_type, player_ship);
+                        if let Some(player_ship_status) = player_ship.status(ctx) {
+                            ship_status(ui, ship_type, player_ship_status);
+                        } else {
+                            ui.vertical(|ui| {
+                                ui.label("Ship");
+                                ui.label("Status");
+                                ui.label("Unknown");
+                            });
+                        }
                         ui.separator();
 
                         if game_state.current_target_sobj != None {
@@ -68,21 +71,21 @@ pub fn window(
         })
 }
 
-fn ship_status(ui: &mut Ui, ship_type: ShipTypeDefinition, player_ship: ShipInstance) {
+fn ship_status(ui: &mut Ui, ship_type: ShipTypeDefinition, player_ship_status: ShipStatus) {
     ui.vertical(|ui| {
         add_status_bar(
             ui,
             "Health",
             ship_type.max_health as f32,
-            player_ship.health,
+            player_ship_status.health,
             Color32::from_rgb(242, 0, 32),
             true
         );
         add_status_bar(
             ui,
             "Shields",
-            ship_type.max_shield as f32,
-            player_ship.shields,
+            ship_type.max_shields as f32,
+            player_ship_status.shields,
             Color32::from_rgb(0, 64, 192),
             true
         );
@@ -90,7 +93,7 @@ fn ship_status(ui: &mut Ui, ship_type: ShipTypeDefinition, player_ship: ShipInst
             ui,
             "Energy",
             ship_type.max_energy as f32,
-            player_ship.energy,
+            player_ship_status.energy,
             Color32::from_rgb(0, 100, 64),
             true
         );
@@ -99,7 +102,7 @@ fn ship_status(ui: &mut Ui, ship_type: ShipTypeDefinition, player_ship: ShipInst
 
 fn ship_function_status(ctx: &DbConnection, ui: &mut Ui) {
     ui.vertical(|ui| {
-        if let Some(controller) = ctx.db.player_controller().identity().find(&ctx.identity()) {
+        if let Some(controller) = ctx.db.player_ship_controller().player_id().find(&ctx.identity()) {
             if controller.cargo_bay_open {
                 ui.label(RichText::new("[Z] Cargo Bay: Open").color({
                     if now() % 1.0 < 0.45 {
@@ -178,37 +181,38 @@ fn add_targeted_object_status(
             }
         }
         StellarObjectKinds::Ship => {
-            if let Some(ship_instance) = ctx.db.ship_instance().id().find(&target.id) {
-                if
-                    let Some(ship_type) = ctx.db
+            if let Some(ship) = ctx.db.ship().sobj_id().find(&target.id) {
+                if let Some(ship_status) = ship.status(ctx) {
+                    if let Some(ship_type) = ctx.db
                         .ship_type_definition()
                         .id()
-                        .find(&ship_instance.shiptype_id)
-                {
-                    add_status_bar(
-                        ui,
-                        "Health",
-                        ship_type.max_health as f32,
-                        ship_instance.health,
-                        Color32::from_rgb(242, 0, 32),
-                        true
-                    );
-                    add_status_bar(
-                        ui,
-                        "Shields",
-                        ship_type.max_shield as f32,
-                        ship_instance.shields,
-                        Color32::from_rgb(0, 64, 192),
-                        true
-                    );
-                    add_status_bar(
-                        ui,
-                        "Energy",
-                        ship_type.max_energy as f32,
-                        ship_instance.energy,
-                        Color32::from_rgb(0, 100, 64),
-                        true
-                    );
+                        .find(&ship.shiptype_id)
+                    {
+                        add_status_bar(
+                            ui,
+                            "Health",
+                            ship_type.max_health as f32,
+                            ship_status.health,
+                            Color32::from_rgb(242, 0, 32),
+                            true
+                        );
+                        add_status_bar(
+                            ui,
+                            "Shields",
+                            ship_type.max_shields as f32,
+                            ship_status.shields,
+                            Color32::from_rgb(0, 64, 192),
+                            true
+                        );
+                        add_status_bar(
+                            ui,
+                            "Energy",
+                            ship_type.max_energy as f32,
+                            ship_status.energy,
+                            Color32::from_rgb(0, 100, 64),
+                            true
+                        );
+                    }
                 }
             }
         }

@@ -5,7 +5,7 @@ use spacetimedb::{client_visibility_filter, Filter};
 const SO_SHIPOBJECT_FILTER: Filter = Filter::Sql(
     "SELECT o.* 
     FROM stellar_object o
-    JOIN ship_object s ON s.sector_id = o.sector_id"
+    JOIN ship s ON s.sector_id = o.sector_id"
 );
 
 /// You can only see your own window
@@ -13,7 +13,7 @@ const SO_SHIPOBJECT_FILTER: Filter = Filter::Sql(
 const OWN_WINDOW_FILTER: Filter = Filter::Sql(
     "SELECT w.* 
     FROM sobj_player_window w
-    WHERE w.identity = :sender"
+    WHERE w.player_id = :sender"
 );
 
 /// You can only see high "resolution" transforms within your window.

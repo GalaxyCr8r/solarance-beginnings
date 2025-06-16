@@ -5,5 +5,5 @@ use spacetimedb::{client_visibility_filter, Filter};
 const ASTEROID_SECTOR_FILTER: Filter = Filter::Sql(
      "SELECT a.* 
       FROM asteroid a
-      JOIN ship_object o ON o.sector_id = a.current_sector_id"
+      JOIN ship o ON o.sector_id = a.current_sector_id"
  );

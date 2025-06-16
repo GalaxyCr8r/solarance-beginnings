@@ -1,6 +1,6 @@
 use egui::{Align2, Context};
 
-use crate::{gameplay::state::GameState, module_bindings::*, stdb::utils::get_player_ship_instance};
+use crate::{gameplay::state::GameState, module_bindings::*, stdb::utils::*};
 
 #[derive(PartialEq)]
 enum CurrentTab {
@@ -31,8 +31,8 @@ pub fn draw(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::Inne
         .movable(false)
         .anchor(Align2::RIGHT_BOTTOM, egui::Vec2::new(0.0, 0.0))
         .show(egui_ctx, |ui| {
-            if let Some(player_ship) = get_player_ship_instance(ctx) {
-                if let Some(sector) = ctx.db.sector().id().find(&player_ship.current_sector_id) {
+            if let Some(player_ship) = get_player_ship(ctx) {
+                if let Some(sector) = ctx.db.sector().id().find(&player_ship.sector_id) {
                     ui.label("Current Sector:");
                     ui.label(sector.name);
 

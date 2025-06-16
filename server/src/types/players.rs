@@ -15,7 +15,7 @@ pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 #[table(name = player, public)]
 pub struct Player {
     #[primary_key]
-    pub player_id: Identity,
+    pub identifier: Identity,
 
     #[unique]
     pub username: String,

@@ -13,7 +13,7 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
         return Ok(())
     }
     let mut changed = false; // ONLY request an update if there's actually been a change!
-    if let Some(mut controller) = ctx.db.player_controller().identity().find(&ctx.identity()) {
+    if let Some(mut controller) = ctx.db.player_ship_controller().player_id().find(&ctx.identity()) {
         // Synchronize the controller with the game state.
          game_state.current_target_sobj = match controller.targetted_sobj_id {
             Some(id) => ctx.db.stellar_object().id().find(&id),

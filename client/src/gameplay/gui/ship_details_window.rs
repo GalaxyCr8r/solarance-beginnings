@@ -5,7 +5,7 @@ use egui::{Context, FontId, RichText, Ui};
 use macroquad::prelude::*;
 use spacetimedb_sdk::Table;
 
-use crate::{module_bindings::*, stdb::utils::get_player_ship_instance};
+use crate::{module_bindings::*, stdb::utils::*};
 
 #[derive(PartialEq)]
 enum CurrentTab {
@@ -39,30 +39,32 @@ pub fn draw(egui_ctx: &Context, ctx: &DbConnection, state: &mut State,  open: &m
         .movable(true)
         .vscroll(true)
         .show(egui_ctx, |ui| {
-            if let Some(player_ship) = get_player_ship_instance(ctx) {
-                if let Some(ship_type) = ctx.db.ship_type_definition().id().find(&player_ship.shiptype_id) {
-                    ui.horizontal_top(|ui| {
-                        ui.selectable_value(&mut state.current_tab, CurrentTab::Ship,
-                            RichText::new("Ship").font(FontId::proportional(20.0)));
-                        ui.selectable_value(&mut state.current_tab, CurrentTab::Cargo,
-                            RichText::new("Cargo").font(FontId::proportional(20.0)));
-                        ui.selectable_value(&mut state.current_tab, CurrentTab::Equipment,
-                            RichText::new("Equipment").font(FontId::proportional(20.0)));
-                    });
+            if let Some(player_ship) = get_player_ship(ctx) {
+                if let Some(player_ship_status) = player_ship.status(ctx) {
+                    if let Some(ship_type) = ctx.db.ship_type_definition().id().find(&player_ship.shiptype_id) {
+                        ui.horizontal_top(|ui| {
+                            ui.selectable_value(&mut state.current_tab, CurrentTab::Ship,
+                                RichText::new("Ship").font(FontId::proportional(20.0)));
+                            ui.selectable_value(&mut state.current_tab, CurrentTab::Cargo,
+                                RichText::new("Cargo").font(FontId::proportional(20.0)));
+                            ui.selectable_value(&mut state.current_tab, CurrentTab::Equipment,
+                                RichText::new("Equipment").font(FontId::proportional(20.0)));
+                        });
 
-                    ui.separator();
+                        ui.separator();
 
-                    match state.current_tab {
-                        CurrentTab::Ship => {ship_contents(ui, ctx, state, ship_type, player_ship);},
-                        CurrentTab::Cargo => {cargo_contents(ui, ctx, state, ship_type, player_ship);},
-                        CurrentTab::Equipment => {equipment_contents(ui, ctx, state, ship_type, player_ship);}
+                        match state.current_tab {
+                            CurrentTab::Ship => {ship_contents(ui, ctx, state, ship_type, player_ship, player_ship_status);},
+                            CurrentTab::Cargo => {cargo_contents(ui, ctx, state, ship_type, player_ship, player_ship_status);},
+                            CurrentTab::Equipment => {equipment_contents(ui, ctx, state, ship_type, player_ship);}
+                        }
                     }
                 }
             }
         })
 }
 
-fn ship_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut State, ship_type: ShipTypeDefinition, player_ship: ShipInstance) {
+fn ship_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut State, ship_type: ShipTypeDefinition, player_ship: Ship, player_ship_status: ShipStatus) {
     ui.heading("Detailed Ship Status");
     ui.separator();
     ui.horizontal(|ui| {
@@ -80,15 +82,15 @@ fn ship_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut State, ship_type:
     ui.heading("Stats");
     ui.horizontal(|ui| {
         ui.vertical(|ui| {
-            ui.label(format!("Health: {}", player_ship.health));
-            ui.label(format!("Shield: {}", player_ship.shields));
-            ui.label(format!("Energy: {}", player_ship.energy));
-            ui.label(format!("Cargo: {} / {}", player_ship.used_cargo_capacity, player_ship.max_cargo_capacity));
+            ui.label(format!("Health: {}", player_ship_status.health));
+            ui.label(format!("Shield: {}", player_ship_status.shields));
+            ui.label(format!("Energy: {}", player_ship_status.energy));
+            ui.label(format!("Cargo: {} / {}", player_ship_status.used_cargo_capacity, player_ship_status.max_cargo_capacity));
         });
         ui.separator();
         ui.vertical(|ui| {
             ui.label(format!("Max Health: {}", ship_type.max_health));
-            ui.label(format!("Max Shield: {}", ship_type.max_shield));
+            ui.label(format!("Max Shield: {}", ship_type.max_shields));
             ui.label(format!("Max Energy: {}", ship_type.max_energy));
         });
         ui.separator();
@@ -120,7 +122,7 @@ fn ship_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut State, ship_type:
     });
 }
 
-fn cargo_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut State, _ship_type: ShipTypeDefinition, player_ship: ShipInstance) {
+fn cargo_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut State, _ship_type: ShipTypeDefinition, player_ship: Ship, player_ship_status: ShipStatus) {
     ui.heading("Cargo Bay Contents");
     ui.separator();
     let mut total_cargo_usage = 0;
@@ -167,11 +169,11 @@ fn cargo_contents(ui: &mut Ui, ctx: &DbConnection, _state: &mut State, _ship_typ
         ui.label("Cargo Capacity:");
         ui.add_enabled(total_cargo_usage != 0,
             egui::Label::new(format!("{} /", total_cargo_usage)));
-        ui.label(format!("{} volume", player_ship.max_cargo_capacity));
+        ui.label(format!("{} volume", player_ship_status.max_cargo_capacity));
     });
 }
 
-fn equipment_contents(ui: &mut Ui, ctx: &DbConnection, state: &mut State, ship_type: ShipTypeDefinition, _player_ship: ShipInstance) {
+fn equipment_contents(ui: &mut Ui, ctx: &DbConnection, state: &mut State, ship_type: ShipTypeDefinition, _player_ship: Ship) {
     ui.heading("Equipment");
     ui.separator();
     ui.horizontal_top(|ui| {

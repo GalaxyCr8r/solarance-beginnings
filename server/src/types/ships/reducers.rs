@@ -108,7 +108,5 @@ pub fn teleport_via_jumpgate(
     let pos: &crate::types::common::Vec2 = jumpgate.get_target_gate_arrival_pos();
     teleport_to_sector(ctx, ship,
         dsl.get_sector_by_id(jumpgate.get_target_sector_id()).ok_or("Failed to find jumpgate's target sector.")?,
-        pos.x, pos.y);
-
-    Ok(())
+        pos.x, pos.y)
 }
