@@ -2,7 +2,7 @@ use log::info;
 use spacetimedb::{table, Identity, ReducerContext, Timestamp};
 use spacetimedsl::{dsl, Wrapper};
 
-use crate::types::{players::get_username, sectors::SectorId, ships::*};
+use crate::types::{players::utility::get_username, sectors::SectorId, ships::*};
 
 pub mod definitions; // Definitions for initial ingested data.
 pub mod impls; // Impls for this file's structs
@@ -102,7 +102,7 @@ pub fn send_sector_chat(ctx: &ReducerContext, chat_message: String, sector_id: u
     let dsl = dsl(ctx);
     let username = get_username(ctx, ctx.sender);
 
-    if let Some(player) = dsl.get_ship_objects_by_player_id(&ctx.sender).next() {
+    if let Some(player) = dsl.get_ships_by_player_id(&ctx.sender).next() {
         if player.get_sector_id().value() != sector_id {
             return Err(format!("Player {} is not in sector {}", username, sector_id));
         }

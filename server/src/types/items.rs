@@ -93,13 +93,3 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     
     Ok(())
 }
-
-//////////////////////////////////////////////////////////////
-// Impls
-//////////////////////////////////////////////////////////////
-
-impl ItemDefinition {
-    pub fn can_any_of_this_fit_inside_this_ship(&self, ship: &ShipInstance) -> bool {
-        (ship.get_remaining_cargo_space() / self.volume_per_unit) > 0
-    }
-}

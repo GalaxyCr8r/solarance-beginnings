@@ -4,7 +4,7 @@ use log::info;
 use spacetimedb::*;
 use spacetimedsl::{dsl, Wrapper};
 
-use crate::types::{asteroids::*, common::utility::try_server_only, items::{utility::*, *}, ships::utility::*, stellarobjects::StellarObject, utility::*};
+use crate::types::{asteroids::*, common::utility::try_server_only, items::utility::*, ships::utility::*, stellarobjects::StellarObject};
 
 use super::{*};
 
@@ -156,7 +156,7 @@ pub fn ship_mining_timer_reducer(ctx: &ReducerContext, mut timer: ShipMiningTime
 
     if asteroid_object.current_resources == 0 {
         dsl.delete_ship_mining_timer_by_scheduled_id(timer.get_scheduled_id());
-        StellarObject::delete_from_id(ctx, &asteroid_object.get_sobj_id());
+        StellarObject::delete_from_id(ctx, &asteroid_object.get_sobj_id(), true);
         return Err(format!("Asteroid #{} exhausted of resources! Timer deleted", asteroid_object.sobj_id));
     }
 
@@ -229,7 +229,7 @@ pub fn ship_add_cargo_timer_reducer(ctx: &ReducerContext, timer: ShipAddCargoTim
     // Either way, we don't want this to continue.
     dsl.delete_ship_add_cargo_timer_by_scheduled_id(&timer);
 
-    if let Some(mut ship_object) = dsl.get_ship_by_id(timer.get_ship_id()) {
+    if let Some(ship_object) = dsl.get_ship_by_id(timer.get_ship_id()) {
         let mut ship_status = dsl.get_ship_status_by_id(timer.get_ship_id()).
             ok_or(format!("Failed to get ship status row for ship #{}", timer.ship_id))?;
 
@@ -238,7 +238,7 @@ pub fn ship_add_cargo_timer_reducer(ctx: &ReducerContext, timer: ShipAddCargoTim
             .ok_or(format!("Failed to get item def for {}", timer.item_id))?;
 
         // Attempt to load it into the ship
-        attempt_to_load_cargo_into_ship(ctx, &mut ship_status, ship_object, &item_def, timer.amount)?;
+        attempt_to_load_cargo_into_ship(ctx, &mut ship_status, &ship_object, &item_def, timer.amount)?;
         
         Ok(())
     } else {

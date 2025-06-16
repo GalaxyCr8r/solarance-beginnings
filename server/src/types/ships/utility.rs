@@ -5,7 +5,7 @@ use glam::Vec2;
 use log::info;
 use spacetimedb::{rand::Rng, TimeDuration};
 
-use crate::types::{factions::FactionDefinitionId, items::*, ships::timers::CreateShipEnergyAndShieldTimerRow, stellarobjects::{utility::*, *}};
+use crate::types::{factions::FactionDefinitionId, ships::timers::CreateShipEnergyAndShieldTimerRow, stellarobjects::{utility::*, *}};
 
 use super::{*};
 
@@ -20,7 +20,7 @@ pub fn same_sector_from_ids(ctx: &ReducerContext, id1: &StellarObjectId, id2: &S
     false
 }
 
-pub fn create_ship_from_sobj(ctx: &ReducerContext, ship_type: ShipTypeDefinition, identity: Identity, sobj: StellarObject) -> Result<Ship, String> {
+pub fn create_ship_from_sobj(ctx: &ReducerContext, ship_type: ShipTypeDefinition, identity: Identity, sobj: StellarObject) -> Result<(Ship, ShipStatus), String> {
     let dsl = dsl(ctx);
 
     let ship_global = dsl.create_ship_global()?;
@@ -42,7 +42,7 @@ pub fn create_ship_from_sobj(ctx: &ReducerContext, ship_type: ShipTypeDefinition
             Err(e) => Err(e.to_string())
         }?;
 
-    dsl.create_ship_status(&ship_global, 
+    let ship_status = dsl.create_ship_status(&ship_global, 
         sobj.get_sector_id(), 
         identity, 
         ship_type.max_health as f32,
@@ -52,10 +52,10 @@ pub fn create_ship_from_sobj(ctx: &ReducerContext, ship_type: ShipTypeDefinition
         ship_type.cargo_capacity,
         None)?;
 
-    return Ok(ship);
+    return Ok((ship, ship_status));
 }
 
-pub fn create_ship_docked_at_station(ctx: &ReducerContext, ship_type: ShipTypeDefinition, identity: Identity, station: Station) -> Result<DockedShip, String> {
+pub fn create_ship_docked_at_station(ctx: &ReducerContext, ship_type: ShipTypeDefinition, identity: Identity, station: Station) -> Result<(DockedShip, ShipStatus), String> {
     let dsl = dsl(ctx);
 
     let ship_global = dsl.create_ship_global()?;
@@ -77,7 +77,7 @@ pub fn create_ship_docked_at_station(ctx: &ReducerContext, ship_type: ShipTypeDe
             Err(e) => Err(e.to_string())
         }?;
 
-    dsl.create_ship_status(&ship_global, 
+    let ship_status = dsl.create_ship_status(&ship_global, 
         station.get_sector_id(), 
         identity, 
         ship_type.max_health as f32,
@@ -87,7 +87,7 @@ pub fn create_ship_docked_at_station(ctx: &ReducerContext, ship_type: ShipTypeDe
         ship_type.cargo_capacity,
         None)?;
 
-    return Ok(ship);
+    return Ok((ship, ship_status));
 }
 
 /// Docks the given Ship to the given station it is docking at and returns the new DockedShip row.
@@ -104,7 +104,7 @@ pub fn undock_ship(ctx: &ReducerContext, docked_ship: DockedShip) -> Result<Ship
 /// It creates new cargo items if necessary, but if it can't it will crate a cargo crate instead.
 pub fn attempt_to_load_cargo_into_ship(ctx: &ReducerContext, 
         ship_status: &mut ShipStatus, 
-        ship_object: Ship,
+        ship_object: &Ship,
         item_def: &ItemDefinition, 
         amount: u16) -> Result<(), String> {
     let dsl = dsl(ctx);
@@ -199,7 +199,8 @@ pub fn attempt_to_load_cargo_into_ship(ctx: &ReducerContext,
     Ok(())
 }
 
-/// Crates a cargo crate nearby the given ship instance. If the ship instance doesn't have an stellarObject, it'll place it randomly in its last known sector.
+/// Crates a cargo crate nearby the given stellar object if it exists, 
+/// otherwise it'll place it randomly in its last known sector.
 pub fn create_cargo_crate_nearby_ship(ctx: &ReducerContext, ship_sobj: &StellarObjectId, item_def: &ItemDefinition, quantity: u16) -> Result<(), String> {
     let dsl = dsl(ctx);
 

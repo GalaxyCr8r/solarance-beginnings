@@ -1,9 +1,6 @@
-use glam::Vec2;
 
 use crate::types::{
-    items::*,
     jumpgates::*,
-    sectors::*,
     ships::utility::*,
     stellarobjects::*,
     common::utility::*,
@@ -82,7 +79,7 @@ pub fn teleport_to_sector(
     let dsl = dsl(ctx);
 
     ship.set_sector_id(&destination_sector);
-    if let Some(mut sobj) = StellarObject::get(ctx, &ship.get_sobj_id()) {
+    if let Some(mut sobj) = dsl.get_stellar_object_by_id(&ship.get_sobj_id()) {
         sobj.set_sector_id(&destination_sector);
         if let Some(mut transform) = StellarObjectTransformInternal::get(ctx, &sobj.get_id()) {
             transform.set_x(x);

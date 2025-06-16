@@ -1,7 +1,7 @@
 use super::*;
 
 pub fn get_username(ctx: &ReducerContext, id:Identity) -> String {
-    if let Some(player) = ctx.db.player().identity().find(id) {
+    if let Some(player) = ctx.db.player().player_id().find(id) {
         player.username
     } else {
         if ctx.sender == ctx.identity() {

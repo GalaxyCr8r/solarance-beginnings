@@ -2,7 +2,7 @@
 use spacetimedb::{table, Identity, ReducerContext, Timestamp};
 use spacetimedsl::{dsl, Wrapper};
 
-use super::{common::CurrentAction, ships::*};
+use super::{common::CurrentAction, ships::*, stellarobjects::*};
 
 //pub mod definitions; // Definitions for initial ingested data.
 pub mod impls; // Impls for this file's structs
@@ -25,13 +25,15 @@ pub struct Player {
     modified_at: Timestamp,
 }
 
-#[dsl(plural_name = player_controllers)]
-#[table(name = player_controller, public)]
-pub struct PlayerController {
+#[dsl(plural_name = player_ship_controllers)]
+#[table(name = player_ship_controller, public)]
+pub struct PlayerShipController {
     #[primary_key]
     pub player_id: Identity,
 
-    pub stellar_object_id: Option<u64>,
+    #[index(btree)]
+    #[wrapped(path = StellarObjectId)]
+    pub stellar_object_id: u64,
 
     // Movement
     pub up: bool,

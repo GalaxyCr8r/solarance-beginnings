@@ -1,18 +1,13 @@
 
 
-use crate::types::{asteroids::*, items::*, jumpgates::*, ships::{timers::*, *}, stations::*};
+use crate::types::{asteroids::*, items::*, jumpgates::*, players::DeletePlayerShipControllerRowByPlayerId, ships::{timers::*, *}, stations::*};
 
 use super::*;
 
 impl StellarObject {
-    pub fn get(ctx: &ReducerContext, id: &StellarObjectId) -> Option<StellarObject> {
-        let dsl = dsl(ctx);
-        dsl.get_stellar_object_by_id(id)
-    }
-
     /// Attempts to delete the StellarObject. Returns the object if found.
-    pub fn delete_from_id(ctx: &ReducerContext, id: &StellarObjectId) -> Option<StellarObject> {
-        StellarObject::get(ctx, id).inspect(|sobj| sobj.delete(ctx))
+    pub fn delete_from_id(ctx: &ReducerContext, id: &StellarObjectId, delete_kind_specific_rows: bool) -> Option<StellarObject> {
+        dsl(ctx).get_stellar_object_by_id(id).inspect(|sobj| sobj.delete(ctx, delete_kind_specific_rows))
     }
 
     pub fn distance_squared(&self, ctx: &ReducerContext, target: &StellarObject) -> Option<f32> {
@@ -29,8 +24,12 @@ impl StellarObject {
     }
 
     /// Attempts to smartly delete everything related to this stellar object.
-    pub fn delete(&self, ctx: &ReducerContext) {
+    pub fn delete(&self, ctx: &ReducerContext, delete_kind_specific_rows: bool) {
         let dsl = dsl(ctx);
+
+        if let Some(window) = dsl.get_sobj_player_window_by_sobj_id(self) {
+            dsl.delete_player_ship_controller_by_player_id(&window.player_id);
+        }
 
         dsl.delete_stellar_object_by_id(self);
         dsl.delete_sobj_player_window_by_sobj_id(self);
@@ -43,14 +42,17 @@ impl StellarObject {
         dsl.delete_ship_mining_timers_by_ship_sobj_id(self);
 
         // Kind-specific
-        match self.kind {
+        if delete_kind_specific_rows { match self.kind {
             StellarObjectKinds::Ship => {
-                if let Some(ship_object) = dsl.get_ship_object_by_sobj_id(self) {
-                    dsl.delete_ship_instance_by_id(ship_object.get_ship_id());
-                    dsl.delete_ship_cargo_items_by_ship_id(ship_object.get_ship_id());
-                    dsl.delete_ship_equipment_slots_by_ship_id(ship_object.get_ship_id());
+                if let Some(ship_object) = dsl.get_ship_by_sobj_id(self) {
+                    dsl.delete_ship_status_by_id(ship_object.get_id());
+                    dsl.delete_ship_cargo_items_by_ship_id(ship_object.get_id());
+                    dsl.delete_ship_equipment_slots_by_ship_id(ship_object.get_id());
+                    
+                    dsl.delete_ship_energy_and_shield_timers_by_ship_id(ship_object.get_id());
+                    dsl.delete_ship_add_cargo_timers_by_ship_id(ship_object.get_id());
                 }
-                dsl.delete_ship_object_by_sobj_id(self);
+                dsl.delete_ship_by_sobj_id(self);
             },
             StellarObjectKinds::Asteroid => {
                 dsl.delete_asteroid_by_sobj_id(self);
@@ -64,7 +66,7 @@ impl StellarObject {
             StellarObjectKinds::JumpGate => {
                 dsl.delete_jump_gate_by_sobj_id(self);
             },
-        }
+        }}
     }
 }
 
