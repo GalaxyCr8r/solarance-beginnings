@@ -4,7 +4,6 @@ use macroquad::{ math::Vec2, prelude::*, ui };
 
 use super::module_bindings::*;
 use spacetimedb_sdk::{ DbContext, Table };
-use super::stdb::connector::connect_to_spacetime;
 
 use crate::{shader::*, stdb::utils::*};
 
@@ -37,9 +36,9 @@ pub fn register_callbacks(ctx: &DbConnection, global_chat_channel: Sender<Global
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub async fn gameplay(token : Option<String>) {
+pub async fn gameplay(connection: Option<DbConnection>) {//token : Option<String>) {
     // DB Connection & ECS World
-    let connection = connect_to_spacetime(token);
+    //let connection = connect_to_spacetime(token);
     if connection.is_none() {
         error!("Failed to connect to SpacetimeDB. Exiting...");
         return;

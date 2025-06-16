@@ -1,4 +1,3 @@
-use std::f32::consts::PI;
 
 use macroquad::{ miniquad::date::now, prelude::{ collections::storage, * } };
 
@@ -18,6 +17,8 @@ pub fn sector(game_state: &mut GameState) {
     let mut player_ship_type = None;
     let player_ship = get_player_ship(game_state.ctx);
 
+    let mut local_targets: Vec<(u64, glam::Vec2, StellarObjectKinds)> = Vec::new();
+
     let db = &game_state.ctx.db;
     for object in db.stellar_object().iter() {
         // Don't continue if isn't in the same sector.
@@ -25,7 +26,8 @@ pub fn sector(game_state: &mut GameState) {
             continue;
         }
 
-        if let Ok(transform) = get_transform(game_state.ctx, object.id) {
+        // ONLY draw if they have hi-resolution positions.
+        if let Some(transform) = db.sobj_hi_res_transform().sobj_id().find(&object.id) {
             if let Some(ship_object) = db.ship().sobj_id().find(&transform.sobj_id) {
                 if let Some(ship_type) = db
                     .ship_type_definition()
@@ -33,8 +35,8 @@ pub fn sector(game_state: &mut GameState) {
                     .find(&ship_object.shiptype_id)
                 {
                     if player_ship.as_ref().is_some_and(|ship_obj| ship_obj.sobj_id == object.id) {
-                        // Store for later use
-                        player_transform = Some(transform);
+                        // Store player transform for later use
+                        player_transform = Some(transform.clone());
                         player_ship_type = Some(ship_type);
                     } else {
                         draw_ship(&transform, ship_type, game_state);
@@ -47,6 +49,10 @@ pub fn sector(game_state: &mut GameState) {
             } else if let Some(cargo_crate) = db.cargo_crate().sobj_id().find(&object.id) {
                 draw_crate(&transform, cargo_crate, game_state);
             }
+            local_targets.push((object.id, transform.clone().to_vec2(), object.kind));
+        } else if let Some(transform) = db.sobj_low_res_transform().sobj_id().find(&object.id) {
+            // Draw icon even if it has a low-res transform.
+            local_targets.push((object.id, transform.clone().to_vec2(), object.kind));
         }
     }
 
@@ -55,49 +61,83 @@ pub fn sector(game_state: &mut GameState) {
             return;
         }
         let actual_player_transform = player_transform.unwrap();
+        let player_vec = actual_player_transform.to_vec2();
 
-        // Draw a line to your target from your ship, but only if it's far enough away.
-        if let Some(target) = &game_state.current_target_sobj {
-            if let Ok(transform) = get_transform(&game_state.ctx, target.id) {
-                let player_vec = actual_player_transform.to_vec2();
-                let target_vec = transform.to_vec2();
-                if player_vec.distance(target_vec) > 300. {
-                    let angle = (target_vec-player_vec).to_angle();
-                    let from = player_vec + (glam::Vec2::from_angle(angle) * 150.0);
-                    let to = target_vec + (glam::Vec2::from_angle(angle + PI) * 150.0);
-                    draw_line(from.x, from.y, to.x, to.y, 1.337, Color::from_rgba(255, 255, 255, 200));
-                }
-            }
-        }
-
-        if controller.mining_laser_on {
-            if let Some(target) = &game_state.current_target_sobj {
-                // Draw a mining laser effect if the player is in range
-                if target.kind == StellarObjectKinds::Asteroid {
-                    if let Ok(transform) = get_transform(game_state.ctx, target.id) {
-                        draw_line(
-                            transform.x,
-                            transform.y,
-                            actual_player_transform.x,
-                            actual_player_transform.y,
-                            6.0,
-                            Color::from_rgba(128, 0, 0, ((now() * 100.0) % 255.0) as u8)
-                        );
-                        draw_line(
-                            transform.x,
-                            transform.y,
-                            actual_player_transform.x,
-                            actual_player_transform.y,
-                            (now() as f32 * 100.0) % 3.0,
-                            RED
-                        );
-                    }
-                }
-            }
-        }
+        draw_mining_laser(game_state, &actual_player_transform, controller);
 
         // Draw the controlled ship so its always on top.
         draw_ship(&actual_player_transform, player_ship_type.unwrap(), game_state);
+
+        // Draw 'radar'
+        draw_radar(game_state, local_targets, actual_player_transform, player_vec);
+    }
+}
+
+fn draw_mining_laser(game_state: &mut GameState<'_>, actual_player_transform: &StellarObjectTransformHiRes, controller: PlayerShipController) {
+    if controller.mining_laser_on {
+        if let Some(target) = &game_state.current_target_sobj {
+            // Draw a mining laser effect if the player is in range
+            if target.kind == StellarObjectKinds::Asteroid {
+                if let Ok(transform) = get_transform(game_state.ctx, target.id) {
+                    draw_line(
+                        transform.x,
+                        transform.y,
+                        actual_player_transform.x,
+                        actual_player_transform.y,
+                        6.0,
+                        Color::from_rgba(128, 0, 0, ((now() * 100.0) % 255.0) as u8)
+                    );
+                    draw_line(
+                        transform.x,
+                        transform.y,
+                        actual_player_transform.x,
+                        actual_player_transform.y,
+                        (now() as f32 * 100.0) % 3.0,
+                        RED
+                    );
+                }
+            }
+        }
+    }
+}
+
+fn draw_radar(game_state: &mut GameState<'_>, 
+        local_targets: Vec<(u64, glam::Vec2, StellarObjectKinds)>, 
+        actual_player_transform: StellarObjectTransformHiRes, 
+        player_vec: glam::Vec2) {
+    let radar_radius = screen_height() / 2.0 - 100.;
+    let radar_icon_size = 8.;
+    draw_circle_lines(actual_player_transform.x, actual_player_transform.y, radar_radius, radar_icon_size, Color::from_rgba(255, 255, 255, 32));
+
+    for (sobj_id, position, kind) in local_targets {
+        // Find out where the icon should be placed on the ring.
+        let angle = (position - player_vec).to_angle();
+        let from = player_vec + ((glam::Vec2::from_angle(angle) * radar_radius) + radar_icon_size / 2.0);
+    
+        // Check targetted Stellar Object information (if there is any)
+        let targetted_sobj = if game_state.current_target_sobj.is_some() {
+            Some(game_state.current_target_sobj.as_ref().unwrap().id)
+        } else { None };
+        let is_targetted = targetted_sobj.is_some_and(|id| id == sobj_id);
+        let thickness = if is_targetted { 2.0 } else { 1.0 };
+
+        // Get distance to target and calculate various things based on it.
+        let dist_sq = player_vec.distance_squared(position);
+        if dist_sq < radar_radius*radar_radius {
+            continue;
+        }
+        let distance_fade = if dist_sq < 1000.*1000. {1.0} else { if dist_sq < 5000.*5000. {
+            ((6000. - f32::sqrt(dist_sq)) / 5000.) * 0.75 + 0.25
+        } else {0.25} };
+        let actual_fade = if is_targetted {
+            (255. * distance_fade) as u8
+        } else {
+            (192. * distance_fade) as u8
+        };
+
+        // Actually draw the icon.
+        draw_poly_lines(from.x, from.y, polygon_points_per_kind(kind), radar_icon_size, 1., thickness, 
+                    Color::from_rgba(255, 255, 255, actual_fade));
     }
 }
 
@@ -133,7 +173,7 @@ fn draw_ship(
     if let Some(target) = &game_state.current_target_sobj {
         if target.id == transform.sobj_id {
             let size = (tex.width() + tex.height()) * 0.5;
-            draw_targeting_bracket(position, size, Color::from_rgba(255, 255, 255, 200));
+            draw_targeting_bracket(position, size, target.kind, Color::from_rgba(255, 255, 255, 200));
         }
     }
 }
@@ -164,7 +204,7 @@ fn draw_asteroid(
     if let Some(target) = &game_state.current_target_sobj {
         if target.id == asteroid.sobj_id {
             let size = (tex.width() + tex.height()) * 0.5;
-            draw_targeting_bracket(position, size, Color::from_rgba(255, 255, 255, 200));
+            draw_targeting_bracket(position, size, target.kind, Color::from_rgba(255, 255, 255, 200));
         }
     }
 }
@@ -194,7 +234,7 @@ fn draw_crate(
     if let Some(target) = &game_state.current_target_sobj {
         if target.id == cargo_crate.sobj_id {
             let size = (tex.width() + tex.height()) * 0.5;
-            draw_targeting_bracket(position, size, Color::from_rgba(255, 255, 255, 200));
+            draw_targeting_bracket(position, size, target.kind, Color::from_rgba(255, 255, 255, 200));
         }
     }
 }
@@ -215,23 +255,31 @@ fn draw_jumpgate(
     if let Some(target) = &game_state.current_target_sobj {
         if target.id == jumpgate.sobj_id {
             let size = (tex.width() + tex.height()) * 0.33;
-            draw_targeting_bracket(position, size, Color::from_rgba(255, 255, 255, 200));
+            draw_targeting_bracket(position, size, target.kind, Color::from_rgba(255, 255, 255, 200));
         }
     }
 }
 
-fn draw_targeting_bracket(pos: glam::Vec2, size: f32, color: Color) {
-    draw_hexagon(
-        pos.x,
-        pos.y,
+fn draw_targeting_bracket(pos: glam::Vec2, size: f32, kind: StellarObjectKinds, color: Color) {
+    draw_poly_lines(
+        pos.x, pos.y,
+        polygon_points_per_kind(kind),
         size,
+        1.,
         if size < 512.0 {
             1.0
         } else {
             size / 512.0
-        },
-        true,
-        color,
-        Color::from_rgba(0, 0, 0, 0)
-    );
+        }, 
+        color);
+}
+
+fn polygon_points_per_kind(kind: StellarObjectKinds) -> u8 {
+    match kind {
+        StellarObjectKinds::Ship => 3,
+        StellarObjectKinds::Asteroid => 7,
+        StellarObjectKinds::CargoCrate => 4,
+        StellarObjectKinds::Station => 6,
+        StellarObjectKinds::JumpGate => 5,
+    }
 }
