@@ -39,7 +39,7 @@ pub fn sector(game_state: &mut GameState) {
                         player_transform = Some(transform.clone());
                         player_ship_type = Some(ship_type);
                     } else {
-                        draw_ship(&transform, ship_type, game_state);
+                        draw_ship(&ship_object, &transform, ship_type, game_state);
                     }
                 }
             } else if let Some(jumpgate) = db.jump_gate().sobj_id().find(&object.id) {
@@ -57,7 +57,7 @@ pub fn sector(game_state: &mut GameState) {
     }
 
     if let Some(controller) = db.player_ship_controller().player_id().find(&game_state.ctx.identity()) {
-        if player_transform.is_none() || player_ship_type.is_none() {
+        if player_transform.is_none() || player_ship_type.is_none() || player_ship.is_none() {
             return;
         }
         let actual_player_transform = player_transform.unwrap();
@@ -66,7 +66,7 @@ pub fn sector(game_state: &mut GameState) {
         draw_mining_laser(game_state, &actual_player_transform, controller);
 
         // Draw the controlled ship so its always on top.
-        draw_ship(&actual_player_transform, player_ship_type.unwrap(), game_state);
+        draw_ship(&player_ship.unwrap(), &actual_player_transform, player_ship_type.unwrap(), game_state);
 
         // Draw 'radar'
         draw_radar(game_state, local_targets, actual_player_transform, player_vec);
@@ -142,6 +142,7 @@ fn draw_radar(game_state: &mut GameState<'_>,
 }
 
 fn draw_ship(
+    ship: &Ship,
     transform: &StellarObjectTransformHiRes,
     ship_type: ShipTypeDefinition,
     game_state: &mut GameState
@@ -149,7 +150,7 @@ fn draw_ship(
     let resources = storage::get::<Resources>();
     let position = transform.to_vec2();
 
-    if let Some(player) = get_current_player(game_state.ctx) {
+    if let Some(player) = get_player(&game_state.ctx.db, &ship.player_id) {
         let string = format!("{}", player.username);
         draw_text_ex(&string, position.x, position.y - 32.0, TextParams {
             font_size: 16,

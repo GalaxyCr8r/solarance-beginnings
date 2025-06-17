@@ -1,4 +1,4 @@
-use std::{ f32::consts::PI, thread::{ self, JoinHandle } };
+use std::{ env, f32::consts::PI, path::PathBuf, thread::{ self, JoinHandle } };
 
 use dotenv::dotenv;
 use egui::{ Align2, Button, Color32, Frame, RichText, Shadow };
@@ -26,15 +26,29 @@ struct MenuAssets {
 
 #[macroquad::main("Solarance:Beginnings")]
 async fn main() -> Result<(), macroquad::Error> {
-    dotenv().ok();
+    #[cfg(not(target_os = "macos"))]
+    {
+        dotenv().ok();
+        set_pc_assets_folder("assets");
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let exe_directory = get_exe_path();
+        let env_path = get_exe_path().join("../Resources/.env");
+        dotenv::from_path(env_path.clone()).ok();
 
-    //request_new_screen_size(720.0, 480.0);
+        info!("Current Directory: {:?}", env::current_dir().unwrap().to_str().unwrap());
+        info!("Env Path: {:?}", env_path.clone().to_str().unwrap());
+        info!("Binary Path: {:?}", exe_directory.to_str().unwrap());
+
+        set_pc_assets_folder(format!("{}/../Resources/Assets", exe_directory.to_str().unwrap()).as_str());
+    }
+
     request_new_screen_size(1280.0, 720.0);
 
     clear_background(BLACK);
     next_frame().await;
 
-    set_pc_assets_folder("assets");
     storage::store(MenuAssets{
         rings: vec![
             load_texture("Ring1.png").await.expect("Couldn't load assets"),
@@ -60,6 +74,16 @@ async fn main() -> Result<(), macroquad::Error> {
         gameplay::gameplay(connection).await;
     }
     Ok(())
+}
+
+fn get_exe_path() -> PathBuf {
+    match env::current_exe() {
+        Ok(mut p) => {
+            p.pop();
+            p
+        }
+        Err(_) => PathBuf::new(),
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -96,6 +120,7 @@ async fn confirm_eula_screen() -> bool {
                                 ui.code(format!("Version: {}", env!("CARGO_PKG_VERSION")));
                                 ui.code(format!("Authors: {}", env!("CARGO_PKG_AUTHORS")));
                             });
+                            ui.code(format!("Database Host: {:?}", std::env::var("DATABASE_HOST")));
                         });
                         ui.separator();
                         ui.label("Hello, I'm Karl Nyborg - and this is my exhuastive test of what SpacetimeDB can currently do.");
