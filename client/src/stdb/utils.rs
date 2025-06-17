@@ -22,7 +22,7 @@ pub fn get_transform(ctx:&DbConnection, sobj_id:u64) -> Result<StellarObjectTran
 }
 
 pub fn get_username(ctx: &DbConnection, id:&Identity) -> String {
-    if let Some(player) = ctx.db.player().identity().find(id) {
+    if let Some(player) = ctx.db.player().identifier().find(id) {
         player.username
     } else {
         id.to_abbreviated_hex().to_string()
@@ -34,7 +34,7 @@ pub fn get_current_player(ctx: &DbConnection) -> Option<Player> {
 }
 
 pub fn get_player(db: &RemoteTables, id: &Identity) -> Option<Player> {
-    let this = db.player().identity().find(id);
+    let this = db.player().identifier().find(id);
     match this {
         Some(p) => Some(p),
         None => None,
@@ -49,20 +49,13 @@ pub fn get_player_sobj_id(ctx: &DbConnection) -> Option<u64> {
     }
 }
 
-pub fn get_player_ship_object(ctx: &DbConnection) -> Option<ShipObject> {
-    if let Some(this) = ctx.db.ship_object().sobj_id().find(&get_player_sobj_id(ctx)?) {
-        Some(this)
-    } else {
-        None
-    }
+pub fn get_player_ship(ctx: &DbConnection) -> Option<Ship> {
+    ctx.db.ship().sobj_id().find(&get_player_sobj_id(ctx)?)
 }
 
-pub fn get_player_ship_instance(ctx: &DbConnection) -> Option<ShipInstance> {
-    if let Some(this) = get_player_ship_object(ctx) {
-        match ctx.db.ship_instance().id().find(&this.ship_id) {
-            Some(instance) => Some(instance),
-            None => None
-        }
+pub fn get_player_ship_status(ctx: &DbConnection) -> Option<ShipStatus> {
+    if let Some(this) = get_player_ship(ctx) {
+        this.status(ctx)
     } else {
         None
     }

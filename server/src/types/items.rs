@@ -2,10 +2,14 @@
 use spacetimedb::{table, ReducerContext, SpacetimeType, Timestamp};
 use spacetimedsl::dsl;
 
-use crate::types::ships::ShipInstance;
+use crate::types::ships::*;
 
-pub mod definitions;
-pub mod utility;
+pub mod definitions; // Definitions for initial ingested data.
+pub mod impls; // Impls for this file's structs
+pub mod reducers; // SpacetimeDB Reducers for this file's structs.
+pub mod rls; // Row-level-security rules for this file's structs.
+pub mod timers; // Timers related to this file's structs.
+pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
 // Enum for different categories of items
 #[derive(SpacetimeType, Clone, Debug, PartialEq, Eq, Hash)]
@@ -88,14 +92,4 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     definitions::init(ctx)?;
     
     Ok(())
-}
-
-//////////////////////////////////////////////////////////////
-// Impls
-//////////////////////////////////////////////////////////////
-
-impl ItemDefinition {
-    pub fn can_any_of_this_fit_inside_this_ship(&self, ship: &ShipInstance) -> bool {
-        (ship.get_remaining_cargo_space() / self.volume_per_unit) > 0
-    }
 }

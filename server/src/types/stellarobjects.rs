@@ -6,11 +6,12 @@ use spacetimedsl::{dsl, Wrapper};
 
 use super::sectors::SectorId;
 
-pub mod impls;
-pub mod reducers;
-pub mod rls;
-pub mod timers;
-pub mod utility;
+//pub mod definitions; // Definitions for initial ingested data.
+pub mod impls; // Impls for this file's structs
+pub mod reducers; // SpacetimeDB Reducers for this file's structs.
+pub mod rls; // Row-level-security rules for this file's structs.
+pub mod timers; // Timers related to this file's structs.
+pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
 /// What kind of stellar object it is. OBE with the advent of asteroid/ship/station tables?
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq, PartialOrd)]
@@ -108,7 +109,7 @@ pub struct StellarObjectControllerTurnLeft {
 #[table(name = sobj_player_window, public)]
 pub struct StellarObjectPlayerWindow {
     #[primary_key]
-    pub identity: Identity,
+    pub player_id: Identity,
 
     #[unique]
     #[wrapped(path = StellarObjectId)]

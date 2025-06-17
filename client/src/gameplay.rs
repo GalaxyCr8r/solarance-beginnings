@@ -4,7 +4,6 @@ use macroquad::{ math::Vec2, prelude::*, ui };
 
 use super::module_bindings::*;
 use spacetimedb_sdk::{ DbContext, Table };
-use super::stdb::connector::connect_to_spacetime;
 
 use crate::{shader::*, stdb::utils::*};
 
@@ -21,12 +20,12 @@ pub fn register_callbacks(ctx: &DbConnection, global_chat_channel: Sender<Global
     });
 
     ctx.db.global_chat_message().on_insert(move |_ec, message| {
-        info!("G{}: {}", message.identity.to_abbreviated_hex().to_string(), message.message);
+        info!("G{}: {}", message.player_id.to_abbreviated_hex().to_string(), message.message);
         let _ = global_chat_channel.send(message.clone());
     });
 
     ctx.db.sector_chat_message().on_insert(move |_ec, message| {
-        info!("S{}: {}", message.identity.to_abbreviated_hex().to_string(), message.message);
+        info!("S{}: {}", message.player_id.to_abbreviated_hex().to_string(), message.message);
         let _ = sector_chat_channel.send(message.clone());
     });
 }
@@ -37,9 +36,9 @@ pub fn register_callbacks(ctx: &DbConnection, global_chat_channel: Sender<Global
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub async fn gameplay(token : Option<String>) {
+pub async fn gameplay(connection: Option<DbConnection>) {//token : Option<String>) {
     // DB Connection & ECS World
-    let connection = connect_to_spacetime(token);
+    //let connection = connect_to_spacetime(token);
     if connection.is_none() {
         error!("Failed to connect to SpacetimeDB. Exiting...");
         return;
@@ -75,6 +74,7 @@ pub async fn gameplay(token : Option<String>) {
         clear_background(WHITE);
 
         game_state.camera.target = get_player_transform_vec2(&ctx, Vec2::ZERO);// - Vec2 { x: screen_width()/4.0, y: screen_height()/4.0 };
+        let player_ship = get_player_ship(&ctx);
         set_camera(&game_state.camera);
         
         apply_shader_to_screen(
@@ -86,18 +86,23 @@ pub async fn gameplay(token : Option<String>) {
 
         render::sector(&mut game_state);
 
-        egui_macroquad::ui(|egui_ctx| {  
-            gui::debug_widget::draw(&egui_ctx, &mut game_state);
+        egui_macroquad::ui(|egui_ctx| {
+            if player_ship.is_none() {
+                gui::creation_window::draw(egui_ctx, &ctx, &mut game_state);
+                return;
+            }
+
+            gui::debug_widget::draw(egui_ctx, &mut game_state);
 
             if get_player(&ctx.db, &ctx.identity()).is_some() {
                 // Widgets
-                gui::minimap_widget::draw(&egui_ctx, &mut game_state);
-                gui::chat_widget::draw(&egui_ctx, &game_state.ctx, &mut game_state.chat_window);
-                gui::status_widget::window(&egui_ctx, &ctx, &mut game_state);
-                gui::menu_bar_widget::draw(&egui_ctx, &ctx, &mut game_state);
+                gui::minimap_widget::draw(egui_ctx, &mut game_state);
+                gui::chat_widget::draw(egui_ctx, &game_state.ctx, &mut game_state.chat_window);
+                gui::status_widget::window(egui_ctx, &ctx, &mut game_state);
+                gui::menu_bar_widget::draw(egui_ctx, &ctx, &mut game_state);
                 
                 // Windows
-                gui::ship_details_window::draw(&egui_ctx, &game_state.ctx, &mut game_state.details_window, &mut game_state.details_window_open);
+                gui::ship_details_window::draw(egui_ctx, &game_state.ctx, &mut game_state.details_window, &mut game_state.details_window_open);
                 gui::map_window::draw(egui_ctx, &ctx, &mut game_state.map_window, &mut game_state.map_window_open);
             }
         });
@@ -110,7 +115,7 @@ pub async fn gameplay(token : Option<String>) {
         if !game_state.chat_window.has_focus {
             if is_key_pressed(KeyCode::E) {
                 if let Ok(target) = player::target_closest_stellar_object(&ctx, &mut game_state) {
-                    if let Some(mut controller) = ctx.db.player_controller().identity().find(&ctx.identity()) {
+                    if let Some(mut controller) = ctx.db.player_ship_controller().player_id().find(&ctx.identity()) {
                         // Deselect target if it's already selected
                         if controller.targetted_sobj_id.is_some() && controller.targetted_sobj_id.unwrap() == target.id {
                             controller.targetted_sobj_id = None;
@@ -137,17 +142,21 @@ pub async fn gameplay(token : Option<String>) {
             }
         }
 
+        // Handle callbacks
         if let Ok(message) = global_chat_receiver.try_recv() {
             game_state.chat_window.global_chat_channel.push(message);
             game_state.chat_window.global_chat_channel.sort_by_key(|chat| chat.created_at);
         }
-        if let Ok(message) = sector_chat_receiver.try_recv() {
-            let sector_id = get_player_ship_object(&ctx).unwrap().sector_id;
-            if game_state.chat_window.sector_chat_channel.iter().any(|msg| msg.sector_id != sector_id) {
-                game_state.chat_window.sector_chat_channel.retain(|msg| msg.sector_id == sector_id);
+        if player_ship.is_some() {
+            if let Ok(message) = sector_chat_receiver.try_recv() {
+                let sector_id = player_ship.unwrap().sector_id;
+                if game_state.chat_window.sector_chat_channel.iter().any(|msg| msg.sector_id != sector_id) {
+                    // Just dump prior sector messages.
+                    game_state.chat_window.sector_chat_channel.retain(|msg| msg.sector_id == sector_id);
+                }
+                game_state.chat_window.sector_chat_channel.push(message);
+                game_state.chat_window.sector_chat_channel.sort_by_key(|chat| chat.created_at);
             }
-            game_state.chat_window.sector_chat_channel.push(message);
-            game_state.chat_window.sector_chat_channel.sort_by_key(|chat| chat.created_at);
         }
 
         if game_state.done {

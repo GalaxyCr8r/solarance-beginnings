@@ -27,7 +27,7 @@ impl State {
 
   fn draw_galaxy_map(&self, ui: &mut egui::Ui, ctx: &DbConnection) {
     let mut current_sector = None;
-    if let Some(player_obj) = get_player_ship_object(ctx) {
+    if let Some(player_obj) = get_player_ship(ctx) {
       if let Some(sector) = ctx.db.sector().id().find(&player_obj.sector_id) {
         current_sector = Some(sector);
       }

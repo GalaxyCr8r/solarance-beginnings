@@ -1,5 +1,14 @@
 use spacetimedb::{table, ReducerContext, SpacetimeType};
-use spacetimedsl::{dsl};
+use spacetimedsl::*;
+
+use crate::*;
+
+// pub mod definitions; // Definitions for initial ingested data.
+// pub mod impls; // Impls for this file's structs
+// pub mod reducers; // SpacetimeDB Reducers for this file's structs.
+// pub mod rls; // Row-level-security rules for this file's structs.
+// pub mod timers; // Timers related to this file's structs.
+// pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
 pub enum StationKind {
@@ -21,14 +30,15 @@ pub struct Station {
     pub kind: StationKind,
 
     #[index(btree)]
-    pub current_sector_id: u32, // FK to SectorDefinition
+    #[wrapped(path = sectors::SectorId)]
+    pub sector_id: u64, // FK to Sector.id
 
     #[index(btree)]
-    #[wrapped(path = crate::types::stellarobjects::StellarObjectId)]
+    #[wrapped(path = stellarobjects::StellarObjectId)]
     pub sobj_id: u64, // FK: StellarObject
 
     #[index(btree)]
-    #[wrapped(path = crate::types::factions::FactionDefinitionId)]
+    #[wrapped(path = factions::FactionDefinitionId)]
     pub owner_faction_id: u32, // FK to FactionDefinition
 
     pub name: String,

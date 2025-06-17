@@ -3,6 +3,13 @@ use spacetimedsl::{ dsl, Wrapper };
 
 use super::{common::Vec2, sectors::SectorId, stellarobjects::{utility::create_sobj_vec2, StellarObjectKinds}};
 
+// pub mod definitions; // Definitions for initial ingested data.
+// pub mod impls; // Impls for this file's structs
+pub mod reducers; // SpacetimeDB Reducers for this file's structs.
+// pub mod rls; // Row-level-security rules for this file's structs.
+// pub mod timers; // Timers related to this file's structs.
+// pub mod utility; // Utility functions (NOT reducers) for this file's structs.
+
 #[dsl(plural_name = jump_gates)]
 #[table(name = jump_gate, public)]
 pub struct JumpGate {

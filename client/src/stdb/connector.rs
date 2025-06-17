@@ -109,7 +109,8 @@ fn creds_store() -> credentials::File {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Our `on_connect` callback: save our credentials to a file.
-fn on_connected(_ctx: &DbConnection, _identity: Identity, token: &str) {
+fn on_connected(_ctx: &DbConnection, identity: Identity, token: &str) {
+    info!("Successfully connected with idenitifer: {}", identity.to_abbreviated_hex());
     if let Err(e) = creds_store().save(token) {
         eprintln!("Failed to save credentials: {:?}", e);
     }

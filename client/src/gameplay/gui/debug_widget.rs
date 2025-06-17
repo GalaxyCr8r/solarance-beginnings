@@ -25,7 +25,7 @@ pub fn draw(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::Inne
         .movable(false)
         .anchor(Align2::LEFT_BOTTOM, egui::Vec2::new(-5.0, 5.0))
         .show(egui_ctx, |ui| {
-            match ctx.db.player().identity().find(&ctx.identity()) {
+            match ctx.db.player().identifier().find(&ctx.identity()) {
                 Some(player) => {
                     ui.heading(format!("Player: {}", player.username));
                     if let Some(controlled) = player.get_controlled_stellar_object_id(&ctx) {
@@ -113,17 +113,17 @@ pub fn draw(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::Inne
                     for player in ctx.db.player().iter() {
                         ui.horizontal(|ui| {
                             ui.label(format!("[{}] Credits: {}", player.username, player.credits));
-                            if let Some(window) = ctx.db.sobj_player_window().identity().find(&player.identity) {
+                            if let Some(window) = ctx.db.sobj_player_window().player_id().find(&player.identifier) {
                                 ui.label(format!("- #{}: {}, {}, {}, {}", window.window, window.tl_x, window.tl_y, window.br_x, window.br_y));
                             }
-                            if let Some(_controller) = ctx.db.player_controller().identity().find(&player.identity) {
+                            if let Some(_controller) = ctx.db.player_ship_controller().player_id().find(&player.identifier) {
                                 ui.label("Has Controller");
                             }
                         });
                     }
-                    for ship_objs in ctx.db.ship_object().iter() {
+                    for ship_objs in ctx.db.ship().iter() {
                         ui.horizontal(|ui| {
-                            ui.label(format!("{}: Sector: {}, Ship: {}, SO: {}", ship_objs.player_id.to_abbreviated_hex(), ship_objs.sector_id, ship_objs.ship_id, ship_objs.sobj_id));
+                            ui.label(format!("{}: Sector: {}, Ship: {}, SO: {}", ship_objs.player_id.to_abbreviated_hex(), ship_objs.sector_id, ship_objs.id, ship_objs.sobj_id));
                         });
                     }
                 });

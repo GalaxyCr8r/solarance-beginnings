@@ -5,5 +5,5 @@ use spacetimedb::{client_visibility_filter, Filter};
 const CRATE_SECTOR_FILTER: Filter = Filter::Sql(
      "SELECT c.* 
       FROM cargo_crate c
-      JOIN ship_object o ON o.sector_id = c.current_sector_id"
+      JOIN ship o ON o.sector_id = c.current_sector_id"
  );
