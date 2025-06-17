@@ -1,6 +1,7 @@
 
 pub mod assets_window;
 pub mod chat_widget;
+pub mod creation_window;
 pub mod debug_widget;
 pub mod faction_window;
 pub mod map_window;

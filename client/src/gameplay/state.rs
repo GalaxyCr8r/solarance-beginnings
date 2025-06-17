@@ -13,6 +13,7 @@ pub(crate) struct GameState<'a> {
 
     // GUI States
     pub chat_window: chat_widget::State,
+    pub creation_window: creation_window::State,
     pub details_window: ship_details_window::State,
     pub map_window: map_window::State,
 
@@ -34,9 +35,8 @@ pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
 
         camera: Camera2D::from_display_rect(Rect { x: 0.0, y: 0.0, w: screen_width(), h: screen_height() }),
 
-        chat_window: chat_widget::State {
-            ..Default::default()
-        },
+        chat_window: chat_widget::State::default(),
+        creation_window: creation_window::State::new(),
         details_window: ship_details_window::State::new(),
         map_window: map_window::State::new(),
 

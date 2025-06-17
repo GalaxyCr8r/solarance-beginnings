@@ -74,6 +74,7 @@ pub async fn gameplay(connection: Option<DbConnection>) {//token : Option<String
         clear_background(WHITE);
 
         game_state.camera.target = get_player_transform_vec2(&ctx, Vec2::ZERO);// - Vec2 { x: screen_width()/4.0, y: screen_height()/4.0 };
+        let player_ship = get_player_ship(&ctx);
         set_camera(&game_state.camera);
         
         apply_shader_to_screen(
@@ -85,18 +86,23 @@ pub async fn gameplay(connection: Option<DbConnection>) {//token : Option<String
 
         render::sector(&mut game_state);
 
-        egui_macroquad::ui(|egui_ctx| {  
-            gui::debug_widget::draw(&egui_ctx, &mut game_state);
+        egui_macroquad::ui(|egui_ctx| {
+            if player_ship.is_none() {
+                gui::creation_window::draw(egui_ctx, &ctx, &mut game_state);
+                return;
+            }
+
+            gui::debug_widget::draw(egui_ctx, &mut game_state);
 
             if get_player(&ctx.db, &ctx.identity()).is_some() {
                 // Widgets
-                gui::minimap_widget::draw(&egui_ctx, &mut game_state);
-                gui::chat_widget::draw(&egui_ctx, &game_state.ctx, &mut game_state.chat_window);
-                gui::status_widget::window(&egui_ctx, &ctx, &mut game_state);
-                gui::menu_bar_widget::draw(&egui_ctx, &ctx, &mut game_state);
+                gui::minimap_widget::draw(egui_ctx, &mut game_state);
+                gui::chat_widget::draw(egui_ctx, &game_state.ctx, &mut game_state.chat_window);
+                gui::status_widget::window(egui_ctx, &ctx, &mut game_state);
+                gui::menu_bar_widget::draw(egui_ctx, &ctx, &mut game_state);
                 
                 // Windows
-                gui::ship_details_window::draw(&egui_ctx, &game_state.ctx, &mut game_state.details_window, &mut game_state.details_window_open);
+                gui::ship_details_window::draw(egui_ctx, &game_state.ctx, &mut game_state.details_window, &mut game_state.details_window_open);
                 gui::map_window::draw(egui_ctx, &ctx, &mut game_state.map_window, &mut game_state.map_window_open);
             }
         });
@@ -136,18 +142,21 @@ pub async fn gameplay(connection: Option<DbConnection>) {//token : Option<String
             }
         }
 
+        // Handle callbacks
         if let Ok(message) = global_chat_receiver.try_recv() {
             game_state.chat_window.global_chat_channel.push(message);
             game_state.chat_window.global_chat_channel.sort_by_key(|chat| chat.created_at);
         }
-        if let Ok(message) = sector_chat_receiver.try_recv() {
-            let sector_id = get_player_ship(&ctx).unwrap().sector_id;
-            if game_state.chat_window.sector_chat_channel.iter().any(|msg| msg.sector_id != sector_id) {
-                // Just dump prior sector messages.
-                game_state.chat_window.sector_chat_channel.retain(|msg| msg.sector_id == sector_id);
+        if player_ship.is_some() {
+            if let Ok(message) = sector_chat_receiver.try_recv() {
+                let sector_id = player_ship.unwrap().sector_id;
+                if game_state.chat_window.sector_chat_channel.iter().any(|msg| msg.sector_id != sector_id) {
+                    // Just dump prior sector messages.
+                    game_state.chat_window.sector_chat_channel.retain(|msg| msg.sector_id == sector_id);
+                }
+                game_state.chat_window.sector_chat_channel.push(message);
+                game_state.chat_window.sector_chat_channel.sort_by_key(|chat| chat.created_at);
             }
-            game_state.chat_window.sector_chat_channel.push(message);
-            game_state.chat_window.sector_chat_channel.sort_by_key(|chat| chat.created_at);
         }
 
         if game_state.done {

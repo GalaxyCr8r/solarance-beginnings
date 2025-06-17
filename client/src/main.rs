@@ -140,7 +140,7 @@ pub async fn login_screen() -> (bool, Option<String>) {
     let mut break_the_loop = false;
     let mut quit_game = false;
 
-    let menu_assets = storage::get::<MenuAssets>();
+    //let menu_assets = storage::get::<MenuAssets>();
     info!("Starting login screen");
 
     loop { 
@@ -157,8 +157,8 @@ pub async fn login_screen() -> (bool, Option<String>) {
                                 error_message = Some(error.to_string());
                             }
                         }
-                    Err(_join_error) => {
-                        error_message = Some("Unknown join error of login thread!".to_string());
+                    Err(join_error) => {
+                        error_message = Some(format!("Unexpected error during login! {:?}", join_error));
                     }
                 }
             }
@@ -187,20 +187,20 @@ pub async fn login_screen() -> (bool, Option<String>) {
                     }
                     ui.horizontal(|ui| {
                         if client_token_thread.as_ref().is_none() {
-                            if !id_token.is_some() && ui.button(RichText::new("\nLogin via Auth0\n").size(24.0)).clicked() {
+                            if !id_token.is_some() && ui.button(RichText::new("\n    Login via Auth0    \n").size(24.0)).clicked() {
                                 info!("CLICKED!");
                                 client_token_thread = Some(
                                     thread::spawn(|| { oidc_auth_helper::get_client_token() })
                                 );
                             } else if id_token.is_none() && client_token_thread.is_some() {
-                                ui.add_enabled(false, Button::new("\nLogin via Auth0\n"));
+                                ui.add_enabled(false, Button::new("\n    Login via Auth0    \n"));
                             }
-                            if id_token.is_some() && ui.button(RichText::new("\nPLAY via Auth0\n").size(24.0)).clicked() {
+                            if id_token.is_some() && ui.button(RichText::new("\n    Play via Auth0    \n").size(24.0)).clicked() {
                                 info!("CLICKED!");
                                 break_the_loop = true;
                             }
                         }
-                        if ui.button(RichText::new("\nPlay as Guest\n").size(24.0)).clicked() {
+                        if ui.button(RichText::new("\n    Play as Guest    \n").size(24.0)).clicked() {
                             info!("CLICKED!");
                             break_the_loop = true;
                         }
@@ -229,8 +229,9 @@ pub async fn login_screen() -> (bool, Option<String>) {
 fn draw_login_screen_background() {
     let menu_assets = storage::get::<MenuAssets>();
 
-    clear_background(DARKGRAY);
-    draw_circle(screen_width() / 2.0, screen_height() / 2.0, screen_height() * 2.0 / 3.0, Color::from_hex(0x000311));
+    clear_background(BLACK);
+    draw_circle(screen_width() / 2.0, screen_height() / 2.0, screen_height() * 2.0 / 3.0, Color::from_rgba(0xBE, 0xDA, 0xFF, 0x11));
+    draw_circle(screen_width() / 2.0, screen_height() / 2.0, screen_height() * 2.0 / 4.0, Color::from_rgba(0xBE, 0xDA, 0xFF, 0x11));
 
     for i in 0..3 {
         let (x, y) = mouse_position();
