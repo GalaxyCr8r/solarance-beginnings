@@ -2,16 +2,20 @@
 
 # Solarance: Beginnings
 
-<img src="./blank_planet.png" width="80%">
+<img src="./client/assets/Solarance_Logo.png" alt="Solarance:Beginnings Logo. Text over a black planet with a pure white horizon lit up as a cresent in the bottom left of the circle." />
 
 **A Top-Down 2D Living Universe Sci-Fi Space MMO**
+
+[Discord](https://discord.gg/34xzCtsKxe) 🌌 [Bluesky](https://bsky.app/profile/galaxycr8r.bsky.social) 🌌 [Itch.io](https://galaxycr8r.itch.io/solarance-beginnings)
+
+<img src="./screenshot.png" width="50%" alt="A screenshot from v0.2.0, a ship just transitted a jump gate and a asteroid is nearby." />
 
 </div>
 
 Solarance is a 2D top down game idea I've had for years now. Heavily inspired by
 Escape Velocity: Nova, X2/X3, Freelancer, and numerous other entries in the space
 adventure/building genre. This is a test project to explore Rust, Macroquad, and
-SpacetimeDB to finally make the space MMO I've always wanted to make. You can help
+[SpacetimeDB](https://spacetimedb.com/) to finally make the space MMO I've always wanted to make. You can help
 either by contributing code - or just by playing this test client. Thank you for
 joining me on this journey!
 
@@ -34,28 +38,56 @@ If you have Taskfile, Rust, etc. installed you should just be able to run `task 
 
 ## Current State of the Project
 
-The project is actively evolving from an early prototype to a playable game. Recent development has focused on several key areas:
+The project has evolved significantly with the **0.2.0 release** marking a major milestone in playable features. The game now offers the beginnings of the core gameplay loop with exploration, mining, and travel mechanics.
 
-### Recently Implemented Features
+### Version 0.2.0 Key Features
 
-- **Asteroid Fields and Mining System**
+- **Complete Mining and Cargo System**
 
-  - Dynamic asteroid generation with varying resource types
-  - Ring-based asteroid cluster fields with configurable density
-  - Multiple asteroid types with different resource compositions
-  - Random asteroid sprite selection and rotation animations
+  - Functional asteroid mining with resource extraction
+  - Cargo management with jettison capabilities
+  - Multiple cargo crate types that can be picked up from space
+  - Visual cargo bay interface showing capacity and contents
+  - Resource types: Iron, Silicon, Space Fuel, and various ores
 
-- **Ship Controls and UI**
+- **Jump Gate Travel System**
 
-  - Improved ship movement and rotation controls
-  - Ship details window with cargo and equipment management
-  - Top menu bar with toggleable information panels
-  - Enhanced debug interface with collapsible sections
+  - Inter-sector travel via jump gates
+  - Auto-docking system for gate activation
+  - Energy-based gate usage mechanics
+  - Directional gate graphics (north/south/east/west orientations)
+  - Seamless sector transitions
 
-- **Resource System**
-  - Multiple resource types (Iron, Silicon, Space Fuel)
-  - Resource collection mechanics (WIP)
-  - Cargo management interface
+- **Enhanced Player Experience**
+
+  - Account creation flow with username registration
+  - Ship creation and spawn system
+  - Improved ship movement with WASD/arrow key controls
+  - Velocity-based physics with momentum
+  - Target selection system for objects and asteroids
+
+- **Comprehensive UI Overhaul**
+
+  - Refactored GUI system with consistent widget architecture
+  - Minimap showing current sector information
+  - Galaxy map for sector navigation planning
+  - Enhanced chat system (global and sector channels)
+  - Ship details window with equipment and cargo tabs
+  - Status widgets showing ship health, energy, and cargo
+  - Debug interface with detailed ship and game state information
+
+- **Technical Improvements**
+
+  - Player identity system with proper ship ownership
+  - Real-time multiplayer synchronization
+  - Improved collision detection and physics
+  - Better asset management and texture loading
+  - Enhanced rendering system with proper sprite handling
+
+- **macOS Compatibility Improvements**
+  - Fixed asset loading paths for macOS app bundles
+  - Improved cross-platform .env file handling
+  - Better executable path detection for bundled applications
 
 ### Planned Core Features
 
