@@ -29,17 +29,9 @@ pub(crate) fn connect_to_spacetime(jwt_token: Option<String>) -> Option<DbConnec
     };
 
     let mut tried_loaded_token = false;
-    let mut current_token = match creds_store().load() {
-            Ok(token) => token,
-            Err(_) => {
-                if jwt_token.clone().is_some() {
-                    tried_loaded_token = true;
-                    jwt_token.clone()
-                } else {
-                    None
-                }
-            }
-        };
+    let mut current_token = jwt_token.clone();
+    
+
     // let mut current_token  = token.clone();
 
     loop {
@@ -48,7 +40,16 @@ pub(crate) fn connect_to_spacetime(jwt_token: Option<String>) -> Option<DbConnec
             info!("CONNECTION ERROR : {}", e);
             if !tried_loaded_token {
                 tried_loaded_token = true;
-                current_token = jwt_token.clone();
+                current_token = match creds_store().load() {
+                    Ok(token) => {
+                        info!("Loading token from creds store.");
+                        token
+                    },
+                    Err(e) => {
+                        info!("Failed to load token from creds_store! {:?}", e);
+                        return None;
+                    }
+                };
                 info!("Failed to connect, retrying...");
             } else {
                 return None;

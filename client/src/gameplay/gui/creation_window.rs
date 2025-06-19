@@ -48,6 +48,10 @@ pub fn draw(egui_ctx: &Context, ctx: &DbConnection, game_state: &mut GameState) 
                         ).strong().color(Color32::RED)
                     );
                 }
+                ui.separator();
+                if ui.button("Exit").clicked() {
+                    game_state.done = true;
+                }
             });
         })
 }
