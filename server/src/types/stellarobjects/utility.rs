@@ -70,10 +70,9 @@ pub fn create_sobj_with_random_velocity(
     let sobj = dsl.create_stellar_object(kind, sector_id)?;
     
     let _transform = dsl.create_sobj_internal_transform(&sobj, x, y, 0.0)?;
-    let random_angle = Vec2::from_angle(ctx.rng().gen_range(-PI..PI)) * velocity;
+    let random_angle = Vec2::from_angle(ctx.rng().gen_range(0.0..2.*PI)) * velocity;
     let _velocity = dsl.create_sobj_velocity(
-        &sobj, random_angle.x, random_angle.y, ctx.rng().gen_range(0.1..random_angle.to_angle()), auto_dampen)?;
-
+        &sobj, random_angle.x, random_angle.y, ctx.rng().gen_range(random_angle.to_angle()..2.1*PI), auto_dampen)?;
 
     //spacetimedb::log::info!("Created stellar object #{}!", sobj.id);
     return Ok(sobj);

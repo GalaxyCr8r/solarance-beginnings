@@ -3,7 +3,7 @@ use glam::Vec2;
 use spacetimedb::{ReducerContext};
 use spacetimedsl::{dsl};
 
-use crate::types::{common::{*, utility::try_server_only}, ships::*, stellarobjects::*};
+use crate::types::{common::{utility::try_server_only, *}, items::{CargoCrate, GetCargoCrateRowOptionBySobjId}, ships::*, stellarobjects::*};
 
 #[dsl(plural_name = sobj_transform_timers)]
 #[spacetimedb::table(name = sobj_transform_timer, scheduled(recalculate_sobj_transforms))]
@@ -80,6 +80,7 @@ pub fn recalculate_sobj_transforms(ctx: &ReducerContext, timer: TransformsTimer)
             dsl.create_sobj_low_res_transform(row.get_sobj_id(), row.x, row.y, row.rotation_radians)?;
         }
     }
+
     Ok(())
 }
 
@@ -109,6 +110,17 @@ pub fn __move_stellar_object(ctx: &ReducerContext, sobj: StellarObject) -> Resul
         
         dsl.update_sobj_velocity_by_sobj_id(velocity)?;
         dsl.update_sobj_internal_transform_by_sobj_id(transform)?;
+    }
+
+    if sobj.kind == StellarObjectKinds::CargoCrate {
+        if let Some(cargo_crate) = dsl.get_cargo_crate_by_sobj_id(sobj.get_id()) {
+            if let Some(despawn_ts) = cargo_crate.despawn_ts {
+                if despawn_ts < ctx.timestamp {
+                    info!("Cargo Crate outlived its despawn timestamp. Deleting #{}!", sobj.id);
+                    sobj.delete(ctx, true);
+                }
+            }
+        }
     }
 
     Ok(())

@@ -227,7 +227,7 @@ pub fn create_cargo_crate_nearby_ship(ctx: &ReducerContext, ship_sobj: &StellarO
         new_sobj.get_id(),
         item_def.get_id(),
         quantity,
-        ctx.timestamp.checked_add(TimeDuration::from_duration(Duration::from_secs(24 * 60 * 60))), // TODO cargo crate timer to despawn them
+        ctx.timestamp.checked_add(TimeDuration::from_duration(Duration::from_secs(/*D* /24 * /*H*/60 * */ /*M*/60))), // TODO cargo crate timer to despawn them
         None
     )?;
     Ok(())
