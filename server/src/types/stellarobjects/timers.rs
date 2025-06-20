@@ -1,7 +1,7 @@
 use std::{f32::consts::PI, time::Duration};
 use glam::Vec2;
-use spacetimedb::{ReducerContext};
-use spacetimedsl::{dsl};
+use spacetimedb::*;
+use spacetimedsl::*;
 
 use crate::types::{common::{utility::try_server_only, *}, items::{CargoCrate, GetCargoCrateRowOptionBySobjId}, ships::*, stellarobjects::*};
 
@@ -31,7 +31,7 @@ pub struct PlayerWindowsTimer {
 //////////////////////////////////////////////////////////////
 
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
-    let dsl = dsl(ctx); // Waiting for DSL implementation of timers
+    let dsl = dsl(ctx);
 
     dsl.create_sobj_transform_timer(spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 20).into()), 0)?;
     dsl.create_player_windows_timer(spacetimedb::ScheduleAt::Interval(Duration::from_millis(750).into()))?;

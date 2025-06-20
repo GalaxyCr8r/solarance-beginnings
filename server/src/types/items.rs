@@ -11,17 +11,60 @@ pub mod rls; // Row-level-security rules for this file's structs.
 pub mod timers; // Timers related to this file's structs.
 pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
-// Enum for different categories of items
 #[derive(SpacetimeType, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum ItemCategory {
-    ShipEquipment,
-    Commodity, // Tradable goods like ore, food
-    ManufacturedGood, // Components, advanced materials
-    Ammunition,
-    Special, // Quest items, blueprints, etc.
+pub enum ResourceCategory {
+    RawOre,
+    RefinedIngot,
+    StoredEnergy,
+    ManufacturedComponentBasic,
+    ManufacturedComponentAdvanced,
+    BiomatterRaw,
+    BiomatterProcessedFood, // Basic food
+    BiomatterProcessedLuxury, // Luxury food
+    ConsumableShipAmmo,
+    ConsumableShipFuel,
+    ExoticMatter,          // For high-tier research/construction
+    ResearchDataFragments, // Gathered from anomalies/ruins
+    FinishedGoods,         // For trade, NPC requests
+}
+
+#[derive(SpacetimeType, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum OreType {
+    NickelIron,
+    Silicon,
+    Ice,
+    Platinum,
+    Tungsten,
+    Carbon
+}
+
+#[derive(SpacetimeType, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum ShipModuleType {
+    Engine,
+    ShieldGenerator,
+    WeaponKinetic,
+    WeaponEnergy,
+    WeaponMissile,
+    MiningLaserBasic,
+    MiningLaserAdvanced,
+    CargoExpander,
+    ScannerBasic,
+    ScannerAdvanced,
+    TractorBeam,
+    CloakingDevice,
+    RepairSystem,
+    WarpDrive,
+    JumpDrive, // For inter-system travel
 }
 
 // Enum for different categories of items
+#[derive(SpacetimeType, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum ItemCategory {
+    ShipModule(ShipModuleType),
+    Resource(ResourceCategory),
+}
+
+/// Enum for different effects for items/modules
 #[derive(SpacetimeType, Clone, Debug, PartialEq)]
 pub enum ItemMetadata {
     DamageBoost(f32), // Effects damage output

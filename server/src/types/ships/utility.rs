@@ -5,7 +5,7 @@ use glam::Vec2;
 use log::info;
 use spacetimedb::{rand::Rng, TimeDuration};
 
-use crate::types::{factions::FactionDefinitionId, ships::timers::CreateShipEnergyAndShieldTimerRow, stellarobjects::{utility::*, *}};
+use crate::types::{factions::FactionId, ships::timers::CreateShipEnergyAndShieldTimerRow, stellarobjects::{utility::*, *}};
 
 use super::{*};
 
@@ -31,7 +31,7 @@ pub fn create_ship_from_sobj(ctx: &ReducerContext, ship_type: ShipTypeDefinition
         &sobj,
         sobj.get_sector_id(),
         identity,
-        FactionDefinitionId::new(0)) {
+        FactionId::new(0)) {
             Ok(ship) => {
                 dsl.create_ship_energy_and_shield_timer(
                     spacetimedb::ScheduleAt::Interval(Duration::from_millis(500).into()), 
@@ -66,7 +66,7 @@ pub fn create_ship_docked_at_station(ctx: &ReducerContext, ship_type: ShipTypeDe
         &station,
         station.get_sector_id(),
         identity,
-        FactionDefinitionId::new(0)) {
+        FactionId::new(0)) {
             Ok(ship) => {
                 dsl.create_ship_energy_and_shield_timer(
                     spacetimedb::ScheduleAt::Interval(Duration::from_millis(500).into()), 

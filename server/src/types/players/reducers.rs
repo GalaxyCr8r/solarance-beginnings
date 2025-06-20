@@ -30,7 +30,7 @@ pub fn register_playername(
         return Err("Username already taken!".to_string());
     }
 
-    let _player = dsl.create_player(identity, &username, 1000)?;
+    let _player = dsl.create_player(identity, &username, 1000, true, None)?;
 
     // Select starting faction?
 

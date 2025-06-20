@@ -23,6 +23,17 @@ pub enum ShipClass {
     Carrier,
 }
 
+// Enum for different types of equipment slots on a ship
+#[derive(SpacetimeType, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum EquipmentSlotType {
+    Weapon,
+    Shield,
+    Engine,
+    MiningLaser,
+    Special, // For things like cloaking devices, tractor beams etc.
+    CargoExpansion,
+}
+
 #[dsl(plural_name = ship_type_definitions)]
 #[table(name = ship_type_definition, public)]
 pub struct ShipTypeDefinition {
@@ -47,6 +58,9 @@ pub struct ShipTypeDefinition {
     pub cargo_capacity: u16, // Max cargo volume
 
     pub num_weapon_slots: u8,
+    pub num_large_weapon_slots: u8,
+    pub num_turret_slots: u8,
+    pub num_large_turret_slots: u8,
     pub num_shield_slots: u8,
     pub num_engine_slots: u8,
     pub num_mining_laser_slots: u8,
@@ -88,6 +102,8 @@ pub struct ShipGlobal {
     #[auto_inc]
     #[wrap]
     pub id: u64,
+    
+    //pub custom_name: Option<String>,
 }
 
 #[dsl(plural_name = ships)]
@@ -112,7 +128,7 @@ pub struct Ship {
     #[index(btree)]
     pub player_id: Identity, // FK to player.id
     
-    #[wrapped(path = crate::types::factions::FactionDefinitionId)]
+    #[wrapped(path = crate::types::factions::FactionId)]
     pub faction_id: u32, // FK to faction.id
 }
 
@@ -138,7 +154,7 @@ pub struct DockedShip {
     #[index(btree)]
     pub player_id: Identity, // FK to player.id
     
-    #[wrapped(path = crate::types::factions::FactionDefinitionId)]
+    #[wrapped(path = crate::types::factions::FactionId)]
     pub faction_id: u32, // FK to faction.id
 }
 

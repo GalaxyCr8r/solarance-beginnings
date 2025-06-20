@@ -200,9 +200,8 @@ fn try_update_target_specific_functions(
                 //     // Maybe implement asteroid scanning?
                 // }
                 StellarObjectKinds::CargoCrate => {
-                    if
-                        controller.cargo_bay_open &&
-                        player_sobj
+                    if controller.cargo_bay_open &&
+                       player_sobj
                             .distance_squared(ctx, &target_sobj)
                             .is_some_and(|d| d < 1000.0) &&
                         attempt_to_pickup_cargo_crate(ctx, &ship_object, &target_sobj)
@@ -433,10 +432,9 @@ fn try_mining(
             {
                 if transform.to_vec2().distance(ast_transform.to_vec2()) < 500.0 {
                     // Check if the player is already mining this asteroid
-                    if
-                        !dsl
-                            .get_ship_mining_timers_by_ship_sobj_id(&ship_object.get_sobj_id())
-                            .any(|timer| timer.asteroid_sobj_id == asteroid_sobj.id)
+                    if !dsl
+                        .get_ship_mining_timers_by_ship_sobj_id(&ship_object.get_sobj_id())
+                        .any(|timer| timer.asteroid_sobj_id == asteroid_sobj.id)
                     {
                         // Only add if there is no mining timer for this ship and asteroid.
                         info!(

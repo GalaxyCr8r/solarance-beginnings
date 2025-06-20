@@ -32,17 +32,6 @@ pub struct GlobalConfig {
     modified_at: Timestamp,
 }
 
-// Enum for different types of equipment slots on a ship
-#[derive(SpacetimeType, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum EquipmentSlotType {
-    Weapon,
-    Shield,
-    Engine,
-    MiningLaser,
-    Special, // For things like cloaking devices, tractor beams etc.
-    CargoExpansion,
-}
-
 pub struct TradeCommand {
     item_to_sell: ItemDefinitionId,
     station: StationId

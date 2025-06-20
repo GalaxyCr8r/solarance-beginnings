@@ -56,7 +56,7 @@ pub struct FactionChatMessage {
     pub player_id: Identity, // FK to Player
 
     #[index(btree)]
-    #[wrapped(path = crate::types::factions::FactionDefinitionId)]
+    #[wrapped(path = crate::types::factions::FactionId)]
     pub faction_id: u32, // FK to FactionDefinition
 
     pub message: String,

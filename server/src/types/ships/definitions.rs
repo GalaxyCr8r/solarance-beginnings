@@ -33,7 +33,9 @@ fn fighters(dsl: &DSL) -> Result<(), String> {
         100, 100, 100,
         50.0, 0.167, PI / 224.0,
         8,
-        3, 1, 1,
+        3, 0,
+        0, 0,
+        1, 1,
         0, 1,
         Some("lc.phalanx".into())
     )?;
@@ -44,7 +46,9 @@ fn fighters(dsl: &DSL) -> Result<(), String> {
         500, 300, 200,
         45.0, 0.117, PI / 365.0,
         64,
-        2, 2, 2,
+        2, 0,
+        0, 0,
+        2, 2,
         1, 3,
         Some("lc.column".into())
     )?;
@@ -55,7 +59,9 @@ fn fighters(dsl: &DSL) -> Result<(), String> {
         150, 50, 125,
         35.0, 0.167, PI / 256.0,
         8,
-        2, 1, 1,
+        2, 0,
+        0, 0,
+        1, 1,
         0, 0,
         Some("rf.javelin".into())
     )?;

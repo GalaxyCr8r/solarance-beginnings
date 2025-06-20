@@ -2,6 +2,8 @@ use log::info;
 use spacetimedb::ReducerContext;
 use spacetimedsl::{dsl};
 
+use crate::types::common::Vec2;
+
 use super::*;
 
 //////////////////////////////////////////////////////////////
@@ -24,9 +26,25 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 fn demo_sectors(ctx: &ReducerContext) -> Result<(), String> {
   let dsl = dsl(ctx);
 
-  let a = dsl.create_sector(0, "Alpha Sector", None, 0.0, -8.0, None)?;
-  let b = dsl.create_sector(1, "Beta Sector", None, 0.0, 32.0, None)?;
-  let c = dsl.create_sector(2, "Gamma Sector", None, 128.0, 16.0, None)?;
+  let faction_none = FactionId::new(0);
+
+  let procyon = dsl.create_star_system("Procyon", Vec2::new(13.,37.), SpectralKind::G, 5, &faction_none)?;
+
+  let _star = dsl.create_star_system_object(&procyon, StarSystemObjectKind::Star, 0., 0., Some("star.1".to_string()));
+  let _belt = dsl.create_star_system_object(&procyon, StarSystemObjectKind::AsteroidBelt, 64., 12., None);
+
+  let a = dsl.create_sector(
+    0, &procyon, "Alpha Sector", None, &faction_none, 
+    0, 0.9, 0.1, 0.1, 0.1, 
+    0.0, -64.0, None)?;
+  let b = dsl.create_sector(
+    1, &procyon, "Beta Sector", None, &faction_none, 
+    0, 0.9, 0.1, 0.1, 0.1, 
+    -8.0, -56.0, None)?;
+  let c = dsl.create_sector(
+    2, &procyon, "Gamma Sector", None, &faction_none, 
+    0, 0.9, 0.1, 0.1, 0.1, 
+    128.0, 16.0, None)?;
 
   connect_sectors_with_warpgates(ctx, &a, &b)?;
   connect_sectors_with_warpgates(ctx, &b, &c)?;

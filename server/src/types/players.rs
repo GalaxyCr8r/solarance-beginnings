@@ -2,6 +2,8 @@
 use spacetimedb::{table, Identity, ReducerContext, Timestamp};
 use spacetimedsl::{dsl, Wrapper};
 
+use crate::types::factions::FactionId;
+
 use super::{common::CurrentAction, ships::*, stellarobjects::*};
 
 //pub mod definitions; // Definitions for initial ingested data.
@@ -20,6 +22,9 @@ pub struct Player {
     #[unique]
     pub username: String,
     pub credits: u64,
+
+    pub logged_in: bool,
+    pub faction_id: Option<FactionId>,
 
     created_at: Timestamp,
     modified_at: Timestamp,
