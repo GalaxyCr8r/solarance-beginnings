@@ -1,5 +1,3 @@
-use std::{f32::consts::PI, time::Duration};
-use glam::Vec2;
 use spacetimedb::*;
 use spacetimedsl::*;
 

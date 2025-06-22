@@ -1,6 +1,5 @@
 use spacetimedb::{ReducerContext, SpacetimeType};
 
-use crate::types::items::*;
 
 // pub mod definitions; // Definitions for initial ingested data.
 // pub mod impls; // Impls for this file's structs

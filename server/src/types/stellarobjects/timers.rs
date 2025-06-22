@@ -3,7 +3,7 @@ use glam::Vec2;
 use spacetimedb::*;
 use spacetimedsl::*;
 
-use crate::types::{common::{utility::try_server_only, *}, items::{CargoCrate, GetCargoCrateRowOptionBySobjId}, ships::*, stellarobjects::*};
+use crate::types::{common::{utility::try_server_only, *}, items::GetCargoCrateRowOptionBySobjId, ships::*, stellarobjects::*};
 
 #[dsl(plural_name = sobj_transform_timers)]
 #[spacetimedb::table(name = sobj_transform_timer, scheduled(recalculate_sobj_transforms))]

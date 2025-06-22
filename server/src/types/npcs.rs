@@ -1,7 +1,7 @@
 use spacetimedb::*;
 use spacetimedsl::*;
 
-use crate::{types::items::*, *};
+use crate::types::items::*;
 
 // pub mod definitions; // Definitions for initial ingested data.
 // pub mod impls; // Impls for this file's structs
