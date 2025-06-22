@@ -1,4 +1,4 @@
-use spacetimedb::{client_visibility_filter, Filter};
+//use spacetimedb::{client_visibility_filter, Filter};
 
 // You can see your ship object.
 // #[client_visibility_filter]
@@ -17,9 +17,9 @@ use spacetimedb::{client_visibility_filter, Filter};
 // );
 
 // You can only see ship cargo items of ships you can see.
-#[client_visibility_filter]
-const SI_CARGO_FILTER: Filter = Filter::Sql(
-     "SELECT ship_cargo_item.* 
-      FROM ship_cargo_item
-      JOIN ship s ON ship_cargo_item.ship_id = s.id"
- );
+// #[client_visibility_filter]
+// const SI_CARGO_FILTER: Filter = Filter::Sql(
+//      "SELECT ship_cargo_item.* 
+//       FROM ship_cargo_item
+//       JOIN ship s ON ship_cargo_item.ship_id = s.id"
+//  );
