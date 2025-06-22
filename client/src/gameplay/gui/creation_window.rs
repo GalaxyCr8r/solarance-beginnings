@@ -1,6 +1,6 @@
 use egui::{Color32, Context, FontId, RichText};
 use macroquad::prelude::*;
-use spacetimedb_sdk::DbContext;
+use spacetimedb_sdk::{DbContext, Table};
 
 use crate::{gameplay::state::GameState, module_bindings::*, stdb::utils::*};
 
@@ -47,6 +47,13 @@ pub fn draw(egui_ctx: &Context, ctx: &DbConnection, game_state: &mut GameState) 
                             format!("ERROR: {}", game_state.creation_window.error.as_ref().unwrap().to_string())
                         ).strong().color(Color32::RED)
                     );
+                }
+                ui.separator();
+                for player in ctx.db.player().iter() {
+                    ui.label(RichText::new(format!("{}: {}", player.username, player.identifier)));
+                }
+                for station in ctx.db().station().iter() {
+                    ui.label(RichText::new(format!("{}:  {}", station.name, station.id)));
                 }
                 ui.separator();
                 if ui.button("Exit").clicked() {

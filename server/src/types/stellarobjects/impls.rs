@@ -97,4 +97,8 @@ impl StellarObjectTransformInternal {
         StellarObjectTransformInternal { x: vec.x, y: vec.y, ..*self }
     }
 
+    pub fn from_xy(&self, x: f32, y: f32) -> StellarObjectTransformInternal {
+        StellarObjectTransformInternal { x: x, y: y, ..*self }
+    }
+
 }

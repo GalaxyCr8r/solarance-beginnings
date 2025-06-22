@@ -53,7 +53,7 @@ pub fn create_player_controlled_ship(
             ctx,
             StellarObjectKinds::Ship,
             &SectorId::new(0), // TODO: Make this the proper sector id!
-            StellarObjectTransformInternal { x: 64.0, y: 64.0, rotation_radians: 0.0, sobj_id: 0 }
+            StellarObjectTransformInternal::default().from_xy(64., 64.)
         )
     {
         let _ = create_sobj_player_window_for(ctx, identity, sobj.get_id())?;

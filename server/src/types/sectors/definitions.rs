@@ -4,7 +4,7 @@ use log::info;
 use spacetimedb::ReducerContext;
 use spacetimedsl::{dsl};
 
-use crate::types::common::Vec2;
+use crate::types::{common::Vec2, stations::CreateStationRow, stellarobjects::{reducers::create_stellar_object, utility::create_sobj_internal, StellarObjectTransformInternal}};
 
 use super::*;
 
@@ -55,8 +55,41 @@ fn demo_sectors(ctx: &ReducerContext) -> Result<(), String> {
   connect_sectors_with_warpgates(ctx, &a, &b)?;
   connect_sectors_with_warpgates(ctx, &b, &c)?;
   
-  dsl.create_asteroid_sector(SectorId::new(0), 1, 3000.0, Some(1000.0))?;
-  dsl.create_asteroid_sector(SectorId::new(1), 5, 5000.0, None)?;
+  dsl.create_asteroid_sector(&a, 1, 3000.0, Some(1000.0))?;
+  dsl.create_asteroid_sector(&b, 5, 5000.0, None)?;
+
+  dsl.create_station(crate::types::stations::StationSize::Medium,
+    &b,
+    &create_sobj_internal(ctx,
+      crate::types::stellarobjects::StellarObjectKinds::Station,
+      &b.get_id(),
+      StellarObjectTransformInternal::default().from_xy(613., 1337.)
+    )?,
+    FactionId::new(0),
+    "Shining Beacon Station",
+    None)?;
+
+  dsl.create_station(crate::types::stations::StationSize::Outpost,
+    &a,
+    &create_sobj_internal(ctx,
+      crate::types::stellarobjects::StellarObjectKinds::Station,
+      &a.get_id(),
+      StellarObjectTransformInternal::default()
+    )?,
+    FactionId::new(0),
+    "Tarol Station",
+    None)?;
+
+  dsl.create_station(crate::types::stations::StationSize::Capital,
+    &c,
+    &create_sobj_internal(ctx,
+      crate::types::stellarobjects::StellarObjectKinds::Station,
+      &c.get_id(),
+      StellarObjectTransformInternal::default().from_xy(455., -1337.)
+    )?,
+    FactionId::new(0),
+    "Homeworld Station",
+    None)?;
 
   Ok(())
 }

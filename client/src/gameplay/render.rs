@@ -271,9 +271,15 @@ fn draw_station(
     let resources = storage::get::<Resources>();
     let position = transform.to_vec2();
 
-    let tex =
-        &resources.jumpgate_textures
-            [jumpgate.gfx_key.unwrap_or("jumpgate_north".to_string()).as_str()];
+    let gfx_key = match station.size {
+        StationSize::Capital => "station.capital",
+        StationSize::Large => "station.large",
+        StationSize::Medium => "station.medium",
+        StationSize::Small => "station.small",
+        StationSize::Outpost => "station.outpost",
+        StationSize::Satellite => "station.satellite",
+    };
+    let tex = &resources.station_textures[gfx_key];
     draw_texture(tex, position.x - tex.width() * 0.5, position.y - tex.height() * 0.5, WHITE);
 
     if let Some(target) = &game_state.current_target_sobj {
