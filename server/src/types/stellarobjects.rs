@@ -37,7 +37,8 @@ pub struct StellarObject {
 
     #[index(btree)]
     #[wrapped(path = crate::types::sectors::SectorId)]
-    pub sector_id: u64, // FK: SectorLocation
+    /// FK to SectorLocation
+    pub sector_id: u64,
 }
 
 /// The current velocity of a stellar object.
@@ -47,7 +48,8 @@ pub struct StellarObject {
 pub struct StellarObjectVelocity {
     #[primary_key]
     #[wrapped(path = StellarObjectId)]
-    pub sobj_id: u64, // FK: StellarObject
+    /// FK to StellarObject
+    pub sobj_id: u64,
 
     pub x: f32,
     pub y: f32,
@@ -63,7 +65,8 @@ pub struct StellarObjectVelocity {
 pub struct StellarObjectTransformInternal {
     #[primary_key]
     #[wrapped(path = StellarObjectId)]
-    pub sobj_id: u64, // FK: StellarObject
+    /// FK to StellarObject
+    pub sobj_id: u64,
 
     pub x: f32,
     pub y: f32,
@@ -77,7 +80,8 @@ pub struct StellarObjectTransformInternal {
 pub struct StellarObjectTransformHiRes {
     #[primary_key]
     #[wrapped(path = StellarObjectId)]
-    pub sobj_id: u64, // FK: StellarObject
+    /// FK to StellarObject
+    pub sobj_id: u64,
 
     pub x: f32,
     pub y: f32,
@@ -90,7 +94,8 @@ pub struct StellarObjectTransformHiRes {
 pub struct StellarObjectTransformLowRes {
     #[primary_key]
     #[wrapped(path = StellarObjectId)]
-    pub sobj_id: u64, // FK: StellarObject
+    /// FK to StellarObject
+    pub sobj_id: u64,
 
     pub x: f32,
     pub y: f32,
@@ -102,7 +107,8 @@ pub struct StellarObjectTransformLowRes {
 pub struct StellarObjectControllerTurnLeft {
     #[primary_key]
     #[wrapped(path = StellarObjectId)]
-    pub sobj_id: u64, // FK: StellarObject
+    /// FK to StellarObject
+    pub sobj_id: u64,
 }
 
 #[dsl(plural_name = sobj_player_windows)]
@@ -113,7 +119,8 @@ pub struct StellarObjectPlayerWindow {
 
     #[unique]
     #[wrapped(path = StellarObjectId)]
-    pub sobj_id: u64, // FK: StellarObject
+    /// FK to StellarObject
+    pub sobj_id: u64,
 
     pub window: f32, // How big of a rectangular window should be
     pub margin: f32, // How much space can you move within the window before recalculating

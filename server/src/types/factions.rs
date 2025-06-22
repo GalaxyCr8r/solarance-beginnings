@@ -33,7 +33,8 @@ pub struct Faction {
     pub description: String,
 
     /// Faction's Capital Station, if it exists.
-    pub capital_station_id: Option<u64>, // Fk to Station.
+    /// FK to Station.
+    pub capital_station_id: Option<u64>,
     // Other faction-specific data like relations, home sector, etc.
 }
 
@@ -47,11 +48,13 @@ pub struct FactionStanding {
 
     #[index(btree)] // To find all players with standing for a faction
     #[wrapped(path = crate::types::factions::FactionId)]
-    pub faction_one_id: u32, // FK to FactionDefinition
+    /// FK to FactionDefinition
+    pub faction_one_id: u32,
 
     #[index(btree)] // To find all players with standing for a faction
     #[wrapped(path = crate::types::factions::FactionId)]
-    pub faction_two_id: u32, // FK to FactionDefinition
+    /// FK to FactionDefinition
+    pub faction_two_id: u32,
 
     /// How the two factions regard each other.
     /// -100 is hated enemies.
@@ -72,7 +75,8 @@ pub struct PlayerFactionStanding {
 
     #[index(btree)] // To find all players with standing for a faction
     #[wrapped(path = crate::types::factions::FactionId)]
-    pub faction_id: u32, // FK to FactionDefinition
+    /// FK to FactionDefinition
+    pub faction_id: u32,
 
     pub reputation_score: i32,
 }

@@ -25,17 +25,18 @@ pub enum NpcArchetype { // Broader than NpcType, defines their role
 }
 
 #[derive(SpacetimeType, Debug, Clone)]
-pub struct ItemStack { // TODO Do we even need this? ShipCargoItem does this exact thing.
-    pub resource: ItemCategory,
+pub struct ResourceAmount {
+    //#[wrapped(path = crate::types::items::ItemDefinitionId)]
+    /// FK to ItemDefinition
+    pub resource_item_id: u32,
+
     pub quantity: u32,
 }
 
-#[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
-pub enum OrderType { // TODO move this our of economy and into an AI/NPC module
-    Mine(OreType),
-    HaulToStation(u64),       // station_id
-    TradeAtStation(u64),      // station_id
-    DefendSector(u64),        // sector_id
+impl PartialEq for ResourceAmount {
+    fn eq(&self, other: &Self) -> bool {
+        self.resource_item_id == other.resource_item_id && self.quantity == other.quantity
+    }
 }
 
 //////////////////////////////////////////////////////////////

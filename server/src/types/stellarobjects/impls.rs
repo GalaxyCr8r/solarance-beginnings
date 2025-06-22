@@ -61,7 +61,7 @@ impl StellarObject {
                 dsl.delete_cargo_crate_by_sobj_id(self);
             },
             StellarObjectKinds::Station => {
-                dsl.delete_stations_by_sobj_id(self);
+                dsl.delete_station_by_sobj_id(self);
             },
             StellarObjectKinds::JumpGate => {
                 dsl.delete_jump_gate_by_sobj_id(self);

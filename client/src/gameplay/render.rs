@@ -42,6 +42,8 @@ pub fn sector(game_state: &mut GameState) {
                         draw_ship(&ship_object, &transform, ship_type, game_state);
                     }
                 }
+            } else if let Some(station) = db.station().sobj_id().find(&object.id) {
+                draw_station(&transform, station, game_state);
             } else if let Some(jumpgate) = db.jump_gate().sobj_id().find(&object.id) {
                 draw_jumpgate(&transform, jumpgate, game_state);
             } else if let Some(asteroid) = db.asteroid().sobj_id().find(&object.id) {
@@ -250,11 +252,32 @@ fn draw_jumpgate(
 
     let tex =
         &resources.jumpgate_textures
-            [jumpgate.gfx_key.unwrap_or("jumpgate_north".to_string()).as_str()];
+            [jumpgate.gfx_key.unwrap_or("jumpgate_north".to_string()).as_str()]; // TODO un-hardcode this
     draw_texture(tex, position.x - tex.width() * 0.5, position.y - tex.height() * 0.5, WHITE);
 
     if let Some(target) = &game_state.current_target_sobj {
         if target.id == jumpgate.sobj_id {
+            let size = (tex.width() + tex.height()) * 0.33;
+            draw_targeting_bracket(position, size, target.kind, Color::from_rgba(255, 255, 255, 200));
+        }
+    }
+}
+
+fn draw_station(
+    transform: &StellarObjectTransformHiRes,
+    station: Station,
+    game_state: &mut GameState
+) {
+    let resources = storage::get::<Resources>();
+    let position = transform.to_vec2();
+
+    let tex =
+        &resources.jumpgate_textures
+            [jumpgate.gfx_key.unwrap_or("jumpgate_north".to_string()).as_str()];
+    draw_texture(tex, position.x - tex.width() * 0.5, position.y - tex.height() * 0.5, WHITE);
+
+    if let Some(target) = &game_state.current_target_sobj {
+        if target.id == station.sobj_id {
             let size = (tex.width() + tex.height()) * 0.33;
             draw_targeting_bracket(position, size, target.kind, Color::from_rgba(255, 255, 255, 200));
         }

@@ -34,6 +34,12 @@ impl Resources {
 
         resources.station_textures.insert("lc.station.1", load_linear_sprite("stations/lrak_outpost.png").await?);
         resources.station_textures.insert("iwa.station.1", load_linear_sprite("stations/iwa_generic_station.PNG").await?);
+        resources.station_textures.insert("station.capital", load_linear_sprite("stations/station_capital.png").await?);
+        resources.station_textures.insert("station.large", load_linear_sprite("stations/station_large.png").await?);
+        resources.station_textures.insert("station.medium", load_linear_sprite("stations/station_medium.png").await?);
+        resources.station_textures.insert("station.small", load_linear_sprite("stations/station_small.png").await?);
+        resources.station_textures.insert("station.outpost", load_linear_sprite("stations/station_outpost.png").await?);
+        resources.station_textures.insert("station.satellite", load_linear_sprite("stations/station_satellite.png").await?);
 
         resources.jumpgate_textures.insert("warpgate_north", load_linear_sprite("stations/warpgate_north.png").await?);
         resources.jumpgate_textures.insert("warpgate_west", load_linear_sprite("stations/warpgate_west.png").await?);

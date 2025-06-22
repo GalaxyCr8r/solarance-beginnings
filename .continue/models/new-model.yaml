@@ -1,0 +1,12 @@
+name: Gemma-3 LMS
+version: 0.0.1
+schema: v1
+models:
+  - name: Gemma-3 12b LM Studio
+    provider: lmstudio
+    model: gemma-3-12b-it
+    roles:
+      - chat
+      - edit
+      - autocomplete
+      - apply

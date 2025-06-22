@@ -19,10 +19,12 @@ pub struct ShipEnergyAndShieldTimer {
 
     #[index(btree)]
     #[wrapped(path = ShipGlobalId)]
-    pub ship_id: u64, // FK: Ship
+    /// FK to Ship
+    pub ship_id: u64,
 
     #[wrapped(path = ShipTypeDefinitionId)]
-    pub ship_type_id: u32, // FK: Ship Type
+    /// FK to Ship Type
+    pub ship_type_id: u32,
 }
 
 #[dsl(plural_name = ship_mining_timers)]
@@ -36,10 +38,12 @@ pub struct ShipMiningTimer {
 
     #[index(btree)]
     #[wrapped(path = StellarObjectId)]
-    pub ship_sobj_id: u64, // FK: StellarObject
+    /// FK to StellarObject
+    pub ship_sobj_id: u64,
 
     #[wrapped(path = StellarObjectId)]
-    pub asteroid_sobj_id: u64, // FK: StellarObject
+    /// FK to StellarObject
+    pub asteroid_sobj_id: u64,
 
     pub mining_progress: f32, // How much of the asteroid has been mined (0 to 1.0)
 }
@@ -56,10 +60,12 @@ pub struct ShipAddCargoTimer {
 
     #[index(btree)]
     #[wrapped(path = ShipGlobalId)]
-    pub ship_id: u64, // FK: Ship
+    /// FK to Ship
+    pub ship_id: u64,
 
     #[wrapped(path = ItemDefinitionId)]
-    pub item_id: u32, // FK: Item Definition
+    /// FK to Item Definition
+    pub item_id: u32,
 
     pub amount: u16,
 }

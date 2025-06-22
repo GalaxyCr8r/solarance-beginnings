@@ -19,7 +19,8 @@ pub struct GlobalChatMessage {
     #[wrap]
     pub id: u64,
 
-    pub player_id: Identity, // FK to Player
+    /// FK to Player
+    pub player_id: Identity,
 
     pub message: String,
 
@@ -34,11 +35,13 @@ pub struct SectorChatMessage {
     #[wrap]
     pub id: u64,
 
-    pub player_id: Identity, // FK to Player
+    /// FK to Player
+    pub player_id: Identity,
 
     #[index(btree)] // To find asteroids in a specific sector
     #[wrapped(path = crate::types::sectors::SectorId)]
-    pub sector_id: u64, // FK to Sector.id
+    /// FK to Sector.id
+    pub sector_id: u64,
 
     pub message: String,
 
@@ -53,11 +56,13 @@ pub struct FactionChatMessage {
     #[wrap]
     pub id: u64,
 
-    pub player_id: Identity, // FK to Player
+    /// FK to Player
+    pub player_id: Identity,
 
     #[index(btree)]
     #[wrapped(path = crate::types::factions::FactionId)]
-    pub faction_id: u32, // FK to FactionDefinition
+    /// FK to FactionDefinition
+    pub faction_id: u32,
 
     pub message: String,
 

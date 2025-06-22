@@ -19,7 +19,8 @@ pub struct AsteroidSectorUpkeepTimer {
 
     #[index(btree)] // To find asteroids in a specific sector
     #[wrapped(path = crate::types::sectors::SectorId)]
-    pub sector_id: u64, // FK to Sector.id
+    /// FK to Sector.id
+    pub sector_id: u64,
 }
 
 //////////////////////////////////////////////////////////////

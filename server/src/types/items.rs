@@ -112,14 +112,17 @@ pub struct CargoCrate {
 
     #[wrapped(path = crate::types::sectors::SectorId)]
     #[index(btree)] // To find crates in a specific sector
-    pub current_sector_id: u64, // FK: Sector.id
+    /// FK to Sector.id
+    pub current_sector_id: u64,
 
     #[wrapped(path = crate::types::stellarobjects::StellarObjectId)]
     #[unique]
-    pub sobj_id: u64, // FK: StellarObject
+    /// FK to StellarObject
+    pub sobj_id: u64,
 
     #[wrapped(path = ItemDefinitionId)]
-    pub item_id: u32, // FK: ItemDefinition
+    /// FK to ItemDefinition
+    pub item_id: u32,
     pub quantity: u16,
 
     pub despawn_ts: Option<Timestamp>, // When the crate should disappear if not collected

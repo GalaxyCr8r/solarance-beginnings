@@ -7,7 +7,8 @@ use spacetimedsl::*;
 #[table(name = station_production_schedule, scheduled(process_station_production_tick))]
 pub struct StationProductionSchedule {
     #[primary_key]
-    pub station_id: u64, // FK to SpaceStation
+    /// FK to SpaceStation
+    pub station_id: u64,
     pub scheduled_at: ScheduleAt, // Periodic (e.g., every minute or 5 minutes)
     pub last_processed_timestamp: Timestamp,
 }

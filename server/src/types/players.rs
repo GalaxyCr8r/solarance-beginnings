@@ -63,7 +63,8 @@ pub struct PlayerShipController {
     pub fire_missle: bool,
 
     // Misc
-    pub targetted_sobj_id: Option<u64>, // FK to StellarObject
+    /// FK to StellarObject
+    pub targetted_sobj_id: Option<u64>,
 }
 
 //////////////////////////////////////////////////////////////

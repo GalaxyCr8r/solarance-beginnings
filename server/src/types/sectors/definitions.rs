@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use log::info;
 use spacetimedb::ReducerContext;
 use spacetimedsl::{dsl};
@@ -31,16 +33,20 @@ fn demo_sectors(ctx: &ReducerContext) -> Result<(), String> {
   let procyon = dsl.create_star_system("Procyon", Vec2::new(13.,37.), SpectralKind::G, 5, &faction_none)?;
 
   let _star = dsl.create_star_system_object(&procyon, StarSystemObjectKind::Star, 0., 0., Some("star.1".to_string()));
-  let _belt = dsl.create_star_system_object(&procyon, StarSystemObjectKind::AsteroidBelt, 64., 12., None);
+  let _planet1 = dsl.create_star_system_object(&procyon, StarSystemObjectKind::Planet, 128., 0., None);
+  let _planet2 = dsl.create_star_system_object(&procyon, StarSystemObjectKind::Planet, -24., -PI, None);
+  let _moon = dsl.create_star_system_object(&procyon, StarSystemObjectKind::Planet, 128., 24., None);
+  let _astbelt = dsl.create_star_system_object(&procyon, StarSystemObjectKind::AsteroidBelt, 48., 12., None);
+  let _nebbelt = dsl.create_star_system_object(&procyon, StarSystemObjectKind::NebulaBelt, 12., 8., None);
 
   let a = dsl.create_sector(
     0, &procyon, "Alpha Sector", None, &faction_none, 
     0, 0.9, 0.1, 0.1, 0.1, 
-    0.0, -64.0, None)?;
+    8.0, -72.0, None)?;
   let b = dsl.create_sector(
     1, &procyon, "Beta Sector", None, &faction_none, 
     0, 0.9, 0.1, 0.1, 0.1, 
-    -8.0, -56.0, None)?;
+    -8.0, -24.0, None)?;
   let c = dsl.create_sector(
     2, &procyon, "Gamma Sector", None, &faction_none, 
     0, 0.9, 0.1, 0.1, 0.1, 

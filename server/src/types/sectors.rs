@@ -58,7 +58,8 @@ pub struct StarSystem {
 
     #[index(btree)]
     #[wrapped(path = FactionId)]
-    pub controlling_faction_id: u32, // FK to Faction, can change
+    /// FK to Faction, can change
+    pub controlling_faction_id: u32,
     //pub discovered_by_faction_id: Option<u32>, // First faction to chart it
 }
 
@@ -72,7 +73,8 @@ pub struct StarSystemObject {
 
     #[index(btree)]
     #[wrapped(path = StarSystemId)]
-    pub system_id: u32, // FK to StarSystem
+    /// FK to StarSystem
+    pub system_id: u32,
     
     pub kind: StarSystemObjectKind,
 
@@ -94,14 +96,16 @@ pub struct Sector {
 
     #[index(btree)]
     #[wrapped(path = StarSystemId)]
-    pub system_id: u32, // FK to StarSystem
+    /// FK to StarSystem
+    pub system_id: u32,
 
     pub name: String,
     pub description: Option<String>,
 
     #[index(btree)]
     #[wrapped(path = FactionId)]
-    pub controlling_faction_id: u32, // FK to Faction, can change
+    /// FK to Faction, can change
+    pub controlling_faction_id: u32,
     /// 0 (lawless) to 10 (heavily policed)
     /// Depends on the adjecency a faction Garrison station
     pub security_level: u8,

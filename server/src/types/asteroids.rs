@@ -15,16 +15,19 @@ pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 pub struct Asteroid {
     #[primary_key]
     #[wrapped(path = StellarObjectId)]
-    pub sobj_id: u64, // FK: StellarObject
+    /// FK to StellarObject
+    pub sobj_id: u64,
 
     #[index(btree)] // To find asteroids in a specific sector
     #[wrapped(path = crate::types::sectors::SectorId)]
-    pub current_sector_id: u64, // FK to Sector.id // Because asteroid_sector.id exists, this can't be named sector_id.
+    /// FK to Sector.id // Because asteroid_sector.id exists, this can't be named sector_id.
+    pub current_sector_id: u64,
 
     pub size_radius: f32, // For collision
     
     #[wrapped(path = crate::types::items::ItemDefinitionId)]
-    pub resource_item_id: u32, // FK to ItemDefinition (e.g., Iron Ore, Silicon)
+    /// FK to ItemDefinition (e.g., Iron Ore, Silicon)
+    pub resource_item_id: u32,
 
     pub current_resources: u16, // Amount of resources left
     pub initial_resources: u16, // Original amount, for reference or respawn logic

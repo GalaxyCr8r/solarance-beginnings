@@ -79,10 +79,12 @@ pub struct ShipStatus {
 
     #[index(btree)] // To easily find ships in a given sector
     #[wrapped(path = SectorId)]
-    pub sector_id: u64, // FK to Sector.id // Needs to be kept in sync with StellarObject.sector_id
+    /// FK to Sector.id // Needs to be kept in sync with StellarObject.sector_id
+    pub sector_id: u64,
 
     #[index(btree)]
-    pub player_id: Identity,      // FK to player.id // You should only be able to see your ship, or other ships in your sector.
+    /// FK to player.id // You should only be able to see your ship, or other ships in your sector.
+    pub player_id: Identity,     
 
     pub health: f32,
     pub shields: f32,
@@ -115,21 +117,26 @@ pub struct Ship {
 
     #[index(btree)]
     #[wrapped(path = ShipTypeDefinitionId)]
-    pub shiptype_id: u32, // FK to ShipTypeDefinition.id
+    /// FK to ShipTypeDefinition.id
+    pub shiptype_id: u32,
 
     #[unique]
     #[wrapped(path = StellarObjectId)]
-    pub sobj_id: u64, // FK: StellarObject
+    /// FK to StellarObject
+    pub sobj_id: u64,
 
     #[index(btree)]
     #[wrapped(path = crate::types::sectors::SectorId)]
-    pub sector_id: u64, // FK to Sector ID - Only because actually referencing the player's stellar object would require three table hits.
+    /// FK to Sector ID - Only because actually referencing the player's stellar object would require three table hits.
+    pub sector_id: u64,
 
     #[index(btree)]
-    pub player_id: Identity, // FK to player.id
+    /// FK to player.id
+    pub player_id: Identity,
     
     #[wrapped(path = crate::types::factions::FactionId)]
-    pub faction_id: u32, // FK to faction.id
+    /// FK to faction.id
+    pub faction_id: u32,
 }
 
 #[dsl(plural_name = docked_ships)]
@@ -141,21 +148,26 @@ pub struct DockedShip {
 
     #[index(btree)]
     #[wrapped(path = ShipTypeDefinitionId)]
-    pub shiptype_id: u32, // FK to ShipTypeDefinition.id
+    /// FK to ShipTypeDefinition.id
+    pub shiptype_id: u32,
 
     #[index(btree)]
     #[wrapped(path = StationId)]
-    pub station_id: u64, // FK: Station
+    /// FK to Station
+    pub station_id: u64,
 
     #[index(btree)]
     #[wrapped(path = SectorId)]
-    pub sector_id: u64, // FK to Sector ID - Only because actually referencing the player's stellar object would require three table hits.
+    /// FK to Sector ID - Only because actually referencing the player's stellar object would require three table hits.
+    pub sector_id: u64,
 
     #[index(btree)]
-    pub player_id: Identity, // FK to player.id
+    /// FK to player.id
+    pub player_id: Identity,
     
     #[wrapped(path = crate::types::factions::FactionId)]
-    pub faction_id: u32, // FK to faction.id
+    /// FK to faction.id
+    pub faction_id: u32,
 }
 
 #[dsl(plural_name = ship_cargo_items)]
@@ -168,10 +180,12 @@ pub struct ShipCargoItem {
 
     #[index(btree)] // To query all cargo for a specific ship
     #[wrapped(path = ShipGlobalId)]
-    pub ship_id: u64, // FK to ShipGlobal
+    /// FK to ShipGlobal
+    pub ship_id: u64,
 
     #[wrapped(path = crate::types::items::ItemDefinitionId)]
-    pub item_id: u32, // FK to ItemDefinition
+    /// FK to ItemDefinition
+    pub item_id: u32,
 
     pub quantity: u16, // How many of this item are currently in this stack
     //pub stack_size: u8, // TODO: Do we keep this value here to save query time?
@@ -187,13 +201,15 @@ pub struct ShipEquipmentSlot {
 
     #[index(btree)] // To query all equipment for a specific ship
     #[wrapped(path = ShipGlobalId)]
-    pub ship_id: u64, // FK to ShipGlobal
+    /// FK to ShipGlobal
+    pub ship_id: u64,
 
     pub slot_type: EquipmentSlotType,
     pub slot_index: u8, // E.g., Weapon Slot 0, Weapon Slot 1 within its type
 
     #[wrapped(path = ItemDefinitionId)]
-    pub item_id: u32, // FK to ItemDefinition
+    /// FK to ItemDefinition
+    pub item_id: u32,
 }
 
 //////////////////////////////////////////////////////////////

@@ -15,14 +15,17 @@ pub mod reducers; // SpacetimeDB Reducers for this file's structs.
 pub struct JumpGate {
     #[primary_key]
     #[wrapped(path = crate::types::stellarobjects::StellarObjectId)]
-    pub sobj_id: u64, // FK: StellarObject
+    /// FK to StellarObject
+    pub sobj_id: u64,
 
     #[wrapped(path = crate::types::sectors::SectorId)]
     #[index(btree)] // To find gates in a specific sector
-    pub current_sector_id: u64, // FK to SectorDefinition where this gate physically is
+    /// FK to SectorDefinition where this gate physically is
+    pub current_sector_id: u64,
 
     #[wrapped(path = crate::types::sectors::SectorId)]
-    pub target_sector_id: u64, // FK to SectorDefinition for the destination sector
+    /// FK to SectorDefinition for the destination sector
+    pub target_sector_id: u64,
     pub target_gate_arrival_pos: Vec2, // Position where ships appear in the target_sector_id
 
     pub gfx_key: Option<String>, // For clients
