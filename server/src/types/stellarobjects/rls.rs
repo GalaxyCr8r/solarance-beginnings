@@ -5,7 +5,7 @@
 // const SO_SHIPOBJECT_FILTER: Filter = Filter::Sql(
 //     "SELECT o.* 
 //     FROM stellar_object o
-//     JOIN ship s ON s.sector_id = o.sector_id"
+//     JOIN ship s ON s.sector_id = o.sector_id" // This break RLS, so I've disabled this rule for now
 // );
 
 // /// You can only see your own window
@@ -25,7 +25,7 @@
 //     WHERE (o.x > w.tl_x AND 
 //           o.y > w.tl_y AND 
 //           o.x < w.br_x AND 
-//           o.y < w.br_y)"
+//           o.y < w.br_y) AND w.player_id = :sender"
 // );
 
 // /// You can only see low "resolution" transforms outside your window. 
@@ -38,5 +38,5 @@
 //     WHERE (o.x <= w.tl_x OR 
 //           o.y <= w.tl_y OR 
 //           o.x >= w.br_x OR 
-//           o.y >= w.br_y)"
+//           o.y >= w.br_y) AND w.player_id = :sender"
 // );

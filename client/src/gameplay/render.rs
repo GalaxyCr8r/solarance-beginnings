@@ -22,9 +22,9 @@ pub fn sector(game_state: &mut GameState) {
     let db = &game_state.ctx.db;
     for object in db.stellar_object().iter() {
         // Don't continue if isn't in the same sector.
-        if player_ship.as_ref().is_some_and(|ship_obj| ship_obj.sector_id != object.sector_id) {
-            continue;
-        }
+        // if player_ship.as_ref().is_some_and(|ship_obj| ship_obj.sector_id != object.sector_id) {
+        //     continue;
+        // }
 
         // ONLY draw if they have hi-resolution positions.
         if let Some(transform) = db.sobj_hi_res_transform().sobj_id().find(&object.id) {

@@ -53,7 +53,13 @@ pub fn draw(egui_ctx: &Context, ctx: &DbConnection, game_state: &mut GameState) 
                     ui.label(RichText::new(format!("{}: {}", player.username, player.identifier)));
                 }
                 for station in ctx.db().station().iter() {
-                    ui.label(RichText::new(format!("{}:  {}", station.name, station.id)));
+                    ui.label(RichText::new(format!("{}:  {} - {}", station.name, station.id, station.sobj_id)));
+                    if let Some(sobj) = ctx.db.stellar_object().id().find(&station.sobj_id) {
+                        ui.label(RichText::new(format!("   SOBJ Kind: {:?}", sobj.kind)));
+                    }
+                }
+                for sector in ctx.db().sector().iter() {
+                    ui.label(RichText::new(format!("{}:  {}", sector.name, sector.id)));
                 }
                 ui.separator();
                 if ui.button("Exit").clicked() {

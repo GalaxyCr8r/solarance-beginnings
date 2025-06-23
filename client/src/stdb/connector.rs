@@ -66,7 +66,7 @@ pub(crate) fn connect_to_spacetime(jwt_token: Option<String>) -> Option<DbConnec
         let ctx = result.unwrap();
 
         // Subscribe to SQL queries in order to construct a local partial replica of the database.
-        subscriptions::subscribe_to_tables(&ctx);
+        //subscriptions::subscribe_to_tables(&ctx);
 
         // Spawn a thread, where the connection will process messages and invoke callbacks.
         ctx.run_threaded();
@@ -110,11 +110,12 @@ fn creds_store() -> credentials::File {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Our `on_connect` callback: save our credentials to a file.
-fn on_connected(_ctx: &DbConnection, identity: Identity, token: &str) {
+fn on_connected(ctx: &DbConnection, identity: Identity, token: &str) {
     info!("Successfully connected with idenitifer: {}", identity.to_abbreviated_hex());
     if let Err(e) = creds_store().save(token) {
         eprintln!("Failed to save credentials: {:?}", e);
     }
+    subscriptions::subscribe_to_tables(&ctx);
 }
 
 /// Our `on_connect_error` callback: print the error, then exit the process.

@@ -112,7 +112,7 @@ pub async fn gameplay(connection: Option<DbConnection>) {//token : Option<String
 
         let _ = player::control_player_ship(&ctx, &mut game_state); // TODO Alert player of error
 
-        if !game_state.chat_window.has_focus {
+        if !game_state.chat_window.has_focus && player_ship.is_some() {
             if is_key_pressed(KeyCode::E) {
                 if let Ok(target) = player::target_closest_stellar_object(&ctx, &mut game_state) {
                     if let Some(mut controller) = ctx.db.player_ship_controller().player_id().find(&ctx.identity()) {

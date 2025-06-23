@@ -36,3 +36,9 @@ tasks:
     desc: "Server: Clear ST Database"
     cmds:
       - spacetime publish solarance-beginnings --delete-data
+
+  tables:
+    desc: "Generate Table Names File for Easier Subscriptions"
+    cmds:
+      - grep -rhIE '^#\[table\(name = (\w+), public\)\]' . | sed -E 's/.*name = (\w+),.*/            "SELECT * FROM \1",/' > table_names.txt
+      #            "SELECT * FROM global_chat_message",
