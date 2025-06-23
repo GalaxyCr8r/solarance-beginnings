@@ -1,14 +1,12 @@
 use spacetimedb::{table, ReducerContext, SpacetimeType};
 use spacetimedsl::{dsl, Wrapper};
 
-use crate::types::{common, factions::*};
-
-use super::jumpgates::create_jumpgate_in_sector;
+use crate::types::{common, factions::*, jumpgates::reducers::*};
 
 pub mod definitions; // Definitions for initial ingested data.
 pub mod impls; // Impls for this file's structs
 pub mod reducers; // SpacetimeDB Reducers for this file's structs.
-//pub mod rls; // Row-level-security rules for this file's structs.
+                  //pub mod rls; // Row-level-security rules for this file's structs.
 pub mod timers; // Timers related to this file's structs.
 pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
@@ -27,7 +25,7 @@ pub enum SpectralKind {
     /// Orange Stars
     K,
     /// Coolest, dimmest, and reddest stars.
-    M
+    M,
 }
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
@@ -36,9 +34,8 @@ pub enum StarSystemObjectKind {
     Planet,
     Moon,
     AsteroidBelt,
-    NebulaBelt
+    NebulaBelt,
 }
-
 
 #[dsl(plural_name = star_systems)]
 #[table(name = star_system, public)]
@@ -75,7 +72,7 @@ pub struct StarSystemObject {
     #[wrapped(path = StarSystemId)]
     /// FK to StarSystem
     pub system_id: u32,
-    
+
     pub kind: StarSystemObjectKind,
 
     /// Object's star system position
@@ -84,7 +81,6 @@ pub struct StarSystemObject {
     pub rotation_or_width_km: f32,
 
     pub gfx_key: Option<String>, // Key for client to look up image
-
 }
 
 #[dsl(plural_name = sectors)]
@@ -110,22 +106,21 @@ pub struct Sector {
     /// Depends on the adjecency a faction Garrison station
     pub security_level: u8,
 
-    // Sector Potentials 
-
-    /// How much sunlight the current sector has. 
+    // Sector Potentials
+    /// How much sunlight the current sector has.
     /// From 1.0 being in orbit around the sun, to 0.0 being outside a solar system.
     /// Most sectors will have 0.9 - 0.5 depending on how far from the center of the solar system it is.
     /// Solar power plants want to be in sectors of 0.5+
     pub sunlight: f32,
-    /// How much weird stuff the current sector has going on. 
+    /// How much weird stuff the current sector has going on.
     /// From 1.0 being inside the middle of eye of chaos, to 0.0 being a normal solar system.
     /// Most sectors will have 0.0 - 0.1, research stations want to be in sectors of 0.5+
     pub anomalous: f32,
-    /// How much gas/dust the current sector has. 
+    /// How much gas/dust the current sector has.
     /// From 1.0 being so thick you can't use your sensors, to 0.0 being a clear space.
     /// Most sectors will have 0.0 - 0.1, pirate stations want to be in sectors of 0.5+
     pub nebula: f32,
-    /// How likely rare ore is to appear in the current sector. 
+    /// How likely rare ore is to appear in the current sector.
     /// From 1.0 being ONLY rare ore, to 0.0 being only iron.
     /// Most sectors will have 0.0 - 0.1, refinery stations want to be in sectors of 0.5+
     pub rare_ore: f32,
@@ -144,9 +139,9 @@ pub struct AsteroidSector {
     #[wrapped(path = SectorId)]
     pub id: u64,
 
-    pub sparseness: u8, // Relative amount of asteroids to spawn
-    pub cluster_extent: f32, // How far from 0,0 can asteroids spawn
-    pub cluster_inner: Option<f32> // How far from 0,0 can asteroids NOT spawn
+    pub sparseness: u8,             // Relative amount of asteroids to spawn
+    pub cluster_extent: f32,        // How far from 0,0 can asteroids spawn
+    pub cluster_inner: Option<f32>, // How far from 0,0 can asteroids NOT spawn
 }
 //////////////////////////////////////////////////////////////
 // Impls
@@ -164,34 +159,41 @@ impl Sector {
 
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     let dsl = dsl(ctx);
-    
+
     timers::init(ctx)?;
     definitions::init(ctx)?;
-    
+
     Ok(())
 }
-
 
 //////////////////////////////////////////////////////////////
 // Utilities
 //////////////////////////////////////////////////////////////
 
 /// Creates a jumpgate in each sector, using the direction of the each other sector's position
-fn connect_sectors_with_warpgates(ctx: &ReducerContext, a: &Sector, b: &Sector) -> Result<(), String> {
+fn connect_sectors_with_warpgates(
+    ctx: &ReducerContext,
+    a: &Sector,
+    b: &Sector,
+) -> Result<(), String> {
     let a_pos = glam::Vec2::new(a.x, a.y);
     let b_pos = glam::Vec2::new(b.x, b.y);
     //info!("Sector Positions: A{} B{}", a_pos, b_pos);
 
-    let a_angle = (b_pos-a_pos).to_angle();
-    let b_angle = (a_pos-b_pos).to_angle();
+    let a_angle = (b_pos - a_pos).to_angle();
+    let b_angle = (a_pos - b_pos).to_angle();
     //info!("Sector Angles: A{} B{}", a_angle, b_angle);
 
     let a_wp_pos = glam::Vec2::from_angle(a_angle) * 5000.0;
     let b_wp_pos = glam::Vec2::from_angle(b_angle) * 5000.0;
     //info!("Sector WP Pos: A{} B{}", a_wp_pos, b_wp_pos);
 
-    create_jumpgate_in_sector(ctx, a.id, a_wp_pos.x, a_wp_pos.y, b.id, b_wp_pos.x, b_wp_pos.y)?;
-    create_jumpgate_in_sector(ctx, b.id, b_wp_pos.x, b_wp_pos.y, a.id, a_wp_pos.x, a_wp_pos.y)?;
+    create_jumpgate_in_sector(
+        ctx, a.id, a_wp_pos.x, a_wp_pos.y, b.id, b_wp_pos.x, b_wp_pos.y,
+    )?;
+    create_jumpgate_in_sector(
+        ctx, b.id, b_wp_pos.x, b_wp_pos.y, a.id, a_wp_pos.x, a_wp_pos.y,
+    )?;
 
     Ok(())
 }
@@ -202,5 +204,5 @@ pub fn get_entrance_angle(departing: &Sector, destination: &Sector) -> f32 {
     let b_pos = glam::Vec2::new(destination.x, destination.y);
 
     // Destination entrance angle
-    (a_pos-b_pos).to_angle()
+    (a_pos - b_pos).to_angle()
 }

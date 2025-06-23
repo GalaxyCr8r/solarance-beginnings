@@ -1,17 +1,16 @@
-
 use log::info;
-use spacetimedb::{ Identity, ReducerContext };
-use spacetimedsl::{ dsl, Wrapper };
+use spacetimedb::{Identity, ReducerContext};
+use spacetimedsl::{dsl, Wrapper};
 
 use crate::types::{
     chats::*,
-    items::{ definitions::*, utility::*, * },
+    items::{definitions::*, utility::*, *},
     players::{timers::*, utility::get_username},
     ships::{timers::*, utility::*},
 };
 
-use crate::{ ships::*, stellarobjects::{ *, utility::*, reducers::* } };
-use crate::{ players::*, sectors::* };
+use crate::{players::*, sectors::*};
+use crate::stellarobjects::{reducers::*, utility::*};
 
 //////////////////////////////////////////////////////////////
 // Reducers ///
@@ -21,7 +20,7 @@ use crate::{ players::*, sectors::* };
 pub fn register_playername(
     ctx: &ReducerContext,
     identity: Identity,
-    username: String
+    username: String,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
@@ -40,7 +39,7 @@ pub fn register_playername(
 pub fn create_player_controlled_ship(
     ctx: &ReducerContext,
     identity: Identity,
-    username: String // TODO ReMOVE
+    username: String, // TODO ReMOVE
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
@@ -48,16 +47,14 @@ pub fn create_player_controlled_ship(
         return Err("Client hasn't created a username yet!".to_string());
     }
 
-    if
-        let Ok(sobj) = create_sobj_internal(
-            ctx,
-            StellarObjectKinds::Ship,
-            &SectorId::new(0), // TODO: Make this the proper sector id!
-            StellarObjectTransformInternal::default().from_xy(64., 64.)
-        )
-    {
+    if let Ok(sobj) = create_sobj_internal(
+        ctx,
+        StellarObjectKinds::Ship,
+        &SectorId::new(0), // TODO: Make this the proper sector id!
+        StellarObjectTransformInternal::default().from_xy(64., 64.),
+    ) {
         let _ = create_sobj_player_window_for(ctx, identity, sobj.get_id())?;
-        init_timers(ctx, identity, &sobj)?;
+        init_timers_for_stellar_object(ctx, identity, &sobj)?;
 
         let ship_type = dsl
             .get_ship_type_definition_by_id(ShipTypeDefinitionId::new(1001))
@@ -78,7 +75,7 @@ pub fn create_player_controlled_ship(
             &ship.get_id(),
             EquipmentSlotType::MiningLaser,
             0,
-            ItemDefinitionId::new(DEFAULT_MINING_LASER_ID)
+            ItemDefinitionId::new(DEFAULT_MINING_LASER_ID),
         )?;
 
         info!("Successfully created ship!");
@@ -93,7 +90,7 @@ pub fn create_player_controlled_ship(
 #[spacetimedb::reducer]
 pub fn update_player_controller(
     ctx: &ReducerContext,
-    controller: PlayerShipController
+    controller: PlayerShipController,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
@@ -108,14 +105,18 @@ pub fn update_player_controller(
     }
 
     // Clean up player's mining timers.
-    if let Some(previous_controller) = dsl.get_player_ship_controller_by_player_id(&controller.player_id) {
+    if let Some(previous_controller) =
+        dsl.get_player_ship_controller_by_player_id(&controller.player_id)
+    {
         // Check if the player had been trying to mine, if so, remove the mining timers.
         if previous_controller.mining_laser_on && !controller.mining_laser_on {
             info!(
                 "Player {} no longer mining, removing mining timers.",
                 get_username(ctx, controller.player_id)
             );
-            for mining_timer in dsl.get_ship_mining_timers_by_ship_sobj_id( previous_controller.get_stellar_object_id() ) {
+            for mining_timer in dsl
+                .get_ship_mining_timers_by_ship_sobj_id(previous_controller.get_stellar_object_id())
+            {
                 dsl.delete_ship_mining_timer_by_scheduled_id(&mining_timer);
             }
         }

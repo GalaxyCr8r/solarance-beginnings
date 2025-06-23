@@ -4,7 +4,7 @@ use log::info;
 use spacetimedb::ReducerContext;
 use spacetimedsl::{dsl};
 
-use crate::types::{common::Vec2, stations::CreateStationRow, stellarobjects::{reducers::create_stellar_object, utility::create_sobj_internal, StellarObjectTransformInternal}};
+use crate::types::{common::Vec2, stations::CreateStationRow, stellarobjects::{utility::create_sobj_internal, StellarObjectTransformInternal}};
 
 use super::*;
 
