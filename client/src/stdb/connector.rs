@@ -1,6 +1,5 @@
-
 use macroquad::prelude::info;
-use spacetimedb_sdk::{credentials, Error, Identity};
+use spacetimedb_sdk::{ credentials, Error, Identity };
 use std::env;
 
 use crate::module_bindings::*;
@@ -15,7 +14,7 @@ const LOCAL_HOST: &str = "http://localhost:3000";
 /// The database name we chose when we published our module.
 const DB_NAME: &str = "solarance-beginnings";
 
-pub(crate) fn connect_to_spacetime(jwt_token: Option<String>) -> Option<DbConnection> {
+pub fn connect_to_spacetime(jwt_token: Option<String>) -> Option<DbConnection> {
     info!(" Connecting to SpacetimeDB ...");
 
     // Connect to the database
@@ -30,7 +29,6 @@ pub(crate) fn connect_to_spacetime(jwt_token: Option<String>) -> Option<DbConnec
 
     let mut tried_loaded_token = false;
     let mut current_token = jwt_token.clone();
-    
 
     // let mut current_token  = token.clone();
 
@@ -44,7 +42,7 @@ pub(crate) fn connect_to_spacetime(jwt_token: Option<String>) -> Option<DbConnec
                     Ok(token) => {
                         info!("Loading token from creds store.");
                         token
-                    },
+                    }
                     Err(e) => {
                         info!("Failed to load token from creds_store! {:?}", e);
                         return None;
@@ -76,24 +74,26 @@ pub(crate) fn connect_to_spacetime(jwt_token: Option<String>) -> Option<DbConnec
 }
 
 /// Load credentials from a file and connect to the database.
-fn connect_to_db(host: String, jwt_token:Option<String>) -> Result<DbConnection, String> {
-    match DbConnection::builder()
-        // Register our `on_connect` callback, which will save our auth token.
-        .on_connect(on_connected)
-        // Register our `on_connect_error` callback, which will print a message, then exit the process.
-        .on_connect_error(on_connect_error)
-        // Our `on_disconnect` callback, which will print a message, then exit the process.
-        .on_disconnect(on_disconnected)
-        // If the user has previously connected, we'll have saved a token in the `on_connect` callback.
-        // In that case, we'll load it and pass it to `with_token`,
-        // so we can re-authenticate as the same `Identity`.
-        .with_token(jwt_token)
-        // Set the database name we chose when we called `spacetime publish`.
-        .with_module_name(DB_NAME)
-        // Set the URI of the SpacetimeDB host that's running our database.
-        .with_uri(host)
-        // Finalize configuration and connect!
-        .build() {
+fn connect_to_db(host: String, jwt_token: Option<String>) -> Result<DbConnection, String> {
+    match
+        DbConnection::builder()
+            // Register our `on_connect` callback, which will save our auth token.
+            .on_connect(on_connected)
+            // Register our `on_connect_error` callback, which will print a message, then exit the process.
+            .on_connect_error(on_connect_error)
+            // Our `on_disconnect` callback, which will print a message, then exit the process.
+            .on_disconnect(on_disconnected)
+            // If the user has previously connected, we'll have saved a token in the `on_connect` callback.
+            // In that case, we'll load it and pass it to `with_token`,
+            // so we can re-authenticate as the same `Identity`.
+            .with_token(jwt_token)
+            // Set the database name we chose when we called `spacetime publish`.
+            .with_module_name(DB_NAME)
+            // Set the URI of the SpacetimeDB host that's running our database.
+            .with_uri(host)
+            // Finalize configuration and connect!
+            .build()
+    {
         Ok(connection) => Ok(connection),
         Err(e) => Err(e.to_string()),
     }

@@ -5,52 +5,41 @@ use openidconnect::{
     IssuerUrl,
     Nonce,
     OAuth2TokenResponse,
-    PkceCodeChallenge, 
+    PkceCodeChallenge,
     RedirectUrl,
     Scope,
     TokenResponse,
 };
-use openidconnect::core::{
-  CoreAuthenticationFlow,
-  CoreClient,
-  CoreProviderMetadata
-};
+use openidconnect::core::{ CoreAuthenticationFlow, CoreClient, CoreProviderMetadata };
 use openidconnect::reqwest;
 use url::Url;
 use std::env;
 
 use std::net::TcpListener;
-use std::io::{BufRead, BufReader, Write};
+use std::io::{ BufRead, BufReader, Write };
 
-pub(crate) fn get_client_token() -> Result<String, String> {
-    
+pub fn get_client_token() -> Result<String, String> {
     let auth0_client_id = ClientId::new(
-        env::var("AUTH0_CLIENT_ID").expect("Missing the AUTH0_CLIENT_ID environment variable."),
+        env::var("AUTH0_CLIENT_ID").expect("Missing the AUTH0_CLIENT_ID environment variable.")
     );
     let issuer_url = IssuerUrl::new(
-        env::var("AUTH0_ISSUER_URL").expect("Missing AUTH0_ISSUER_URL!")).expect("Invalid issuer URL");
-    
-    let http_client = reqwest::blocking::ClientBuilder::new()
+        env::var("AUTH0_ISSUER_URL").expect("Missing AUTH0_ISSUER_URL!")
+    ).expect("Invalid issuer URL");
+
+    let http_client = reqwest::blocking::ClientBuilder
+        ::new()
         // Following redirects opens the client up to SSRF vulnerabilities.
         .redirect(reqwest::redirect::Policy::none())
         .build()
         .expect("Client should build");
 
     // Use OpenID Connect Discovery to fetch the provider metadata.
-    let provider_metadata = CoreProviderMetadata::discover(
-        &issuer_url,
-        &http_client,
-        ).unwrap();
+    let provider_metadata = CoreProviderMetadata::discover(&issuer_url, &http_client).unwrap();
 
     // Create an OpenID Connect client by specifying the client ID, client secret, authorization URL
     // and token URL.
-    let client =
-    CoreClient::from_provider_metadata(
-        provider_metadata,
-        auth0_client_id,
-        None,
-    )
-    // Set the URL the user will be redirected to after the authorization process.
+    let client = CoreClient::from_provider_metadata(provider_metadata, auth0_client_id, None)
+        // Set the URL the user will be redirected to after the authorization process.
         .set_redirect_uri(RedirectUrl::new("http://localhost:13613".to_string()).unwrap());
 
     // Generate a PKCE challenge.
@@ -61,7 +50,7 @@ pub(crate) fn get_client_token() -> Result<String, String> {
         .authorize_url(
             CoreAuthenticationFlow::AuthorizationCode,
             CsrfToken::new_random,
-            Nonce::new_random,
+            Nonce::new_random
         )
         // Set the desired scopes.
         .add_scope(Scope::new("read".to_string()))
@@ -102,7 +91,8 @@ pub(crate) fn get_client_token() -> Result<String, String> {
             .map(|(_, state)| CsrfToken::new(state.into_owned()))
             .unwrap();
 
-        let message = "<h1>Login completed!</h1> <p>Return to <em>Solarance:Beginnings</em> and complain about this travesty of a landing page!</p>";
+        let message =
+            "<h1>Login completed!</h1> <p>Return to <em>Solarance:Beginnings</em> and complain about this travesty of a landing page!</p>";
         let response = format!(
             "HTTP/1.1 200 OK\r\ncontent-length: {}\r\n\r\n{}",
             message.len(),
@@ -128,10 +118,7 @@ pub(crate) fn get_client_token() -> Result<String, String> {
         .request(&http_client)
         .expect("Failed to contact token endpoint");
 
-    println!(
-        "Auth0 returned access token:\n{}\n",
-        token_response.access_token().secret()
-    );
+    println!("Auth0 returned access token:\n{}\n", token_response.access_token().secret());
     println!("Auth0 returned scopes: {:?}", token_response.scopes());
 
     Ok(token_response.id_token().expect("ID token is missing or malformed.").to_string())

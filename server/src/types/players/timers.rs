@@ -5,11 +5,7 @@ use log::info;
 use spacetimedb::*;
 use spacetimedsl::*;
 
-use crate::types::{
-    jumpgates::*,
-    players::{utility::*, *},
-    stations::*,
-};
+use crate::types::{ jumpgates::*, players::{ utility::*, * }, stations::* };
 
 #[dsl(plural_name = player_ship_controller_update_timers)]
 #[spacetimedb::table(
@@ -56,7 +52,7 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 pub fn init_timers_for_stellar_object(
     ctx: &ReducerContext,
     identity: Identity,
-    sobj: &StellarObject,
+    sobj: &StellarObject
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
@@ -77,15 +73,15 @@ pub fn init_timers_for_stellar_object(
         false,
         false,
         false,
-        None,
+        None
     )?;
     let _update = dsl.create_player_ship_controller_update_timer(
         spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 20).into()),
-        identity,
+        identity
     )?;
     let _logic = dsl.create_player_ship_controller_logic_timer(
         spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 2).into()),
-        identity,
+        identity
     )?;
     Ok(())
 }
@@ -98,31 +94,31 @@ pub fn init_timers_for_stellar_object(
 #[spacetimedb::reducer]
 pub fn player_ship_controller_update_upkeep(
     ctx: &ReducerContext,
-    timer: PlayerControllerUpdateTimer,
+    timer: PlayerControllerUpdateTimer
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
     //info!("Player con upkeep!");
 
-    let controller = dsl
-        .get_player_ship_controller_by_player_id(&timer.player)
-        .ok_or(format!(
-            "Failed to find the player's controller! ID:{}",
-            timer.player
-        ))?;
+    let mut controller = match dsl.get_player_ship_controller_by_player_id(&timer.player) {
+        Some(con) => con,
+        None => {
+            dsl.delete_player_ship_controller_update_timer_by_scheduled_id(&timer);
+            return Err(
+                format!(
+                    "Failed to find the player's controller! ID:{} Removing timer.",
+                    timer.player
+                )
+            );
+        }
+    };
 
     let ship_object = dsl
         .get_ship_by_sobj_id(controller.get_stellar_object_id())
-        .ok_or(format!(
-            "Failed to find the player's ship object! ID:{}",
-            timer.player
-        ))?;
+        .ok_or(format!("Failed to find the player's ship object! ID:{}", timer.player))?;
     let mut velocity = dsl
         .get_sobj_velocity_by_sobj_id(ship_object.get_sobj_id())
-        .ok_or(format!(
-            "Failed to find the player's ship velocity! ID:{}",
-            timer.player
-        ))?;
+        .ok_or(format!("Failed to find the player's ship velocity! ID:{}", timer.player))?;
 
     // If no input was given, slow down the rotation & speed
     if !controller.left && !controller.right {
@@ -149,22 +145,25 @@ pub fn player_ship_controller_update_upkeep(
 #[spacetimedb::reducer]
 pub fn player_ship_controller_logic_upkeep(
     ctx: &ReducerContext,
-    timer: PlayerControllerLogicTimer,
+    timer: PlayerControllerLogicTimer
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    let mut controller = dsl
-        .get_player_ship_controller_by_player_id(&timer.player)
-        .ok_or(format!(
-            "Failed to find the player's controller! ID:{}",
-            timer.player
-        ))?;
+    let mut controller = match dsl.get_player_ship_controller_by_player_id(&timer.player) {
+        Some(con) => con,
+        None => {
+            dsl.delete_player_ship_controller_logic_timer_by_scheduled_id(&timer);
+            return Err(
+                format!(
+                    "Failed to find the player's controller! ID:{} Removing timer.",
+                    timer.player
+                )
+            );
+        }
+    };
     let ship_object = dsl
         .get_ship_by_sobj_id(controller.get_stellar_object_id())
-        .ok_or(format!(
-            "Failed to find the player's ship object! ID:{}",
-            timer.player
-        ))?;
+        .ok_or(format!("Failed to find the player's ship object! ID:{}", timer.player))?;
 
     remove_old_timers(ctx, &controller, &ship_object)?;
 
@@ -175,11 +174,13 @@ pub fn player_ship_controller_logic_upkeep(
 
     let player_sobj = dsl
         .get_stellar_object_by_id(ship_object.get_sobj_id())
-        .ok_or(format!(
-            "ERROR: Player {} has stellar object #{} that does not exist!",
-            get_username(ctx, controller.player_id),
-            controller.stellar_object_id
-        ))?;
+        .ok_or(
+            format!(
+                "ERROR: Player {} has stellar object #{} that does not exist!",
+                get_username(ctx, controller.player_id),
+                controller.stellar_object_id
+            )
+        )?;
 
     match get_targetted_sobj(ctx, &controller, &player_sobj) {
         // These "Do things if nearby target" should be in their own timer. As-is things will ONLY happen if you are updating your controller when nearby!!!
@@ -196,16 +197,15 @@ pub fn player_ship_controller_logic_upkeep(
                         &controller,
                         &ship_object,
                         &player_sobj,
-                        &target_sobj,
+                        &target_sobj
                     )?;
 
                     // Maybe implement asteroid scanning?
                 }
                 StellarObjectKinds::CargoCrate => {
-                    if controller.cargo_bay_open
-                        && player_sobj
-                            .distance_squared(ctx, &target_sobj)
-                            .is_some_and(|d| d < 1000.0)
+                    if
+                        controller.cargo_bay_open &&
+                        player_sobj.distance_squared(ctx, &target_sobj).is_some_and(|d| d < 1000.0)
                     {
                         // Picking up the crate!
                         attempt_to_pickup_cargo_crate(ctx, &ship_object, &target_sobj)?;
@@ -214,10 +214,11 @@ pub fn player_ship_controller_logic_upkeep(
                     }
                 }
                 StellarObjectKinds::Station => {
-                    if controller.dock
-                        && player_sobj
+                    if
+                        controller.dock &&
+                        player_sobj
                             .distance_squared(ctx, &target_sobj)
-                            .is_some_and(|d| d < 100.0_f32.powi(2))
+                            .is_some_and(|d| d < (100.0_f32).powi(2))
                     {
                         if let Some(station) = dsl.get_station_by_sobj_id(&target_sobj) {
                             try_to_dock_to_station(ctx, &ship_object, &player_sobj, &station)?;
@@ -225,10 +226,11 @@ pub fn player_ship_controller_logic_upkeep(
                     }
                 }
                 StellarObjectKinds::JumpGate => {
-                    if controller.dock
-                        && player_sobj
+                    if
+                        controller.dock &&
+                        player_sobj
                             .distance_squared(ctx, &target_sobj)
-                            .is_some_and(|d| d < 100.0_f32.powi(2))
+                            .is_some_and(|d| d < (100.0_f32).powi(2))
                     {
                         if let Some(jumpgate) = dsl.get_jump_gate_by_sobj_id(&target_sobj) {
                             try_to_use_jumpgate(ctx, &ship_object, &jumpgate)?;
