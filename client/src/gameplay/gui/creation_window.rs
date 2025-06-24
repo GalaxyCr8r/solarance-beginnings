@@ -12,21 +12,24 @@ use crate::{gameplay::state::GameState, module_bindings::*, stdb::utils::*};
 
 pub struct State {
     pub text: String,
-    pub error: Option<String>
+    pub error: Option<String>,
 }
 
 impl State {
     pub fn new() -> Self {
         State {
             text: "".to_string(),
-            error: None
+            error: None,
         }
     }
 }
 
-pub fn draw(egui_ctx: &Context, ctx: &DbConnection, game_state: &mut GameState) -> Option<egui::InnerResponse<Option<()>>> {
-    egui::Window
-        ::new("Account Creation")
+pub fn draw(
+    egui_ctx: &Context,
+    ctx: &DbConnection,
+    game_state: &mut GameState,
+) -> Option<egui::InnerResponse<Option<()>>> {
+    egui::Window::new("Account Creation")
         .title_bar(true)
         .resizable(false)
         .collapsible(false)
@@ -43,18 +46,32 @@ pub fn draw(egui_ctx: &Context, ctx: &DbConnection, game_state: &mut GameState) 
                 }
                 if game_state.creation_window.error.is_some() {
                     ui.label(
-                        RichText::new(
-                            format!("ERROR: {}", game_state.creation_window.error.as_ref().unwrap().to_string())
-                        ).strong().color(Color32::RED)
+                        RichText::new(format!(
+                            "ERROR: {}",
+                            game_state
+                                .creation_window
+                                .error
+                                .as_ref()
+                                .unwrap()
+                                .to_string()
+                        ))
+                        .strong()
+                        .color(Color32::RED),
                     );
                 }
                 ui.separator();
-                for player in ctx.db.player().iter() {
-                    ui.label(RichText::new(format!("{}: {}", player.username, player.identifier)));
+                for player in ctx.db().player().iter() {
+                    ui.label(RichText::new(format!(
+                        "{}: {}",
+                        player.username, player.identifier
+                    )));
                 }
                 for station in ctx.db().station().iter() {
-                    ui.label(RichText::new(format!("{}:  {} - {}", station.name, station.id, station.sobj_id)));
-                    if let Some(sobj) = ctx.db.stellar_object().id().find(&station.sobj_id) {
+                    ui.label(RichText::new(format!(
+                        "{}:  {} - {}",
+                        station.name, station.id, station.sobj_id
+                    )));
+                    if let Some(sobj) = ctx.db().stellar_object().id().find(&station.sobj_id) {
                         ui.label(RichText::new(format!("   SOBJ Kind: {:?}", sobj.kind)));
                     }
                 }
@@ -69,7 +86,12 @@ pub fn draw(egui_ctx: &Context, ctx: &DbConnection, game_state: &mut GameState) 
         })
 }
 
-fn create_ship(ctx: &DbConnection, game_state: &mut GameState<'_>, ui: &mut egui::Ui, player: Player) {
+fn create_ship(
+    ctx: &DbConnection,
+    game_state: &mut GameState<'_>,
+    ui: &mut egui::Ui,
+    player: Player,
+) {
     // Create a ship
     ui.heading(format!("Welcome Captain {}!", player.username));
     ui.separator();
@@ -83,8 +105,14 @@ fn create_ship(ctx: &DbConnection, game_state: &mut GameState<'_>, ui: &mut egui
     ui.label("To use jump gates, engage auto-docking with its hotkey and get to its exact center. Wait for it to drain all your energy.");
     ui.label("To mine asteroids, target a asteroid and use mining on it. The hotkeys should be obvious via the GUI.");
     ui.separator();
-    if ui.button(RichText::new("Create Your Ship").strong()).clicked() {
-        match ctx.reducers.create_player_controlled_ship(ctx.identity(), game_state.chat_window.text.clone()) {
+    if ui
+        .button(RichText::new("Create Your Ship").strong())
+        .clicked()
+    {
+        match ctx
+            .reducers
+            .create_player_controlled_ship(ctx.identity(), game_state.chat_window.text.clone())
+        {
             Ok(_) => game_state.creation_window.error = None,
             Err(e) => game_state.creation_window.error = Some(format!("{:?}", e)),
         }
@@ -99,14 +127,15 @@ fn create_player(ctx: &DbConnection, game_state: &mut GameState<'_>, ui: &mut eg
     ui.separator();
     ui.horizontal(|ui| {
         ui.strong("Username:");
-    
+
         ui.text_edit_singleline(&mut game_state.creation_window.text);
-        if ui.button("Create").clicked() || 
-           ui.input(|i| i.key_pressed(egui::Key::Enter))
-        {
+        if ui.button("Create").clicked() || ui.input(|i| i.key_pressed(egui::Key::Enter)) {
             if !game_state.creation_window.text.is_empty() {
                 // Create Player
-                match ctx.reducers.register_playername(ctx.identity(), game_state.creation_window.text.clone()) {
+                match ctx
+                    .reducers
+                    .register_playername(ctx.identity(), game_state.creation_window.text.clone())
+                {
                     Ok(_) => game_state.creation_window.error = None,
                     Err(e) => game_state.creation_window.error = Some(format!("{:?}", e)),
                 }

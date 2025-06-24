@@ -19,27 +19,31 @@ pub fn register_callbacks(
     global_chat_channel: Sender<GlobalChatMessage>,
     sector_chat_channel: Sender<SectorChatMessage>,
 ) {
-    ctx.db.stellar_object().on_insert(|_ec, sobj| {
+    ctx.db().stellar_object().on_insert(|_ec, sobj| {
         info!("Stellar Object Inserted: {:?}", sobj);
     });
 
-    ctx.db.global_chat_message().on_insert(move |_ec, message| {
-        info!(
-            "G{}: {}",
-            message.player_id.to_abbreviated_hex().to_string(),
-            message.message
-        );
-        let _ = global_chat_channel.send(message.clone());
-    });
+    ctx.db()
+        .global_chat_message()
+        .on_insert(move |_ec, message| {
+            info!(
+                "G{}: {}",
+                message.player_id.to_abbreviated_hex().to_string(),
+                message.message
+            );
+            let _ = global_chat_channel.send(message.clone());
+        });
 
-    ctx.db.sector_chat_message().on_insert(move |_ec, message| {
-        info!(
-            "S{}: {}",
-            message.player_id.to_abbreviated_hex().to_string(),
-            message.message
-        );
-        let _ = sector_chat_channel.send(message.clone());
-    });
+    ctx.db()
+        .sector_chat_message()
+        .on_insert(move |_ec, message| {
+            info!(
+                "S{}: {}",
+                message.player_id.to_abbreviated_hex().to_string(),
+                message.message
+            );
+            let _ = sector_chat_channel.send(message.clone());
+        });
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -91,16 +95,16 @@ pub async fn gameplay(connection: Option<DbConnection>) {
 
         let player_ship = get_player_ship(&ctx);
         info!("3");
-        // if let Some(ship) = player_ship.clone() {
-        //     if let Some(sector) = ctx.db().sector().id().find(&ship.sector_id) {
-        //         info!("4");
-        //         game_state.bg_camera.target = game_state.camera.target;
-        //         game_state.bg_camera.target *= 0.000_1337;
-        //         game_state.bg_camera.target.x += sector.x * 100.0;
-        //         game_state.bg_camera.target.y += sector.y * 100.0;
-        //         info!("5");
-        //     }
-        // }
+        if let Some(ship) = player_ship.clone() {
+            if let Some(sector) = ctx.db().sector().id().find(&ship.sector_id) {
+                info!("4");
+                game_state.bg_camera.target = game_state.camera.target;
+                game_state.bg_camera.target *= 0.000_1337;
+                game_state.bg_camera.target.x += sector.x * 100.0;
+                game_state.bg_camera.target.y += sector.y * 100.0;
+                info!("5");
+            }
+        }
 
         apply_shader_to_screen(
             &render_target,

@@ -20,11 +20,11 @@ pub fn sector(game_state: &mut GameState) {
     let mut local_targets: Vec<(u64, glam::Vec2, StellarObjectKinds)> = Vec::new();
 
     info!("6.1");
-    //set_camera(&game_state.bg_camera);
+    set_camera(&game_state.bg_camera);
     info!("6.2");
     render_star_system(game_state, player_ship.clone());
     info!("6.3");
-    //set_camera(&game_state.camera);
+    set_camera(&game_state.camera);
     info!("6.4");
 
     let db = &game_state.ctx.db;

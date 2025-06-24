@@ -170,9 +170,9 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
 fn on_sub_applied(ctx: &SubscriptionEventContext) {
     println!("Subscription Successfully Applied for {}", ctx.identity().to_hex());
 
-    // let persons = ctx.db.person().iter().collect::<Vec<_>>();
+    // let persons = ctx.db().person().iter().collect::<Vec<_>>();
     // let mut local_person: Option<Person> = None;
-    // match ctx.db.person().identity().find(&ctx.identity()) {
+    // match ctx.db().person().identity().find(&ctx.identity()) {
     //     person => println!("Found our old player instance! {:?}", person.unwrap().last_view),
     //     None => {
     //         eprintln!("Could not find player. Maybe we aren't created yet?");

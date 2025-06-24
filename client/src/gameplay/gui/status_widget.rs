@@ -102,7 +102,7 @@ fn ship_status(ui: &mut Ui, ship_type: ShipTypeDefinition, player_ship_status: S
 
 fn ship_function_status(ctx: &DbConnection, ui: &mut Ui) {
     ui.vertical(|ui| {
-        if let Some(controller) = ctx.db.player_ship_controller().player_id().find(&ctx.identity()) {
+        if let Some(controller) = ctx.db().player_ship_controller().player_id().find(&ctx.identity()) {
             if controller.cargo_bay_open {
                 ui.label(RichText::new("[Z] Cargo Bay: Open").color({
                     if now() % 1.0 < 0.45 {
@@ -149,7 +149,7 @@ fn add_targeted_object_status(
     let distance = {
         if let Some(player_ship) = get_player_transform(ctx) {
             if let Ok(target_object) = get_transform(ctx, target.id) {
-                if let Some(sobj) = ctx.db.stellar_object().id().find(&target_object.sobj_id) {
+                if let Some(sobj) = ctx.db().stellar_object().id().find(&target_object.sobj_id) {
                     kind = format!("{:?}", sobj.kind);
                 }
 
@@ -169,7 +169,7 @@ fn add_targeted_object_status(
 
     match target.kind {
         StellarObjectKinds::Asteroid => {
-            if let Some(asteroid) = ctx.db.asteroid().sobj_id().find(&target.id) {
+            if let Some(asteroid) = ctx.db().asteroid().sobj_id().find(&target.id) {
                 add_status_bar(
                     ui,
                     "Resources",
@@ -181,7 +181,7 @@ fn add_targeted_object_status(
             }
         }
         StellarObjectKinds::Ship => {
-            if let Some(ship) = ctx.db.ship().sobj_id().find(&target.id) {
+            if let Some(ship) = ctx.db().ship().sobj_id().find(&target.id) {
                 if let Some(ship_status) = ship.status(ctx) {
                     if let Some(ship_type) = ctx.db
                         .ship_type_definition()
@@ -217,23 +217,23 @@ fn add_targeted_object_status(
             }
         }
         StellarObjectKinds::Station => {
-            // if let Some(station) = ctx.db.station().sobj_id().find(&target.id) {
+            // if let Some(station) = ctx.db().station().sobj_id().find(&target.id) {
             //     add_status_bar(ui, "Health", station.max_health as f32, station.health, Color32::from_rgb(242, 0, 32));
             // }
         }
         StellarObjectKinds::CargoCrate => {
-            if let Some(cargo_crate) = ctx.db.cargo_crate().sobj_id().find(&target.id) {
-                if let Some(item_def) = ctx.db.item_definition().id().find(&cargo_crate.item_id) {
+            if let Some(cargo_crate) = ctx.db().cargo_crate().sobj_id().find(&target.id) {
+                if let Some(item_def) = ctx.db().item_definition().id().find(&cargo_crate.item_id) {
                     ui.label(format!("Contains: {}x {}", cargo_crate.quantity, item_def.name));
                 }
                 //add_status_bar(ui, "Health", crate_.max_health as f32, crate_.health, Color32::from_rgb(242, 0, 32));
             }
         }
         StellarObjectKinds::JumpGate => {
-            if let Some(jump_gate) = ctx.db.jump_gate().sobj_id().find(&target.id) {
+            if let Some(jump_gate) = ctx.db().jump_gate().sobj_id().find(&target.id) {
                 ui.horizontal(|ui| {
                     ui.label("Destination:");
-                    if let Some(sector) = ctx.db.sector().id().find(&jump_gate.target_sector_id) {
+                    if let Some(sector) = ctx.db().sector().id().find(&jump_gate.target_sector_id) {
                         ui.label(format!("{}", sector.name));
                     } else {
                         ui.label(format!("Sector #{}", jump_gate.target_sector_id));

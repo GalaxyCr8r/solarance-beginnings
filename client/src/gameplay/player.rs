@@ -12,17 +12,28 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
         return Ok(());
     }
     info!("9.1");
+    let id = &ctx.identity();
+    info!("9.1a");
+    let db = ctx.db();
+    info!("9.1b");
+    let con_t = db.player_ship_controller();
+    info!("9.1c");
+    let pid = con_t.player_id();
+    info!("9.1d");
+    let con = pid.find(id);
+    info!("9.1e");
     let mut changed = false; // ONLY request an update if there's actually been a change!
-    if let Some(mut controller) = ctx
-        .db()
-        .player_ship_controller()
-        .player_id()
-        .find(&ctx.identity())
+    if let Some(mut controller) = con
+    // ctx
+    //     .db()
+    //     .player_ship_controller()
+    //     .player_id()
+    //     .find(&ctx.identity())
     {
         info!("9.1.1");
         // Synchronize the controller with the game state.
         game_state.current_target_sobj = match controller.targetted_sobj_id {
-            Some(id) => ctx.db.stellar_object().id().find(&id),
+            Some(id) => ctx.db().stellar_object().id().find(&id),
             None => None,
         };
 
@@ -116,7 +127,7 @@ pub fn target_closest_stellar_object(
     let mut closest_distance = f32::MAX;
     let mut closest_sobj = Option::None;
 
-    for sobj in ctx.db.stellar_object().iter() {
+    for sobj in ctx.db().stellar_object().iter() {
         if sobj.id == player_ship_id || sobj.sector_id != player_sobj.sector_id {
             continue; // Skip the player's ship and non-sector objects
         }
@@ -161,9 +172,9 @@ pub fn target_closest_stellar_object(
 //         .find(&controlled_entity_id.unwrap())
 //         .ok_or("Player's controlled object doesn't have a velocity table entry!")?;
 
-//     let ship_object = ctx.db.ship_object().sobj_id().find(&velocity.sobj_id).ok_or("control player ship_object error")?;
-//     let ship_instance = ctx.db.ship_instance().id().find(&ship_object.ship_id).ok_or("control player ship_instance error")?;
-//     let ship_type = ctx.db.ship_type_definition().id().find(&ship_instance.shiptype_id).ok_or("control player ship_type error")?;
+//     let ship_object = ctx.db().ship_object().sobj_id().find(&velocity.sobj_id).ok_or("control player ship_object error")?;
+//     let ship_instance = ctx.db().ship_instance().id().find(&ship_object.ship_id).ok_or("control player ship_instance error")?;
+//     let ship_type = ctx.db().ship_type_definition().id().find(&ship_instance.shiptype_id).ok_or("control player ship_type error")?;
 
 //     let vel = velocity.to_vec2();
 //     let mut changed = false;

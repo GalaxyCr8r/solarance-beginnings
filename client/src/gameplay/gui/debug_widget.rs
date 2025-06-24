@@ -25,7 +25,7 @@ pub fn draw(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::Inne
         .movable(false)
         .anchor(Align2::LEFT_BOTTOM, egui::Vec2::new(-5.0, 5.0))
         .show(egui_ctx, |ui| {
-            match ctx.db.player().identifier().find(&ctx.identity()) {
+            match ctx.db().player().identifier().find(&ctx.identity()) {
                 Some(player) => {
                     ui.heading(format!("Player: {}", player.username));
                     if let Some(controlled) = player.get_controlled_stellar_object_id(&ctx) {
@@ -78,7 +78,7 @@ pub fn draw(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::Inne
                 .max_height(screen_height()/4.0)
                 .show(ui, |ui| {
                     let player_transform = get_player_transform_vec2(ctx, glam::Vec2::ZERO);
-                    for object in ctx.db.stellar_object().iter() {
+                    for object in ctx.db().stellar_object().iter() {
                         let obj_type = format!("{:?}", object.kind);
 
                         ui.horizontal(|ui| {
@@ -110,18 +110,18 @@ pub fn draw(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::Inne
                 .stick_to_bottom(true)
                 .max_height(screen_height()/4.0)
                 .show(ui, |ui| {
-                    for player in ctx.db.player().iter() {
+                    for player in ctx.db().player().iter() {
                         ui.horizontal(|ui| {
                             ui.label(format!("[{}] Credits: {}", player.username, player.credits));
-                            if let Some(window) = ctx.db.sobj_player_window().player_id().find(&player.identifier) {
+                            if let Some(window) = ctx.db().sobj_player_window().player_id().find(&player.identifier) {
                                 ui.label(format!("- #{}: {}, {}, {}, {}", window.window, window.tl_x, window.tl_y, window.br_x, window.br_y));
                             }
-                            if let Some(_controller) = ctx.db.player_ship_controller().player_id().find(&player.identifier) {
+                            if let Some(_controller) = ctx.db().player_ship_controller().player_id().find(&player.identifier) {
                                 ui.label("Has Controller");
                             }
                         });
                     }
-                    for ship_objs in ctx.db.ship().iter() {
+                    for ship_objs in ctx.db().ship().iter() {
                         ui.horizontal(|ui| {
                             ui.label(format!("{}: Sector: {}, Ship: {}, SO: {}", ship_objs.player_id.to_abbreviated_hex(), ship_objs.sector_id, ship_objs.id, ship_objs.sobj_id));
                         });
@@ -129,7 +129,7 @@ pub fn draw(egui_ctx: &Context, game_state: &mut GameState) -> Option<egui::Inne
                 });
             });
 
-            // for player_controlled in ctx.db.ship_object().iter() {
+            // for player_controlled in ctx.db().ship_object().iter() {
             //     ui.label(format!(" - Player Controlled Obj #{} in Sec#{}", player_controlled.sobj_id, player_controlled.sector_id));
             // }
 
