@@ -1,17 +1,22 @@
-use std::{ env, f32::consts::PI, path::PathBuf, thread::{ self, JoinHandle } };
+use std::{
+    env,
+    f32::consts::PI,
+    path::PathBuf,
+    thread::{self, JoinHandle},
+};
 
 use solarance_beginnings::*;
 
 use dotenv::dotenv;
-use egui::{ Align2, Button, Color32, Frame, RichText, Shadow };
+use egui::{Align2, Button, Color32, Frame, RichText, Shadow};
 use gameplay::resources::Resources;
 use macroquad::{
     math::Vec2,
-    prelude::{ collections::storage, coroutines::start_coroutine, * },
+    prelude::{collections::storage, coroutines::start_coroutine, *},
     time,
 };
 
-use solarance_beginnings::{ module_bindings::DbConnection, stdb::connector::connect_to_spacetime };
+use solarance_beginnings::{module_bindings::DbConnection, stdb::connector::connect_to_spacetime};
 
 struct MenuAssets {
     pub rings: Vec<Texture2D>,
@@ -24,7 +29,17 @@ struct MenuAssets {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-#[macroquad::main("Solarance:Beginnings")]
+fn window_conf() -> Conf {
+    Conf {
+        window_title: "Solarance:Beginnings".to_owned(),
+        window_width: 1600,
+        window_height: 900,
+        window_resizable: false,
+        ..Default::default()
+    }
+}
+
+#[macroquad::main(window_conf)]
 async fn main() -> Result<(), macroquad::Error> {
     #[cfg(not(target_os = "macos"))]
     {
@@ -38,33 +53,43 @@ async fn main() -> Result<(), macroquad::Error> {
             let env_path = get_exe_path().join("../Resources/.env");
             dotenv::from_path(env_path.clone()).ok();
 
-            info!("Current Directory: {:?}", env::current_dir().unwrap().to_str().unwrap());
+            info!(
+                "Current Directory: {:?}",
+                env::current_dir().unwrap().to_str().unwrap()
+            );
             info!("Env Path: {:?}", env_path.clone().to_str().unwrap());
             info!("Binary Path: {:?}", exe_directory.to_str().unwrap());
 
             set_pc_assets_folder(
-                format!("{}/../Resources/Assets", exe_directory.to_str().unwrap()).as_str()
+                format!("{}/../Resources/Assets", exe_directory.to_str().unwrap()).as_str(),
             );
         } else {
             info!(
                 "Did not find Resources folder. Falling back to working directory's assets folder."
             );
+            dotenv().ok();
             set_pc_assets_folder("assets");
         }
     }
-
-    request_new_screen_size(1280.0, 720.0);
 
     clear_background(BLACK);
     next_frame().await;
 
     storage::store(MenuAssets {
         rings: vec![
-            load_texture("Ring1.png").await.expect("Couldn't load assets"),
-            load_texture("Ring2.png").await.expect("Couldn't load assets"),
-            load_texture("Ring3.png").await.expect("Couldn't load assets")
+            load_texture("Ring1.png")
+                .await
+                .expect("Couldn't load assets"),
+            load_texture("Ring2.png")
+                .await
+                .expect("Couldn't load assets"),
+            load_texture("Ring3.png")
+                .await
+                .expect("Couldn't load assets"),
         ],
-        logo: load_texture("Solarance_Logo.png").await.expect("Couldn't load assets"),
+        logo: load_texture("Solarance_Logo.png")
+            .await
+            .expect("Couldn't load assets"),
     });
 
     if !confirm_eula_screen().await {
@@ -194,23 +219,24 @@ pub async fn login_screen() -> (bool, Option<String>) {
     info!("Starting login screen");
 
     loop {
-        if client_token_thread.as_ref().is_some_and(|thread| thread.is_finished()) {
+        if client_token_thread
+            .as_ref()
+            .is_some_and(|thread| thread.is_finished())
+        {
             let thread = client_token_thread.take().unwrap();
             if thread.is_finished() {
                 match thread.join() {
-                    Ok(token_result) =>
-                        match token_result {
-                            Ok(token) => {
-                                id_token = Some(token.to_string());
-                            }
-                            Err(error) => {
-                                error_message = Some(error.to_string());
-                            }
+                    Ok(token_result) => match token_result {
+                        Ok(token) => {
+                            id_token = Some(token.to_string());
                         }
+                        Err(error) => {
+                            error_message = Some(error.to_string());
+                        }
+                    },
                     Err(join_error) => {
-                        error_message = Some(
-                            format!("Unexpected error during login! {:?}", join_error)
-                        );
+                        error_message =
+                            Some(format!("Unexpected error during login! {:?}", join_error));
                     }
                 }
             }
@@ -219,8 +245,7 @@ pub async fn login_screen() -> (bool, Option<String>) {
         draw_login_screen_background();
 
         egui_macroquad::ui(|egui_ctx| {
-            egui::Window
-                ::new("Solarance:Beginnings")
+            egui::Window::new("Solarance:Beginnings")
                 .resizable(false)
                 .collapsible(false)
                 .movable(false)
@@ -228,7 +253,7 @@ pub async fn login_screen() -> (bool, Option<String>) {
                 .frame(
                     Frame::group(&egui_ctx.style())
                         .fill(Color32::from_rgba_unmultiplied(15, 15, 15, 245))
-                        .shadow(Shadow::NONE)
+                        .shadow(Shadow::NONE),
                 )
                 .show(egui_ctx, |ui| {
                     ui.vertical_centered(|ui| {
@@ -237,39 +262,36 @@ pub async fn login_screen() -> (bool, Option<String>) {
                         }
                         if error_message.is_some() {
                             ui.label(
-                                RichText::new(
-                                    format!(
-                                        "ERROR: {}",
-                                        error_message.as_ref().unwrap().to_string()
-                                    )
-                                ).color(Color32::RED)
+                                RichText::new(format!(
+                                    "ERROR: {}",
+                                    error_message.as_ref().unwrap().to_string()
+                                ))
+                                .color(Color32::RED),
                             );
                         }
                         ui.horizontal(|ui| {
                             if client_token_thread.as_ref().is_none() {
-                                if
-                                    !id_token.is_some() &&
-                                    ui
+                                if !id_token.is_some()
+                                    && ui
                                         .button(
-                                            RichText::new("\n    Login via Auth0    \n").size(24.0)
+                                            RichText::new("\n    Login via Auth0    \n").size(24.0),
                                         )
                                         .clicked()
                                 {
                                     info!("CLICKED!");
-                                    client_token_thread = Some(
-                                        thread::spawn(|| { oidc_auth_helper::get_client_token() })
-                                    );
+                                    client_token_thread = Some(thread::spawn(|| {
+                                        oidc_auth_helper::get_client_token()
+                                    }));
                                 } else if id_token.is_none() && client_token_thread.is_some() {
                                     ui.add_enabled(
                                         false,
-                                        Button::new("\n    Login via Auth0    \n")
+                                        Button::new("\n    Login via Auth0    \n"),
                                     );
                                 }
-                                if
-                                    id_token.is_some() &&
-                                    ui
+                                if id_token.is_some()
+                                    && ui
                                         .button(
-                                            RichText::new("\n    Play via Auth0    \n").size(24.0)
+                                            RichText::new("\n    Play via Auth0    \n").size(24.0),
                                         )
                                         .clicked()
                                 {
@@ -277,16 +299,18 @@ pub async fn login_screen() -> (bool, Option<String>) {
                                     break_the_loop = true;
                                 }
                             }
-                            if
-                                ui
-                                    .button(RichText::new("\n    Play as Guest    \n").size(24.0))
-                                    .clicked()
+                            if ui
+                                .button(RichText::new("\n    Play as Guest    \n").size(24.0))
+                                .clicked()
                             {
                                 info!("CLICKED!");
                                 break_the_loop = true;
                             }
                         });
-                        if ui.button(RichText::new("\n\t\tExit\t\t\n").size(24.0)).clicked() {
+                        if ui
+                            .button(RichText::new("\n\t\tExit\t\t\n").size(24.0))
+                            .clicked()
+                        {
                             quit_game = true;
                         }
                     })
@@ -315,13 +339,13 @@ fn draw_login_screen_background() {
         screen_width() / 2.0,
         screen_height() / 2.0,
         (screen_height() * 2.0) / 3.0,
-        Color::from_rgba(0xbe, 0xda, 0xff, 0x11)
+        Color::from_rgba(0xbe, 0xda, 0xff, 0x11),
     );
     draw_circle(
         screen_width() / 2.0,
         screen_height() / 2.0,
         (screen_height() * 2.0) / 4.0,
-        Color::from_rgba(0xbe, 0xda, 0xff, 0x11)
+        Color::from_rgba(0xbe, 0xda, 0xff, 0x11),
     );
 
     for i in 0..3 {
@@ -341,14 +365,12 @@ fn draw_login_screen_background() {
             },
             DrawTextureParams {
                 rotation: rot * PI,
-                dest_size: Some(
-                    Vec2::new(
-                        menu_assets.rings[i].width() / 2.0,
-                        menu_assets.rings[i].height() / 2.0
-                    )
-                ),
+                dest_size: Some(Vec2::new(
+                    menu_assets.rings[i].width() / 2.0,
+                    menu_assets.rings[i].height() / 2.0,
+                )),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -356,7 +378,7 @@ fn draw_login_screen_background() {
         &menu_assets.logo,
         screen_width() / 2.0 - menu_assets.logo.width() / 2.0,
         screen_height() / 2.0 - menu_assets.logo.height() / 2.0,
-        WHITE
+        WHITE,
     );
 }
 
@@ -382,21 +404,19 @@ async fn loading_screen(token: Option<String>) -> Option<DbConnection> {
                     ..Color::from_hex(0xbedaff)
                 },
                 DrawTextureParams {
-                    dest_size: Some(
-                        Vec2::new(
-                            menu_assets.rings[i].width() / 2.0,
-                            menu_assets.rings[i].height() / 2.0
-                        )
-                    ),
+                    dest_size: Some(Vec2::new(
+                        menu_assets.rings[i].width() / 2.0,
+                        menu_assets.rings[i].height() / 2.0,
+                    )),
                     ..Default::default()
-                }
+                },
             );
         }
         draw_texture(
             &menu_assets.logo,
             screen_width() / 2.0 - menu_assets.logo.width() / 2.0,
             screen_height() / 2.0 - menu_assets.logo.height() / 2.0,
-            Color { a: 0.25, ..WHITE }
+            Color { a: 0.25, ..WHITE },
         );
 
         let text = format!(
@@ -407,12 +427,10 @@ async fn loading_screen(token: Option<String>) -> Option<DbConnection> {
         next_frame().await;
 
         if resources_loading.is_none() {
-            resources_loading = Some(
-                start_coroutine(async move {
-                    let resources = Resources::new().await.unwrap();
-                    storage::store(resources);
-                })
-            );
+            resources_loading = Some(start_coroutine(async move {
+                let resources = Resources::new().await.unwrap();
+                storage::store(resources);
+            }));
         }
     }
     return connection;

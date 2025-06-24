@@ -3,7 +3,7 @@ use glam::Vec2;
 
 use super::*;
 
-pub fn render_star_system(game_state: &mut GameState) {
+pub fn render_star_system(game_state: &mut GameState, player_ship: Option<Ship>) {
     let resources = storage::get::<Resources>();
     let multiplier = 100.0;
 
@@ -11,13 +11,32 @@ pub fn render_star_system(game_state: &mut GameState) {
     let stage_two_distance_squared = stage_one_distance_squared * 1000.0;
     let stage_three_distance_squared = stage_one_distance_squared * 10000.0;
 
-    let camera = game_state.camera.target;
+    let camera = game_state.bg_camera.target;
+    // if player_ship.is_some() {
+    //     let sector = game_state
+    //         .ctx
+    //         .db()
+    //         .sector()
+    //         .id()
+    //         .find(&player_ship.unwrap().sector_id);
+    //     camera = if sector.is_some() {
+    //         let sec = sector.unwrap();
+    //         Vec2::new(
+    //             (sec.x * multiplier) + camera.x,
+    //             (sec.y * multiplier) + camera.y,
+    //         )
+    //         //Vec2::new(sec.x * 100. + camera.x, sec.y * 100. + camera.x)
+    //     } else {
+    //         Vec2::default()
+    //     };
+    // }
+    //info!("Sector Camera: {}, {}", camera.x, camera.y);
 
     for sso in game_state.ctx.db().star_system_object().iter() {
         let image = match sso.kind {
-            StarSystemObjectKind::Star => { &resources.sun_textures["star.1"] }
-            StarSystemObjectKind::Planet => { &resources.planet_textures["planet.1"] }
-            StarSystemObjectKind::Moon => { &resources.planet_textures["moon.1"] }
+            StarSystemObjectKind::Star => &resources.sun_textures["star.1"],
+            StarSystemObjectKind::Planet => &resources.planet_textures["planet.1"],
+            StarSystemObjectKind::Moon => &resources.planet_textures["moon.1"],
             StarSystemObjectKind::AsteroidBelt => {
                 continue;
             }
@@ -35,11 +54,14 @@ pub fn render_star_system(game_state: &mut GameState) {
         } else if dist < stage_two_distance_squared {
             // Stage 2: Zoom out
             let angle = (vec - camera).to_angle();
-            //let extra_dist = dist - stage_one_distance_squared;
+
             vec = camera + Vec2::from_angle(angle) * stage_one_distance_squared.sqrt();
             scale = (stage_one_distance_squared.sqrt() / dist.sqrt()) * 0.75 + 0.25;
             if is_key_pressed(KeyCode::Space) {
-                info!("{:?}: Stage 2 {}, {} [Angle: {}]", sso.kind, vec.x, vec.y, angle);
+                info!(
+                    "{:?}: Stage 2 {}, {} [Angle: {}]",
+                    sso.kind, vec.x, vec.y, angle
+                );
             }
         } else if dist < stage_three_distance_squared {
             // Slow slide
@@ -53,9 +75,15 @@ pub fn render_star_system(game_state: &mut GameState) {
             image.width() * -0.5 * scale + vec.x,
             image.height() * -0.5 * scale + vec.y,
             WHITE,
-            params
+            params,
         );
 
-        draw_text(format!("Dist: {} - Scale: {}", dist, scale).as_str(), vec.x, vec.y, 32.0, BLACK);
+        draw_text(
+            format!("Dist: {} - Scale: {}", dist, scale).as_str(),
+            vec.x,
+            vec.y,
+            32.0,
+            BLACK,
+        );
     }
 }

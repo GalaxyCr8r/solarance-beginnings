@@ -1,22 +1,31 @@
-use macroquad::{ miniquad::date::now, prelude::{ collections::storage, * } };
+use macroquad::{
+    miniquad::date::now,
+    prelude::{collections::storage, *},
+};
 
-use crate::{ gameplay::render::star_system::render_star_system, module_bindings::* };
+use crate::{gameplay::render::star_system::render_star_system, module_bindings::*};
 use spacetimedb_sdk::*;
 
 use crate::stdb::utils::*;
 
-use super::{ resources::Resources, state::GameState };
+use super::{resources::Resources, state::GameState};
 
 pub mod star_system;
 
 pub fn sector(game_state: &mut GameState) {
-    render_star_system(game_state);
-
     let mut player_transform = None;
     let mut player_ship_type = None;
     let player_ship = get_player_ship(game_state.ctx);
 
     let mut local_targets: Vec<(u64, glam::Vec2, StellarObjectKinds)> = Vec::new();
+
+    info!("6.1");
+    //set_camera(&game_state.bg_camera);
+    info!("6.2");
+    render_star_system(game_state, player_ship.clone());
+    info!("6.3");
+    //set_camera(&game_state.camera);
+    info!("6.4");
 
     let db = &game_state.ctx.db;
     for object in db.stellar_object().iter() {
@@ -28,13 +37,15 @@ pub fn sector(game_state: &mut GameState) {
         // ONLY draw if they have hi-resolution positions.
         if let Some(transform) = db.sobj_hi_res_transform().sobj_id().find(&object.id) {
             if let Some(ship_object) = db.ship().sobj_id().find(&transform.sobj_id) {
-                if
-                    let Some(ship_type) = db
-                        .ship_type_definition()
-                        .id()
-                        .find(&ship_object.shiptype_id)
+                if let Some(ship_type) = db
+                    .ship_type_definition()
+                    .id()
+                    .find(&ship_object.shiptype_id)
                 {
-                    if player_ship.as_ref().is_some_and(|ship_obj| ship_obj.sobj_id == object.id) {
+                    if player_ship
+                        .as_ref()
+                        .is_some_and(|ship_obj| ship_obj.sobj_id == object.id)
+                    {
                         // Store player transform for later use
                         player_transform = Some(transform.clone());
                         player_ship_type = Some(ship_type);
@@ -58,11 +69,10 @@ pub fn sector(game_state: &mut GameState) {
         }
     }
 
-    if
-        let Some(controller) = db
-            .player_ship_controller()
-            .player_id()
-            .find(&game_state.ctx.identity())
+    if let Some(controller) = db
+        .player_ship_controller()
+        .player_id()
+        .find(&game_state.ctx.identity())
     {
         if player_transform.is_none() || player_ship_type.is_none() || player_ship.is_none() {
             return;
@@ -77,18 +87,23 @@ pub fn sector(game_state: &mut GameState) {
             &player_ship.unwrap(),
             &actual_player_transform,
             player_ship_type.unwrap(),
-            game_state
+            game_state,
         );
 
         // Draw 'radar'
-        draw_radar(game_state, local_targets, actual_player_transform, player_vec);
+        draw_radar(
+            game_state,
+            local_targets,
+            actual_player_transform,
+            player_vec,
+        );
     }
 }
 
 fn draw_mining_laser(
     game_state: &mut GameState<'_>,
     actual_player_transform: &StellarObjectTransformHiRes,
-    controller: PlayerShipController
+    controller: PlayerShipController,
 ) {
     if controller.mining_laser_on {
         if let Some(target) = &game_state.current_target_sobj {
@@ -101,7 +116,7 @@ fn draw_mining_laser(
                         actual_player_transform.x,
                         actual_player_transform.y,
                         6.0,
-                        Color::from_rgba(128, 0, 0, ((now() * 100.0) % 255.0) as u8)
+                        Color::from_rgba(128, 0, 0, ((now() * 100.0) % 255.0) as u8),
                     );
                     draw_line(
                         transform.x,
@@ -109,7 +124,7 @@ fn draw_mining_laser(
                         actual_player_transform.x,
                         actual_player_transform.y,
                         ((now() as f32) * 100.0) % 3.0,
-                        RED
+                        RED,
                     );
                 }
             }
@@ -121,7 +136,7 @@ fn draw_radar(
     game_state: &mut GameState<'_>,
     local_targets: Vec<(u64, glam::Vec2, StellarObjectKinds)>,
     actual_player_transform: StellarObjectTransformHiRes,
-    player_vec: glam::Vec2
+    player_vec: glam::Vec2,
 ) {
     let radar_radius = screen_height() / 2.0 - 100.0;
     let radar_icon_size = 8.0;
@@ -130,7 +145,7 @@ fn draw_radar(
         actual_player_transform.y,
         radar_radius,
         radar_icon_size,
-        Color::from_rgba(255, 255, 255, 32)
+        Color::from_rgba(255, 255, 255, 32),
     );
 
     for (sobj_id, position, kind) in local_targets {
@@ -176,7 +191,7 @@ fn draw_radar(
             radar_icon_size,
             1.0,
             thickness,
-            Color::from_rgba(255, 255, 255, actual_fade)
+            Color::from_rgba(255, 255, 255, actual_fade),
         );
     }
 }
@@ -185,18 +200,23 @@ fn draw_ship(
     ship: &Ship,
     transform: &StellarObjectTransformHiRes,
     ship_type: ShipTypeDefinition,
-    game_state: &mut GameState
+    game_state: &mut GameState,
 ) {
     let resources = storage::get::<Resources>();
     let position = transform.to_vec2();
 
     if let Some(player) = get_player(&game_state.ctx.db, &ship.player_id) {
         let string = format!("{}", player.username);
-        draw_text_ex(&string, position.x, position.y - 32.0, TextParams {
-            font_size: 16,
-            color: WHITE,
-            ..TextParams::default()
-        });
+        draw_text_ex(
+            &string,
+            position.x,
+            position.y - 32.0,
+            TextParams {
+                font_size: 16,
+                color: WHITE,
+                ..TextParams::default()
+            },
+        );
     }
 
     let tex = &resources.ship_textures[ship_type.gfx_key.unwrap().as_str()];
@@ -208,7 +228,7 @@ fn draw_ship(
         DrawTextureParams {
             rotation: transform.rotation_radians,
             ..DrawTextureParams::default()
-        }
+        },
     );
 
     if let Some(target) = &game_state.current_target_sobj {
@@ -218,7 +238,7 @@ fn draw_ship(
                 position,
                 size,
                 target.kind,
-                Color::from_rgba(255, 255, 255, 200)
+                Color::from_rgba(255, 255, 255, 200),
             );
         }
     }
@@ -227,14 +247,16 @@ fn draw_ship(
 fn draw_asteroid(
     transform: &StellarObjectTransformHiRes,
     asteroid: Asteroid,
-    game_state: &mut GameState
+    game_state: &mut GameState,
 ) {
     let resources = storage::get::<Resources>();
     let position = transform.to_vec2();
     let angle = position.x + (((now() * 8.0 + (position.y as f64)) % 360.0).to_radians() as f32); // Make the rotation based on position and time
 
-    let tex =
-        &resources.asteroid_textures[asteroid.gfx_key.unwrap_or("asteroid.1".to_string()).as_str()];
+    let tex = &resources.asteroid_textures[asteroid
+        .gfx_key
+        .unwrap_or("asteroid.1".to_string())
+        .as_str()];
     draw_texture_ex(
         tex,
         position.x - tex.width() * 0.5,
@@ -243,7 +265,7 @@ fn draw_asteroid(
         DrawTextureParams {
             rotation: angle,
             ..DrawTextureParams::default()
-        }
+        },
     );
 
     // Targeting bracket
@@ -254,7 +276,7 @@ fn draw_asteroid(
                 position,
                 size,
                 target.kind,
-                Color::from_rgba(255, 255, 255, 200)
+                Color::from_rgba(255, 255, 255, 200),
             );
         }
     }
@@ -263,14 +285,16 @@ fn draw_asteroid(
 fn draw_crate(
     transform: &StellarObjectTransformHiRes,
     cargo_crate: CargoCrate,
-    game_state: &mut GameState
+    game_state: &mut GameState,
 ) {
     let resources = storage::get::<Resources>();
     let position = transform.to_vec2();
     let angle = position.x + (((now() * 8.0 + (position.y as f64)) % 360.0).to_radians() as f32); // Make the rotation based on position and time
 
-    let tex =
-        &resources.asteroid_textures[cargo_crate.gfx_key.unwrap_or("crate.0".to_string()).as_str()];
+    let tex = &resources.asteroid_textures[cargo_crate
+        .gfx_key
+        .unwrap_or("crate.0".to_string())
+        .as_str()];
     draw_texture_ex(
         tex,
         position.x - tex.width() * 0.5,
@@ -279,7 +303,7 @@ fn draw_crate(
         DrawTextureParams {
             rotation: angle,
             ..DrawTextureParams::default()
-        }
+        },
     );
 
     if let Some(target) = &game_state.current_target_sobj {
@@ -289,7 +313,7 @@ fn draw_crate(
                 position,
                 size,
                 target.kind,
-                Color::from_rgba(255, 255, 255, 200)
+                Color::from_rgba(255, 255, 255, 200),
             );
         }
     }
@@ -298,15 +322,21 @@ fn draw_crate(
 fn draw_jumpgate(
     transform: &StellarObjectTransformHiRes,
     jumpgate: JumpGate,
-    game_state: &mut GameState
+    game_state: &mut GameState,
 ) {
     let resources = storage::get::<Resources>();
     let position = transform.to_vec2();
 
-    let tex =
-        &resources.jumpgate_textures
-            [jumpgate.gfx_key.unwrap_or("jumpgate_north".to_string()).as_str()]; // TODO un-hardcode this
-    draw_texture(tex, position.x - tex.width() * 0.5, position.y - tex.height() * 0.5, WHITE);
+    let tex = &resources.jumpgate_textures[jumpgate
+        .gfx_key
+        .unwrap_or("jumpgate_north".to_string())
+        .as_str()]; // TODO un-hardcode this
+    draw_texture(
+        tex,
+        position.x - tex.width() * 0.5,
+        position.y - tex.height() * 0.5,
+        WHITE,
+    );
 
     if let Some(target) = &game_state.current_target_sobj {
         if target.id == jumpgate.sobj_id {
@@ -315,7 +345,7 @@ fn draw_jumpgate(
                 position,
                 size,
                 target.kind,
-                Color::from_rgba(255, 255, 255, 200)
+                Color::from_rgba(255, 255, 255, 200),
             );
         }
     }
@@ -324,7 +354,7 @@ fn draw_jumpgate(
 fn draw_station(
     transform: &StellarObjectTransformHiRes,
     station: Station,
-    game_state: &mut GameState
+    game_state: &mut GameState,
 ) {
     let resources = storage::get::<Resources>();
     let position = transform.to_vec2();
@@ -338,7 +368,12 @@ fn draw_station(
         StationSize::Satellite => "station.satellite",
     };
     let tex = &resources.station_textures[gfx_key];
-    draw_texture(tex, position.x - tex.width() * 0.5, position.y - tex.height() * 0.5, WHITE);
+    draw_texture(
+        tex,
+        position.x - tex.width() * 0.5,
+        position.y - tex.height() * 0.5,
+        WHITE,
+    );
 
     if let Some(target) = &game_state.current_target_sobj {
         if target.id == station.sobj_id {
@@ -347,7 +382,7 @@ fn draw_station(
                 position,
                 size,
                 target.kind,
-                Color::from_rgba(255, 255, 255, 200)
+                Color::from_rgba(255, 255, 255, 200),
             );
         }
     }
@@ -360,12 +395,8 @@ fn draw_targeting_bracket(pos: glam::Vec2, size: f32, kind: StellarObjectKinds, 
         polygon_points_per_kind(kind),
         size,
         1.0,
-        if size < 512.0 {
-            1.0
-        } else {
-            size / 512.0
-        },
-        color
+        if size < 512.0 { 1.0 } else { size / 512.0 },
+        color,
     );
 }
 

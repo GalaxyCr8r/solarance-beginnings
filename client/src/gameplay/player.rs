@@ -1,4 +1,3 @@
-
 use macroquad::prelude::*;
 use spacetimedb_sdk::{DbContext, Table};
 
@@ -9,13 +8,20 @@ use crate::stdb::utils::*;
 use super::state::GameState;
 
 pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Result<(), String> {
-    if game_state.chat_window.has_focus {
-        return Ok(())
+    if game_state.chat_window.has_focus || ctx.try_identity().is_none() {
+        return Ok(());
     }
+    info!("9.1");
     let mut changed = false; // ONLY request an update if there's actually been a change!
-    if let Some(mut controller) = ctx.db.player_ship_controller().player_id().find(&ctx.identity()) {
+    if let Some(mut controller) = ctx
+        .db()
+        .player_ship_controller()
+        .player_id()
+        .find(&ctx.identity())
+    {
+        info!("9.1.1");
         // Synchronize the controller with the game state.
-         game_state.current_target_sobj = match controller.targetted_sobj_id {
+        game_state.current_target_sobj = match controller.targetted_sobj_id {
             Some(id) => ctx.db.stellar_object().id().find(&id),
             None => None,
         };
@@ -74,24 +80,39 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
             changed = true;
         }
 
+        info!("9.1.2");
         if changed {
-            ctx.reducers.update_player_controller(controller).or_else(|err| Err(err.to_string()))?;
+            info!("9.1.3");
+            ctx.reducers
+                .update_player_controller(controller)
+                .or_else(|err| Err(err.to_string()))?;
+            info!("9.1.4");
         }
-    } 
+    }
+    info!("9.2");
 
     Ok(())
 }
 
-pub fn target_closest_stellar_object(ctx: &DbConnection, game_state: &mut GameState) -> Result<StellarObject, String> {
+pub fn target_closest_stellar_object(
+    ctx: &DbConnection,
+    game_state: &mut GameState,
+) -> Result<StellarObject, String> {
     if game_state.chat_window.has_focus {
         return Err("Chat window has focus. Cannot target objects.".to_string());
     }
 
     //let player_id = ctx.identity();
-    let player_ship_id = get_player_sobj_id(ctx).ok_or("Player doesn't control a stellar object yet!")?;
-    let player_sobj = ctx.db.stellar_object().id().find(&player_ship_id).ok_or("Player doesn't control a stellar object yet!")?;
+    let player_ship_id =
+        get_player_sobj_id(ctx).ok_or("Player doesn't control a stellar object yet!")?;
+    let player_sobj = ctx
+        .db
+        .stellar_object()
+        .id()
+        .find(&player_ship_id)
+        .ok_or("Player doesn't control a stellar object yet!")?;
     let player_transform = get_transform(ctx, player_ship_id)?.to_vec2();
-    
+
     let mut closest_distance = f32::MAX;
     let mut closest_sobj = Option::None;
 

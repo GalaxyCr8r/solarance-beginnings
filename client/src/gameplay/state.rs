@@ -1,7 +1,7 @@
-use macroquad::{ camera::Camera2D, prelude::* };
+use macroquad::{camera::Camera2D, prelude::*};
 
-use crate::module_bindings::*;
 use crate::gameplay::gui::*;
+use crate::module_bindings::*;
 
 pub struct GameState<'a> {
     // Game-Wide States
@@ -10,6 +10,7 @@ pub struct GameState<'a> {
 
     // Display States
     pub camera: Camera2D,
+    pub bg_camera: Camera2D,
 
     // GUI States
     pub chat_window: chat_widget::State,
@@ -33,6 +34,12 @@ pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
         ctx: ctx,
 
         camera: Camera2D::from_display_rect(Rect {
+            x: 0.0,
+            y: 0.0,
+            w: screen_width(),
+            h: screen_height(),
+        }),
+        bg_camera: Camera2D::from_display_rect(Rect {
             x: 0.0,
             y: 0.0,
             w: screen_width(),

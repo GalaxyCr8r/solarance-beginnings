@@ -2,12 +2,12 @@ use std::f32::consts::PI;
 
 use log::info;
 use spacetimedb::ReducerContext;
-use spacetimedsl::{ dsl };
+use spacetimedsl::dsl;
 
 use crate::types::{
     common::Vec2,
     stations::CreateStationRow,
-    stellarobjects::{ utility::create_sobj_internal, StellarObjectTransformInternal },
+    stellarobjects::{utility::create_sobj_internal, StellarObjectTransformInternal},
 };
 
 use super::*;
@@ -39,7 +39,7 @@ fn demo_sectors(ctx: &ReducerContext) -> Result<(), String> {
         Vec2::new(13.0, 37.0),
         SpectralKind::G,
         5,
-        &faction_none
+        &faction_none,
     )?;
 
     let _star = dsl.create_star_system_object(
@@ -47,43 +47,33 @@ fn demo_sectors(ctx: &ReducerContext) -> Result<(), String> {
         StarSystemObjectKind::Star,
         0.0,
         0.0,
-        Some("star.1".to_string())
+        Some("star.1".to_string()),
     );
-    let _planet1 = dsl.create_star_system_object(
-        &procyon,
-        StarSystemObjectKind::Planet,
-        128.0,
-        0.0,
-        None
-    );
+    let _planet1 =
+        dsl.create_star_system_object(&procyon, StarSystemObjectKind::Planet, 128.0, 0.0, None);
     let _planet2 = dsl.create_star_system_object(
         &procyon,
         StarSystemObjectKind::Planet,
         -24.0,
         (90f32).to_radians(),
-        None
+        None,
     );
     let _moon = dsl.create_star_system_object(
         &procyon,
         StarSystemObjectKind::Moon,
         130.0,
         (3.0_f32).to_radians(),
-        None
+        None,
     );
     let _astbelt = dsl.create_star_system_object(
         &procyon,
         StarSystemObjectKind::AsteroidBelt,
         48.0,
         12.0,
-        None
+        None,
     );
-    let _nebbelt = dsl.create_star_system_object(
-        &procyon,
-        StarSystemObjectKind::NebulaBelt,
-        12.0,
-        8.0,
-        None
-    );
+    let _nebbelt =
+        dsl.create_star_system_object(&procyon, StarSystemObjectKind::NebulaBelt, 12.0, 8.0, None);
 
     let a = dsl.create_sector(
         0,
@@ -96,9 +86,9 @@ fn demo_sectors(ctx: &ReducerContext) -> Result<(), String> {
         0.1,
         0.1,
         0.1,
-        8.0,
-        -72.0,
-        None
+        0.0,
+        0.0,
+        None,
     )?;
     let b = dsl.create_sector(
         1,
@@ -111,9 +101,9 @@ fn demo_sectors(ctx: &ReducerContext) -> Result<(), String> {
         0.1,
         0.1,
         0.1,
-        -8.0,
+        0.0,
         -24.0,
-        None
+        None,
     )?;
     let c = dsl.create_sector(
         2,
@@ -128,7 +118,7 @@ fn demo_sectors(ctx: &ReducerContext) -> Result<(), String> {
         0.1,
         128.0,
         16.0,
-        None
+        None,
     )?;
 
     connect_sectors_with_warpgates(ctx, &a, &b)?;
@@ -144,11 +134,11 @@ fn demo_sectors(ctx: &ReducerContext) -> Result<(), String> {
             ctx,
             crate::types::stellarobjects::StellarObjectKinds::Station,
             &b.get_id(),
-            StellarObjectTransformInternal::default().from_xy(613.0, 1337.0)
+            StellarObjectTransformInternal::default().from_xy(613.0, 1337.0),
         )?,
         FactionId::new(0),
         "Shining Beacon Station",
-        None
+        None,
     )?;
 
     dsl.create_station(
@@ -158,11 +148,11 @@ fn demo_sectors(ctx: &ReducerContext) -> Result<(), String> {
             ctx,
             crate::types::stellarobjects::StellarObjectKinds::Station,
             &a.get_id(),
-            StellarObjectTransformInternal::default()
+            StellarObjectTransformInternal::default(),
         )?,
         FactionId::new(0),
         "Tarol Station",
-        None
+        None,
     )?;
 
     dsl.create_station(
@@ -172,11 +162,11 @@ fn demo_sectors(ctx: &ReducerContext) -> Result<(), String> {
             ctx,
             crate::types::stellarobjects::StellarObjectKinds::Station,
             &c.get_id(),
-            StellarObjectTransformInternal::default().from_xy(455.0, -1337.0)
+            StellarObjectTransformInternal::default().from_xy(455.0, -1337.0),
         )?,
         FactionId::new(0),
         "Homeworld Station",
-        None
+        None,
     )?;
 
     Ok(())
