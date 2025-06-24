@@ -1,21 +1,25 @@
-use std:: sync::mpsc::{self, Sender} ;
+use std::sync::mpsc::{ self, Sender };
 
 use macroquad::{ math::Vec2, prelude::*, ui };
 
 use super::module_bindings::*;
 use spacetimedb_sdk::{ DbContext, Table };
 
-use crate::{shader::*, stdb::utils::*};
+use crate::{ shader::*, stdb::utils::* };
 
-mod state;
+pub mod state;
 mod gui;
 mod player;
-mod render;
+pub mod render;
 pub mod resources;
 
 /// Register all the callbacks our app will use to respond to database events.
-pub fn register_callbacks(ctx: &DbConnection, global_chat_channel: Sender<GlobalChatMessage>, sector_chat_channel: Sender<SectorChatMessage>) {
-    ctx.db.stellar_object().on_insert( |_ec, sobj| {
+pub fn register_callbacks(
+    ctx: &DbConnection,
+    global_chat_channel: Sender<GlobalChatMessage>,
+    sector_chat_channel: Sender<SectorChatMessage>
+) {
+    ctx.db.stellar_object().on_insert(|_ec, sobj| {
         info!("Stellar Object Inserted: {:?}", sobj);
     });
 
@@ -35,8 +39,8 @@ pub fn register_callbacks(ctx: &DbConnection, global_chat_channel: Sender<Global
 /// Main Loop
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
-
-pub async fn gameplay(connection: Option<DbConnection>) {//token : Option<String>) {
+pub async fn gameplay(connection: Option<DbConnection>) {
+    //token : Option<String>) {
     // DB Connection & ECS World
     //let connection = connect_to_spacetime(token);
     if connection.is_none() {
@@ -73,10 +77,10 @@ pub async fn gameplay(connection: Option<DbConnection>) {//token : Option<String
     loop {
         clear_background(WHITE);
 
-        game_state.camera.target = get_player_transform_vec2(&ctx, Vec2::ZERO);// - Vec2 { x: screen_width()/4.0, y: screen_height()/4.0 };
+        game_state.camera.target = get_player_transform_vec2(&ctx, Vec2::ZERO); // - Vec2 { x: screen_width()/4.0, y: screen_height()/4.0 };
         let player_ship = get_player_ship(&ctx);
         set_camera(&game_state.camera);
-        
+
         apply_shader_to_screen(
             &render_target,
             &sf_shader,
@@ -100,10 +104,20 @@ pub async fn gameplay(connection: Option<DbConnection>) {//token : Option<String
                 gui::chat_widget::draw(egui_ctx, &game_state.ctx, &mut game_state.chat_window);
                 gui::status_widget::window(egui_ctx, &ctx, &mut game_state);
                 gui::menu_bar_widget::draw(egui_ctx, &ctx, &mut game_state);
-                
+
                 // Windows
-                gui::ship_details_window::draw(egui_ctx, &game_state.ctx, &mut game_state.details_window, &mut game_state.details_window_open);
-                gui::map_window::draw(egui_ctx, &ctx, &mut game_state.map_window, &mut game_state.map_window_open);
+                gui::ship_details_window::draw(
+                    egui_ctx,
+                    &game_state.ctx,
+                    &mut game_state.details_window,
+                    &mut game_state.details_window_open
+                );
+                gui::map_window::draw(
+                    egui_ctx,
+                    &ctx,
+                    &mut game_state.map_window,
+                    &mut game_state.map_window_open
+                );
             }
         });
 
@@ -115,9 +129,17 @@ pub async fn gameplay(connection: Option<DbConnection>) {//token : Option<String
         if !game_state.chat_window.has_focus && player_ship.is_some() {
             if is_key_pressed(KeyCode::E) {
                 if let Ok(target) = player::target_closest_stellar_object(&ctx, &mut game_state) {
-                    if let Some(mut controller) = ctx.db.player_ship_controller().player_id().find(&ctx.identity()) {
+                    if
+                        let Some(mut controller) = ctx.db
+                            .player_ship_controller()
+                            .player_id()
+                            .find(&ctx.identity())
+                    {
                         // Deselect target if it's already selected
-                        if controller.targetted_sobj_id.is_some() && controller.targetted_sobj_id.unwrap() == target.id {
+                        if
+                            controller.targetted_sobj_id.is_some() &&
+                            controller.targetted_sobj_id.unwrap() == target.id
+                        {
                             controller.targetted_sobj_id = None;
                             game_state.current_target_sobj = None;
                         } else {
@@ -150,9 +172,15 @@ pub async fn gameplay(connection: Option<DbConnection>) {//token : Option<String
         if player_ship.is_some() {
             if let Ok(message) = sector_chat_receiver.try_recv() {
                 let sector_id = player_ship.unwrap().sector_id;
-                if game_state.chat_window.sector_chat_channel.iter().any(|msg| msg.sector_id != sector_id) {
+                if
+                    game_state.chat_window.sector_chat_channel
+                        .iter()
+                        .any(|msg| msg.sector_id != sector_id)
+                {
                     // Just dump prior sector messages.
-                    game_state.chat_window.sector_chat_channel.retain(|msg| msg.sector_id == sector_id);
+                    game_state.chat_window.sector_chat_channel.retain(
+                        |msg| msg.sector_id == sector_id
+                    );
                 }
                 game_state.chat_window.sector_chat_channel.push(message);
                 game_state.chat_window.sector_chat_channel.sort_by_key(|chat| chat.created_at);

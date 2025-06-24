@@ -1,9 +1,9 @@
-use macroquad::{camera::Camera2D, prelude::*};
+use macroquad::{ camera::Camera2D, prelude::* };
 
 use crate::module_bindings::*;
 use crate::gameplay::gui::*;
 
-pub(crate) struct GameState<'a> {
+pub struct GameState<'a> {
     // Game-Wide States
     pub done: bool,
     pub ctx: &'a DbConnection,
@@ -27,13 +27,17 @@ pub(crate) struct GameState<'a> {
     pub current_target_sobj: Option<StellarObject>,
 }
 
-
 pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
     GameState {
         done: false,
         ctx: ctx,
 
-        camera: Camera2D::from_display_rect(Rect { x: 0.0, y: 0.0, w: screen_width(), h: screen_height() }),
+        camera: Camera2D::from_display_rect(Rect {
+            x: 0.0,
+            y: 0.0,
+            w: screen_width(),
+            h: screen_height(),
+        }),
 
         chat_window: chat_widget::State::default(),
         creation_window: creation_window::State::new(),
@@ -45,6 +49,6 @@ pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
         faction_window_open: false,
         map_window_open: false,
 
-        current_target_sobj: None
+        current_target_sobj: None,
     }
 }
