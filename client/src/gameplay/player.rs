@@ -1,5 +1,5 @@
 use macroquad::prelude::*;
-use spacetimedb_sdk::{DbContext, Table};
+use spacetimedb_sdk::{ DbContext, Table };
 
 use crate::module_bindings::*;
 
@@ -11,7 +11,7 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
     if game_state.chat_window.has_focus || ctx.try_identity().is_none() {
         return Ok(());
     }
-    info!("9.1");
+
     let id = &ctx.identity();
     info!("9.1a");
     let db = ctx.db();
@@ -23,14 +23,14 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
     let con = pid.find(id);
     info!("9.1e");
     let mut changed = false; // ONLY request an update if there's actually been a change!
-    if let Some(mut controller) = con
-    // ctx
-    //     .db()
-    //     .player_ship_controller()
-    //     .player_id()
-    //     .find(&ctx.identity())
+    if
+        let Some(mut controller) = con
+        // ctx
+        //     .db()
+        //     .player_ship_controller()
+        //     .player_id()
+        //     .find(&ctx.identity())
     {
-        info!("9.1.1");
         // Synchronize the controller with the game state.
         game_state.current_target_sobj = match controller.targetted_sobj_id {
             Some(id) => ctx.db().stellar_object().id().find(&id),
@@ -91,33 +91,27 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
             changed = true;
         }
 
-        info!("9.1.2");
         if changed {
-            info!("9.1.3");
-            ctx.reducers
-                .update_player_controller(controller)
-                .or_else(|err| Err(err.to_string()))?;
-            info!("9.1.4");
+            ctx.reducers.update_player_controller(controller).or_else(|err| Err(err.to_string()))?;
         }
     }
-    info!("9.2");
 
     Ok(())
 }
 
 pub fn target_closest_stellar_object(
     ctx: &DbConnection,
-    game_state: &mut GameState,
+    game_state: &mut GameState
 ) -> Result<StellarObject, String> {
     if game_state.chat_window.has_focus {
         return Err("Chat window has focus. Cannot target objects.".to_string());
     }
 
     //let player_id = ctx.identity();
-    let player_ship_id =
-        get_player_sobj_id(ctx).ok_or("Player doesn't control a stellar object yet!")?;
-    let player_sobj = ctx
-        .db
+    let player_ship_id = get_player_sobj_id(ctx).ok_or(
+        "Player doesn't control a stellar object yet!"
+    )?;
+    let player_sobj = ctx.db
         .stellar_object()
         .id()
         .find(&player_ship_id)

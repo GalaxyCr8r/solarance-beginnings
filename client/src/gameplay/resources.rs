@@ -33,6 +33,14 @@ impl Resources {
             "planet.1",
             load_linear_sprite("planets/rockplanet.png").await?
         );
+        resources.planet_textures.insert(
+            "planet.2",
+            load_linear_sprite("planets/GasGiant1.png").await?
+        );
+        resources.planet_textures.insert(
+            "planet.shadow.1",
+            load_linear_sprite("planets/PlanetShadows.png").await?
+        );
 
         resources.planet_textures.insert(
             "moon.1",

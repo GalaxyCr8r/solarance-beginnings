@@ -5,12 +5,7 @@ use log::info;
 use spacetimedb::*;
 use spacetimedsl::*;
 
-use crate::types::{
-    items::*,
-    jumpgates::*,
-    ships::{timers::*, utility::*},
-    stations::*,
-};
+use crate::types::{ items::*, jumpgates::*, ships::{ timers::*, utility::* }, stations::* };
 
 use super::*;
 
@@ -30,12 +25,14 @@ pub fn get_username(ctx: &ReducerContext, id: Identity) -> String {
 pub fn get_targetted_sobj(
     ctx: &ReducerContext,
     controller: &PlayerShipController,
-    player_sobj: &StellarObject,
+    player_sobj: &StellarObject
 ) -> Result<StellarObject, String> {
     let dsl = dsl(ctx);
 
-    if let Some(target_sobj) =
-        dsl.get_stellar_object_by_id(StellarObjectId::new(controller.targetted_sobj_id.unwrap()))
+    if
+        let Some(target_sobj) = dsl.get_stellar_object_by_id(
+            StellarObjectId::new(controller.targetted_sobj_id.unwrap())
+        )
     {
         if player_sobj.sector_id != target_sobj.sector_id {
             Err(
@@ -50,11 +47,13 @@ pub fn get_targetted_sobj(
             Ok(target_sobj)
         }
     } else {
-        Err(format!(
-            "Player {} tried targetting a non-existant stellar object #{}!",
-            get_username(ctx, controller.player_id),
-            controller.targetted_sobj_id.unwrap()
-        ))
+        Err(
+            format!(
+                "Player {} tried targetting a non-existant stellar object #{}!",
+                get_username(ctx, controller.player_id),
+                controller.targetted_sobj_id.unwrap()
+            )
+        )
     }
 }
 
@@ -62,27 +61,32 @@ pub fn try_update_ship_velocity(
     ctx: &ReducerContext,
     velocity: &mut StellarObjectVelocity,
     controller: &PlayerShipController,
-    ship_object: &Ship,
+    ship_object: &Ship
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
     let ship_type = dsl
         .get_ship_type_definition_by_id(ship_object.get_shiptype_id())
-        .ok_or(format!(
-            "Failed to find the player's ship type defintion! ID:{:?}",
-            ship_object.get_shiptype_id()
-        ))?;
+        .ok_or(
+            format!(
+                "Failed to find the player's ship type defintion! ID:{:?}",
+                ship_object.get_shiptype_id()
+            )
+        )?;
     let transform = dsl
         .get_sobj_internal_transform_by_sobj_id(ship_object.get_sobj_id())
-        .ok_or(format!(
-            "Failed to find the player's ship transform! ID:{:?}",
-            ship_object.get_sobj_id()
-        ))?;
+        .ok_or(
+            format!(
+                "Failed to find the player's ship transform! ID:{:?}",
+                ship_object.get_sobj_id()
+            )
+        )?;
 
     // Based on the controller's settings and the ship definition and ship status, update the velocity.
     if controller.up {
-        let mut vec = Vec2::from_angle(transform.rotation_radians) * ship_type.base_acceleration
-            + velocity.to_vec2();
+        let mut vec =
+            Vec2::from_angle(transform.rotation_radians) * ship_type.base_acceleration +
+            velocity.to_vec2();
 
         // Check if the absolute velocity is too fast for the ship.
         if vec.length() > ship_type.base_speed {
@@ -110,7 +114,7 @@ pub fn try_update_ship_velocity(
 pub fn remove_old_timers(
     ctx: &ReducerContext,
     controller: &PlayerShipController,
-    ship_object: &Ship,
+    ship_object: &Ship
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
@@ -134,7 +138,7 @@ pub fn try_mining_asteroid(
     controller: &PlayerShipController,
     ship_object: &Ship,
     ship_sobj: &StellarObject,
-    asteroid_sobj: &StellarObject,
+    asteroid_sobj: &StellarObject
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
@@ -143,14 +147,12 @@ pub fn try_mining_asteroid(
     }
 
     // If the player is trying to mine and is targetting an asteroid, create a mining timer.
-    if ship_sobj
-        .distance_squared(ctx, asteroid_sobj)
-        .is_some_and(|d| d < 300.0_f32.powi(2))
-    {
+    if ship_sobj.distance_squared(ctx, asteroid_sobj).is_some_and(|d| d < (300.0_f32).powi(2)) {
         // Check if the player is already mining this asteroid
-        if !dsl
-            .get_ship_mining_timers_by_ship_sobj_id(&ship_object.get_sobj_id())
-            .any(|timer| timer.asteroid_sobj_id == asteroid_sobj.id)
+        if
+            !dsl
+                .get_ship_mining_timers_by_ship_sobj_id(&ship_object.get_sobj_id())
+                .any(|timer| timer.asteroid_sobj_id == asteroid_sobj.id)
         {
             // Only add if there is no mining timer for this ship and asteroid.
             info!(
@@ -161,7 +163,7 @@ pub fn try_mining_asteroid(
             let _ = create_mining_timer_for_ship(
                 ctx,
                 &ship_object.get_sobj_id(),
-                &asteroid_sobj.get_id(),
+                &asteroid_sobj.get_id()
             )?;
         }
     }
@@ -172,7 +174,7 @@ pub fn try_mining_asteroid(
 pub fn attempt_to_pickup_cargo_crate(
     ctx: &ReducerContext,
     player_ship_obj: &Ship,
-    crate_sobj: &StellarObject,
+    crate_sobj: &StellarObject
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
@@ -180,29 +182,36 @@ pub fn attempt_to_pickup_cargo_crate(
         if let Some(item_def) = dsl.get_item_definition_by_id(cargo_crate.get_item_id()) {
             if let Some(ship) = dsl.get_ship_status_by_id(player_ship_obj.get_id()) {
                 if item_def.can_any_of_this_fit_inside_this_ship(&ship) {
-                    match create_timer_to_add_cargo_to_ship(
-                        // Do the actual thing
-                        ctx,
-                        ship.get_id(),
-                        item_def.get_id(),
-                        cargo_crate.quantity,
-                    ) {
+                    match
+                        create_timer_to_add_cargo_to_ship(
+                            // Do the actual thing
+                            ctx,
+                            ship.get_id(),
+                            item_def.get_id(),
+                            cargo_crate.quantity
+                        )
+                    {
                         Ok(_) => Ok(()),
-                        Err(e) => Err(format!(
-                            "ERROR {} : Ship {:?} could not fit {}x #{:?} items",
-                            e,
+                        Err(e) =>
+                            Err(
+                                format!(
+                                    "ERROR {} : Ship {:?} could not fit {}x #{:?} items",
+                                    e,
+                                    ship.get_id(),
+                                    cargo_crate.quantity,
+                                    item_def.get_id()
+                                )
+                            ),
+                    }
+                } else {
+                    Err(
+                        format!(
+                            "Ship {:?} could not fit {}x #{:?} items",
                             ship.get_id(),
                             cargo_crate.quantity,
                             item_def.get_id()
-                        )),
-                    }
-                } else {
-                    Err(format!(
-                        "Ship {:?} could not fit {}x #{:?} items",
-                        ship.get_id(),
-                        cargo_crate.quantity,
-                        item_def.get_id()
-                    ))
+                        )
+                    )
                 }
             } else {
                 Err(format!("Could not find {:?}", player_ship_obj.get_id()))
@@ -219,7 +228,7 @@ pub fn try_to_dock_to_station(
     ctx: &ReducerContext,
     player_ship_obj: &Ship,
     ship_sobj: &StellarObject,
-    station: &Station,
+    station: &Station
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
@@ -236,7 +245,7 @@ pub fn try_to_dock_to_station(
 pub fn try_to_use_jumpgate(
     ctx: &ReducerContext,
     player_ship_obj: &Ship,
-    jumpgate: &JumpGate,
+    jumpgate: &JumpGate
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
@@ -244,6 +253,7 @@ pub fn try_to_use_jumpgate(
         // Jump once they have more than 100 energy
         if ship_status.energy > 100.0 {
             ship_status.energy -= 100.0;
+            dsl.update_ship_status_by_id(ship_status)?;
             teleport_via_jumpgate(ctx, player_ship_obj.clone(), jumpgate)?;
         }
     }
