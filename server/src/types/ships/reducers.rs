@@ -1,4 +1,4 @@
-use crate::types::{common::utility::*, jumpgates::*, ships::utility::*, stellarobjects::*};
+use crate::types::{ common::utility::*, jumpgates::*, ships::utility::*, stellarobjects::* };
 
 use super::*;
 
@@ -11,7 +11,7 @@ pub fn jettison_cargo_from_ship(
     ctx: &ReducerContext,
     ship_id: u64,
     ship_cargo_id: u64,
-    amount: u16,
+    amount: u16
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
     let ship = dsl
@@ -29,9 +29,11 @@ pub fn jettison_cargo_from_ship(
 
     // Does the ship actually have that amount of item?
     if ship_cargo.get_quantity() < &amount {
-        return Err(format!(
-            "Failed to verify that the cargo item actually had the amount requested to yeet."
-        ));
+        return Err(
+            format!(
+                "Failed to verify that the cargo item actually had the amount requested to yeet."
+            )
+        );
     } else if ship_cargo.get_quantity() == &amount {
         dsl.delete_ship_cargo_item_by_id(&ship_cargo);
     } else {
@@ -48,7 +50,7 @@ pub fn jettison_cargo_from_ship(
 pub fn teleport_to_sector_ids(
     ctx: &ReducerContext,
     ship_id: u64,
-    destination_sector_id: u64,
+    destination_sector_id: u64
 ) -> Result<(), String> {
     let s_id = ShipGlobalId::new(ship_id);
     teleport_to_sector(
@@ -56,10 +58,11 @@ pub fn teleport_to_sector_ids(
         dsl(ctx)
             .get_ship_by_id(s_id)
             .ok_or("Failed to teleport to sector, couldn't find ship instance.")?,
-        Sector::get(ctx, &SectorId::new(destination_sector_id))
-            .ok_or("Failed to teleport to sector, couldn't find sector.")?,
-        0.,
-        0.,
+        Sector::get(ctx, &SectorId::new(destination_sector_id)).ok_or(
+            "Failed to teleport to sector, couldn't find sector."
+        )?,
+        0.0,
+        0.0
     )
 }
 
@@ -70,7 +73,7 @@ pub fn teleport_to_sector(
     mut ship: Ship,
     destination_sector: Sector,
     x: f32,
-    y: f32,
+    y: f32
 ) -> Result<(), String> {
     try_server_only(ctx)?;
     let dsl = dsl(ctx);
@@ -109,7 +112,7 @@ pub fn teleport_to_sector(
 /// Undocks the given DockedShip on top of the station it was docked at and returns the new Ship row.
 #[spacetimedb::reducer]
 pub fn undock_ship(ctx: &ReducerContext, docked_ship: ShipGlobalId) -> Result<(), String> {
-    is_server_or_ship_owner(ctx, Some(docked_ship.clone()));
+    is_server_or_ship_owner(ctx, Some(docked_ship.clone()))?;
     let dsl = dsl(ctx);
 
     if let Some(docked) = dsl.get_docked_ship_by_id(docked_ship) {

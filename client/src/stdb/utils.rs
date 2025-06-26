@@ -1,11 +1,13 @@
 use macroquad::prelude::glam;
-use spacetimedb_sdk::{DbContext, Identity};
+use spacetimedb_sdk::{ DbContext, Identity, Table };
 
 use crate::module_bindings::*;
 
-
-pub fn get_transform(ctx:&DbConnection, sobj_id:u64) -> Result<StellarObjectTransformHiRes, String> {
-    if let Some(hr)= ctx.db().sobj_hi_res_transform().sobj_id().find(&sobj_id) {
+pub fn get_transform(
+    ctx: &DbConnection,
+    sobj_id: u64
+) -> Result<StellarObjectTransformHiRes, String> {
+    if let Some(hr) = ctx.db().sobj_hi_res_transform().sobj_id().find(&sobj_id) {
         Ok(hr)
     } else {
         if let Some(lr) = ctx.db().sobj_low_res_transform().sobj_id().find(&sobj_id) {
@@ -21,7 +23,7 @@ pub fn get_transform(ctx:&DbConnection, sobj_id:u64) -> Result<StellarObjectTran
     }
 }
 
-pub fn get_username(ctx: &DbConnection, id:&Identity) -> String {
+pub fn get_username(ctx: &DbConnection, id: &Identity) -> String {
     if let Some(player) = ctx.db().player().identifier().find(id) {
         player.username
     } else {
@@ -53,20 +55,20 @@ pub fn get_player_ship(ctx: &DbConnection) -> Option<Ship> {
     ctx.db().ship().sobj_id().find(&get_player_sobj_id(ctx)?)
 }
 
+// pub fn get_player_docked_ship(ctx: &DbConnection) -> Option<Ship> {
+//     ctx.db()
+//         .docked_ship()
+//         .iter()
+//         .filter(|ds| ds.player_id == ctx.identity())
+//         .next()
+// }
+
 pub fn get_player_ship_status(ctx: &DbConnection) -> Option<ShipStatus> {
-    if let Some(this) = get_player_ship(ctx) {
-        this.status(ctx)
-    } else {
-        None
-    }
+    if let Some(this) = get_player_ship(ctx) { this.status(ctx) } else { None }
 }
 
 pub fn get_player_transform(ctx: &DbConnection) -> Option<StellarObjectTransformHiRes> {
-    if let Some(this) = get_player_sobj_id(ctx) {
-        get_transform(ctx, this).ok()
-    } else {
-        None
-    }
+    if let Some(this) = get_player_sobj_id(ctx) { get_transform(ctx, this).ok() } else { None }
 }
 
 pub fn get_player_transform_vec2(ctx: &DbConnection, default: glam::Vec2) -> glam::Vec2 {

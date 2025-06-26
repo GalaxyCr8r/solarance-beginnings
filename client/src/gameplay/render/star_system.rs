@@ -71,15 +71,15 @@ fn draw_star_system_object(
 
         vec = camera + Vec2::from_angle(angle) * stage_one_distance_squared.sqrt();
         scale = (stage_one_distance_squared.sqrt() / dist.sqrt()) * 0.75 + 0.25;
-        if is_key_pressed(KeyCode::Space) {
-            info!("{:?}: Stage 2 {}, {} [Angle: {}]", sso.kind, vec.x, vec.y, angle);
-        }
+        // if is_key_pressed(KeyCode::Space) {
+        //     info!("{:?}: Stage 2 {}, {} [Angle: {}]", sso.kind, vec.x, vec.y, angle);
+        // }
     } else if dist < stage_three_distance_squared {
         // TODO: Slow slide off the screen
     }
 
     let mut params = DrawTextureParams::default();
-    params.rotation = (((now() * 0.01f64) as f32) % 2) * PI;
+    params.rotation = (((now() * 0.01f64) as f32) % 2.0) * PI;
     params.dest_size = Some(Vec2::new(image.width() * scale, image.height() * scale));
 
     draw_texture_ex(

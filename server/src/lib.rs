@@ -1,5 +1,5 @@
 use spacetimedb::ReducerContext;
-use types::{common::*, *};
+use types::{ common::*, * };
 use spacetimedsl::dsl;
 
 pub mod types;
@@ -19,9 +19,12 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 
     // Create a Global Config row, or reinitalize the one if it exists.
     if dsl.get_count_of_global_configurations() == 0 {
-        dsl.create_global_config(0, 0, 0)?;
+        dsl.create_global_config(0, 0, 0, env!("CARGO_PKG_VERSION"))?;
     } else {
-        let mut config = dsl.get_all_global_configurations().last().ok_or("Failed to find existing global configuration")?;
+        let mut config = dsl
+            .get_all_global_configurations()
+            .last()
+            .ok_or("Failed to find existing global configuration")?;
         config.set_active_players(0);
         dsl.update_global_config_by_id(config)?;
     }
@@ -32,11 +35,11 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 pub fn identity_connected(ctx: &ReducerContext) -> Result<(), String> {
     let dsl = dsl(ctx);
     // Called everytime a new client connects
-    
+
     // TODO: When someone logs in set their player to online
 
     if let Some(mut config) = dsl.get_all_global_configurations().last() {
-        config.set_active_players(config.active_players+1);
+        config.set_active_players(config.active_players + 1);
         dsl.update_global_config_by_id(config)?;
     }
 
@@ -50,7 +53,7 @@ pub fn identity_disconnected(ctx: &ReducerContext) -> Result<(), String> {
 
     if let Some(mut config) = dsl.get_all_global_configurations().last() {
         if config.active_players > 0 {
-            config.set_active_players(config.active_players-1);
+            config.set_active_players(config.active_players - 1);
             dsl.update_global_config_by_id(config)?;
         }
     }

@@ -2,14 +2,15 @@ use std::time::Duration;
 
 use glam::Vec2;
 use log::info;
-use spacetimedb::{rand::Rng, TimeDuration};
+use spacetimedb::{ rand::Rng, TimeDuration };
 
 use crate::types::{
     common::utility::try_server_only,
     factions::FactionId,
     jumpgates::JumpGate,
-    ships::{reducers::teleport_to_sector, timers::*},
-    stellarobjects::{utility::*, *},
+    players::timers::initialize_player_controller,
+    ships::{ reducers::teleport_to_sector, timers::* },
+    stellarobjects::{ reducers::create_sobj_player_window_for, utility::*, * },
 };
 
 use super::*;
@@ -17,7 +18,7 @@ use super::*;
 pub fn same_sector_from_ids(
     ctx: &ReducerContext,
     id1: &StellarObjectId,
-    id2: &StellarObjectId,
+    id2: &StellarObjectId
 ) -> bool {
     let dsl = dsl(ctx);
 
@@ -33,26 +34,28 @@ pub fn create_ship_from_sobj(
     ctx: &ReducerContext,
     ship_type: ShipTypeDefinition,
     identity: Identity,
-    sobj: StellarObject,
+    sobj: StellarObject
 ) -> Result<(Ship, ShipStatus), String> {
     let dsl = dsl(ctx);
 
     let ship_global = dsl.create_ship_global()?;
 
-    let ship = match dsl.create_ship(
-        &ship_global,
-        ship_type.get_id(),
-        &sobj,
-        sobj.get_sector_id(),
-        identity,
-        FactionId::new(0),
-    ) {
+    let ship = (match
+        dsl.create_ship(
+            &ship_global,
+            ship_type.get_id(),
+            &sobj,
+            sobj.get_sector_id(),
+            identity,
+            FactionId::new(0)
+        )
+    {
         Ok(ship) => {
             create_status_timer_for_ship(ctx, &ship.get_id(), &ship_type.get_id())?;
             Ok(ship)
         }
         Err(e) => Err(e.to_string()),
-    }?;
+    })?;
 
     let ship_status = dsl.create_ship_status(
         &ship_global,
@@ -63,7 +66,7 @@ pub fn create_ship_from_sobj(
         ship_type.max_energy as f32,
         0,
         ship_type.cargo_capacity,
-        None,
+        None
     )?;
 
     return Ok((ship, ship_status));
@@ -73,26 +76,28 @@ pub fn create_ship_docked_at_station(
     ctx: &ReducerContext,
     ship_type: ShipTypeDefinition,
     identity: Identity,
-    station: Station,
+    station: Station
 ) -> Result<(DockedShip, ShipStatus), String> {
     let dsl = dsl(ctx);
 
     let ship_global = dsl.create_ship_global()?;
 
-    let ship = match dsl.create_docked_ship(
-        &ship_global,
-        ship_type.get_id(),
-        &station,
-        station.get_sector_id(),
-        identity,
-        FactionId::new(0),
-    ) {
+    let ship = (match
+        dsl.create_docked_ship(
+            &ship_global,
+            ship_type.get_id(),
+            &station,
+            station.get_sector_id(),
+            identity,
+            FactionId::new(0)
+        )
+    {
         Ok(ship) => {
             create_status_timer_for_ship(ctx, &ship.get_id(), &ship_type.get_id())?;
             Ok(ship)
         }
         Err(e) => Err(e.to_string()),
-    }?;
+    })?;
 
     let ship_status = dsl.create_ship_status(
         &ship_global,
@@ -103,7 +108,7 @@ pub fn create_ship_docked_at_station(
         ship_type.max_energy as f32,
         0,
         ship_type.cargo_capacity,
-        None,
+        None
     )?;
 
     return Ok((ship, ship_status));
@@ -116,7 +121,7 @@ pub fn attempt_to_load_cargo_into_ship(
     ship_status: &mut ShipStatus,
     ship_object: &Ship,
     item_def: &ItemDefinition,
-    amount: u16,
+    amount: u16
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
     let mut remaining_amount = amount;
@@ -124,11 +129,13 @@ pub fn attempt_to_load_cargo_into_ship(
     let units_per_stack = *item_def.get_units_per_stack() as u16;
 
     if amount == 0 {
-        return Err(format!(
-            "Tried to load 0 amount of {} into ship #{:?}",
-            item_def.name,
-            ship_status.get_id()
-        ));
+        return Err(
+            format!(
+                "Tried to load 0 amount of {} into ship #{:?}",
+                item_def.name,
+                ship_status.get_id()
+            )
+        );
     }
 
     ship_status.used_cargo_capacity = ship_status.calculate_used_cargo_space(ctx); // Just go through and make sure everything is ship-shape.
@@ -147,14 +154,18 @@ pub fn attempt_to_load_cargo_into_ship(
     if additional_items_that_can_fit < amount {
         overflow_amount = amount - additional_items_that_can_fit;
         remaining_amount = additional_items_that_can_fit;
-        info!("WARN: We can only fit {} more items, but we've been requested to add {}. Sending {} to overflow",
-            additional_items_that_can_fit, amount, overflow_amount);
+        info!(
+            "WARN: We can only fit {} more items, but we've been requested to add {}. Sending {} to overflow",
+            additional_items_that_can_fit,
+            amount,
+            overflow_amount
+        );
         info!(
             "Expected final used cargo capacity: {} / {}",
-            ship_status.get_used_cargo_capacity()
-                + (additional_items_that_can_fit * item_def.volume_per_unit),
+            ship_status.get_used_cargo_capacity() +
+                additional_items_that_can_fit * item_def.volume_per_unit,
             ship_status.max_cargo_capacity
-        )
+        );
     }
 
     // Update already existing stacks of the item in the ship's cargo
@@ -228,8 +239,12 @@ pub fn attempt_to_load_cargo_into_ship(
                 stack_amount,
                 item_def.name
             );
-            if let Err(e) =
-                dsl.create_ship_cargo_item(ship_status.get_id(), item_def, stack_amount.into())
+            if
+                let Err(e) = dsl.create_ship_cargo_item(
+                    ship_status.get_id(),
+                    item_def,
+                    stack_amount.into()
+                )
             {
                 info!(
                     "Failed to create cargo item for ship {:?}, adding {} to overflow: {}",
@@ -257,8 +272,7 @@ pub fn attempt_to_load_cargo_into_ship(
     ship_status.used_cargo_capacity = ship_status.calculate_used_cargo_space(ctx); // Just go through and make sure everything is ship-shape FINALLY.
     if ship_status.used_cargo_capacity > ship_status.max_cargo_capacity {
         return Err(
-            "Despite our best efforts, we ended up with more cargo used than is maximum!"
-                .to_string(),
+            "Despite our best efforts, we ended up with more cargo used than is maximum!".to_string()
         );
     }
     let _ = dsl.update_ship_status_by_id(ship_status.clone())?;
@@ -271,24 +285,18 @@ pub fn create_cargo_crate_nearby_ship(
     ctx: &ReducerContext,
     ship_sobj: &StellarObjectId,
     item_def: &ItemDefinition,
-    quantity: u16,
+    quantity: u16
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
     let sobj = dsl.get_stellar_object_by_id(ship_sobj).ok_or(
-        format!(
-            "Could not find Stellar Object #{} for a Ship!",
-            ship_sobj.value()
-        ), // TODO error message here
+        format!("Could not find Stellar Object #{} for a Ship!", ship_sobj.value()) // TODO error message here
     )?;
     let pos = if let Some(transform) = dsl.get_sobj_internal_transform_by_sobj_id(ship_sobj) {
         transform.to_vec2()
     } else {
         info!("Could not find ship's stellar object transform, placing randomly...");
-        Vec2::new(
-            ctx.rng().gen_range(-2048.0..2048.0),
-            ctx.rng().gen_range(-2048.0..2048.0),
-        )
+        Vec2::new(ctx.rng().gen_range(-2048.0..2048.0), ctx.rng().gen_range(-2048.0..2048.0))
     };
 
     let new_sobj = create_sobj_with_random_velocity(
@@ -298,26 +306,20 @@ pub fn create_cargo_crate_nearby_ship(
         pos.x,
         pos.y,
         0.125,
-        Some(0.9995),
+        Some(0.9995)
     )?;
 
-    info!(
-        "Created cargo crate in sector #{:?} at {}, {}!",
-        &sobj.get_sector_id(),
-        pos.x,
-        pos.y
-    );
+    info!("Created cargo crate in sector #{:?} at {}, {}!", &sobj.get_sector_id(), pos.x, pos.y);
 
     let _ = dsl.create_cargo_crate(
         sobj.get_sector_id(),
         new_sobj.get_id(),
         item_def.get_id(),
         quantity,
-        ctx.timestamp
-            .checked_add(TimeDuration::from_duration(Duration::from_secs(
-                /*D* /24 * /*H*/60 * */ /*M*/ 60,
-            ))), // TODO cargo crate timer to despawn them
-        None,
+        ctx.timestamp.checked_add(
+            TimeDuration::from_duration(Duration::from_secs(/*D* /24 * /*H*/60 * */ /*M*/ 60))
+        ), // TODO cargo crate timer to despawn them
+        None
     )?;
     Ok(())
 }
@@ -325,7 +327,7 @@ pub fn create_cargo_crate_nearby_ship(
 pub fn teleport_via_jumpgate(
     ctx: &ReducerContext,
     ship: Ship,
-    jumpgate: &JumpGate,
+    jumpgate: &JumpGate
 ) -> Result<(), String> {
     try_server_only(ctx)?;
     let dsl = dsl(ctx);
@@ -334,10 +336,11 @@ pub fn teleport_via_jumpgate(
     teleport_to_sector(
         ctx,
         ship,
-        dsl.get_sector_by_id(jumpgate.get_target_sector_id())
+        dsl
+            .get_sector_by_id(jumpgate.get_target_sector_id())
             .ok_or("Failed to find jumpgate's target sector.")?,
         pos.x,
-        pos.y,
+        pos.y
     )
 }
 
@@ -346,7 +349,7 @@ pub fn dock_to_station(
     ctx: &ReducerContext,
     ship: &Ship,
     ship_sobj: &StellarObject,
-    station: &Station,
+    station: &Station
 ) -> Result<DockedShip, String> {
     let dsl = dsl(ctx);
 
@@ -362,7 +365,7 @@ pub fn dock_to_station(
         station.get_id(),
         ship.get_sector_id(),
         ship.player_id,
-        ship.get_faction_id(),
+        ship.get_faction_id()
     )?;
 
     Ok(docked)
@@ -371,9 +374,7 @@ pub fn dock_to_station(
 pub fn undock_from_station(ctx: &ReducerContext, docked: DockedShip) -> Result<Ship, String> {
     let dsl = dsl(ctx);
 
-    let station = dsl
-        .get_station_by_id(docked.get_station_id())
-        .ok_or("Failed to find station")?;
+    let station = dsl.get_station_by_id(docked.get_station_id()).ok_or("Failed to find station")?;
     let station_transform = dsl
         .get_sobj_internal_transform_by_sobj_id(station.get_sobj_id())
         .ok_or("Failed to find station's stellar object")?;
@@ -385,7 +386,7 @@ pub fn undock_from_station(ctx: &ReducerContext, docked: DockedShip) -> Result<S
         ctx,
         StellarObjectKinds::Ship,
         &station.get_sector_id(),
-        station_transform,
+        station_transform
     )?;
 
     let ship = dsl.create_ship(
@@ -394,15 +395,19 @@ pub fn undock_from_station(ctx: &ReducerContext, docked: DockedShip) -> Result<S
         &sobj,
         sobj.get_sector_id(),
         docked.player_id,
-        FactionId::new(0),
+        FactionId::new(0)
     )?;
 
-    if dsl
-        .get_ship_status_timer_by_ship_id(docked.get_id())
-        .is_none()
-    {
-        create_status_timer_for_ship(ctx, &ship.get_id(), &ship_type.get_id());
+    if dsl.get_ship_status_timer_by_ship_id(docked.get_id()).is_none() {
+        let _ = create_status_timer_for_ship(ctx, &ship.get_id(), &ship_type.get_id());
     }
+
+    if docked.player_id != Identity::ONE {
+        let _ = create_sobj_player_window_for(ctx, docked.player_id, sobj.get_id())?;
+        let _ = initialize_player_controller(ctx, docked.player_id, &sobj);
+    }
+
+    dsl.delete_docked_ship_by_id(&docked.get_id());
 
     Ok(ship)
 }

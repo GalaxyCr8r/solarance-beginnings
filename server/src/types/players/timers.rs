@@ -49,7 +49,7 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     Ok(())
 }
 
-pub fn init_timers_for_stellar_object(
+pub fn initialize_player_controller(
     ctx: &ReducerContext,
     identity: Identity,
     sobj: &StellarObject

@@ -1,15 +1,15 @@
-use egui::{Align2, Color32, Context, RichText, ScrollArea, TextStyle, Ui};
+use egui::{ Align2, Color32, Context, RichText, ScrollArea, TextStyle, Ui };
 use macroquad::prelude::*;
-use spacetimedb_sdk::{DbContext, Timestamp};
+use spacetimedb_sdk::{ DbContext, Timestamp };
 
-use crate::{module_bindings::*, stdb::utils::*};
+use crate::{ module_bindings::*, stdb::utils::* };
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 enum GlobalChatMessageType {
     Global,
     Sector,
     Alliance,
-    Faction
+    Faction,
 }
 
 impl Default for GlobalChatMessageType {
@@ -25,7 +25,7 @@ pub struct State {
     pub text: String,
     pub selected_tab: GlobalChatMessageType,
     pub has_focus: bool,
-    pub hidden: bool
+    pub hidden: bool,
 }
 
 fn contents_hidden(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
@@ -34,10 +34,24 @@ fn contents_hidden(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
             chat_window.hidden = false;
         }
 
-        ui.label(RichText::new(" Global ").color(
-            if chat_window.selected_tab == GlobalChatMessageType::Global {Color32::DARK_GRAY} else {Color32::BLACK}));
-        ui.label(RichText::new(" Sector ").color(
-            if chat_window.selected_tab == GlobalChatMessageType::Sector {Color32::DARK_GRAY} else {Color32::BLACK}));
+        ui.label(
+            RichText::new(" Global ").color(
+                if chat_window.selected_tab == GlobalChatMessageType::Global {
+                    Color32::DARK_GRAY
+                } else {
+                    Color32::BLACK
+                }
+            )
+        );
+        ui.label(
+            RichText::new(" Sector ").color(
+                if chat_window.selected_tab == GlobalChatMessageType::Sector {
+                    Color32::DARK_GRAY
+                } else {
+                    Color32::BLACK
+                }
+            )
+        );
         ui.label(RichText::new(" Alliance ").color(Color32::BLACK));
         ui.label(RichText::new(" Faction ").color(Color32::BLACK));
     });
@@ -46,11 +60,19 @@ fn contents_hidden(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
 
     ui.label(RichText::new("...").color(Color32::DARK_GRAY));
     for message in chat_window.global_chat_channel.iter().rev().take(3).rev() {
-        ui.label(RichText::new(format!("[{}]: {}", get_username(ctx, &message.player_id), message.message)).color(Color32::DARK_GRAY));
+        ui.label(
+            RichText::new(
+                format!("[{}]: {}", get_username(ctx, &message.player_id), message.message)
+            ).color(Color32::DARK_GRAY)
+        );
     }
 }
 
-pub fn draw(egui_ctx: &Context, ctx: &DbConnection, chat_window: &mut State) -> Option<egui::InnerResponse<Option<()>>> {
+pub fn draw(
+    egui_ctx: &Context,
+    ctx: &DbConnection,
+    chat_window: &mut State
+) -> Option<egui::InnerResponse<Option<()>>> {
     egui::Window
         ::new("Chat Window")
         .min_width(256.0)
@@ -62,82 +84,153 @@ pub fn draw(egui_ctx: &Context, ctx: &DbConnection, chat_window: &mut State) -> 
         .show(egui_ctx, |ui| {
             if chat_window.hidden {
                 contents_hidden(ui, ctx, chat_window);
-                return
+            } else {
+                draw_panel(ui, ctx, chat_window);
             }
+        })
+}
 
+pub fn draw_widget(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
+    ui.horizontal(|ui| {
+        if !chat_window.hidden && ui.button("v").clicked() {
+            chat_window.hidden = true;
+        }
+
+        ui.selectable_value(&mut chat_window.selected_tab, GlobalChatMessageType::Global, "Global");
+        ui.selectable_value(&mut chat_window.selected_tab, GlobalChatMessageType::Sector, "Sector");
+        ui.label(RichText::new(" Alliance ").color(Color32::BLACK));
+        ui.label(RichText::new(" Faction ").color(Color32::BLACK));
+    });
+    ui.separator();
+
+    match chat_window.selected_tab {
+        GlobalChatMessageType::Global => {
+            draw_global_chat(ctx, chat_window, ui);
+        }
+        GlobalChatMessageType::Sector => {
+            draw_sector_chat(ctx, chat_window, ui);
+        }
+        GlobalChatMessageType::Alliance => todo!(),
+        GlobalChatMessageType::Faction => todo!(),
+    }
+
+    ui.horizontal(|ui| {
+        chat_window.has_focus = false;
+        if ui.text_edit_singleline(&mut chat_window.text).has_focus() {
+            // Game State -> Can Move Ship False
+            // Also need to make that new state boolean set to "True" each loop
+            // and make sure this dialog is shown before player input can be processed
+            chat_window.has_focus = true;
+        }
+        if ui.button("Send").clicked() || ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+            if !chat_window.text.is_empty() {
+                send_message(ctx, chat_window);
+            }
+        }
+    });
+}
+
+pub fn draw_panel(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
+    let sector_enabled = ctx.db().sobj_player_window().player_id().find(&ctx.identity()).is_some();
+    if chat_window.selected_tab == GlobalChatMessageType::Sector {
+        chat_window.selected_tab = GlobalChatMessageType::Global;
+    }
+
+    egui::TopBottomPanel
+        ::top("chat_top")
+        .resizable(false)
+        .show_inside(ui, |ui| {
             ui.horizontal(|ui| {
                 if !chat_window.hidden && ui.button("v").clicked() {
                     chat_window.hidden = true;
                 }
 
-                ui.selectable_value(&mut chat_window.selected_tab, GlobalChatMessageType::Global, "Global");
-                ui.selectable_value(&mut chat_window.selected_tab, GlobalChatMessageType::Sector, "Sector");
-                ui.label(RichText::new(" Alliance ").color(Color32::BLACK));
+                ui.selectable_value(
+                    &mut chat_window.selected_tab,
+                    GlobalChatMessageType::Global,
+                    "Global"
+                );
+                if sector_enabled {
+                    ui.selectable_value(
+                        &mut chat_window.selected_tab,
+                        GlobalChatMessageType::Sector,
+                        "Sector"
+                    );
+                } else {
+                    ui.label(RichText::new(" Sector ").color(Color32::BLACK));
+                }
+                ui.label(RichText::new(" Station ").color(Color32::BLACK));
                 ui.label(RichText::new(" Faction ").color(Color32::BLACK));
+                ui.label(RichText::new(" Guild ").color(Color32::BLACK));
             });
-            ui.separator();
+        });
 
-            match chat_window.selected_tab {
-                GlobalChatMessageType::Global => {
-                    draw_global_chat(ctx, chat_window, ui);
-                },
-                GlobalChatMessageType::Sector => {
-                    draw_sector_chat(ctx, chat_window, ui);
-                },
-                GlobalChatMessageType::Alliance => todo!(),
-                GlobalChatMessageType::Faction => todo!(),
-            }
-
+    egui::TopBottomPanel
+        ::bottom("chat_bottom")
+        .resizable(false)
+        .show_inside(ui, |ui| {
             ui.horizontal(|ui| {
                 chat_window.has_focus = false;
                 if ui.text_edit_singleline(&mut chat_window.text).has_focus() {
                     // Game State -> Can Move Ship False
-                    // Also need to make that new state boolean set to "True" each loop 
+                    // Also need to make that new state boolean set to "True" each loop
                     // and make sure this dialog is shown before player input can be processed
                     chat_window.has_focus = true;
                 }
-                if ui.button("Send").clicked() || ui.input(|i| i.key_pressed(egui::Key::Enter))
-                {
+                if ui.button("Send").clicked() || ui.input(|i| i.key_pressed(egui::Key::Enter)) {
                     if !chat_window.text.is_empty() {
                         send_message(ctx, chat_window);
                     }
                 }
             });
-        })
+        });
+
+    egui::CentralPanel::default().show_inside(ui, |ui| {
+        match chat_window.selected_tab {
+            GlobalChatMessageType::Global => {
+                draw_global_chat(ctx, chat_window, ui);
+            }
+            GlobalChatMessageType::Sector => {
+                draw_sector_chat(ctx, chat_window, ui);
+            }
+            GlobalChatMessageType::Alliance => todo!(),
+            GlobalChatMessageType::Faction => todo!(),
+        }
+    });
 }
 
 fn send_message(ctx: &DbConnection, chat_window: &mut State) {
     match chat_window.selected_tab {
         GlobalChatMessageType::Global => {
-                if let Err(error) = ctx.reducers.send_global_chat(chat_window.text.clone()) {
-                    info!("Failed to send message: {}", error);
-                    // TODO Add a message to chat log or do SOMETHING to alert the user it failed.
-                    chat_window.global_chat_channel.push(GlobalChatMessage {
-                        player_id: ctx.identity(),
-                        id: 0,
-                        message: format!("Failed to send message: {}", chat_window.text.clone()),
-                        created_at: Timestamp::now(),
-                    });
-                } else {
-                    chat_window.text.clear();
-                }
-            },
+            if let Err(error) = ctx.reducers.send_global_chat(chat_window.text.clone()) {
+                info!("Failed to send message: {}", error);
+                // TODO Add a message to chat log or do SOMETHING to alert the user it failed.
+                chat_window.global_chat_channel.push(GlobalChatMessage {
+                    player_id: ctx.identity(),
+                    id: 0,
+                    message: format!("Failed to send message: {}", chat_window.text.clone()),
+                    created_at: Timestamp::now(),
+                });
+            } else {
+                chat_window.text.clear();
+            }
+        }
         GlobalChatMessageType::Sector => {
-                let sector_id = get_player_ship(ctx).unwrap().sector_id;
-                if let Err(error) = ctx.reducers.send_sector_chat(chat_window.text.clone(), sector_id) {
-                    info!("Failed to send message: {}", error);
-                    // TODO Add a message to chat log or do SOMETHING to alert the user it failed.
-                    chat_window.sector_chat_channel.push(SectorChatMessage {
-                        player_id: ctx.identity(),
-                        id: 0,
-                        sector_id: sector_id,
-                        message: format!("Failed to send message: {}", chat_window.text.clone()),
-                        created_at: Timestamp::now(),
-                    });
-                } else {
-                    chat_window.text.clear();
-                }
-            },
+            let sector_id = get_player_ship(ctx).unwrap().sector_id;
+            if let Err(error) = ctx.reducers.send_sector_chat(chat_window.text.clone(), sector_id) {
+                info!("Failed to send message: {}", error);
+                // TODO Add a message to chat log or do SOMETHING to alert the user it failed.
+                chat_window.sector_chat_channel.push(SectorChatMessage {
+                    player_id: ctx.identity(),
+                    id: 0,
+                    sector_id: sector_id,
+                    message: format!("Failed to send message: {}", chat_window.text.clone()),
+                    created_at: Timestamp::now(),
+                });
+            } else {
+                chat_window.text.clear();
+            }
+        }
         GlobalChatMessageType::Alliance => todo!(),
         GlobalChatMessageType::Faction => todo!(),
     }
@@ -149,21 +242,18 @@ fn draw_global_chat(ctx: &DbConnection, chat_window: &mut State, ui: &mut Ui) {
     ScrollArea::vertical()
         .auto_shrink([false, true])
         .stick_to_bottom(true)
-        .max_height(screen_height()/4.0)
-        .show_rows(
-        ui,
-        row_height,
-        chat_window.global_chat_channel.len(),
-        |ui, row_range| {
+        .max_height(screen_height() / 4.0)
+        .show_rows(ui, row_height, chat_window.global_chat_channel.len(), |ui, row_range| {
             let mut count = 0;
             for message in &chat_window.global_chat_channel {
                 if row_range.contains(&count) {
-                    ui.label(format!("[{}]: {}", get_username(ctx, &message.player_id), message.message));
+                    ui.label(
+                        format!("[{}]: {}", get_username(ctx, &message.player_id), message.message)
+                    );
                 }
                 count += 1;
             }
-        },
-    );
+        });
 }
 
 fn draw_sector_chat(ctx: &DbConnection, chat_window: &mut State, ui: &mut Ui) {
@@ -173,19 +263,16 @@ fn draw_sector_chat(ctx: &DbConnection, chat_window: &mut State, ui: &mut Ui) {
     ScrollArea::vertical()
         .auto_shrink([false, true])
         .stick_to_bottom(true)
-        .max_height(screen_height()/4.0)
-        .show_rows(
-        ui,
-        row_height,
-        chat_window.sector_chat_channel.len(),
-        |ui, row_range| {
+        .max_height(screen_height() / 4.0)
+        .show_rows(ui, row_height, chat_window.sector_chat_channel.len(), |ui, row_range| {
             let mut count = 0;
             for message in &chat_window.sector_chat_channel {
                 if row_range.contains(&count) {
-                    ui.label(format!("({}): {}", get_username(ctx, &message.player_id), message.message));
+                    ui.label(
+                        format!("({}): {}", get_username(ctx, &message.player_id), message.message)
+                    );
                 }
                 count += 1;
             }
-        },
-    );
+        });
 }

@@ -107,7 +107,17 @@ pub async fn gameplay(connection: Option<DbConnection>) {
 
         egui_macroquad::ui(|egui_ctx| {
             if player_ship.is_none() {
-                gui::creation_window::draw(egui_ctx, &ctx, &mut game_state);
+                if
+                    ctx
+                        .db()
+                        .docked_ship()
+                        .iter()
+                        .any(|ds| ds.player_id == ctx.identity())
+                {
+                    gui::out_of_play_screen::draw(egui_ctx, &ctx, &mut game_state);
+                } else {
+                    gui::creation_window::draw(egui_ctx, &ctx, &mut game_state);
+                }
                 return;
             }
 

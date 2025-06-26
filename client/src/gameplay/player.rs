@@ -13,15 +13,10 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
     }
 
     let id = &ctx.identity();
-    info!("9.1a");
     let db = ctx.db();
-    info!("9.1b");
     let con_t = db.player_ship_controller();
-    info!("9.1c");
     let pid = con_t.player_id();
-    info!("9.1d");
     let con = pid.find(id);
-    info!("9.1e");
     let mut changed = false; // ONLY request an update if there's actually been a change!
     if
         let Some(mut controller) = con
