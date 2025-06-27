@@ -4,7 +4,14 @@ use egui::{ Align, Color32, Context, FontId, Frame, Layout, Rangef, RichText, Sh
 use macroquad::prelude::*;
 use spacetimedb_sdk::{ DbContext, Table };
 
-use crate::{ gameplay::state::{ self, GameState }, module_bindings::*, stdb::utils::* };
+use crate::{
+    gameplay::{
+        gui::ship_details_window::{ show_docked_ship_details, show_ship_details },
+        state::{ self, GameState },
+    },
+    module_bindings::*,
+    stdb::utils::*,
+};
 
 #[derive(PartialEq)]
 enum CurrentTab {
@@ -58,19 +65,45 @@ pub fn draw(
             ::default()
             .frame(
                 Frame::group(&egui_ctx.style())
-                    .fill(Color32::from_rgba_unmultiplied(15, 15, 15, 192))
+                    .fill(Color32::from_rgb(15, 15, 15))
+                    .multiply_with_opacity(0.75)
                     .shadow(Shadow::NONE)
             )
             .show_inside(ui, |ui| {
                 ui.vertical_centered(|ui| {
-                    ui.heading("Central Panel");
+                    ui.heading("Station Panel");
                 });
+                if let Some(ship) = game_state.out_of_play_screen.selected_ship.clone() {
+                    if let Some(station) = ctx.db().station().id().find(&ship.station_id) {
+                        ui.heading(format!("Station: {}", station.name));
+                        for (index, module) in ctx
+                            .db()
+                            .station_module()
+                            .iter()
+                            .filter(|sm| sm.station_id == station.id)
+                            .enumerate() {
+                            if
+                                let Some(blueprint) = ctx
+                                    .db()
+                                    .station_module_blueprint()
+                                    .id()
+                                    .find(&module.blueprint_id)
+                            {
+                                ui.label(format!("Module #{}: {}", index, blueprint.name));
+                            } else {
+                                ui.label(format!("Module #{}: Unknown type", index));
+                            }
+                        }
+                        //
+                    }
+                }
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     ui.label(
                         "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
                     );
                 });
             });
+
         egui::TopBottomPanel
             ::bottom("bottom_panel")
             .resizable(false)
@@ -97,9 +130,18 @@ fn left_panel(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
                 //
             }
         });
+        ui.separator();
     });
 
+    if let Some(ship) = game_state.out_of_play_screen.selected_ship.clone() {
+        egui::TopBottomPanel::bottom("left_panel_bottom").show_inside(ui, |ui| {
+            ui.heading("Ship Details");
+            show_docked_ship_details(ctx, &mut game_state.details_window, ui, ship);
+        });
+    }
+
     ui.heading("Assets Tree");
+    ui.separator();
 
     egui::ScrollArea::vertical().show(ui, |ui| {
         for (star_system, sectors_with_ships) in sorted_system_to_docked_ships {
@@ -184,6 +226,7 @@ fn display_ship_on_tree(ctx: &DbConnection, state: &mut State, ui: &mut Ui, ship
             // Add buttons in reverse order of appearance (rightmost first)
             if ui.button("Undock").clicked() {
                 println!("Undock clicked for ship ID: {}", ship.id);
+                state.selected_ship = None;
                 let _ = ctx.reducers().undock_ship(ShipGlobalId { value: ship.id });
                 // TODO Add a system message to alert the player if it failed.
             }

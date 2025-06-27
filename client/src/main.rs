@@ -262,23 +262,23 @@ pub async fn login_screen() -> (bool, Option<String>) {
                         }
                         ui.horizontal(|ui| {
                             if client_token_thread.as_ref().is_none() {
-                                if
-                                    !id_token.is_some() &&
-                                    ui
-                                        .button(
-                                            RichText::new("\n    Login via Auth0    \n").size(24.0)
-                                        )
-                                        .clicked()
-                                {
-                                    info!("CLICKED!");
-                                    client_token_thread = Some(
-                                        thread::spawn(|| { oidc_auth_helper::get_client_token() })
-                                    );
-                                } else if id_token.is_none() && client_token_thread.is_some() {
-                                    ui.add_enabled(
-                                        false,
-                                        Button::new("\n    Login via Auth0    \n")
-                                    );
+                                if id_token.is_none() {
+                                    if
+                                        ui
+                                            .button(
+                                                RichText::new("\n    Login via Auth0    \n").size(
+                                                    24.0
+                                                )
+                                            )
+                                            .clicked()
+                                    {
+                                        info!("CLICKED!");
+                                        client_token_thread = Some(
+                                            thread::spawn(|| {
+                                                oidc_auth_helper::get_client_token()
+                                            })
+                                        );
+                                    }
                                 }
                                 if
                                     id_token.is_some() &&
@@ -290,6 +290,21 @@ pub async fn login_screen() -> (bool, Option<String>) {
                                 {
                                     info!("CLICKED!");
                                     break_the_loop = true;
+                                }
+                            } else {
+                                if
+                                    ui
+                                        .button(
+                                            RichText::new("\n    Login via Auth0    \n").size(24.0)
+                                        )
+                                        .clicked()
+                                {
+                                    info!("CLICKED again");
+                                    // Ditch the value and try again.
+                                    let _ = client_token_thread.take().unwrap().join();
+                                    client_token_thread = Some(
+                                        thread::spawn(|| { oidc_auth_helper::get_client_token() })
+                                    );
                                 }
                             }
                             if

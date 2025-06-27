@@ -55,6 +55,22 @@ pub fn get_player_ship(ctx: &DbConnection) -> Option<Ship> {
     ctx.db().ship().sobj_id().find(&get_player_sobj_id(ctx)?)
 }
 
+pub fn get_all_equipped_of_type(
+    ctx: &DbConnection,
+    ship_id: u64,
+    slot_type: EquipmentSlotType
+) -> Vec<ShipEquipmentSlot> {
+    let mut equipment = Vec::new();
+    for slot in ctx.db().ship_equipment_slot().iter() {
+        if slot.ship_id == ship_id {
+            if slot.slot_type == slot_type {
+                equipment.push(slot);
+            }
+        }
+    }
+    equipment
+}
+
 // pub fn get_player_docked_ship(ctx: &DbConnection) -> Option<Ship> {
 //     ctx.db()
 //         .docked_ship()

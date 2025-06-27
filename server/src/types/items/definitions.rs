@@ -1,10 +1,62 @@
 use log::info;
 use spacetimedb::ReducerContext;
-use spacetimedsl::{dsl, DSL};
+use spacetimedsl::{ dsl, DSL };
 
 use super::*;
 
-pub const DEFAULT_MINING_LASER_ID : u32 = 7000;
+pub const SMOD_BASIC_MINING_LASER: u32 = 17_000;
+
+pub const ITEM_RESEARCH_FRAGMENT: u32 = 10_000;
+pub const ITEM_RESEARCH_FRAGMENT_RARE: u32 = 10_001;
+pub const ITEM_RESEARCH_FRAGMENT_EXOTIC: u32 = 10_002;
+
+pub const ITEM_RESEARCH_DEVICE: u32 = 10_000;
+pub const ITEM_RESEARCH_DEVICE_RARE: u32 = 10_001;
+
+pub const ITEM_ENERGY_CELL: u32 = 0_000;
+
+pub const ITEM_ALCOHOL: u32 = 1_002;
+
+pub const ITEM_ICE_ORE: u32 = 2_000;
+pub const ITEM_CARBON_ORE: u32 = 2_001;
+pub const ITEM_IRON_ORE: u32 = 2_002;
+pub const ITEM_SILICON_ORE: u32 = 2_003;
+pub const ITEM_URANIUM_ORE: u32 = 2_004;
+pub const ITEM_VIVEIUM_ORE: u32 = 2_005;
+pub const ITEM_TITANIUM_ORE: u32 = 2_006;
+pub const ITEM_CARBON_RAW: u32 = 2_101;
+pub const ITEM_IRON_INGOT: u32 = 2_102;
+pub const ITEM_SILICON_RAW: u32 = 2_103;
+pub const ITEM_URANIUM_INGOT: u32 = 2_104;
+pub const ITEM_URANIUM_ENRICHED: u32 = 2_114;
+pub const ITEM_VIVEIUM_INGOT: u32 = 2_105;
+pub const ITEM_TITANIUM_INGOT: u32 = 2_106;
+
+pub const ITEM_VIVEIUM_CRYSTAL: u32 = 2_206;
+
+pub const ITEM_HELIUM_GAS: u32 = 2_503;
+pub const ITEM_HYDROGEN_GAS: u32 = 2_504;
+
+pub const ITEM_WATER: u32 = 2_200;
+
+pub const ITEM_BIOMATTER_RAW: u32 = 3_001;
+pub const ITEM_BIOMATTER_REFUSE: u32 = 3_002;
+pub const ITEM_BIOMATTER_RARE: u32 = 3_003;
+
+pub const ITEM_FOOD_RATIONS: u32 = 3_101;
+pub const ITEM_FOOD_AVERAGE: u32 = 3_102;
+pub const ITEM_FOOD_LUXURY: u32 = 3_103;
+
+pub const ITEM_COMPUTER_CHIPS: u32 = 4_000;
+pub const ITEM_COMPUTER_CORE: u32 = 4_001;
+
+pub const ITEM_MODULE_COMPONENTS: u32 = 4_100;
+pub const ITEM_MODULE_COMPONENTS_ADVANCED: u32 = 4_101;
+pub const ITEM_MODULE_COMPONENTS_SHIP: u32 = 4_102;
+pub const ITEM_MODULE_COMPONENTS_WEAPON: u32 = 4_103;
+
+pub const ITEM_METAL_PLATES: u32 = 4_200;
+pub const ITEM_METAL_HULL: u32 = 4_201;
 
 pub const COMPACT_STACK_SIZE: u8 = 64;
 pub const LOOSE_STACK_SIZE: u8 = 32;
@@ -33,9 +85,12 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
 
     // Energy Cells
     dsl.create_item_definition(
-        1000,
+        ITEM_ENERGY_CELL,
         "Energy Cell",
-        Some("Energy Cells are the unified energy storage used throughout the whole known universe. The unification of the energy storage specifications allows for interstellar trading with this most basic of all products.".into()),
+        Some(
+            "Energy Cells are the unified energy storage used throughout the whole known universe. 
+            The unification of the energy storage specifications allows for interstellar trading with this most basic of all products.".into()
+        ),
         ItemCategory::Resource(ResourceCategory::StoredEnergy),
         20,
         1,
@@ -46,9 +101,11 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
 
     // Raw Ore
     dsl.create_item_definition(
-        1001,
+        ITEM_IRON_ORE,
         "Iron Ore",
-        Some("Raw ore from a variety of sources. It's a common mineral that all metal components need.".into()),
+        Some(
+            "Raw ore from a variety of sources. It's a common mineral that all metal components need.".into()
+        ),
         ItemCategory::Resource(ResourceCategory::RawOre),
         100,
         8,
@@ -59,9 +116,11 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
 
     // Silicon Ore
     dsl.create_item_definition(
-        1002,
+        ITEM_SILICON_ORE,
         "Silicon Ore",
-        Some("Silicon ore to be processed. Used to create microchips and other advanced goods.".into()),
+        Some(
+            "Silicon ore to be processed. Used to create microchips and other advanced goods.".into()
+        ),
         ItemCategory::Resource(ResourceCategory::RawOre),
         100,
         8,
@@ -74,7 +133,9 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
     dsl.create_item_definition(
         1003,
         "Space Fuel",
-        Some("Actually a variant of vodka using common supplies found in spaceships to make. It's usually illegal due to its propensity to turn the users blind.".into()),
+        Some(
+            "Actually a variant of vodka using common supplies found in spaceships to make. It's usually illegal due to its propensity to turn the users blind.".into()
+        ),
         ItemCategory::Resource(ResourceCategory::BiomatterProcessedLuxury),
         50,
         1,
@@ -84,7 +145,7 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
     )?;
 
     dsl.create_item_definition(
-        DEFAULT_MINING_LASER_ID,
+        SMOD_BASIC_MINING_LASER,
         "Basic Mining Laser",
         Some("Manufactured by many, functionally the same.".into()),
         ItemCategory::ShipModule(ShipModuleType::MiningLaserBasic),
@@ -94,7 +155,6 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
         vec![MiningSpeedMultiplier(1.0), EnergyConsumption(1.75)],
         None
     )?;
-
 
     Ok(())
 }

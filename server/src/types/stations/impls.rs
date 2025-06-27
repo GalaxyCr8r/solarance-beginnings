@@ -1,6 +1,5 @@
 use super::*;
 
-
 impl StationSize {
     /// How many modules can this szie support?
     pub fn modules(&self) -> u8 {
@@ -15,15 +14,19 @@ impl StationSize {
     }
 
     pub fn base_cost(&self) -> u32 {
-        (self.modules().pow(2)) as u32 * 100_000 + 300_000
+        (self.modules().pow(2) as u32) * 100_000 + 300_000
     }
 
     /// Retooling a space station to a larger size should be possible, but discouraged.
     pub fn upgrade_cost(&self, new_size: StationSize) -> u32 {
-        new_size.base_cost() - self.base_cost() + (new_size.modules() - self.modules()) as u32
+        new_size.base_cost() - self.base_cost() + ((new_size.modules() - self.modules()) as u32)
     }
 
     pub fn base_health(&self) -> u32 {
-        (self.modules().pow(2)) as u32 * 25_000 + 100_000
+        (self.modules().pow(2) as u32) * 25_000 + 100_000
+    }
+
+    pub fn base_shields(&self) -> u32 {
+        (self.modules().pow(2) as u32) * 50_000 + 200_000
     }
 }

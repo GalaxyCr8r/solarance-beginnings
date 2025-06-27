@@ -104,12 +104,8 @@ pub fn player_ship_controller_update_upkeep(
         Some(con) => con,
         None => {
             dsl.delete_player_ship_controller_update_timer_by_scheduled_id(&timer);
-            return Err(
-                format!(
-                    "Failed to find the player's controller! ID:{} Removing timer.",
-                    timer.player
-                )
-            );
+            info!("Failed to find the player's controller! ID:{} Removing timer.", timer.player);
+            return Ok(());
         }
     };
 
@@ -153,12 +149,8 @@ pub fn player_ship_controller_logic_upkeep(
         Some(con) => con,
         None => {
             dsl.delete_player_ship_controller_logic_timer_by_scheduled_id(&timer);
-            return Err(
-                format!(
-                    "Failed to find the player's controller! ID:{} Removing timer.",
-                    timer.player
-                )
-            );
+            info!("Failed to find the player's controller! ID:{} Removing timer.", timer.player);
+            return Ok(());
         }
     };
     let ship_object = dsl

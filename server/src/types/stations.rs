@@ -1,9 +1,9 @@
-use spacetimedb::{table, ReducerContext, SpacetimeType, Timestamp};
+use spacetimedb::{ table, ReducerContext, SpacetimeType, Timestamp };
 use spacetimedsl::*;
 
-use crate::{types::economy::ResourceAmount, *};
+use crate::{ types::economy::ResourceAmount, * };
 
-// pub mod definitions; // Definitions for initial ingested data.
+pub mod definitions; // Definitions for initial ingested data.
 pub mod impls; // Impls for this file's structs
 pub mod modules; // Station modules
 // pub mod reducers; // SpacetimeDB Reducers for this file's structs.
@@ -21,7 +21,7 @@ pub enum StationSize {
     Medium,
     Small,
     Outpost,
-    Satellite
+    Satellite,
 }
 
 #[derive(SpacetimeType, Clone, Debug, PartialEq, Eq)]
@@ -45,10 +45,10 @@ pub enum StationModuleSpecificType {
     CapitalDock,
     Wharf,
     // Resource Production & Refining
-    FarmStandard,         // Produces standard quality biomatter/food
-    FarmLuxury,           // Produces luxury quality biomatter/food
-    RefineryBasicOre,     // e.g., Iron -> Iron Ingots
-    RefineryAdvancedOre,  // e.g., Titanite -> Titanium Ingots
+    FarmStandard, // Produces standard quality biomatter/food
+    FarmLuxury, // Produces luxury quality biomatter/food
+    RefineryBasicOre, // e.g., Iron -> Iron Ingots
+    RefineryAdvancedOre, // e.g., Titanite -> Titanium Ingots
     SolarArray,
     SynthesizerJumpFuel,
     // Manufacturing & Assembly
@@ -96,7 +96,7 @@ pub struct StationModuleBlueprint {
     pub build_time_seconds: u32,
 
     pub power_consumption_mw_operational: f32, // Power needed when active
-    pub power_consumption_mw_idle: f32,    // Power needed when idle
+    pub power_consumption_mw_idle: f32, // Power needed when idle
     pub cpu_load_flops: f32,
 
     pub required_station_tech_level: u8,
@@ -106,7 +106,7 @@ pub struct StationModuleBlueprint {
 
     pub provides_station_morale_boost: Option<i16>, // Base morale if applicable
     pub icon_asset_id: Option<String>,
-    
+
     pub construction_hp: u32, // HP during construction phase
     pub operational_hp: u32, // Max HP when fully built
 }
@@ -148,7 +148,7 @@ pub struct StationModuleInventoryItem {
     #[wrapped(path = StationModuleId)]
     /// FK to StationModule
     pub module_id: u64,
-    
+
     #[index(btree)]
     #[wrapped(path = crate::types::items::ItemDefinitionId)]
     /// FK to ItemDefinition
@@ -187,9 +187,9 @@ pub struct Station {
     pub owner_faction_id: u32,
 
     pub name: String,
-    
+
     // services_offered: Vec<StationServiceType>, // Could be an enum or FKs to service definitions
-    
+
     pub gfx_key: Option<String>,
 }
 
@@ -200,7 +200,7 @@ pub struct StationStatus {
     #[wrapped(path = StationId)]
     /// FK to Station
     pub station_id: u64,
-    
+
     pub health: f32,
     pub shields: f32,
     pub energy: f32,
@@ -210,7 +210,8 @@ pub struct StationStatus {
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init(_ctx: &ReducerContext) -> Result<(), String> {
+pub fn init(ctx: &ReducerContext) -> Result<(), String> {
+    definitions::init(ctx);
 
     Ok(())
 }

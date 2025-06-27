@@ -77,7 +77,7 @@ pub fn create_player_controlled_ship(
             &ship.get_id(),
             EquipmentSlotType::MiningLaser,
             0,
-            ItemDefinitionId::new(DEFAULT_MINING_LASER_ID)
+            ItemDefinitionId::new(SMOD_BASIC_MINING_LASER)
         )?;
 
         info!("Successfully created ship!");
