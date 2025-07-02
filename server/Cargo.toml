@@ -3,7 +3,7 @@ name = "solarance-spacetime-module"
 description = "A Server for Top-Down 2D Living Universe Sci-Fi Space MMO"
 homepage = "http://www.solarance-beginnings.com/"
 repository = "https://github.com/GalaxyCr8r/solarance-beginnings"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["Karl Nyborg"]
 

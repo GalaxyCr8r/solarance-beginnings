@@ -81,7 +81,7 @@ pub enum StationModuleSpecificType {
 #[table(name = station_module_blueprint, public)]
 pub struct StationModuleBlueprint {
     #[primary_key]
-    #[auto_inc]
+    #[wrap]
     pub id: u32,
 
     #[unique]
@@ -102,7 +102,7 @@ pub struct StationModuleBlueprint {
     pub required_station_tech_level: u8,
 
     pub max_internal_storage_slots: u16, // Number of distinct item types it can hold
-    pub max_internal_storage_volume_per_slot_m3: Option<f32>, // Volume per slot
+    pub max_internal_storage_volume_per_slot_m3: Option<u32>, // Volume per slot
 
     pub provides_station_morale_boost: Option<i16>, // Base morale if applicable
     pub icon_asset_id: Option<String>,
@@ -125,15 +125,39 @@ pub struct StationModule {
     pub station_id: u64,
 
     /// FK to StationModuleBlueprint
-    pub blueprint_id: u32,
+    #[index(btree)]
+    #[wrapped(path = StationModuleBlueprintId)]
+    pub blueprint: u32,
 
     pub station_slot_identifier: String, // e.g., "HabitatRing-A-Slot3", "Core-Power-Slot1"
-    pub current_hp: u32,
     pub is_operational: bool,
-    pub construction_progress_percentage: f32, // 0.0 to 100.0, 100.0 means built
 
     pub built_at_timestamp: Option<Timestamp>,
     pub last_status_update_timestamp: Timestamp,
+}
+
+#[dsl(plural_name = stations_under_construction)]
+#[table(name = station_under_construction, public)]
+pub struct StationUnderConstruction {
+    #[primary_key]
+    #[wrapped(path = StationId)]
+    /// FK to SpaceStation
+    pub station_id: u64,
+
+    pub is_operational: bool,
+    pub construction_progress_percentage: f32,
+}
+
+#[dsl(plural_name = station_modules_under_construction)]
+#[table(name = station_module_under_construction, public)]
+pub struct StationModuleUnderConstruction {
+    #[primary_key]
+    #[wrapped(path = StationId)]
+    /// FK to SpaceStation
+    pub station_id: u64,
+
+    pub is_operational: bool,
+    pub construction_progress_percentage: f32,
 }
 
 /// Stores items used for a module's operation or as temporary input/output buffers.
@@ -155,6 +179,7 @@ pub struct StationModuleInventoryItem {
     pub resource_item_id: u32,
 
     pub quantity: u32,
+    pub max_quantity: u32,
 
     /// Describes the purpose, e.g., "InputBuffer", "OutputBuffer", "OperationalFuel", "Ammunition"
     pub storage_purpose_tag: String,

@@ -1,5 +1,18 @@
 use super::*;
-use crate::factions::FactionId;
+use crate::{
+    factions::FactionId,
+    types::items::{
+        definitions::{
+            ITEM_ICE_ORE,
+            ITEM_IRON_INGOT,
+            ITEM_IRON_ORE,
+            ITEM_SILICON_ORE,
+            ITEM_SILICON_RAW,
+            ITEM_WATER,
+        },
+        ItemDefinitionId,
+    },
+};
 
 #[dsl(plural_name = trading_port_modules)]
 #[table(name = trading_port_module, public)]
@@ -26,7 +39,7 @@ pub struct TradingPortListing {
     /// FK to StationModuleInstance (must be a TradingPort)
     pub trading_port_module_id: u64,
 
-    #[index(btree)]    
+    #[index(btree)]
     #[wrapped(path = crate::types::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub item_id: u32,
@@ -116,7 +129,7 @@ pub struct Farm {
     #[primary_key]
     #[wrapped(path = StationModuleId)]
     /// FK to StationModule
-    pub id: u64, 
+    pub id: u64,
 
     /// Defined by the StationModuleBlueprint.specific_type (e.g., LuxuryFoodFarm produces Luxury Food)
     /// FK to ResourceDefinition (e.g., "Luxury Food", "Standard Wood")
@@ -148,12 +161,12 @@ pub struct Observatory {
     #[primary_key]
     #[wrapped(path = StationModuleId)]
     /// FK to StationModule
-    pub id: u64, 
+    pub id: u64,
 
     pub base_research_points_per_hour: u32,
     /// Efficiency based on sector type (nebula, anomaly) and module upgrades.
     pub current_efficiency_modifier: f32, // Default 1.0
-    
+
     /// Input resource ID (e.g., "Advanced Sensor Crystal")
     #[wrapped(path = crate::types::items::ItemDefinitionId)]
     /// FK to ItemDefinition
@@ -170,10 +183,11 @@ pub struct Observatory {
 #[table(name = refinery_module, public)]
 pub struct Refinery {
     #[primary_key]
+    #[auto_inc]
     #[wrapped(path = StationModuleId)]
     /// FK to StationModule
-    pub id: u64, 
-    
+    pub id: u64,
+
     #[wrapped(path = crate::types::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub input_ore_resource_id: u32, // FK to ResourceDefinition
@@ -182,10 +196,127 @@ pub struct Refinery {
     /// FK to ItemDefinition
     pub output_ingot_resource_id: u32, // FK to ResourceDefinition
 
+    #[wrapped(path = crate::types::items::ItemDefinitionId)]
+    /// FK to ItemDefinition
+    pub waste_resource_id: Option<u32>, // FK to ResourceDefinition
+
     /// How many units of ore to make 1 unit of ingot.
     pub ore_to_ingot_ratio: f32,
+    /// How many units of waste are produced to make 1 unit of ingot.
+    pub waste_per_ingot_ratio: f32,
+
     pub base_ingots_produced_per_hour: f32,
     pub current_efficiency_modifier: f32, // Default 1.0
+}
+
+pub fn create_basic_refinery(
+    ctx: &ReducerContext,
+    station: &Station,
+    under_construction: bool
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
+    //
+    if under_construction {
+        return Err("Not yet implemented".to_string());
+    }
+
+    let blueprint = dsl
+        .get_station_module_blueprint_by_id(
+            StationModuleBlueprintId::new(definitions::MODULE_REFINERY_MINOR)
+        )
+        .ok_or("Couldn't find blueprint. Did a module blueprint ID change?")?;
+
+    let module = dsl.create_station_module(
+        station.get_id(),
+        blueprint.get_id(),
+        "refinery", // TODO: Do we even need this field?
+        true,
+        None,
+        ctx.timestamp
+    )?;
+
+    /// Ice Submodule
+    let ice_ref = dsl.create_refinery_module(
+        ItemDefinitionId::new(ITEM_ICE_ORE),
+        ItemDefinitionId::new(ITEM_WATER),
+        None,
+        10.0,
+        0.0,
+        30.0,
+        1.0
+    )?;
+
+    dsl.create_station_module_inventory_item(
+        module.get_id(),
+        ItemDefinitionId::new(ITEM_ICE_ORE),
+        0,
+        blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
+        format!("{};{};input", module.id, ice_ref.id).as_str()
+    )?;
+
+    dsl.create_station_module_inventory_item(
+        module.get_id(),
+        ItemDefinitionId::new(ITEM_WATER),
+        0,
+        blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
+        format!("{};{};output", module.id, ice_ref.id).as_str()
+    )?;
+
+    /// Iron Submodule
+    let iron_ref = dsl.create_refinery_module(
+        ItemDefinitionId::new(ITEM_IRON_ORE),
+        ItemDefinitionId::new(ITEM_IRON_INGOT),
+        None,
+        10.0,
+        0.0,
+        30.0,
+        1.0
+    )?;
+
+    dsl.create_station_module_inventory_item(
+        module.get_id(),
+        ItemDefinitionId::new(ITEM_IRON_ORE),
+        0,
+        blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
+        format!("{};{};input", module.id, iron_ref.id).as_str()
+    )?;
+
+    dsl.create_station_module_inventory_item(
+        module.get_id(),
+        ItemDefinitionId::new(ITEM_IRON_INGOT),
+        0,
+        blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
+        format!("{};{};output", module.id, iron_ref.id).as_str()
+    )?;
+
+    /// Silicon Submodule
+    let silicon_ref = dsl.create_refinery_module(
+        ItemDefinitionId::new(ITEM_SILICON_ORE),
+        ItemDefinitionId::new(ITEM_SILICON_RAW),
+        None,
+        10.0,
+        0.0,
+        30.0,
+        1.0
+    )?;
+
+    dsl.create_station_module_inventory_item(
+        module.get_id(),
+        ItemDefinitionId::new(ITEM_SILICON_ORE),
+        0,
+        blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
+        format!("{};{};input", module.id, silicon_ref.id).as_str()
+    )?;
+
+    dsl.create_station_module_inventory_item(
+        module.get_id(),
+        ItemDefinitionId::new(ITEM_SILICON_RAW),
+        0,
+        blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
+        format!("{};{};output", module.id, silicon_ref.id).as_str()
+    )?;
+
+    Ok(())
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -196,8 +327,8 @@ pub struct SolarArray {
     #[primary_key]
     #[wrapped(path = StationModuleId)]
     /// FK to StationModule
-    pub id: u64, 
-    
+    pub id: u64,
+
     #[wrapped(path = crate::types::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub output_energy_cell_resource_id: u32, // FK to ResourceDefinition
@@ -215,8 +346,8 @@ pub struct Synthesizer {
     #[primary_key]
     #[wrapped(path = StationModuleId)]
     /// FK to StationModule
-    pub id: u64, 
-    
+    pub id: u64,
+
     #[wrapped(path = crate::types::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub input_exotic_matter_resource_id: u32,
@@ -224,7 +355,7 @@ pub struct Synthesizer {
     #[wrapped(path = crate::types::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub input_gas_resource_id: u32,
-    
+
     #[wrapped(path = crate::types::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub output_jump_fuel_resource_id: u32,
@@ -252,7 +383,7 @@ pub struct ProductionRecipeDefinition {
     #[wrapped(path = crate::types::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub output_resource_id: u32, // FK to ResourceDefinition
-    
+
     pub output_quantity: u32,
     pub base_production_time_seconds: u32,
     /// Which type of module can use this recipe (e.g., Factory, Assembler)
@@ -267,12 +398,12 @@ pub struct Manufacturing {
     #[primary_key]
     #[wrapped(path = StationModuleId)]
     /// FK to StationModule
-    pub id: u64, 
+    pub id: u64,
 
     #[wrapped(path = ProductionRecipeDefinitionId)]
     /// The recipe this specific module instance is currently configured to produce. FK to ProductionRecipeDefinition
     pub current_recipe_id: Option<u32>,
-    
+
     pub is_producing: bool,
     pub production_queue_count: u32, // Number of items queued for production
     pub current_production_progress_seconds: f32,
@@ -288,7 +419,7 @@ pub struct Laboratory {
     #[primary_key]
     #[wrapped(path = StationModuleId)]
     /// FK to StationModule
-    pub id: u64, 
+    pub id: u64,
 
     pub base_research_points_per_hour: u32,
 
@@ -306,14 +437,14 @@ pub struct Laboratory {
 }
 
 //////////////////////////////////////////////////////////////////////
-/// 
+///
 #[dsl(plural_name = capital_dock_modules)]
 #[table(name = capital_dock_module, public)]
 pub struct CapitalDock {
     #[primary_key]
     #[wrapped(path = StationModuleId)]
     /// FK to StationModule
-    pub id: u64, 
+    pub id: u64,
 
     pub max_capital_ship_capacity: u8, // e.g., 10
 }
@@ -341,15 +472,15 @@ pub struct AntiCapitalTurret {
     #[primary_key]
     #[wrapped(path = StationModuleId)]
     /// FK to StationModule
-    pub id: u64, 
+    pub id: u64,
 
     /// FK to a ShipModuleBlueprint that defines the weapon's stats (damage, range, fire rate)
     #[wrapped(path = crate::types::items::ItemDefinitionId)]
     pub weapon_core_blueprint_id: u32,
-    
+
     #[wrapped(path = ships::ShipGlobalId)]
     pub current_target_ship_id: Option<u64>, // FK to ShipInstance
-    
+
     pub can_launch_fighters: bool,
     pub fighter_capacity: Option<u8>,
     // Fighters stored here would be ShipInstances linked to this module, perhaps in a `DockedShipAtModule` table.
@@ -364,7 +495,7 @@ pub struct Residential {
     #[primary_key]
     #[wrapped(path = StationModuleId)]
     /// FK to StationModule
-    pub id: u64, 
+    pub id: u64,
 
     /// Base max occupancy from blueprint, actual can be affected by upgrades/morale.
     pub base_max_occupancy: u32,
@@ -422,7 +553,7 @@ pub struct Hospital {
     #[primary_key]
     #[wrapped(path = StationModuleId)]
     /// FK to StationModule
-    pub id: u64, 
+    pub id: u64,
 
     pub medical_bay_capacity: u16, // Max players/NPCs that can be treated simultaneously
     pub healing_effectiveness_modifier: f32, // Base 1.0, affected by upgrades/staff

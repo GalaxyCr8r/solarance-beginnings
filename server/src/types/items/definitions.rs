@@ -14,6 +14,8 @@ pub const ITEM_RESEARCH_DEVICE: u32 = 10_000;
 pub const ITEM_RESEARCH_DEVICE_RARE: u32 = 10_001;
 
 pub const ITEM_ENERGY_CELL: u32 = 0_000;
+pub const ITEM_COMPRESSED_HYDROGEN: u32 = 0_010;
+pub const ITEM_JUMPDRIVE_FUEL: u32 = 0_050;
 
 pub const ITEM_ALCOHOL: u32 = 1_002;
 
@@ -24,6 +26,7 @@ pub const ITEM_SILICON_ORE: u32 = 2_003;
 pub const ITEM_URANIUM_ORE: u32 = 2_004;
 pub const ITEM_VIVEIUM_ORE: u32 = 2_005;
 pub const ITEM_TITANIUM_ORE: u32 = 2_006;
+
 pub const ITEM_CARBON_RAW: u32 = 2_101;
 pub const ITEM_IRON_INGOT: u32 = 2_102;
 pub const ITEM_SILICON_RAW: u32 = 2_103;
@@ -58,6 +61,7 @@ pub const ITEM_MODULE_COMPONENTS_WEAPON: u32 = 4_103;
 pub const ITEM_METAL_PLATES: u32 = 4_200;
 pub const ITEM_METAL_HULL: u32 = 4_201;
 
+// Stack Sizes
 pub const COMPACT_STACK_SIZE: u8 = 64;
 pub const LOOSE_STACK_SIZE: u8 = 32;
 pub const LARGE_STACK_SIZE: u8 = 16;
@@ -83,6 +87,10 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
     use ItemMetadata::*;
 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    // ENERGY
+    let mut current_category = ItemCategory::Resource(ResourceCategory::StoredEnergy);
+
     // Energy Cells
     dsl.create_item_definition(
         ITEM_ENERGY_CELL,
@@ -91,7 +99,7 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
             "Energy Cells are the unified energy storage used throughout the whole known universe. 
             The unification of the energy storage specifications allows for interstellar trading with this most basic of all products.".into()
         ),
-        ItemCategory::Resource(ResourceCategory::StoredEnergy),
+        current_category,
         20,
         1,
         COMPACT_STACK_SIZE,
@@ -99,14 +107,29 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
         None
     )?;
 
-    // Raw Ore
+    ///////////////////////////////////////////////////////////////////////////////////////
+    // ORES
+    current_category = ItemCategory::Resource(ResourceCategory::RawOre);
+
+    dsl.create_item_definition(
+        ITEM_ICE_ORE,
+        "Ice Ore",
+        Some("Raw ice mined from an asteroid. Needs to be melted and filtered.".into()),
+        current_category.clone(),
+        50,
+        8,
+        LOOSE_STACK_SIZE,
+        vec![],
+        None
+    )?;
+
     dsl.create_item_definition(
         ITEM_IRON_ORE,
         "Iron Ore",
         Some(
             "Raw ore from a variety of sources. It's a common mineral that all metal components need.".into()
         ),
-        ItemCategory::Resource(ResourceCategory::RawOre),
+        current_category.clone(),
         100,
         8,
         LOOSE_STACK_SIZE,
@@ -114,20 +137,77 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
         None
     )?;
 
-    // Silicon Ore
     dsl.create_item_definition(
         ITEM_SILICON_ORE,
         "Silicon Ore",
         Some(
             "Silicon ore to be processed. Used to create microchips and other advanced goods.".into()
         ),
-        ItemCategory::Resource(ResourceCategory::RawOre),
+        current_category.clone(),
         100,
         8,
         LOOSE_STACK_SIZE,
         vec![],
         None
     )?;
+
+    ///////////////////////////////////////////////////////////////////////////////////////
+    // RAW BIOMATTER
+    current_category = ItemCategory::Resource(ResourceCategory::BiomatterRaw);
+
+    dsl.create_item_definition(
+        ITEM_WATER,
+        "Water Barrel",
+        Some("A barrel of clean drinkable water.".into()),
+        current_category.clone(),
+        75,
+        8,
+        LOOSE_STACK_SIZE,
+        vec![],
+        None
+    )?;
+
+    dsl.create_item_definition(
+        ITEM_BIOMATTER_REFUSE,
+        "Biomatter Waste",
+        Some("Decomposing plant/food waste, recycling organic materials, or manure.".into()),
+        current_category.clone(),
+        105,
+        8,
+        LOOSE_STACK_SIZE,
+        vec![],
+        None
+    )?;
+
+    dsl.create_item_definition(
+        ITEM_BIOMATTER_RAW,
+        "Compost",
+        Some(
+            "Compost is a mixture of ingredients used as plant fertilizer and to improve soil's physical, chemical, and biological properties. It is commonly prepared by decomposing plant and food waste, recycling organic materials, and manure.".into()
+        ),
+        current_category.clone(),
+        275,
+        8,
+        LOOSE_STACK_SIZE,
+        vec![],
+        None
+    )?;
+
+    ///////////////////////////////////////////////////////////////////////////////////////
+    // ?
+    current_category = ItemCategory::Resource(ResourceCategory::RefinedIngot);
+
+    ///////////////////////////////////////////////////////////////////////////////////////
+    // ?
+    current_category = ItemCategory::Resource(ResourceCategory::RawOre);
+
+    ///////////////////////////////////////////////////////////////////////////////////////
+    // ?
+    current_category = ItemCategory::Resource(ResourceCategory::RawOre);
+
+    ///////////////////////////////////////////////////////////////////////////////////////
+    // BiomatterProcessedLuxury
+    current_category = ItemCategory::Resource(ResourceCategory::BiomatterProcessedLuxury);
 
     // Space "Fuel"
     dsl.create_item_definition(
@@ -136,13 +216,16 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
         Some(
             "Actually a variant of vodka using common supplies found in spaceships to make. It's usually illegal due to its propensity to turn the users blind.".into()
         ),
-        ItemCategory::Resource(ResourceCategory::BiomatterProcessedLuxury),
+        current_category.clone(),
         50,
         1,
         COMPACT_STACK_SIZE,
         vec![],
         None
     )?;
+
+    ///////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////
 
     dsl.create_item_definition(
         SMOD_BASIC_MINING_LASER,

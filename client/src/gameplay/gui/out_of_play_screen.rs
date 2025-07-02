@@ -13,25 +13,25 @@ use crate::{
     stdb::utils::*,
 };
 
-#[derive(PartialEq)]
-enum CurrentTab {
-    Ship,
-    Cargo,
-    Equipment,
-}
+// #[derive(PartialEq)]
+// enum CurrentTab {
+//     Ship,
+//     Cargo,
+//     Equipment,
+// }
 
 //#[derive(Default)]
 pub struct State {
-    current_tab: CurrentTab, // = CurrentTab::Ship
-    current_equipment_tab: EquipmentSlotType,
+    // current_tab: CurrentTab, // = CurrentTab::Ship
+    // current_equipment_tab: EquipmentSlotType,
+    currently_selected_module: Option<(u8, StationModule, StationModuleBlueprint)>,
     selected_ship: Option<DockedShip>,
 }
 
 impl State {
     pub fn new() -> Self {
         State {
-            current_tab: CurrentTab::Ship,
-            current_equipment_tab: EquipmentSlotType::Weapon,
+            currently_selected_module: None,
             selected_ship: None,
         }
     }
@@ -42,78 +42,138 @@ pub fn draw(
     ctx: &DbConnection,
     game_state: &mut GameState
 ) -> egui::InnerResponse<()> {
-    egui::CentralPanel::default().show(egui_ctx, |ui| {
-        egui::SidePanel
-            ::left("left_panel")
-            .resizable(true)
-            .default_width(150.0)
-            .width_range(Rangef::new(80.0, screen_width() / 5.0))
-            .show_inside(ui, |ui| {
-                left_panel(ui, ctx, game_state);
-            });
-
-        egui::TopBottomPanel
-            ::bottom("bottom_chat")
-            .resizable(false)
-            .min_height(150.0)
-            .max_height(screen_height() / 5.0)
-            .show_inside(ui, |ui| {
-                super::chat_widget::draw_panel(ui, ctx, &mut game_state.chat_window)
-            });
-
-        egui::CentralPanel
-            ::default()
-            .frame(
-                Frame::group(&egui_ctx.style())
-                    .fill(Color32::from_rgb(15, 15, 15))
-                    .multiply_with_opacity(0.75)
-                    .shadow(Shadow::NONE)
-            )
-            .show_inside(ui, |ui| {
-                ui.vertical_centered(|ui| {
-                    ui.heading("Station Panel");
+    egui::CentralPanel
+        ::default()
+        .frame(
+            Frame::group(&egui_ctx.style())
+                .fill(Color32::from_rgb(0, 5, 10))
+                .multiply_with_opacity(0.75)
+                .shadow(Shadow::NONE)
+        )
+        .show(egui_ctx, |ui| {
+            egui::SidePanel
+                ::left("left_panel")
+                .resizable(true)
+                .default_width(320.0)
+                .width_range(Rangef::new(150.0, 400.0))
+                .show_inside(ui, |ui| {
+                    left_panel(ui, ctx, game_state);
                 });
-                if let Some(ship) = game_state.out_of_play_screen.selected_ship.clone() {
-                    if let Some(station) = ctx.db().station().id().find(&ship.station_id) {
-                        ui.heading(format!("Station: {}", station.name));
-                        for (index, module) in ctx
-                            .db()
-                            .station_module()
-                            .iter()
-                            .filter(|sm| sm.station_id == station.id)
-                            .enumerate() {
-                            if
-                                let Some(blueprint) = ctx
-                                    .db()
-                                    .station_module_blueprint()
-                                    .id()
-                                    .find(&module.blueprint_id)
-                            {
-                                ui.label(format!("Module #{}: {}", index, blueprint.name));
-                            } else {
-                                ui.label(format!("Module #{}: Unknown type", index));
-                            }
-                        }
-                        //
+
+            egui::TopBottomPanel
+                ::bottom("bottom_chat")
+                .resizable(false)
+                .min_height(150.0)
+                .max_height(screen_height() / 5.0)
+                .show_inside(ui, |ui| {
+                    super::chat_widget::draw_panel(ui, ctx, &mut game_state.chat_window)
+                });
+
+            if game_state.out_of_play_screen.selected_ship.is_some() {
+                if let Some(docked_ship) = game_state.out_of_play_screen.selected_ship.clone() {
+                    if let Some(station) = ctx.db().station().id().find(&docked_ship.station_id) {
+                        show_station_window(egui_ctx, ctx, game_state, docked_ship, station);
                     }
                 }
-                egui::ScrollArea::vertical().show(ui, |ui| {
-                    ui.label(
-                        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
-                    );
+            }
+
+            egui::TopBottomPanel
+                ::bottom("bottom_panel")
+                .resizable(false)
+                .min_height(0.0)
+                .show_inside(ui, |ui| {
+                    ui.vertical_centered(|ui| {
+                        ui.heading("Bottom Panel");
+                    });
                 });
+        })
+}
+
+fn show_station_window(
+    egui_ctx: &Context,
+    ctx: &DbConnection,
+    game_state: &mut GameState<'_>,
+    docked_ship: DockedShip,
+    station: Station
+) {
+    egui::Window
+        ::new(format!("{} Station - Docked Ship ID {}", station.name, docked_ship.id))
+        .title_bar(true)
+        .resizable(true)
+        .collapsible(true)
+        .movable(true)
+        .vscroll(true)
+        .frame(
+            Frame::group(&egui_ctx.style())
+                .fill(Color32::from_rgb(0, 5, 10))
+                .multiply_with_opacity(0.75)
+        )
+        .show(egui_ctx, |ui| {
+            ui.vertical_centered(|ui| {
+                ui.heading("Station Panel");
             });
 
-        egui::TopBottomPanel
-            ::bottom("bottom_panel")
-            .resizable(false)
-            .min_height(0.0)
-            .show_inside(ui, |ui| {
-                ui.vertical_centered(|ui| {
-                    ui.heading("Bottom Panel");
-                });
+            // Show tabs for each
+            for (index, module) in ctx
+                .db()
+                .station_module()
+                .iter()
+                .filter(|sm| sm.station_id == station.id)
+                .enumerate() {
+                if
+                    let Some(blueprint) = ctx
+                        .db()
+                        .station_module_blueprint()
+                        .id()
+                        .find(&module.blueprint_id)
+                {
+                    // Check if this is module is selected
+                    let mut selected = false;
+                    if
+                        let Some((selected_index, _, _)) =
+                            game_state.out_of_play_screen.currently_selected_module
+                    {
+                        selected = (index as u8) == selected_index;
+                    }
+
+                    //
+                    if
+                        ui
+                            .selectable_label(
+                                selected,
+                                format!(
+                                    "Module #{} {:?}-type: {}",
+                                    index,
+                                    blueprint.category,
+                                    blueprint.name
+                                )
+                            )
+                            .clicked()
+                    {
+                        game_state.out_of_play_screen.currently_selected_module = Some((
+                            index as u8,
+                            module.clone(),
+                            blueprint.clone(),
+                        ));
+                    }
+                } else {
+                    ui.label(format!("Module #{}: Unknown type", index));
+                }
+            }
+            //
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                if
+                    let Some((index, module, blueprint)) =
+                        game_state.out_of_play_screen.currently_selected_module.clone()
+                {
+                    ui.heading(format!("Station Module #{}: {}", index, blueprint.name));
+                }
+
+                // ui.label(
+                //     "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+                // );
             });
-    })
+        });
 }
 
 fn left_panel(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {

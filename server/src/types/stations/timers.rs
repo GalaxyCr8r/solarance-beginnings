@@ -47,21 +47,25 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 #[spacetimedb::reducer]
 pub fn process_station_production_tick(
     ctx: &ReducerContext,
-    timer: StationProductionSchedule,
+    timer: StationProductionSchedule
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
     // Iterate through each station's modules.
     let station = dsl.get_station_by_id(timer.get_station_id()).unwrap();
     for module in dsl.get_station_modules_by_station_id(timer.get_station_id()) {
-        let wrapped_blueprint = dsl.get_station_module_blueprint_by_id(&module.blueprint_id);
+        let wrapped_blueprint = dsl.get_station_module_blueprint_by_id(&module.get_blueprint());
         if wrapped_blueprint.is_none() {
-            info!("WARNING Station Module Blueprint #{} does not exist. Station #{} is looking for it.", module.blueprint_id, timer.station_id);
+            info!(
+                "WARNING Station Module Blueprint #{} does not exist. Station #{} is looking for it.",
+                module.blueprint,
+                timer.station_id
+            );
             continue;
         }
         let blueprint = wrapped_blueprint.unwrap();
 
-        match blueprint.category {
+        (match blueprint.category {
             StationModuleCategory::LogisticsAndStorage => {
                 update_logistics_and_storage(ctx, &station, &module, &blueprint)
             }
@@ -83,7 +87,7 @@ pub fn process_station_production_tick(
             StationModuleCategory::DefenseAndMilitary => {
                 update_defense_and_military(ctx, &station, &module, &blueprint)
             }
-        }?
+        })?;
     }
 
     Err("Not implemented".to_string())
@@ -92,7 +96,7 @@ pub fn process_station_production_tick(
 #[spacetimedb::reducer]
 pub fn process_station_status_tick(
     ctx: &ReducerContext,
-    _timer: StationStatusSchedule,
+    _timer: StationStatusSchedule
 ) -> Result<(), String> {
     let _dsl = dsl(ctx);
 

@@ -1,5 +1,4 @@
-use spacetimedb::{ReducerContext, SpacetimeType};
-
+use spacetimedb::{ ReducerContext, SpacetimeType };
 
 // pub mod definitions; // Definitions for initial ingested data.
 // pub mod impls; // Impls for this file's structs
@@ -32,6 +31,12 @@ pub struct ResourceAmount {
     pub quantity: u32,
 }
 
+impl ResourceAmount {
+    pub fn new(resource_item_id: u32, quantity: u32) -> Self {
+        ResourceAmount { resource_item_id, quantity }
+    }
+}
+
 impl PartialEq for ResourceAmount {
     fn eq(&self, other: &Self) -> bool {
         self.resource_item_id == other.resource_item_id && self.quantity == other.quantity
@@ -43,6 +48,5 @@ impl PartialEq for ResourceAmount {
 //////////////////////////////////////////////////////////////
 
 pub fn init(_ctx: &ReducerContext) -> Result<(), String> {
-
     Ok(())
 }
