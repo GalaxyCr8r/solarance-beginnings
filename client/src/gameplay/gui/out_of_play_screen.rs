@@ -125,7 +125,7 @@ fn show_station_window(
                         .db()
                         .station_module_blueprint()
                         .id()
-                        .find(&module.blueprint_id)
+                        .find(&module.blueprint)
                 {
                     // Check if this is module is selected
                     let mut selected = false;

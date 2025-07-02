@@ -166,7 +166,8 @@ pub struct StationModuleUnderConstruction {
 pub struct StationModuleInventoryItem {
     #[primary_key]
     #[auto_inc]
-    pub inventory_item_id: u64,
+    #[wrap]
+    pub id: u64,
 
     #[index(btree)]
     #[wrapped(path = StationModuleId)]
@@ -236,7 +237,7 @@ pub struct StationStatus {
 //////////////////////////////////////////////////////////////
 
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
-    definitions::init(ctx);
+    definitions::init(ctx)?;
 
     Ok(())
 }

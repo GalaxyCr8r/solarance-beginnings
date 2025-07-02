@@ -32,31 +32,89 @@ pub struct TradingPort {
 #[table(name = trading_port_listing, public)]
 pub struct TradingPortListing {
     #[primary_key]
-    #[auto_inc]
-    pub listing_id: u64,
+    // #[auto_inc]
+    // pub listing_id: u64,
 
-    #[index(btree)]
-    /// FK to StationModuleInstance (must be a TradingPort)
-    pub trading_port_module_id: u64,
+    // #[index(btree)]
+    // #[wrapped(path = StationModuleId)]
+    // /// FK to StationModuleInstance (must be a TradingPort)
+    // pub trading_port_module_id: u64,
 
-    #[index(btree)]
-    #[wrapped(path = crate::types::items::ItemDefinitionId)]
-    /// FK to ItemDefinition
-    pub item_id: u32,
+    // #[index(btree)]
+    #[wrapped(path = StationModuleInventoryItemId)]
+    /// FK to StationModuleInventoryItem
+    pub station_inventory_item_id: u64,
 
-    /// True if the port is buying this resource, false if selling.
-    pub port_is_buying: bool,
+    // #[index(btree)]
+    // #[wrapped(path = crate::types::items::ItemDefinitionId)]
+    // /// FK to ItemDefinition
+    // pub item_id: u32,
 
-    /// Current stock if the port is selling.
-    pub current_sell_stock: Option<u32>,
-    /// How much the port wants to buy, if buying.
-    pub current_buy_demand: Option<u32>,
-    /// Base price, can be adjusted by supply/demand logic.
-    pub base_price_per_unit: u64,
+    /// None if the port is not buying, Some percentage of how much margin the port want below base price.
+    pub buying_margin: Option<f32>,
+    /// None if the port is not selling, Some percentage of how much margin the port want above base price.
+    pub selling_margin: Option<f32>,
 
-    /// Optional current price, calculated by a reducer based on stock, demand, faction standing etc.
-    pub current_calculated_price_per_unit: Option<u64>,
-    pub last_price_update_timestamp: Timestamp,
+    // /// Optional current price, calculated by a reducer based on stock, demand, faction standing etc.
+    // pub current_calculated_price_per_unit: Option<u64>,
+    // pub last_price_update_timestamp: Timestamp,
+}
+
+pub fn create_basic_bazaar(
+    ctx: &ReducerContext,
+    station: &Station,
+    under_construction: bool
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
+    //
+    if under_construction {
+        return Err("Not yet implemented".to_string());
+    }
+
+    let blueprint = dsl
+        .get_station_module_blueprint_by_id(
+            StationModuleBlueprintId::new(definitions::MODULE_TRADING_BAZAAR)
+        )
+        .ok_or("Couldn't find blueprint. Did a module blueprint ID change?")?;
+
+    let module = dsl.create_station_module(
+        station.get_id(),
+        blueprint.get_id(),
+        "bazaar", // TODO: Do we even need this field?
+        true,
+        None,
+        ctx.timestamp
+    )?;
+
+    // Create trading port listings for ITEM_ICE_ORE, ITEM_IRON_ORE, ITEM_SILICON_ORE
+    let mut item = dsl.create_station_module_inventory_item(
+        module.get_id(),
+        ItemDefinitionId::new(ITEM_ICE_ORE),
+        10,
+        blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
+        format!("{};{};trading", module.id, ITEM_ICE_ORE).as_str()
+    )?;
+    dsl.create_trading_port_listing(item.get_id(), Some(0.8), None)?;
+
+    item = dsl.create_station_module_inventory_item(
+        module.get_id(),
+        ItemDefinitionId::new(ITEM_IRON_ORE),
+        20,
+        blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
+        format!("{};{};trading", module.id, ITEM_IRON_ORE).as_str()
+    )?;
+    dsl.create_trading_port_listing(item.get_id(), Some(0.8), None)?;
+
+    item = dsl.create_station_module_inventory_item(
+        module.get_id(),
+        ItemDefinitionId::new(ITEM_SILICON_ORE),
+        40,
+        blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
+        format!("{};{};trading", module.id, ITEM_SILICON_ORE).as_str()
+    )?;
+    dsl.create_trading_port_listing(item.get_id(), Some(0.8), None)?;
+
+    Ok(())
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -183,7 +241,6 @@ pub struct Observatory {
 #[table(name = refinery_module, public)]
 pub struct Refinery {
     #[primary_key]
-    #[auto_inc]
     #[wrapped(path = StationModuleId)]
     /// FK to StationModule
     pub id: u64,
@@ -235,35 +292,37 @@ pub fn create_basic_refinery(
         ctx.timestamp
     )?;
 
-    /// Ice Submodule
-    let ice_ref = dsl.create_refinery_module(
-        ItemDefinitionId::new(ITEM_ICE_ORE),
-        ItemDefinitionId::new(ITEM_WATER),
-        None,
-        10.0,
-        0.0,
-        30.0,
-        1.0
-    )?;
+    // /// Ice Submodule
+    // let ice_ref = dsl.create_refinery_module(
+    //     module.get_id(),
+    //     ItemDefinitionId::new(ITEM_ICE_ORE),
+    //     ItemDefinitionId::new(ITEM_WATER),
+    //     None,
+    //     10.0,
+    //     0.0,
+    //     30.0,
+    //     1.0
+    // )?;
 
-    dsl.create_station_module_inventory_item(
-        module.get_id(),
-        ItemDefinitionId::new(ITEM_ICE_ORE),
-        0,
-        blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
-        format!("{};{};input", module.id, ice_ref.id).as_str()
-    )?;
+    // dsl.create_station_module_inventory_item(
+    //     module.get_id(),
+    //     ItemDefinitionId::new(ITEM_ICE_ORE),
+    //     0,
+    //     blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
+    //     format!("{};{};input", module.id, ice_ref.id).as_str()
+    // )?;
 
-    dsl.create_station_module_inventory_item(
-        module.get_id(),
-        ItemDefinitionId::new(ITEM_WATER),
-        0,
-        blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
-        format!("{};{};output", module.id, ice_ref.id).as_str()
-    )?;
+    // dsl.create_station_module_inventory_item(
+    //     module.get_id(),
+    //     ItemDefinitionId::new(ITEM_WATER),
+    //     0,
+    //     blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
+    //     format!("{};{};output", module.id, ice_ref.id).as_str()
+    // )?;
 
     /// Iron Submodule
     let iron_ref = dsl.create_refinery_module(
+        module.get_id(),
         ItemDefinitionId::new(ITEM_IRON_ORE),
         ItemDefinitionId::new(ITEM_IRON_INGOT),
         None,
@@ -289,32 +348,33 @@ pub fn create_basic_refinery(
         format!("{};{};output", module.id, iron_ref.id).as_str()
     )?;
 
-    /// Silicon Submodule
-    let silicon_ref = dsl.create_refinery_module(
-        ItemDefinitionId::new(ITEM_SILICON_ORE),
-        ItemDefinitionId::new(ITEM_SILICON_RAW),
-        None,
-        10.0,
-        0.0,
-        30.0,
-        1.0
-    )?;
+    // /// Silicon Submodule
+    // let silicon_ref = dsl.create_refinery_module(
+    //     module.get_id(),
+    //     ItemDefinitionId::new(ITEM_SILICON_ORE),
+    //     ItemDefinitionId::new(ITEM_SILICON_RAW),
+    //     None,
+    //     10.0,
+    //     0.0,
+    //     30.0,
+    //     1.0
+    // )?;
 
-    dsl.create_station_module_inventory_item(
-        module.get_id(),
-        ItemDefinitionId::new(ITEM_SILICON_ORE),
-        0,
-        blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
-        format!("{};{};input", module.id, silicon_ref.id).as_str()
-    )?;
+    // dsl.create_station_module_inventory_item(
+    //     module.get_id(),
+    //     ItemDefinitionId::new(ITEM_SILICON_ORE),
+    //     0,
+    //     blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
+    //     format!("{};{};input", module.id, silicon_ref.id).as_str()
+    // )?;
 
-    dsl.create_station_module_inventory_item(
-        module.get_id(),
-        ItemDefinitionId::new(ITEM_SILICON_RAW),
-        0,
-        blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
-        format!("{};{};output", module.id, silicon_ref.id).as_str()
-    )?;
+    // dsl.create_station_module_inventory_item(
+    //     module.get_id(),
+    //     ItemDefinitionId::new(ITEM_SILICON_RAW),
+    //     0,
+    //     blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
+    //     format!("{};{};output", module.id, silicon_ref.id).as_str()
+    // )?;
 
     Ok(())
 }

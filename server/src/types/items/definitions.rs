@@ -194,16 +194,23 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
     )?;
 
     ///////////////////////////////////////////////////////////////////////////////////////
-    // ?
-    current_category = ItemCategory::Resource(ResourceCategory::RefinedIngot);
+    // BiomatterProcessedFood
+    current_category = ItemCategory::Resource(ResourceCategory::BiomatterProcessedFood);
 
-    ///////////////////////////////////////////////////////////////////////////////////////
-    // ?
-    current_category = ItemCategory::Resource(ResourceCategory::RawOre);
-
-    ///////////////////////////////////////////////////////////////////////////////////////
-    // ?
-    current_category = ItemCategory::Resource(ResourceCategory::RawOre);
+    // Food Rations
+    dsl.create_item_definition(
+        ITEM_FOOD_RATIONS,
+        "Food Rations",
+        Some(
+            "A basic food ration. Contains all the nutrients needed to survive for a few days.".into()
+        ),
+        current_category.clone(),
+        100,
+        1,
+        COMPACT_STACK_SIZE,
+        vec![], //vec![FoodQuality(0)],
+        None
+    )?;
 
     ///////////////////////////////////////////////////////////////////////////////////////
     // BiomatterProcessedLuxury
@@ -211,7 +218,7 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
 
     // Space "Fuel"
     dsl.create_item_definition(
-        1003,
+        ITEM_ALCOHOL,
         "Space Fuel",
         Some(
             "Actually a variant of vodka using common supplies found in spaceships to make. It's usually illegal due to its propensity to turn the users blind.".into()
@@ -223,6 +230,14 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
         vec![],
         None
     )?;
+
+    ///////////////////////////////////////////////////////////////////////////////////////
+    // ?
+    current_category = ItemCategory::Resource(ResourceCategory::RefinedIngot);
+
+    ///////////////////////////////////////////////////////////////////////////////////////
+    // ?
+    current_category = ItemCategory::Resource(ResourceCategory::RawOre);
 
     ///////////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////////////////

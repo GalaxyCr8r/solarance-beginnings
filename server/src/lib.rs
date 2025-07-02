@@ -8,11 +8,9 @@ pub mod types;
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    log::info!("init identity: {:?}", ctx.identity());
-    log::info!("init sender: {:?}", ctx.sender);
-
     asteroids::init(ctx)?;
     items::init(ctx)?;
+    stations::init(ctx)?;
     sectors::init(ctx)?;
     stellarobjects::init(ctx)?;
     ships::init(ctx)?;

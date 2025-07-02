@@ -1,5 +1,4 @@
-
-use spacetimedb::{table, ReducerContext, SpacetimeType, Timestamp};
+use spacetimedb::{ table, ReducerContext, SpacetimeType, Timestamp };
 use spacetimedsl::dsl;
 
 use crate::types::ships::*;
@@ -23,9 +22,9 @@ pub enum ResourceCategory {
     BiomatterProcessedLuxury, // Luxury food
     ConsumableShipAmmo,
     ConsumableShipFuel,
-    ExoticMatter,          // For high-tier research/construction
+    ExoticMatter, // For high-tier research/construction
     ResearchDataFragments, // Gathered from anomalies/ruins
-    FinishedGoods,         // For trade, NPC requests
+    FinishedGoods, // For trade, NPC requests
 }
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq, Hash)]
@@ -35,7 +34,7 @@ pub enum OreType {
     Ice,
     Platinum,
     Tungsten,
-    Carbon
+    Carbon,
 }
 
 #[derive(SpacetimeType, Clone, Debug, PartialEq, Eq, Hash)]
@@ -67,18 +66,31 @@ pub enum ItemCategory {
 /// Enum for different effects for items/modules
 #[derive(SpacetimeType, Clone, Debug, PartialEq)]
 pub enum ItemMetadata {
-    DamageBoost(f32), // Effects damage output
+    /// Effects damage output
+    DamageBoost(f32),
+    /// Effects shield output
     ShieldBoost(f32),
+    /// Adds additional cargo capacity
     CargoCapacityBoost(u16),
-    MiningSpeedMultiplier(f32), // From 0.001 to 10.0
-    EnergyConsumption(f32), // How much energy this item consumes per second.
+    /// From 0.001 to 10.0
+    MiningSpeedMultiplier(f32),
+    /// How much energy this item consumes per second.
+    EnergyConsumption(f32),
+    /// Some other special effect
     SpecialEffect(String),
 
-    Stacks(u8), // How many of this item can exist in a single stack
-    NoStacking, // This item cannot be stacked in ship cargo
-    NoTrade, // This item cannot be traded
-    NoSell, // This item cannot be sold
-    NoDrop, // Cannot be dropped from inventory
+    /// How many of this item can exist in a single stack
+    Stacks(u8),
+    /// This item cannot be stacked in ship cargo
+    NoStacking,
+    /// This item cannot be traded
+    NoTrade,
+    /// This item cannot be sold
+    NoSell,
+    /// Cannot be dropped from inventory
+    NoDrop,
+    /// Quality of the item, 0-100
+    Quality(u8),
 }
 
 #[dsl(plural_name = item_definitions)]
@@ -136,6 +148,6 @@ pub struct CargoCrate {
 
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     definitions::init(ctx)?;
-    
+
     Ok(())
 }

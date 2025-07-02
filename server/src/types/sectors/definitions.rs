@@ -6,7 +6,10 @@ use spacetimedsl::dsl;
 
 use crate::types::{
     common::Vec2,
-    stations::CreateStationRow,
+    stations::{
+        modules::{ create_basic_bazaar, create_basic_refinery, CreateTradingPortRow },
+        CreateStationRow,
+    },
     stellarobjects::{ utility::create_sobj_internal, StellarObjectTransformInternal },
 };
 
@@ -137,7 +140,7 @@ fn demo_sectors(ctx: &ReducerContext) -> Result<(), String> {
     dsl.create_asteroid_sector(&a, 1, 3000.0, Some(1000.0))?;
     dsl.create_asteroid_sector(&b, 5, 5000.0, None)?;
 
-    dsl.create_station(
+    let mut station = dsl.create_station(
         crate::types::stations::StationSize::Medium,
         &b,
         &create_sobj_internal(
@@ -147,11 +150,12 @@ fn demo_sectors(ctx: &ReducerContext) -> Result<(), String> {
             StellarObjectTransformInternal::default().from_xy(613.0, 1337.0)
         )?,
         FactionId::new(0),
-        "Shining Beacon Station",
+        format!("{} Trading Station", b.name).as_str(),
         None
     )?;
+    create_basic_bazaar(ctx, &station, false)?;
 
-    dsl.create_station(
+    station = dsl.create_station(
         crate::types::stations::StationSize::Outpost,
         &a,
         &create_sobj_internal(
@@ -161,9 +165,11 @@ fn demo_sectors(ctx: &ReducerContext) -> Result<(), String> {
             StellarObjectTransformInternal::default()
         )?,
         FactionId::new(0),
-        "Tarol Station",
+        "Tarol's Rest & Refinery Stop",
         None
     )?;
+    create_basic_bazaar(ctx, &station, false)?;
+    create_basic_refinery(ctx, &station, false)?;
 
     dsl.create_station(
         crate::types::stations::StationSize::Capital,
