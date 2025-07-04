@@ -1,4 +1,4 @@
-use spacetimedb::ReducerContext;
+use spacetimedb::{ Identity, ReducerContext };
 use types::{ common::*, * };
 use spacetimedsl::dsl;
 
@@ -16,7 +16,7 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     ships::init(ctx)?;
 
     // Create a Global Config row, or reinitalize the one if it exists.
-    if dsl.get_count_of_global_configurations() == 0 {
+    if dsl.count_of_all_global_configurations() == 0 {
         dsl.create_global_config(0, 0, 0, env!("CARGO_PKG_VERSION"))?;
     } else {
         let mut config = dsl

@@ -70,27 +70,6 @@ fn calculate_basic_module_cost(max_hp: u32, relative_complexity: u8) -> Vec<Reso
 fn basic_station_module_blueprints(ctx: &ReducerContext) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    // ctx.db()
-    //     .station_module_blueprint()
-    //     .insert(StationModuleBlueprint {
-    //         id: MODULE_TRADING_BAZAAR,
-    //         name: "Trading Bazaar".to_string(),
-    //         description: "A basic trading port. Can fit a reasonable amount of goods.".to_string(),
-    //         category: StationModuleCategory::CivilianAndSupportServices,
-    //         specific_type: StationModuleSpecificType::TradingPort,
-    //         build_cost_resources: vec![ResourceAmount::new(ITEM_METAL_HULL, 1000)], //calculate_basic_module_cost(10_000, 0),
-    //         build_time_seconds: 100_000,
-    //         power_consumption_mw_operational: 5_000.0,
-    //         power_consumption_mw_idle: 2_500.0,
-    //         cpu_load_flops: 100.0,
-    //         required_station_tech_level: 1,
-    //         max_internal_storage_slots: 50,
-    //         max_internal_storage_volume_per_slot_m3: Some(1000),
-    //         provides_station_morale_boost: Some(10),
-    //         icon_asset_id: None,
-    //         construction_hp: 1_000,
-    //         operational_hp: 10_000,
-    //     });
     dsl.create_station_module_blueprint(
         MODULE_TRADING_BAZAAR,
         "Trading Bazaar",

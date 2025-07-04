@@ -1,10 +1,9 @@
-
-use spacetimedb::{table, Identity, ReducerContext, Timestamp};
-use spacetimedsl::{dsl, Wrapper};
+use spacetimedb::{ table, Identity, ReducerContext, Timestamp };
+use spacetimedsl::{ dsl, Wrapper };
 
 use crate::types::factions::FactionId;
 
-use super::{common::CurrentAction, ships::*, stellarobjects::*};
+use super::{ common::CurrentAction, ships::*, stellarobjects::* };
 
 //pub mod definitions; // Definitions for initial ingested data.
 pub mod impls; // Impls for this file's structs
@@ -17,7 +16,8 @@ pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 #[table(name = player, public)]
 pub struct Player {
     #[primary_key]
-    pub identifier: Identity,
+    #[create_wrapper]
+    id: Identity,
 
     #[unique]
     pub username: String,
@@ -34,10 +34,11 @@ pub struct Player {
 #[table(name = player_ship_controller, public)]
 pub struct PlayerShipController {
     #[primary_key]
-    pub player_id: Identity,
+    #[use_wrapper(path = PlayerId)]
+    id: Identity,
 
     #[index(btree)]
-    #[wrapped(path = StellarObjectId)]
+    #[use_wrapper(path = StellarObjectId)]
     pub stellar_object_id: u64,
 
     // Movement
@@ -72,6 +73,5 @@ pub struct PlayerShipController {
 //////////////////////////////////////////////////////////////
 
 pub fn init(_ctx: &ReducerContext) -> Result<(), String> {
-
     Ok(())
 }

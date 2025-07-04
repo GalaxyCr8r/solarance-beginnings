@@ -24,7 +24,7 @@ pub enum NpcArchetype { // Broader than NpcType, defines their role
 
 #[derive(SpacetimeType, Debug, Clone)]
 pub struct ResourceAmount {
-    //#[wrapped(path = crate::types::items::ItemDefinitionId)]
+    //#[use_wrapper(path = crate::types::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub resource_item_id: u32,
 

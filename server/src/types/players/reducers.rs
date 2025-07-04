@@ -24,7 +24,7 @@ pub fn register_playername(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    if dsl.get_player_by_username(&username).is_some() {
+    if dsl.get_player_by_username(&username).is_ok() {
         return Err("Username already taken!".to_string());
     }
 
@@ -42,8 +42,9 @@ pub fn create_player_controlled_ship(
     username: String // TODO ReMOVE
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
+    let player = PlayerId::new(identity);
 
-    if dsl.get_player_by_identifier(&identity).is_none() {
+    if dsl.get_player_by_id(&player).is_err() {
         return Err("Client hasn't created a username yet!".to_string());
     }
 
@@ -56,24 +57,18 @@ pub fn create_player_controlled_ship(
         )
     {
         let _ = create_sobj_player_window_for(ctx, identity, sobj.get_id())?;
-        initialize_player_controller(ctx, identity, &sobj)?;
+        initialize_player_controller(ctx, &player, &sobj)?;
 
-        let ship_type = dsl
-            .get_ship_type_definition_by_id(ShipTypeDefinitionId::new(1001))
-            .ok_or("Failed to get ship type")?;
-        let (ship, mut status) = create_ship_from_sobj(ctx, ship_type, identity, sobj.clone())?;
+        let ship_type = dsl.get_ship_type_definition_by_id(ShipTypeDefinitionId::new(1001))?;
+        let (ship, mut status) = create_ship_from_sobj(ctx, &ship_type, &player, &sobj)?;
 
         {
-            let item = get_item_definition(ctx, ITEM_FOOD_RATIONS).ok_or(
-                "Failed to get item definition"
-            )?;
+            let item = get_item_definition(ctx, ITEM_FOOD_RATIONS)?;
             let _ = attempt_to_load_cargo_into_ship(ctx, &mut status, &ship, &item, 3)?;
         }
 
         {
-            let item = get_item_definition(ctx, ITEM_ENERGY_CELL).ok_or(
-                "Failed to get item definition"
-            )?;
+            let item = get_item_definition(ctx, ITEM_ENERGY_CELL)?;
             let _ = attempt_to_load_cargo_into_ship(ctx, &mut status, &ship, &item, 5)?;
         }
 
@@ -100,37 +95,33 @@ pub fn update_player_controller(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    if ctx.sender != controller.player_id {
+    if ctx.sender != controller.id {
         info!(
             "SECURITY ERROR: ID {} is trying to change player controller for ID {}!!! Username: {}",
             ctx.sender,
-            controller.player_id,
-            get_username(ctx, controller.player_id)
+            controller.id,
+            get_username(ctx, controller.id)
         );
         return Err("ID Mismatch. This was reported to the system admin.".to_string());
     }
 
     // Clean up player's mining timers.
-    if
-        let Some(previous_controller) = dsl.get_player_ship_controller_by_player_id(
-            &controller.player_id
-        )
-    {
-        // Check if the player had been trying to mine, if so, remove the mining timers.
-        if previous_controller.mining_laser_on && !controller.mining_laser_on {
-            info!(
-                "Player {} no longer mining, removing mining timers.",
-                get_username(ctx, controller.player_id)
-            );
-            for mining_timer in dsl.get_ship_mining_timers_by_ship_sobj_id(
-                previous_controller.get_stellar_object_id()
-            ) {
-                dsl.delete_ship_mining_timer_by_scheduled_id(&mining_timer);
-            }
+    let previous_controller = dsl.get_player_ship_controller_by_id(&controller.get_id())?;
+
+    // Check if the player had been trying to mine, if so, remove the mining timers.
+    if previous_controller.mining_laser_on && !controller.mining_laser_on {
+        info!(
+            "Player {} no longer mining, removing mining timers.",
+            get_username(ctx, controller.id)
+        );
+        for mining_timer in dsl.get_ship_mining_timers_by_ship_sobj_id(
+            previous_controller.get_stellar_object_id()
+        ) {
+            dsl.delete_ship_mining_timer_by_id(&mining_timer);
         }
     }
 
-    dsl.update_player_ship_controller_by_player_id(controller)?;
+    dsl.update_player_ship_controller_by_id(controller)?;
 
     Ok(())
 }

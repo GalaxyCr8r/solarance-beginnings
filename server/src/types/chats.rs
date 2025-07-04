@@ -1,8 +1,8 @@
 use log::info;
-use spacetimedb::{table, Identity, ReducerContext, Timestamp};
-use spacetimedsl::{dsl, Wrapper};
+use spacetimedb::{ table, Identity, ReducerContext, Timestamp };
+use spacetimedsl::*;
 
-use crate::types::{players::utility::get_username, sectors::SectorId, ships::*};
+use crate::types::{ players::{ utility::get_username, PlayerId }, sectors::SectorId, ships::* };
 
 pub mod definitions; // Definitions for initial ingested data.
 pub mod impls; // Impls for this file's structs
@@ -16,9 +16,10 @@ pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 pub struct GlobalChatMessage {
     #[primary_key]
     #[auto_inc]
-    #[wrap]
-    pub id: u64,
+    #[create_wrapper]
+    id: u64,
 
+    #[use_wrapper(path = crate::players::PlayerId)]
     /// FK to Player
     pub player_id: Identity,
 
@@ -32,14 +33,15 @@ pub struct GlobalChatMessage {
 pub struct SectorChatMessage {
     #[primary_key]
     #[auto_inc]
-    #[wrap]
-    pub id: u64,
+    #[create_wrapper]
+    id: u64,
 
+    #[use_wrapper(path = crate::players::PlayerId)]
     /// FK to Player
     pub player_id: Identity,
 
     #[index(btree)] // To find asteroids in a specific sector
-    #[wrapped(path = crate::types::sectors::SectorId)]
+    #[use_wrapper(path = crate::types::sectors::SectorId)]
     /// FK to Sector.id
     pub sector_id: u64,
 
@@ -53,14 +55,15 @@ pub struct SectorChatMessage {
 pub struct FactionChatMessage {
     #[primary_key]
     #[auto_inc]
-    #[wrap]
-    pub id: u64,
+    #[create_wrapper]
+    id: u64,
 
+    #[use_wrapper(path = crate::players::PlayerId)]
     /// FK to Player
     pub player_id: Identity,
 
     #[index(btree)]
-    #[wrapped(path = crate::types::factions::FactionId)]
+    #[use_wrapper(path = crate::types::factions::FactionId)]
     /// FK to FactionDefinition
     pub faction_id: u32,
 
@@ -82,7 +85,6 @@ impl GlobalChatMessage {
 //////////////////////////////////////////////////////////////
 
 pub fn init(_ctx: &ReducerContext) -> Result<(), String> {
-
     Ok(())
 }
 
@@ -97,17 +99,21 @@ pub fn send_global_chat(ctx: &ReducerContext, chat_message: String) -> Result<()
     // If ctx.sender is a valid, unbanned, unmuted player
     info!("GlobalChat [{}]: {}", get_username(ctx, ctx.sender), chat_message);
 
-    dsl.create_global_chat_message(ctx.sender, &chat_message)?;
+    dsl.create_global_chat_message(PlayerId::new(ctx.sender), &chat_message)?;
     Ok(())
 }
 
-
 #[spacetimedb::reducer]
-pub fn send_sector_chat(ctx: &ReducerContext, chat_message: String, sector_id: u64) -> Result<(), String> {
+pub fn send_sector_chat(
+    ctx: &ReducerContext,
+    chat_message: String,
+    sector_id: u64
+) -> Result<(), String> {
     let dsl = dsl(ctx);
+    let sender = PlayerId::new(ctx.sender);
     let username = get_username(ctx, ctx.sender);
 
-    if let Some(player) = dsl.get_ships_by_player_id(&ctx.sender).next() {
+    if let Some(player) = dsl.get_ships_by_player_id(&sender).next() {
         if player.get_sector_id().value() != sector_id {
             return Err(format!("Player {} is not in sector {}", username, sector_id));
         }
@@ -118,6 +124,6 @@ pub fn send_sector_chat(ctx: &ReducerContext, chat_message: String, sector_id: u
     // If ctx.sender is a valid, unbanned, unmuted player
     info!("SectorChat #{} [{}]: {}", sector_id, username, chat_message);
 
-    dsl.create_sector_chat_message(ctx.sender, SectorId::new(sector_id), &chat_message)?;
+    dsl.create_sector_chat_message(sender, SectorId::new(sector_id), &chat_message)?;
     Ok(())
 }

@@ -1,8 +1,6 @@
 use log::info;
-use spacetimedb::{
-    rand::Rng, table, Identity, ReducerContext, SpacetimeType
-};
-use spacetimedsl::{dsl, Wrapper};
+use spacetimedb::{ rand::Rng, table, Identity, ReducerContext, SpacetimeType };
+use spacetimedsl::{ dsl, Wrapper };
 
 use super::sectors::SectorId;
 
@@ -29,14 +27,14 @@ pub enum StellarObjectKinds {
 pub struct StellarObject {
     #[primary_key]
     #[auto_inc]
-    #[wrap]
-    pub id: u64,
+    #[create_wrapper]
+    id: u64,
 
     #[index(btree)]
     pub kind: StellarObjectKinds,
 
     #[index(btree)]
-    #[wrapped(path = crate::types::sectors::SectorId)]
+    #[use_wrapper(path = crate::types::sectors::SectorId)]
     /// FK to SectorLocation
     pub sector_id: u64,
 }
@@ -47,9 +45,9 @@ pub struct StellarObject {
 #[derive(Default)]
 pub struct StellarObjectVelocity {
     #[primary_key]
-    #[wrapped(path = StellarObjectId)]
+    #[use_wrapper(path = StellarObjectId)]
     /// FK to StellarObject
-    pub sobj_id: u64,
+    id: u64,
 
     pub x: f32,
     pub y: f32,
@@ -64,9 +62,9 @@ pub struct StellarObjectVelocity {
 #[derive(Default)]
 pub struct StellarObjectTransformInternal {
     #[primary_key]
-    #[wrapped(path = StellarObjectId)]
+    #[use_wrapper(path = StellarObjectId)]
     /// FK to StellarObject
-    pub sobj_id: u64,
+    id: u64,
 
     pub x: f32,
     pub y: f32,
@@ -79,9 +77,9 @@ pub struct StellarObjectTransformInternal {
 #[derive(Default)]
 pub struct StellarObjectTransformHiRes {
     #[primary_key]
-    #[wrapped(path = StellarObjectId)]
+    #[use_wrapper(path = StellarObjectId)]
     /// FK to StellarObject
-    pub sobj_id: u64,
+    id: u64,
 
     pub x: f32,
     pub y: f32,
@@ -93,9 +91,9 @@ pub struct StellarObjectTransformHiRes {
 #[derive(Default)]
 pub struct StellarObjectTransformLowRes {
     #[primary_key]
-    #[wrapped(path = StellarObjectId)]
+    #[use_wrapper(path = StellarObjectId)]
     /// FK to StellarObject
-    pub sobj_id: u64,
+    id: u64,
 
     pub x: f32,
     pub y: f32,
@@ -106,19 +104,20 @@ pub struct StellarObjectTransformLowRes {
 #[table(name = sobj_turn_left_controller)]
 pub struct StellarObjectControllerTurnLeft {
     #[primary_key]
-    #[wrapped(path = StellarObjectId)]
+    #[use_wrapper(path = StellarObjectId)]
     /// FK to StellarObject
-    pub sobj_id: u64,
+    id: u64,
 }
 
 #[dsl(plural_name = sobj_player_windows)]
 #[table(name = sobj_player_window, public)]
 pub struct StellarObjectPlayerWindow {
     #[primary_key]
-    pub player_id: Identity,
+    #[use_wrapper(path = crate::players::PlayerId)]
+    id: Identity,
 
     #[unique]
-    #[wrapped(path = StellarObjectId)]
+    #[use_wrapper(path = StellarObjectId)]
     /// FK to StellarObject
     pub sobj_id: u64,
 
@@ -138,6 +137,6 @@ pub struct StellarObjectPlayerWindow {
 
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     timers::init(ctx)?;
-    
+
     Ok(())
 }

@@ -1,12 +1,12 @@
-use spacetimedb::{table, ReducerContext, SpacetimeType};
-use spacetimedsl::{dsl, Wrapper};
+use spacetimedb::{ table, ReducerContext, SpacetimeType };
+use spacetimedsl::{ dsl, Wrapper };
 
-use crate::types::{common, factions::*, jumpgates::reducers::*};
+use crate::types::{ common, factions::*, jumpgates::reducers::* };
 
 pub mod definitions; // Definitions for initial ingested data.
 pub mod impls; // Impls for this file's structs
 pub mod reducers; // SpacetimeDB Reducers for this file's structs.
-                  //pub mod rls; // Row-level-security rules for this file's structs.
+//pub mod rls; // Row-level-security rules for this file's structs.
 pub mod timers; // Timers related to this file's structs.
 pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
@@ -42,8 +42,8 @@ pub enum StarSystemObjectKind {
 pub struct StarSystem {
     #[primary_key]
     #[auto_inc]
-    #[wrap]
-    pub id: u32,
+    #[create_wrapper]
+    id: u32,
 
     #[unique]
     pub name: String, // e.g., "Sol", "Alpha Centauri"
@@ -54,7 +54,7 @@ pub struct StarSystem {
     pub luminosity: u8,
 
     #[index(btree)]
-    #[wrapped(path = FactionId)]
+    #[use_wrapper(path = FactionId)]
     /// FK to Faction, can change
     pub controlling_faction_id: u32,
     //pub discovered_by_faction_id: Option<u32>, // First faction to chart it
@@ -65,11 +65,11 @@ pub struct StarSystem {
 pub struct StarSystemObject {
     #[primary_key]
     #[auto_inc]
-    #[wrap]
-    pub id: u32,
+    #[create_wrapper]
+    id: u32,
 
     #[index(btree)]
-    #[wrapped(path = StarSystemId)]
+    #[use_wrapper(path = StarSystemId)]
     /// FK to StarSystem
     pub system_id: u32,
 
@@ -87,11 +87,11 @@ pub struct StarSystemObject {
 #[table(name = sector, public)]
 pub struct Sector {
     #[primary_key] // NOT Auto-inc so it can be reloaded as-is
-    #[wrap]
-    pub id: u64,
+    #[create_wrapper]
+    id: u64,
 
     #[index(btree)]
-    #[wrapped(path = StarSystemId)]
+    #[use_wrapper(path = StarSystemId)]
     /// FK to StarSystem
     pub system_id: u32,
 
@@ -99,7 +99,7 @@ pub struct Sector {
     pub description: Option<String>,
 
     #[index(btree)]
-    #[wrapped(path = FactionId)]
+    #[use_wrapper(path = FactionId)]
     /// FK to Faction, can change
     pub controlling_faction_id: u32,
     /// 0 (lawless) to 10 (heavily policed)
@@ -136,11 +136,11 @@ pub struct Sector {
 #[table(name = asteroid_sector, public)]
 pub struct AsteroidSector {
     #[primary_key] // NOT Auto-inc so it can be reloaded as-is
-    #[wrapped(path = SectorId)]
-    pub id: u64,
+    #[use_wrapper(path = SectorId)]
+    id: u64,
 
-    pub sparseness: u8,             // Relative amount of asteroids to spawn
-    pub cluster_extent: f32,        // How far from 0,0 can asteroids spawn
+    pub sparseness: u8, // Relative amount of asteroids to spawn
+    pub cluster_extent: f32, // How far from 0,0 can asteroids spawn
     pub cluster_inner: Option<f32>, // How far from 0,0 can asteroids NOT spawn
 }
 //////////////////////////////////////////////////////////////
@@ -148,8 +148,8 @@ pub struct AsteroidSector {
 //////////////////////////////////////////////////////////////
 
 impl Sector {
-    pub fn get(ctx: &ReducerContext, id: &SectorId) -> Option<Sector> {
-        dsl(ctx).get_sector_by_id(id)
+    pub fn get(ctx: &ReducerContext, id: &SectorId) -> Result<Sector, String> {
+        Ok(dsl(ctx).get_sector_by_id(id)?)
     }
 }
 
@@ -174,7 +174,7 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 fn connect_sectors_with_warpgates(
     ctx: &ReducerContext,
     a: &Sector,
-    b: &Sector,
+    b: &Sector
 ) -> Result<(), String> {
     let a_pos = glam::Vec2::new(a.x, a.y);
     let b_pos = glam::Vec2::new(b.x, b.y);
@@ -188,12 +188,8 @@ fn connect_sectors_with_warpgates(
     let b_wp_pos = glam::Vec2::from_angle(b_angle) * 5000.0;
     //info!("Sector WP Pos: A{} B{}", a_wp_pos, b_wp_pos);
 
-    create_jumpgate_in_sector(
-        ctx, a.id, a_wp_pos.x, a_wp_pos.y, b.id, b_wp_pos.x, b_wp_pos.y,
-    )?;
-    create_jumpgate_in_sector(
-        ctx, b.id, b_wp_pos.x, b_wp_pos.y, a.id, a_wp_pos.x, a_wp_pos.y,
-    )?;
+    create_jumpgate_in_sector(ctx, a.id, a_wp_pos.x, a_wp_pos.y, b.id, b_wp_pos.x, b_wp_pos.y)?;
+    create_jumpgate_in_sector(ctx, b.id, b_wp_pos.x, b_wp_pos.y, a.id, a_wp_pos.x, a_wp_pos.y)?;
 
     Ok(())
 }

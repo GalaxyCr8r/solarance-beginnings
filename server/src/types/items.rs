@@ -97,8 +97,8 @@ pub enum ItemMetadata {
 #[table(name = item_definition, public)]
 pub struct ItemDefinition {
     #[primary_key]
-    #[wrap]
-    pub id: u32,
+    #[create_wrapper]
+    id: u32,
 
     pub name: String, // E.g., "Iron Ore", "Laser Cannon Mk2", "Energy Cells"
     pub description: Option<String>,
@@ -120,19 +120,20 @@ pub struct ItemDefinition {
 pub struct CargoCrate {
     #[primary_key]
     #[auto_inc]
-    pub id: u64,
+    #[create_wrapper]
+    id: u64,
 
-    #[wrapped(path = crate::types::sectors::SectorId)]
+    #[use_wrapper(path = crate::types::sectors::SectorId)]
     #[index(btree)] // To find crates in a specific sector
     /// FK to Sector.id
     pub current_sector_id: u64,
 
-    #[wrapped(path = crate::types::stellarobjects::StellarObjectId)]
+    #[use_wrapper(path = crate::types::stellarobjects::StellarObjectId)]
     #[unique]
     /// FK to StellarObject
     pub sobj_id: u64,
 
-    #[wrapped(path = ItemDefinitionId)]
+    #[use_wrapper(path = ItemDefinitionId)]
     /// FK to ItemDefinition
     pub item_id: u32,
     pub quantity: u16,

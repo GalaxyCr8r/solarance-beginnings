@@ -3,7 +3,7 @@ use std::hash::Hasher;
 use spacetimedb::*;
 use spacetimedsl::dsl;
 
-use super::{ items::ItemDefinitionId, stations::StationId };
+//use super::{ items::ItemDefinitionId, stations::StationId };
 
 // pub mod definitions; // Definitions for initial ingested data.
 pub mod impls; // Impls for this file's structs
@@ -22,8 +22,8 @@ pub struct Vec2 {
 #[table(name = global_config)]
 pub struct GlobalConfig {
     #[primary_key]
-    #[wrap]
-    pub id: u32,
+    #[create_wrapper]
+    id: u32,
 
     pub active_players: u32,
     pub old_gods_defeated: u8,
@@ -33,10 +33,10 @@ pub struct GlobalConfig {
     modified_at: Timestamp,
 }
 
-pub struct TradeCommand {
-    item_to_sell: ItemDefinitionId,
-    station: StationId,
-}
+// pub struct TradeCommand {
+//     item_to_sell: ItemDefinitionId,
+//     station: StationId,
+// }
 
 // Enum for AI states or player commands, can be expanded
 #[derive(SpacetimeType, Clone, Debug, PartialEq, Hash)]

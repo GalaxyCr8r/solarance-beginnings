@@ -1,4 +1,4 @@
-use spacetimedb::{table, Identity, ReducerContext, SpacetimeType};
+use spacetimedb::{ table, Identity, ReducerContext, SpacetimeType };
 use spacetimedsl::dsl;
 
 // pub mod definitions; // Definitions for initial ingested data.
@@ -26,8 +26,8 @@ pub enum FactionTier {
 #[table(name = faction_definition, public)]
 pub struct Faction {
     #[primary_key]
-    #[wrap]
-    pub id: u32,
+    #[create_wrapper]
+    id: u32,
 
     pub name: String,
     pub description: String,
@@ -43,16 +43,16 @@ pub struct Faction {
 pub struct FactionStanding {
     #[primary_key]
     #[auto_inc]
-    #[wrap]
-    pub id: u64,
+    #[create_wrapper]
+    id: u64,
 
     #[index(btree)] // To find all players with standing for a faction
-    #[wrapped(path = crate::types::factions::FactionId)]
+    #[use_wrapper(path = FactionId)]
     /// FK to FactionDefinition
     pub faction_one_id: u32,
 
     #[index(btree)] // To find all players with standing for a faction
-    #[wrapped(path = crate::types::factions::FactionId)]
+    #[use_wrapper(path = FactionId)]
     /// FK to FactionDefinition
     pub faction_two_id: u32,
 
@@ -67,14 +67,15 @@ pub struct FactionStanding {
 pub struct PlayerFactionStanding {
     #[primary_key]
     #[auto_inc]
-    #[wrap]
-    pub id: u64,
+    #[create_wrapper]
+    id: u64,
 
     #[index(btree)] // To find all standings for a player
+    #[use_wrapper(path = crate::players::PlayerId)]
     pub player_identity: Identity,
 
     #[index(btree)] // To find all players with standing for a faction
-    #[wrapped(path = crate::types::factions::FactionId)]
+    #[use_wrapper(path = FactionId)]
     /// FK to FactionDefinition
     pub faction_id: u32,
 
@@ -86,6 +87,5 @@ pub struct PlayerFactionStanding {
 //////////////////////////////////////////////////////////////
 
 pub fn init(_ctx: &ReducerContext) -> Result<(), String> {
-
     Ok(())
 }

@@ -8,7 +8,7 @@ use crate::types::{
     common::utility::try_server_only,
     factions::FactionId,
     jumpgates::JumpGate,
-    players::timers::initialize_player_controller,
+    players::{ timers::initialize_player_controller, PlayerId },
     ships::{ reducers::teleport_to_sector, timers::* },
     stellarobjects::{ reducers::create_sobj_player_window_for, utility::*, * },
 };
@@ -22,8 +22,8 @@ pub fn same_sector_from_ids(
 ) -> bool {
     let dsl = dsl(ctx);
 
-    if let Some(sobj1) = dsl.get_stellar_object_by_id(id1) {
-        if let Some(sobj2) = dsl.get_stellar_object_by_id(id2) {
+    if let Ok(sobj1) = dsl.get_stellar_object_by_id(id1) {
+        if let Ok(sobj2) = dsl.get_stellar_object_by_id(id2) {
             return sobj1.get_sector_id() == sobj2.get_sector_id();
         }
     }
@@ -32,9 +32,9 @@ pub fn same_sector_from_ids(
 
 pub fn create_ship_from_sobj(
     ctx: &ReducerContext,
-    ship_type: ShipTypeDefinition,
-    identity: Identity,
-    sobj: StellarObject
+    ship_type: &ShipTypeDefinition,
+    player_id: &PlayerId,
+    sobj: &StellarObject
 ) -> Result<(Ship, ShipStatus), String> {
     let dsl = dsl(ctx);
 
@@ -44,9 +44,9 @@ pub fn create_ship_from_sobj(
         dsl.create_ship(
             &ship_global,
             ship_type.get_id(),
-            &sobj,
+            sobj,
             sobj.get_sector_id(),
-            identity,
+            player_id,
             FactionId::new(0)
         )
     {
@@ -60,7 +60,7 @@ pub fn create_ship_from_sobj(
     let ship_status = dsl.create_ship_status(
         &ship_global,
         sobj.get_sector_id(),
-        identity,
+        player_id,
         ship_type.max_health as f32,
         ship_type.max_shields as f32,
         ship_type.max_energy as f32,
@@ -75,7 +75,7 @@ pub fn create_ship_from_sobj(
 pub fn create_ship_docked_at_station(
     ctx: &ReducerContext,
     ship_type: ShipTypeDefinition,
-    identity: Identity,
+    player_id: PlayerId,
     station: Station
 ) -> Result<(DockedShip, ShipStatus), String> {
     let dsl = dsl(ctx);
@@ -88,7 +88,7 @@ pub fn create_ship_docked_at_station(
             ship_type.get_id(),
             &station,
             station.get_sector_id(),
-            identity,
+            &player_id,
             FactionId::new(0)
         )
     {
@@ -102,7 +102,7 @@ pub fn create_ship_docked_at_station(
     let ship_status = dsl.create_ship_status(
         &ship_global,
         station.get_sector_id(),
-        identity,
+        &player_id,
         ship_type.max_health as f32,
         ship_type.max_shields as f32,
         ship_type.max_energy as f32,
@@ -289,14 +289,14 @@ pub fn create_cargo_crate_nearby_ship(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    let sobj = dsl.get_stellar_object_by_id(ship_sobj).ok_or(
-        format!("Could not find Stellar Object #{} for a Ship!", ship_sobj.value()) // TODO error message here
-    )?;
-    let pos = if let Some(transform) = dsl.get_sobj_internal_transform_by_sobj_id(ship_sobj) {
-        transform.to_vec2()
-    } else {
-        info!("Could not find ship's stellar object transform, placing randomly...");
-        Vec2::new(ctx.rng().gen_range(-2048.0..2048.0), ctx.rng().gen_range(-2048.0..2048.0))
+    let sobj = dsl.get_stellar_object_by_id(ship_sobj)?;
+    let pos = {
+        if let Ok(transform) = dsl.get_sobj_internal_transform_by_id(ship_sobj) {
+            transform.to_vec2()
+        } else {
+            info!("Could not find ship's stellar object transform, placing randomly...");
+            Vec2::new(ctx.rng().gen_range(-2048.0..2048.0), ctx.rng().gen_range(-2048.0..2048.0))
+        }
     };
 
     let new_sobj = create_sobj_with_random_velocity(
@@ -336,9 +336,7 @@ pub fn teleport_via_jumpgate(
     teleport_to_sector(
         ctx,
         ship,
-        dsl
-            .get_sector_by_id(jumpgate.get_target_sector_id())
-            .ok_or("Failed to find jumpgate's target sector.")?,
+        dsl.get_sector_by_id(jumpgate.get_target_sector_id())?,
         pos.x,
         pos.y
     )
@@ -364,7 +362,7 @@ pub fn dock_to_station(
         ship.get_shiptype_id(),
         station.get_id(),
         ship.get_sector_id(),
-        ship.player_id,
+        ship.get_player_id(),
         ship.get_faction_id()
     )?;
 
@@ -374,13 +372,9 @@ pub fn dock_to_station(
 pub fn undock_from_station(ctx: &ReducerContext, docked: DockedShip) -> Result<Ship, String> {
     let dsl = dsl(ctx);
 
-    let station = dsl.get_station_by_id(docked.get_station_id()).ok_or("Failed to find station")?;
-    let station_transform = dsl
-        .get_sobj_internal_transform_by_sobj_id(station.get_sobj_id())
-        .ok_or("Failed to find station's stellar object")?;
-    let ship_type = dsl
-        .get_ship_type_definition_by_id(docked.get_shiptype_id())
-        .ok_or("Failed to find docked ship's type definition")?;
+    let station = dsl.get_station_by_id(docked.get_station_id())?;
+    let station_transform = dsl.get_sobj_internal_transform_by_id(station.get_sobj_id())?;
+    let ship_type = dsl.get_ship_type_definition_by_id(docked.get_shiptype_id())?;
 
     let sobj = create_sobj_internal(
         ctx,
@@ -394,17 +388,18 @@ pub fn undock_from_station(ctx: &ReducerContext, docked: DockedShip) -> Result<S
         ship_type.get_id(),
         &sobj,
         sobj.get_sector_id(),
-        docked.player_id,
+        docked.get_player_id(),
         FactionId::new(0)
     )?;
 
-    if dsl.get_ship_status_timer_by_ship_id(docked.get_id()).is_none() {
+    if dsl.get_ship_status_timer_by_ship_id(docked.get_id()).is_err() {
         let _ = create_status_timer_for_ship(ctx, &ship.get_id(), &ship_type.get_id());
     }
 
     if docked.player_id != Identity::ONE {
+        // There is a real player controlling this ship, so create the necessary helpers.
         let _ = create_sobj_player_window_for(ctx, docked.player_id, sobj.get_id())?;
-        let _ = initialize_player_controller(ctx, docked.player_id, &sobj);
+        let _ = initialize_player_controller(ctx, &docked.get_player_id(), &sobj);
     }
 
     dsl.delete_docked_ship_by_id(&docked.get_id());

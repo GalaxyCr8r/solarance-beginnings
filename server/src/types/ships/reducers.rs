@@ -1,4 +1,4 @@
-use crate::types::{ common::utility::*, jumpgates::*, ships::utility::*, stellarobjects::* };
+use crate::types::{ common::utility::*, ships::utility::*, stellarobjects::* };
 
 use super::*;
 
@@ -14,18 +14,12 @@ pub fn jettison_cargo_from_ship(
     amount: u16
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
-    let ship = dsl
-        .get_ship_by_id(ShipGlobalId::new(ship_id))
-        .ok_or(format!("Failed to find ship"))?;
+    let ship = dsl.get_ship_by_id(ShipGlobalId::new(ship_id))?;
 
     is_server_or_sobj_owner(ctx, Some(ship.get_sobj_id()))?;
 
-    let mut ship_cargo = dsl
-        .get_ship_cargo_item_by_id(ShipCargoItemId::new(ship_cargo_id))
-        .ok_or(format!("Failed to find cargo item"))?;
-    let item_def = dsl
-        .get_item_definition_by_id(ship_cargo.get_item_id())
-        .ok_or(format!("Failed to find item definition for cargo"))?;
+    let mut ship_cargo = dsl.get_ship_cargo_item_by_id(ShipCargoItemId::new(ship_cargo_id))?;
+    let item_def = dsl.get_item_definition_by_id(ship_cargo.get_item_id())?;
 
     // Does the ship actually have that amount of item?
     if ship_cargo.get_quantity() < &amount {
@@ -55,12 +49,8 @@ pub fn teleport_to_sector_ids(
     let s_id = ShipGlobalId::new(ship_id);
     teleport_to_sector(
         ctx,
-        dsl(ctx)
-            .get_ship_by_id(s_id)
-            .ok_or("Failed to teleport to sector, couldn't find ship instance.")?,
-        Sector::get(ctx, &SectorId::new(destination_sector_id)).ok_or(
-            "Failed to teleport to sector, couldn't find sector."
-        )?,
+        dsl(ctx).get_ship_by_id(s_id)?,
+        Sector::get(ctx, &SectorId::new(destination_sector_id))?,
         0.0,
         0.0
     )
@@ -79,16 +69,16 @@ pub fn teleport_to_sector(
     let dsl = dsl(ctx);
 
     ship.set_sector_id(&destination_sector);
-    if let Some(mut sobj) = dsl.get_stellar_object_by_id(&ship.get_sobj_id()) {
+    if let Ok(mut sobj) = dsl.get_stellar_object_by_id(&ship.get_sobj_id()) {
         sobj.set_sector_id(&destination_sector);
-        if let Some(mut transform) = StellarObjectTransformInternal::get(ctx, &sobj.get_id()) {
+        if let Ok(mut transform) = dsl.get_sobj_internal_transform_by_id(&sobj.get_id()) {
             transform.set_x(x);
             transform.set_y(y);
-            dsl.update_sobj_internal_transform_by_sobj_id(transform)?;
+            dsl.update_sobj_internal_transform_by_id(transform)?;
         }
         dsl.update_stellar_object_by_id(sobj)?;
     }
-    if let Some(mut ship_status) = dsl.get_ship_status_by_id(&ship.get_id()) {
+    if let Ok(mut ship_status) = dsl.get_ship_status_by_id(&ship.get_id()) {
         ship_status.set_sector_id(&destination_sector);
         dsl.update_ship_status_by_id(ship_status)?;
     }
@@ -115,7 +105,7 @@ pub fn undock_ship(ctx: &ReducerContext, docked_ship: ShipGlobalId) -> Result<()
     is_server_or_ship_owner(ctx, Some(docked_ship.clone()))?;
     let dsl = dsl(ctx);
 
-    if let Some(docked) = dsl.get_docked_ship_by_id(docked_ship) {
+    if let Ok(docked) = dsl.get_docked_ship_by_id(docked_ship) {
         undock_from_station(ctx, docked)?;
     }
 

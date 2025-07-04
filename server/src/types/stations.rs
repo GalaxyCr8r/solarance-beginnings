@@ -81,8 +81,8 @@ pub enum StationModuleSpecificType {
 #[table(name = station_module_blueprint, public)]
 pub struct StationModuleBlueprint {
     #[primary_key]
-    #[wrap]
-    pub id: u32,
+    #[create_wrapper]
+    id: u32,
 
     #[unique]
     pub name: String,
@@ -116,17 +116,17 @@ pub struct StationModuleBlueprint {
 pub struct StationModule {
     #[primary_key]
     #[auto_inc]
-    #[wrap]
-    pub id: u64,
+    #[create_wrapper]
+    id: u64,
 
     #[index(btree)]
-    #[wrapped(path = StationId)]
+    #[use_wrapper(path = StationId)]
     /// FK to SpaceStation
     pub station_id: u64,
 
     /// FK to StationModuleBlueprint
     #[index(btree)]
-    #[wrapped(path = StationModuleBlueprintId)]
+    #[use_wrapper(path = StationModuleBlueprintId)]
     pub blueprint: u32,
 
     pub station_slot_identifier: String, // e.g., "HabitatRing-A-Slot3", "Core-Power-Slot1"
@@ -140,9 +140,9 @@ pub struct StationModule {
 #[table(name = station_under_construction, public)]
 pub struct StationUnderConstruction {
     #[primary_key]
-    #[wrapped(path = StationId)]
+    #[use_wrapper(path = StationId)]
     /// FK to SpaceStation
-    pub station_id: u64,
+    id: u64,
 
     pub is_operational: bool,
     pub construction_progress_percentage: f32,
@@ -152,9 +152,9 @@ pub struct StationUnderConstruction {
 #[table(name = station_module_under_construction, public)]
 pub struct StationModuleUnderConstruction {
     #[primary_key]
-    #[wrapped(path = StationId)]
+    #[use_wrapper(path = StationId)]
     /// FK to SpaceStation
-    pub station_id: u64,
+    id: u64,
 
     pub is_operational: bool,
     pub construction_progress_percentage: f32,
@@ -166,16 +166,16 @@ pub struct StationModuleUnderConstruction {
 pub struct StationModuleInventoryItem {
     #[primary_key]
     #[auto_inc]
-    #[wrap]
-    pub id: u64,
+    #[create_wrapper]
+    id: u64,
 
     #[index(btree)]
-    #[wrapped(path = StationModuleId)]
+    #[use_wrapper(path = StationModuleId)]
     /// FK to StationModule
     pub module_id: u64,
 
     #[index(btree)]
-    #[wrapped(path = crate::types::items::ItemDefinitionId)]
+    #[use_wrapper(path = crate::types::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub resource_item_id: u32,
 
@@ -191,24 +191,24 @@ pub struct StationModuleInventoryItem {
 pub struct Station {
     #[primary_key]
     #[auto_inc]
-    #[wrap]
-    pub id: u64,
+    #[create_wrapper]
+    id: u64,
 
     #[index(btree)]
     pub size: StationSize,
 
     #[index(btree)]
-    #[wrapped(path = sectors::SectorId)]
+    #[use_wrapper(path = sectors::SectorId)]
     /// FK to Sector.id
     pub sector_id: u64,
 
     #[unique]
-    #[wrapped(path = stellarobjects::StellarObjectId)]
+    #[use_wrapper(path = stellarobjects::StellarObjectId)]
     /// FK to StellarObject
     pub sobj_id: u64,
 
     #[index(btree)]
-    #[wrapped(path = factions::FactionId)]
+    #[use_wrapper(path = factions::FactionId)]
     /// FK to FactionDefinition
     pub owner_faction_id: u32,
 
@@ -223,9 +223,9 @@ pub struct Station {
 #[table(name = station_status, public)]
 pub struct StationStatus {
     #[primary_key]
-    #[wrapped(path = StationId)]
+    #[use_wrapper(path = StationId)]
     /// FK to Station
-    pub station_id: u64,
+    id: u64,
 
     pub health: f32,
     pub shields: f32,

@@ -1,4 +1,3 @@
-use std::f32::consts::PI;
 
 use log::info;
 use spacetimedb::ReducerContext;
@@ -7,7 +6,7 @@ use spacetimedsl::dsl;
 use crate::types::{
     common::Vec2,
     stations::{
-        modules::{ create_basic_bazaar, create_basic_refinery, CreateTradingPortRow },
+        modules::{ create_basic_bazaar, create_basic_refinery },
         CreateStationRow,
     },
     stellarobjects::{ utility::create_sobj_internal, StellarObjectTransformInternal },

@@ -76,7 +76,7 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 
     commodity_definitions(&dsl)?;
 
-    info!("Item Defs Loaded: {}", dsl.get_count_of_item_definitions());
+    info!("Item Defs Loaded: {}", dsl.count_of_all_item_definitions());
     Ok(())
 }
 
