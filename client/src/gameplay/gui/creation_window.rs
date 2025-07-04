@@ -60,7 +60,7 @@ pub fn draw(
                 }
                 ui.separator();
                 for player in ctx.db().player().iter() {
-                    ui.label(RichText::new(format!("{}: {}", player.username, player.identifier)));
+                    ui.label(RichText::new(format!("{}: {}", player.username, player.id)));
                 }
                 for station in ctx.db().station().iter() {
                     ui.label(

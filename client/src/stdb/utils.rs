@@ -7,12 +7,12 @@ pub fn get_transform(
     ctx: &DbConnection,
     sobj_id: u64
 ) -> Result<StellarObjectTransformHiRes, String> {
-    if let Some(hr) = ctx.db().sobj_hi_res_transform().sobj_id().find(&sobj_id) {
+    if let Some(hr) = ctx.db().sobj_hi_res_transform().id().find(&sobj_id) {
         Ok(hr)
     } else {
-        if let Some(lr) = ctx.db().sobj_low_res_transform().sobj_id().find(&sobj_id) {
+        if let Some(lr) = ctx.db().sobj_low_res_transform().id().find(&sobj_id) {
             Ok(StellarObjectTransformHiRes {
-                sobj_id: lr.sobj_id,
+                id: lr.id,
                 x: lr.x,
                 y: lr.y,
                 rotation_radians: lr.rotation_radians,
@@ -24,7 +24,7 @@ pub fn get_transform(
 }
 
 pub fn get_username(ctx: &DbConnection, id: &Identity) -> String {
-    if let Some(player) = ctx.db().player().identifier().find(id) {
+    if let Some(player) = ctx.db().player().id().find(id) {
         player.username
     } else {
         id.to_abbreviated_hex().to_string()
@@ -36,7 +36,7 @@ pub fn get_current_player(ctx: &DbConnection) -> Option<Player> {
 }
 
 pub fn get_player(db: &RemoteTables, id: &Identity) -> Option<Player> {
-    let this = db.player().identifier().find(id);
+    let this = db.player().id().find(id);
     match this {
         Some(p) => Some(p),
         None => None,

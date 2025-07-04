@@ -131,7 +131,7 @@ pub fn draw_widget(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
 }
 
 pub fn draw_panel(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
-    let sector_enabled = ctx.db().sobj_player_window().player_id().find(&ctx.identity()).is_some();
+    let sector_enabled = ctx.db().sobj_player_window().id().find(&ctx.identity()).is_some();
     if chat_window.selected_tab == GlobalChatMessageType::Sector {
         chat_window.selected_tab = GlobalChatMessageType::Global;
     }

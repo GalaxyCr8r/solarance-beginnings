@@ -99,13 +99,7 @@ fn ship_status(ui: &mut Ui, ship_type: ShipTypeDefinition, player_ship_status: S
 
 fn ship_function_status(ctx: &DbConnection, ui: &mut Ui) {
     ui.vertical(|ui| {
-        if
-            let Some(controller) = ctx
-                .db()
-                .player_ship_controller()
-                .player_id()
-                .find(&ctx.identity())
-        {
+        if let Some(controller) = ctx.db().player_ship_controller().id().find(&ctx.identity()) {
             if controller.cargo_bay_open {
                 ui.label(
                     RichText::new("[Z] Cargo Bay: Open").color({
@@ -146,7 +140,7 @@ fn add_targeted_object_status(
     let distance = {
         if let Some(player_ship) = get_player_transform(ctx) {
             if let Ok(target_object) = get_transform(ctx, target.id) {
-                if let Some(sobj) = ctx.db().stellar_object().id().find(&target_object.sobj_id) {
+                if let Some(sobj) = ctx.db().stellar_object().id().find(&target_object.id) {
                     kind = format!("{:?}", sobj.kind);
                 }
 
@@ -166,7 +160,7 @@ fn add_targeted_object_status(
 
     match target.kind {
         StellarObjectKinds::Asteroid => {
-            if let Some(asteroid) = ctx.db().asteroid().sobj_id().find(&target.id) {
+            if let Some(asteroid) = ctx.db().asteroid().id().find(&target.id) {
                 add_status_bar(
                     ui,
                     "Resources",
@@ -217,7 +211,7 @@ fn add_targeted_object_status(
         StellarObjectKinds::Station => {
             if let Some(station) = ctx.db().station().sobj_id().find(&target.id) {
                 ui.label(format!("{}", station.name));
-                if let Some(status) = ctx.db().station_status().station_id().find(&station.id) {
+                if let Some(status) = ctx.db().station_status().id().find(&station.id) {
                     add_status_bar(
                         ui,
                         "Health",
@@ -246,7 +240,7 @@ fn add_targeted_object_status(
             }
         }
         StellarObjectKinds::JumpGate => {
-            if let Some(jump_gate) = ctx.db().jump_gate().sobj_id().find(&target.id) {
+            if let Some(jump_gate) = ctx.db().jump_gate().id().find(&target.id) {
                 ui.horizontal(|ui| {
                     ui.label("Destination:");
                     if let Some(sector) = ctx.db().sector().id().find(&jump_gate.target_sector_id) {

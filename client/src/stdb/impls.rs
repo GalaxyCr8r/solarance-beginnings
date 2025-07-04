@@ -72,13 +72,7 @@ impl StellarObjectTransformLowRes {
 
 impl Player {
     pub fn get_controlled_stellar_object_id(&self, ctx: &DbConnection) -> Option<u64> {
-        if
-            let Some(player_window) = ctx
-                .db()
-                .sobj_player_window()
-                .player_id()
-                .find(&self.identifier)
-        {
+        if let Some(player_window) = ctx.db().sobj_player_window().id().find(&self.id) {
             Some(player_window.sobj_id)
         } else {
             None
@@ -134,3 +128,10 @@ impl StationSize {
         (self.modules().pow(2) as u32) * 50_000 + 200_000
     }
 }
+
+// impl PlayerId {
+//     /// Create a new PlayerId from STDB Identity struct.
+//     pub fn new(identity: &Identity) -> Self {
+//         PlayerId {}
+//     }
+// }

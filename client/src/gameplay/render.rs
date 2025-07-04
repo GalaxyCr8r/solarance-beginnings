@@ -30,8 +30,8 @@ pub fn sector(game_state: &mut GameState) {
         // }
 
         // ONLY draw if they have hi-resolution positions.
-        if let Some(transform) = db.sobj_hi_res_transform().sobj_id().find(&object.id) {
-            if let Some(ship_object) = db.ship().sobj_id().find(&transform.sobj_id) {
+        if let Some(transform) = db.sobj_hi_res_transform().id().find(&object.id) {
+            if let Some(ship_object) = db.ship().sobj_id().find(&transform.id) {
                 if
                     let Some(ship_type) = db
                         .ship_type_definition()
@@ -48,26 +48,21 @@ pub fn sector(game_state: &mut GameState) {
                 }
             } else if let Some(station) = db.station().sobj_id().find(&object.id) {
                 draw_station(&transform, station, game_state);
-            } else if let Some(jumpgate) = db.jump_gate().sobj_id().find(&object.id) {
+            } else if let Some(jumpgate) = db.jump_gate().id().find(&object.id) {
                 draw_jumpgate(&transform, jumpgate, game_state);
-            } else if let Some(asteroid) = db.asteroid().sobj_id().find(&object.id) {
+            } else if let Some(asteroid) = db.asteroid().id().find(&object.id) {
                 draw_asteroid(&transform, asteroid, game_state);
             } else if let Some(cargo_crate) = db.cargo_crate().sobj_id().find(&object.id) {
                 draw_crate(&transform, cargo_crate, game_state);
             }
             local_targets.push((object.id, transform.clone().to_vec2(), object.kind));
-        } else if let Some(transform) = db.sobj_low_res_transform().sobj_id().find(&object.id) {
+        } else if let Some(transform) = db.sobj_low_res_transform().id().find(&object.id) {
             // Draw icon even if it has a low-res transform.
             local_targets.push((object.id, transform.clone().to_vec2(), object.kind));
         }
     }
 
-    if
-        let Some(controller) = db
-            .player_ship_controller()
-            .player_id()
-            .find(&game_state.ctx.identity())
-    {
+    if let Some(controller) = db.player_ship_controller().id().find(&game_state.ctx.identity()) {
         if player_transform.is_none() || player_ship_type.is_none() || player_ship.is_none() {
             return;
         }
@@ -141,8 +136,8 @@ fn draw_radar(
         let Some(velocity) = game_state.ctx
             .db()
             .sobj_velocity()
-            .sobj_id()
-            .find(&actual_player_transform.sobj_id)
+            .id()
+            .find(&actual_player_transform.id)
     {
         let _ = draw_hud(game_state, radar_radius, &velocity, actual_player_transform, &player_vec);
     }
@@ -200,7 +195,7 @@ fn draw_hud(
     radar_radius: f32,
     velocity: &StellarObjectVelocity,
     transform: &StellarObjectTransformHiRes,
-    player_vec: &glam::Vec2
+    _player_vec: &glam::Vec2
 ) -> Result<(), String> {
     let color = Color::from_rgba(255, 255, 255, 128);
     let position = transform.to_vec2();
@@ -269,7 +264,7 @@ fn draw_ship(
     );
 
     if let Some(target) = &game_state.current_target_sobj {
-        if target.id == transform.sobj_id {
+        if target.id == transform.id {
             let size = (tex.width() + tex.height()) * 0.5;
             draw_targeting_bracket(
                 position,
@@ -305,7 +300,7 @@ fn draw_asteroid(
 
     // Targeting bracket
     if let Some(target) = &game_state.current_target_sobj {
-        if target.id == asteroid.sobj_id {
+        if target.id == asteroid.id {
             let size = (tex.width() + tex.height()) * 0.5;
             draw_targeting_bracket(
                 position,
@@ -366,7 +361,7 @@ fn draw_jumpgate(
     draw_texture(tex, position.x - tex.width() * 0.5, position.y - tex.height() * 0.5, WHITE);
 
     if let Some(target) = &game_state.current_target_sobj {
-        if target.id == jumpgate.sobj_id {
+        if target.id == jumpgate.id {
             let size = (tex.width() + tex.height()) * 0.33;
             draw_targeting_bracket(
                 position,

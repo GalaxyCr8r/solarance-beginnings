@@ -157,7 +157,7 @@ pub async fn gameplay(connection: Option<DbConnection>) {
                     if
                         let Some(mut controller) = ctx.db
                             .player_ship_controller()
-                            .player_id()
+                            .id()
                             .find(&ctx.identity())
                     {
                         // Deselect target if it's already selected
