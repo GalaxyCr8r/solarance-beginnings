@@ -64,12 +64,26 @@ pub fn create_player_controlled_ship(
 
         {
             let item = get_item_definition(ctx, ITEM_FOOD_RATIONS)?;
-            let _ = attempt_to_load_cargo_into_ship(ctx, &mut status, &ship, &item, 3)?;
+            let _ = attempt_to_load_cargo_into_ship(
+                ctx,
+                &mut status,
+                &ship.get_id(),
+                &item,
+                3,
+                false
+            )?;
         }
 
         {
             let item = get_item_definition(ctx, ITEM_ENERGY_CELL)?;
-            let _ = attempt_to_load_cargo_into_ship(ctx, &mut status, &ship, &item, 5)?;
+            let _ = attempt_to_load_cargo_into_ship(
+                ctx,
+                &mut status,
+                &ship.get_id(),
+                &item,
+                5,
+                false
+            )?;
         }
 
         dsl.create_ship_equipment_slot(

@@ -229,6 +229,8 @@ pub struct Observatory {
 
 //////////////////////////////////////////////////////////////////////
 
+pub mod refinery_definitions;
+
 #[dsl(plural_name = refinery_modules)]
 #[table(name = refinery_module, public)]
 pub struct Refinery {
@@ -256,117 +258,6 @@ pub struct Refinery {
 
     pub base_ingots_produced_per_hour: f32,
     pub current_efficiency_modifier: f32, // Default 1.0
-}
-
-pub fn create_basic_refinery(
-    ctx: &ReducerContext,
-    station: &Station,
-    under_construction: bool
-) -> Result<(), String> {
-    let dsl = dsl(ctx);
-    //
-    if under_construction {
-        return Err("Not yet implemented".to_string());
-    }
-
-    let blueprint = dsl.get_station_module_blueprint_by_id(
-        StationModuleBlueprintId::new(definitions::MODULE_REFINERY_MINOR)
-    )?;
-
-    let module = dsl.create_station_module(
-        station.get_id(),
-        blueprint.get_id(),
-        "refinery", // TODO: Do we even need this field?
-        true,
-        None,
-        ctx.timestamp
-    )?;
-
-    // /// Ice Submodule
-    // let ice_ref = dsl.create_refinery_module(
-    //     module.get_id(),
-    //     ItemDefinitionId::new(ITEM_ICE_ORE),
-    //     ItemDefinitionId::new(ITEM_WATER),
-    //     None,
-    //     10.0,
-    //     0.0,
-    //     30.0,
-    //     1.0
-    // )?;
-
-    // dsl.create_station_module_inventory_item(
-    //     module.get_id(),
-    //     ItemDefinitionId::new(ITEM_ICE_ORE),
-    //     0,
-    //     blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
-    //     format!("{};{};input", module.id, ice_ref.id).as_str()
-    // )?;
-
-    // dsl.create_station_module_inventory_item(
-    //     module.get_id(),
-    //     ItemDefinitionId::new(ITEM_WATER),
-    //     0,
-    //     blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
-    //     format!("{};{};output", module.id, ice_ref.id).as_str()
-    // )?;
-
-    /// Iron Submodule
-    let iron_ref = dsl.create_refinery_module(
-        module.get_id(),
-        ItemDefinitionId::new(ITEM_IRON_ORE),
-        ItemDefinitionId::new(ITEM_IRON_INGOT),
-        None,
-        10.0,
-        0.0,
-        30.0,
-        1.0
-    )?;
-
-    dsl.create_station_module_inventory_item(
-        module.get_id(),
-        ItemDefinitionId::new(ITEM_IRON_ORE),
-        0,
-        blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
-        format!("{};{};input", module.id, iron_ref.id).as_str()
-    )?;
-
-    dsl.create_station_module_inventory_item(
-        module.get_id(),
-        ItemDefinitionId::new(ITEM_IRON_INGOT),
-        0,
-        blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
-        format!("{};{};output", module.id, iron_ref.id).as_str()
-    )?;
-
-    // /// Silicon Submodule
-    // let silicon_ref = dsl.create_refinery_module(
-    //     module.get_id(),
-    //     ItemDefinitionId::new(ITEM_SILICON_ORE),
-    //     ItemDefinitionId::new(ITEM_SILICON_RAW),
-    //     None,
-    //     10.0,
-    //     0.0,
-    //     30.0,
-    //     1.0
-    // )?;
-
-    // dsl.create_station_module_inventory_item(
-    //     module.get_id(),
-    //     ItemDefinitionId::new(ITEM_SILICON_ORE),
-    //     0,
-    //     blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
-    //     format!("{};{};input", module.id, silicon_ref.id).as_str()
-    // )?;
-
-    // dsl.create_station_module_inventory_item(
-    //     module.get_id(),
-    //     ItemDefinitionId::new(ITEM_SILICON_RAW),
-    //     0,
-    //     blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
-    //     format!("{};{};output", module.id, silicon_ref.id).as_str()
-    // )?;
-
-    Ok(())
 }
 
 //////////////////////////////////////////////////////////////////////

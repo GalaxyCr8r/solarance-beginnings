@@ -1,4 +1,4 @@
-use spacetimedb::{ Identity, ReducerContext };
+use spacetimedb::ReducerContext;
 use types::{ common::*, * };
 use spacetimedsl::dsl;
 

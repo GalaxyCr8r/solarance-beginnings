@@ -20,7 +20,7 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
     let sobj_player_window = format!(
         "SELECT w.* 
         FROM sobj_player_window w
-        WHERE w.player_id = '{}'",
+        WHERE w.id = '{}'",
         ctx.identity()
     );
     let sector_chat_message = format!(
@@ -33,7 +33,7 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
     let player_ship_controller = format!(
         "SELECT c.* 
         FROM player_ship_controller c
-        WHERE c.player_id = '{}'",
+        WHERE c.id = '{}'",
         ctx.identity()
     );
     let player_ship = format!(

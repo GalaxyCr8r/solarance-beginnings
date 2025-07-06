@@ -114,14 +114,95 @@ pub fn create_ship_docked_at_station(
     return Ok((ship, ship_status));
 }
 
+/// Removes cargo from a ship's cargo hold. Errors if the ship doesn't have enough of the item.
+pub fn remove_cargo_from_ship(
+    ctx: &ReducerContext,
+    ship_status: &mut ShipStatus,
+    item_def: &ItemDefinition,
+    amount: u16
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
+    let mut remaining_amount = amount;
+
+    if amount == 0 {
+        return Err(
+            format!(
+                "Tried to remove 0 amount of {} from ship #{:?}",
+                item_def.name,
+                ship_status.get_id()
+            )
+        );
+    }
+
+    ship_status.used_cargo_capacity = ship_status.calculate_used_cargo_space(ctx); // Just go through and make sure everything is ship-shape.
+    info!(
+        "Attempting to remove {}x {} ({}v) from ship #{} with remaining cargo space of {}v",
+        amount,
+        item_def.name,
+        amount * item_def.volume_per_unit,
+        ship_status.id,
+        ship_status.get_remaining_cargo_space()
+    );
+
+    // Check if the ship has enough of the item
+    for cargo_item in dsl.get_ship_cargo_items_by_ship_id(ship_status.get_id()) {
+        if cargo_item.get_item_id() == item_def.get_id() {
+            if *cargo_item.get_quantity() <= remaining_amount {
+                // If so, deduct the stack amount from remaining amount, and remove the stack from inventory. Continue looping.
+                remaining_amount -= cargo_item.get_quantity();
+                info!(
+                    "Found a stack that fits all the remaining amount {}. Removing from cargo item for ship #{:?}: {}x {}",
+                    remaining_amount,
+                    ship_status.get_id(),
+                    *cargo_item.get_quantity(),
+                    item_def.name
+                );
+
+                dsl.delete_ship_cargo_item_by_id(&cargo_item.get_id())?;
+                continue;
+            } else {
+                info!(
+                    "Found an existing stack of {} {} that has more than the requested quantity, removing {}",
+                    cargo_item.get_quantity(),
+                    item_def.name,
+                    remaining_amount
+                );
+
+                // Remove the amount from the stack and update it.
+                let mut updated_cargo_item = cargo_item;
+
+                let new_amount = updated_cargo_item.get_quantity() - remaining_amount;
+                updated_cargo_item.set_quantity(new_amount);
+                dsl.update_ship_cargo_item_by_id(updated_cargo_item)?;
+
+                remaining_amount -= new_amount;
+            }
+        }
+    }
+    if remaining_amount > 0 {
+        return Err(
+            format!(
+                "Ship #{} does not have enough {} to remove: requested {}, available 0",
+                ship_status.id,
+                item_def.name,
+                remaining_amount
+            )
+        );
+    }
+    Ok(())
+}
+
 /// Loads cargo into a ship's cargo hold, preferring existing cargo items.
-/// It creates new cargo items if necessary, but if it can't it will crate a cargo crate instead.
+/// It creates new cargo items if necessary, but if it can't it will create
+/// a cargo crate instead if create_a_crate_if_failed is true and ShipGlobalId
+/// points to a Ship and not a DockedShip row.
 pub fn attempt_to_load_cargo_into_ship(
     ctx: &ReducerContext,
     ship_status: &mut ShipStatus,
-    ship_object: &Ship,
+    ship_id: &ShipGlobalId,
     item_def: &ItemDefinition,
-    amount: u16
+    amount: u16,
+    create_a_crate_if_failed: bool
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
     let mut remaining_amount = amount;
@@ -265,8 +346,24 @@ pub fn attempt_to_load_cargo_into_ship(
             item_def.get_volume_per_unit() * overflow_amount
         );
 
-        // If not enough space, create a cargo crate instead
-        create_cargo_crate_nearby_ship(ctx, &ship_object.get_sobj_id(), item_def, overflow_amount)?;
+        // If not enough space, check if we create a cargo crate instead
+        if create_a_crate_if_failed {
+            if let Ok(ship_object) = dsl.get_ship_by_id(ship_id) {
+                create_cargo_crate_nearby_ship(
+                    ctx,
+                    &ship_object.get_sobj_id(),
+                    item_def,
+                    overflow_amount
+                )?;
+            } else {
+                // It's gotta be a DockedShip, so fail instead.
+                return Err(
+                    "Failed to create cargo crate because the ship_id does not point to a Ship, but a DockedShip.".to_string()
+                );
+            }
+        } else {
+            return Err("Failed to load cargo because it ran out space inside the ship".to_string());
+        }
     }
 
     ship_status.used_cargo_capacity = ship_status.calculate_used_cargo_space(ctx); // Just go through and make sure everything is ship-shape FINALLY.

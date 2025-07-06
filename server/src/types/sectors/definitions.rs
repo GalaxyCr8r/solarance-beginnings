@@ -1,14 +1,10 @@
-
 use log::info;
 use spacetimedb::ReducerContext;
 use spacetimedsl::dsl;
 
 use crate::types::{
     common::Vec2,
-    stations::{
-        modules::{ create_basic_bazaar, create_basic_refinery },
-        CreateStationRow,
-    },
+    stations::{ modules::{ refinery_definitions::*, * }, * },
     stellarobjects::{ utility::create_sobj_internal, StellarObjectTransformInternal },
 };
 
@@ -168,7 +164,7 @@ fn demo_sectors(ctx: &ReducerContext) -> Result<(), String> {
         None
     )?;
     create_basic_bazaar(ctx, &station, false)?;
-    create_basic_refinery(ctx, &station, false)?;
+    create_basic_iron(ctx, &station, false)?;
 
     dsl.create_station(
         crate::types::stations::StationSize::Capital,

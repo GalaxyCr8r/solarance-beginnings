@@ -9,7 +9,7 @@ use crate::types::{
     common::utility::try_server_only,
     items::utility::*,
     ships::utility::*,
-    stellarobjects::{ GetStellarObjectRowOptionById, StellarObject },
+    stellarobjects::GetStellarObjectRowOptionById,
 };
 
 use super::*;
@@ -320,7 +320,14 @@ pub fn ship_add_cargo_timer_reducer(
     let item_def = get_item_definition(ctx, timer.item_id)?;
 
     // Attempt to load it into the ship
-    attempt_to_load_cargo_into_ship(ctx, &mut ship_status, &ship_object, &item_def, timer.amount)?;
+    attempt_to_load_cargo_into_ship(
+        ctx,
+        &mut ship_status,
+        &ship_object.get_id(),
+        &item_def,
+        timer.amount,
+        true
+    )?;
 
     Ok(())
 }
