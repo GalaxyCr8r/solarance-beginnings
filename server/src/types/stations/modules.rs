@@ -78,6 +78,8 @@ pub fn create_basic_bazaar(
         ctx.timestamp
     )?;
 
+    let _trading = dsl.create_trading_port_module(module.get_id())?;
+
     // Create trading port listings for ITEM_ICE_ORE, ITEM_IRON_ORE, ITEM_SILICON_ORE
     let mut item = dsl.create_station_module_inventory_item(
         module.get_id(),

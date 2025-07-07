@@ -34,3 +34,11 @@ tasks:
       - generate
       - build
       - run
+
+  stdsl-impls:
+    desc: "Generate Impls for STDSL ID Types"
+    cmds:
+      - grep -rhIE -A1 '^pub struct (\w+Id) \{' . | sed -E --file=src/stdb/stdsl_sed_script.txt > src\stdb\stdsl_id_impls.txt
+      # '^#\[table\(name = (\w+), public\)\]'
+      # '^pub struct StationModuleId \{'  
+      #    pub fn new\(id: u64\) -> Self \{

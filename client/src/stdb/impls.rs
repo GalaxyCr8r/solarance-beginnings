@@ -128,10 +128,3 @@ impl StationSize {
         (self.modules().pow(2) as u32) * 50_000 + 200_000
     }
 }
-
-// impl PlayerId {
-//     /// Create a new PlayerId from STDB Identity struct.
-//     pub fn new(identity: &Identity) -> Self {
-//         PlayerId {}
-//     }
-// }

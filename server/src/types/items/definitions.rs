@@ -152,6 +152,73 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
     )?;
 
     ///////////////////////////////////////////////////////////////////////////////////////
+    // Ingots
+    current_category = ItemCategory::Resource(ResourceCategory::RefinedIngot);
+
+    // Iron, Silicon, Uranium, Viveium, Titanium Ingots
+    {
+        dsl.create_item_definition(
+            ITEM_IRON_INGOT,
+            "Iron Ingot",
+            Some("Refined iron ingot. Used in many ship components.".into()),
+            current_category.clone(),
+            150,
+            8,
+            LOOSE_STACK_SIZE,
+            vec![],
+            None
+        )?;
+
+        dsl.create_item_definition(
+            ITEM_SILICON_RAW,
+            "Silicon Ingot",
+            Some("Refined silicon ingot. Used in many computer components.".into()),
+            current_category.clone(),
+            150,
+            8,
+            LOOSE_STACK_SIZE,
+            vec![],
+            None
+        )?;
+
+        dsl.create_item_definition(
+            ITEM_URANIUM_INGOT,
+            "Uranium Ingot",
+            Some("Refined uranium ingot. Used in many reactor and weapon components.".into()),
+            current_category.clone(),
+            200,
+            8,
+            LOOSE_STACK_SIZE,
+            vec![],
+            None
+        )?;
+
+        dsl.create_item_definition(
+            ITEM_VIVEIUM_INGOT,
+            "Viveium Ingot",
+            Some("Refined viveium ingot. Used in many research components.".into()),
+            current_category.clone(),
+            1250,
+            8,
+            LOOSE_STACK_SIZE,
+            vec![],
+            None
+        )?;
+
+        dsl.create_item_definition(
+            ITEM_TITANIUM_INGOT,
+            "Titanium Ingot",
+            Some("Refined titanium ingot. Used in many advanced ship components.".into()),
+            current_category.clone(),
+            300,
+            8,
+            LOOSE_STACK_SIZE,
+            vec![],
+            None
+        )?;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////
     // RAW BIOMATTER
     current_category = ItemCategory::Resource(ResourceCategory::BiomatterRaw);
 
