@@ -5,11 +5,8 @@ use spacetimedb::*;
 use spacetimedsl::dsl;
 
 use crate::types::items::definitions::{
-        ITEM_ENERGY_CELL,
-        ITEM_FOOD_RATIONS,
-        ITEM_METAL_HULL,
-        ITEM_METAL_PLATES,
-    };
+    ITEM_ENERGY_CELL, ITEM_FOOD_RATIONS, ITEM_METAL_HULL_STRUCTURE, ITEM_METAL_PLATES,
+};
 
 use super::*;
 
@@ -43,7 +40,10 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 
     basic_station_module_blueprints(ctx)?;
 
-    info!("Station Modules Loaded: {}", dsl.get_all_station_module_blueprints().count());
+    info!(
+        "Station Modules Loaded: {}",
+        dsl.get_all_station_module_blueprints().count()
+    );
     Ok(())
 }
 
@@ -53,11 +53,23 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 
 fn calculate_basic_module_cost(max_hp: u32, relative_complexity: u8) -> Vec<ResourceAmount> {
     vec![
-        ResourceAmount::new(ITEM_METAL_HULL, max_hp + ((relative_complexity as u32) * 500) / 10),
-        ResourceAmount::new(ITEM_ENERGY_CELL, max_hp + ((relative_complexity as u32) * 1_000) / 5),
+        ResourceAmount::new(
+            ITEM_METAL_HULL_STRUCTURE,
+            max_hp + ((relative_complexity as u32) * 500) / 10,
+        ),
+        ResourceAmount::new(
+            ITEM_ENERGY_CELL,
+            max_hp + ((relative_complexity as u32) * 1_000) / 5,
+        ),
         // ResourceAmount::new(ITEM_COMPUTER_CORE, max_hp / (575 / (relative_complexity as u32))), // this is a problem child, its causing the wasm to fail.
-        ResourceAmount::new(ITEM_METAL_PLATES, max_hp + ((relative_complexity as u32) * 100) / 125),
-        ResourceAmount::new(ITEM_FOOD_RATIONS, max_hp + ((relative_complexity as u32) * 1_000) / 25)
+        ResourceAmount::new(
+            ITEM_METAL_PLATES,
+            max_hp + ((relative_complexity as u32) * 100) / 125,
+        ),
+        ResourceAmount::new(
+            ITEM_FOOD_RATIONS,
+            max_hp + ((relative_complexity as u32) * 1_000) / 25,
+        ),
     ]
 }
 
@@ -68,7 +80,7 @@ fn basic_station_module_blueprints(ctx: &ReducerContext) -> Result<(), String> {
         MODULE_TRADING_BAZAAR,
         "Trading Bazaar",
         "A basic trading port. Can fit a reasonable amount of goods.",
-        StationModuleCategory::CivilianAndSupportServices,
+        StationModuleCategory::LogisticsAndStorage,
         StationModuleSpecificType::TradingPort,
         calculate_basic_module_cost(10_000, 0),
         0,
@@ -81,14 +93,14 @@ fn basic_station_module_blueprints(ctx: &ReducerContext) -> Result<(), String> {
         Some(10),
         None,
         1_000,
-        10_000
+        10_000,
     )?;
 
     dsl.create_station_module_blueprint(
         MODULE_TRADING_MARKET,
         "Trading Market",
         "A basic trading port. Can fit a reasonable amount of goods.",
-        StationModuleCategory::CivilianAndSupportServices,
+        StationModuleCategory::LogisticsAndStorage,
         StationModuleSpecificType::TradingPort,
         calculate_basic_module_cost(50_000, 0),
         0,
@@ -101,7 +113,7 @@ fn basic_station_module_blueprints(ctx: &ReducerContext) -> Result<(), String> {
         Some(10),
         None,
         5_000,
-        50_000
+        50_000,
     )?;
 
     /////////////////////////////////////////////////////////////////////////////////////
@@ -123,7 +135,7 @@ fn basic_station_module_blueprints(ctx: &ReducerContext) -> Result<(), String> {
         Some(-5),
         None,
         2_000,
-        15_000
+        15_000,
     )?;
 
     Ok(())

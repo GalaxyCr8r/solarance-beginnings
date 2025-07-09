@@ -12,6 +12,7 @@ use crate::{
             ITEM_SILICON_ORE,
         },
         ItemDefinitionId,
+        GetItemDefinitionRowOptionById,
     },
 };
 
@@ -94,8 +95,15 @@ pub fn create_basic_bazaar(
         ItemDefinitionId::new(ITEM_ICE_ORE),
         10,
         blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
-        format!("{};{};trading", module.id, ITEM_ICE_ORE).as_str()
+        format!("{};{};trading", module.id, ITEM_ICE_ORE).as_str(),
+        0.0  // Initial cached price, will be updated immediately
     )?;
+    // Calculate and set initial cached current price
+    if let Ok(item_def) = dsl.get_item_definition_by_id(ItemDefinitionId::new(ITEM_ICE_ORE)) {
+        let initial_price = item.calculate_current_price(&item_def);
+        item.set_cached_current_price(initial_price);
+        dsl.update_station_module_inventory_item_by_id(item.clone())?;
+    }
     dsl.create_trading_port_listing(item.get_id(), Some(0.8), None)?;
 
     item = dsl.create_station_module_inventory_item(
@@ -103,8 +111,15 @@ pub fn create_basic_bazaar(
         ItemDefinitionId::new(ITEM_IRON_ORE),
         20,
         blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
-        format!("{};{};trading", module.id, ITEM_IRON_ORE).as_str()
+        format!("{};{};trading", module.id, ITEM_IRON_ORE).as_str(),
+        0.0  // Initial cached price, will be updated immediately
     )?;
+    // Calculate and set initial cached current price
+    if let Ok(item_def) = dsl.get_item_definition_by_id(ItemDefinitionId::new(ITEM_IRON_ORE)) {
+        let initial_price = item.calculate_current_price(&item_def);
+        item.set_cached_current_price(initial_price);
+        dsl.update_station_module_inventory_item_by_id(item.clone())?;
+    }
     dsl.create_trading_port_listing(item.get_id(), Some(0.8), None)?;
 
     item = dsl.create_station_module_inventory_item(
@@ -112,8 +127,15 @@ pub fn create_basic_bazaar(
         ItemDefinitionId::new(ITEM_SILICON_ORE),
         40,
         blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
-        format!("{};{};trading", module.id, ITEM_SILICON_ORE).as_str()
+        format!("{};{};trading", module.id, ITEM_SILICON_ORE).as_str(),
+        0.0  // Initial cached price, will be updated immediately
     )?;
+    // Calculate and set initial cached current price
+    if let Ok(item_def) = dsl.get_item_definition_by_id(ItemDefinitionId::new(ITEM_SILICON_ORE)) {
+        let initial_price = item.calculate_current_price(&item_def);
+        item.set_cached_current_price(initial_price);
+        dsl.update_station_module_inventory_item_by_id(item.clone())?;
+    }
     dsl.create_trading_port_listing(item.get_id(), Some(0.8), None)?;
 
     item = dsl.create_station_module_inventory_item(
@@ -121,8 +143,15 @@ pub fn create_basic_bazaar(
         ItemDefinitionId::new(ITEM_ENERGY_CELL),
         1000,
         blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
-        format!("{};{};trading", module.id, ITEM_ENERGY_CELL).as_str()
+        format!("{};{};trading", module.id, ITEM_ENERGY_CELL).as_str(),
+        0.0  // Initial cached price, will be updated immediately
     )?;
+    // Calculate and set initial cached current price
+    if let Ok(item_def) = dsl.get_item_definition_by_id(ItemDefinitionId::new(ITEM_ENERGY_CELL)) {
+        let initial_price = item.calculate_current_price(&item_def);
+        item.set_cached_current_price(initial_price);
+        dsl.update_station_module_inventory_item_by_id(item.clone())?;
+    }
     dsl.create_trading_port_listing(item.get_id(), Some(0.5), None)?;
 
     item = dsl.create_station_module_inventory_item(
@@ -130,8 +159,15 @@ pub fn create_basic_bazaar(
         ItemDefinitionId::new(ITEM_FOOD_RATIONS),
         100,
         blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
-        format!("{};{};trading", module.id, ITEM_FOOD_RATIONS).as_str()
+        format!("{};{};trading", module.id, ITEM_FOOD_RATIONS).as_str(),
+        0.0  // Initial cached price, will be updated immediately
     )?;
+    // Calculate and set initial cached current price
+    if let Ok(item_def) = dsl.get_item_definition_by_id(ItemDefinitionId::new(ITEM_FOOD_RATIONS)) {
+        let initial_price = item.calculate_current_price(&item_def);
+        item.set_cached_current_price(initial_price);
+        dsl.update_station_module_inventory_item_by_id(item.clone())?;
+    }
     dsl.create_trading_port_listing(item.get_id(), Some(0.5), None)?;
 
     item = dsl.create_station_module_inventory_item(
@@ -139,8 +175,15 @@ pub fn create_basic_bazaar(
         ItemDefinitionId::new(ITEM_FOOD_AVERAGE),
         100,
         blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
-        format!("{};{};trading", module.id, ITEM_FOOD_AVERAGE).as_str()
+        format!("{};{};trading", module.id, ITEM_FOOD_AVERAGE).as_str(),
+        0.0  // Initial cached price, will be updated immediately
     )?;
+    // Calculate and set initial cached current price
+    if let Ok(item_def) = dsl.get_item_definition_by_id(ItemDefinitionId::new(ITEM_FOOD_AVERAGE)) {
+        let initial_price = item.calculate_current_price(&item_def);
+        item.set_cached_current_price(initial_price);
+        dsl.update_station_module_inventory_item_by_id(item.clone())?;
+    }
     dsl.create_trading_port_listing(item.get_id(), Some(0.5), None)?;
 
     Ok(())

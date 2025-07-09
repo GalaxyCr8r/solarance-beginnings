@@ -1,14 +1,10 @@
 use log::info;
-use spacetimedb::{ table, Identity, ReducerContext, SpacetimeType };
-use spacetimedsl::{ dsl, Wrapper };
+use spacetimedb::{table, Identity, ReducerContext, SpacetimeType};
+use spacetimedsl::{dsl, Wrapper};
 
 use crate::types::{
-    items::utility::*,
+    common::*, items::utility::*, items::*, sectors::*, stations::*,
     stellarobjects::StellarObjectId,
-    common::*,
-    items::*,
-    sectors::*,
-    stations::*,
 };
 
 pub mod definitions; // Definitions for initial ingested data.
@@ -98,7 +94,7 @@ pub struct ShipStatus {
     pub energy: f32,
 
     pub used_cargo_capacity: u16, // Needs to be manually maintained via ShipCargoItem
-    pub max_cargo_capacity: u16, // Needs to be manually maintained via ShipCargoItem
+    pub max_cargo_capacity: u16,  // Needs to be manually maintained via ShipCargoItem
 
     pub ai_state: Option<CurrentAction>, // Current high-level AI state or player command
 }
@@ -107,11 +103,11 @@ pub struct ShipStatus {
 #[dsl(plural_name = ship_globals)]
 #[table(name = ship_global, public)]
 pub struct ShipGlobal {
-    #[primary_key] // Due to Ship/DockedShip tables both wanting the use the same ID, we can no longer use AutoInc for them
+    #[primary_key]
+    // Due to Ship/DockedShip tables both wanting the use the same ID, we can no longer use AutoInc for them
     #[auto_inc]
     #[create_wrapper]
     id: u64,
-
     //pub custom_name: Option<String>,
 }
 
@@ -197,7 +193,7 @@ pub struct ShipCargoItem {
     pub item_id: u32,
 
     pub quantity: u16, // How many of this item are currently in this stack
-    //pub stack_size: u8, // TODO: Do we keep this value here to save query time?
+                       //pub stack_size: u8, // TODO: Do we keep this value here to save query time?
 }
 
 #[dsl(plural_name = ship_equipment_slots)]

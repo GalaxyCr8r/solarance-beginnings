@@ -35,7 +35,7 @@ impl StationSize {
 
 impl StationModuleInventoryItem {
     /// Calculates the current price of an item based on its quantity and item definition.
-    pub fn current_price(&self, item_def: &ItemDefinition) -> f32 {
+    pub fn calculate_current_price(&self, item_def: &ItemDefinition) -> f32 {
         let max_quantity = self.max_quantity as f32;
         let current_quantity = self.quantity as f32;
         (max_quantity / current_quantity) * (item_def.base_value as f32)

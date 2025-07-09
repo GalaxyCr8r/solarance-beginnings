@@ -1,21 +1,10 @@
-use std::{ collections::HashMap, f32::consts::PI };
+use std::{collections::HashMap, f32::consts::PI};
 
 use egui::{
-    Align,
-    Align2,
-    Color32,
-    Context,
-    FontId,
-    Frame,
-    Layout,
-    Rangef,
-    RichText,
-    Shadow,
-    Ui,
-    Vec2,
+    Align, Align2, Color32, Context, FontId, Frame, Layout, Rangef, RichText, Shadow, Ui, Vec2,
 };
 use macroquad::prelude::*;
-use spacetimedb_sdk::{ DbContext, Table };
+use spacetimedb_sdk::{DbContext, Table};
 
 pub mod utils;
 
@@ -23,9 +12,9 @@ use crate::{
     gameplay::{
         gui::{
             out_of_play_screen::utils::*,
-            ship_details_window::{ show_docked_ship_details, show_ship_details },
+            ship_details_window::{show_docked_ship_details, show_ship_details},
         },
-        state::{ self, GameState },
+        state::{self, GameState},
     },
     module_bindings::*,
     stdb::utils::*,
@@ -58,19 +47,17 @@ impl State {
 pub fn draw(
     egui_ctx: &Context,
     ctx: &DbConnection,
-    game_state: &mut GameState
+    game_state: &mut GameState,
 ) -> egui::InnerResponse<()> {
-    egui::CentralPanel
-        ::default()
+    egui::CentralPanel::default()
         .frame(
             Frame::group(&egui_ctx.style())
                 .fill(Color32::from_rgb(0, 5, 10))
                 .multiply_with_opacity(0.75)
-                .shadow(Shadow::NONE)
+                .shadow(Shadow::NONE),
         )
         .show(egui_ctx, |ui| {
-            egui::SidePanel
-                ::left("left_panel")
+            egui::SidePanel::left("left_panel")
                 .resizable(true)
                 .default_width(320.0)
                 .width_range(Rangef::new(150.0, 400.0))
@@ -78,8 +65,7 @@ pub fn draw(
                     left_panel(ui, ctx, game_state);
                 });
 
-            egui::TopBottomPanel
-                ::bottom("bottom_chat")
+            egui::TopBottomPanel::bottom("bottom_chat")
                 .resizable(false)
                 .min_height(150.0)
                 .max_height(screen_height() / 5.0)
@@ -95,8 +81,7 @@ pub fn draw(
                 }
             }
 
-            egui::TopBottomPanel
-                ::bottom("bottom_panel")
+            egui::TopBottomPanel::bottom("bottom_panel")
                 .resizable(false)
                 .min_height(0.0)
                 .show_inside(ui, |ui| {
@@ -112,65 +97,61 @@ fn show_station_window(
     ctx: &DbConnection,
     game_state: &mut GameState<'_>,
     docked_ship: DockedShip,
-    station: Station
+    station: Station,
 ) {
-    egui::Window
-        ::new(format!("{} Station - Docked Ship ID {}", station.name, docked_ship.id))
-        .title_bar(true)
-        .resizable(true)
-        .collapsible(true)
-        .movable(true)
-        .vscroll(true)
-        .frame(
-            Frame::group(&egui_ctx.style())
-                .fill(Color32::from_rgb(0, 5, 10))
-                .multiply_with_opacity(0.75)
-        )
-        .show(egui_ctx, |ui| {
-            ui.vertical_centered(|ui| {
-                ui.heading("Station Panel");
-            });
-
-            // Show tabs for each
-            ui.horizontal(|ui| {
-                for (index, module) in ctx
-                    .db()
-                    .station_module()
-                    .iter()
-                    .filter(|sm| sm.station_id == station.id)
-                    .enumerate() {
-                    if
-                        let Some(blueprint) = ctx
-                            .db()
-                            .station_module_blueprint()
-                            .id()
-                            .find(&module.blueprint)
-                    {
-                        show_station_module(game_state, ui, index, module, blueprint);
-                    } else {
-                        ui.label(format!("Module #{} (Unknown)", index));
-                    }
-                }
-            });
-            ui.separator();
-            egui::ScrollArea::vertical().show(ui, |ui| {
-                if
-                    let Some((index, module, blueprint)) =
-                        game_state.out_of_play_screen.currently_selected_module.clone()
-                {
-                    ui.group(|ui| {
-                        show_currently_selected_module(
-                            ctx,
-                            docked_ship,
-                            ui,
-                            index,
-                            module,
-                            blueprint
-                        );
-                    });
-                }
-            });
+    egui::Window::new(format!(
+        "{} Station - Docked Ship ID {}",
+        station.name, docked_ship.id
+    ))
+    .title_bar(true)
+    .resizable(true)
+    .collapsible(true)
+    .movable(true)
+    .vscroll(true)
+    .frame(
+        Frame::group(&egui_ctx.style())
+            .fill(Color32::from_rgb(0, 5, 10))
+            .multiply_with_opacity(0.75),
+    )
+    .show(egui_ctx, |ui| {
+        ui.vertical_centered(|ui| {
+            ui.heading("Station Panel");
         });
+
+        // Show tabs for each
+        ui.horizontal(|ui| {
+            for (index, module) in ctx
+                .db()
+                .station_module()
+                .iter()
+                .filter(|sm| sm.station_id == station.id)
+                .enumerate()
+            {
+                if let Some(blueprint) = ctx
+                    .db()
+                    .station_module_blueprint()
+                    .id()
+                    .find(&module.blueprint)
+                {
+                    show_station_module(game_state, ui, index, module, blueprint);
+                } else {
+                    ui.label(format!("Module #{} (Unknown)", index));
+                }
+            }
+        });
+        ui.separator();
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            if let Some((index, module, blueprint)) = game_state
+                .out_of_play_screen
+                .currently_selected_module
+                .clone()
+            {
+                ui.group(|ui| {
+                    show_currently_selected_module(ctx, docked_ship, ui, index, module, blueprint);
+                });
+            }
+        });
+    });
 }
 
 fn show_station_module(
@@ -178,7 +159,7 @@ fn show_station_module(
     ui: &mut Ui,
     index: usize,
     module: StationModule,
-    blueprint: StationModuleBlueprint
+    blueprint: StationModuleBlueprint,
 ) {
     // Check if this is module is selected
     let mut selected = false;
@@ -186,12 +167,12 @@ fn show_station_module(
         selected = (index as u8) == selected_index;
     }
 
-    if ui.selectable_label(selected, format!("Module #{} ({})", index, blueprint.name)).clicked() {
-        game_state.out_of_play_screen.currently_selected_module = Some((
-            index as u8,
-            module.clone(),
-            blueprint.clone(),
-        ));
+    if ui
+        .selectable_label(selected, format!("Module #{} ({})", index, blueprint.name))
+        .clicked()
+    {
+        game_state.out_of_play_screen.currently_selected_module =
+            Some((index as u8, module.clone(), blueprint.clone()));
     }
 }
 
@@ -201,7 +182,7 @@ fn show_currently_selected_module(
     ui: &mut Ui,
     index: u8,
     module: StationModule,
-    blueprint: StationModuleBlueprint
+    blueprint: StationModuleBlueprint,
 ) {
     ui.heading(format!("Station Module #{}: {}", index, blueprint.name));
 
@@ -220,21 +201,27 @@ fn show_currently_selected_module(
         .db()
         .station_module_inventory_item()
         .iter()
-        .filter(|smi| smi.module_id == module.id) {
-        if let Some(item_def) = ctx.db().item_definition().id().find(&inventory.resource_item_id) {
+        .filter(|smi| smi.module_id == module.id)
+    {
+        if let Some(item_def) = ctx
+            .db()
+            .item_definition()
+            .id()
+            .find(&inventory.resource_item_id)
+        {
             ui.horizontal(|ui| {
-                ui.label(
-                    format!(
-                        "Item: {} (ID: {}) - {}",
-                        item_def.name,
-                        item_def.id,
-                        inventory.storage_purpose_tag
-                    )
-                );
+                ui.label(format!(
+                    "Item: {} (ID: {}) - {}c",
+                    item_def.name, item_def.id, inventory.cached_current_price
+                ));
                 ui.add(
-                    egui::ProgressBar
-                        ::new((inventory.quantity as f32) / (inventory.max_quantity as f32))
-                        .text(format!("{} / {}", inventory.quantity, inventory.max_quantity))
+                    egui::ProgressBar::new(
+                        (inventory.quantity as f32) / (inventory.max_quantity as f32),
+                    )
+                    .text(format!(
+                        "{} / {}",
+                        inventory.quantity, inventory.max_quantity
+                    )),
                 );
             });
 
@@ -244,14 +231,13 @@ fn show_currently_selected_module(
                         .ship_cargo_item()
                         .iter()
                         .filter(|sci| {
-                            sci.ship_id == docked_ship.id &&
-                                sci.item_id == inventory.resource_item_id
+                            sci.ship_id == docked_ship.id
+                                && sci.item_id == inventory.resource_item_id
                         })
                         .map(|sci| {
                             info!(
                                 "Found cargo item {} with quantity {} in player inventory!!",
-                                sci.item_id,
-                                sci.quantity
+                                sci.item_id, sci.quantity
                             );
                             sci.quantity
                         })
@@ -259,22 +245,20 @@ fn show_currently_selected_module(
                 };
 
                 // Handling Buying only of this is a trading port or it's a refinery's raw resource item
-                let module_can_buy_from_player =
-                    trading_port.is_some() ||
-                    (refinery.is_some() &&
-                        refinery.as_ref().unwrap().input_ore_resource_id ==
-                            inventory.resource_item_id);
+                let module_can_buy_from_player = trading_port.is_some()
+                    || (refinery.is_some()
+                        && refinery.as_ref().unwrap().input_ore_resource_id
+                            == inventory.resource_item_id);
 
                 // Handle Selling only if this is a trading port or it's a refinery's refined (or waste) resource item.
-                let module_can_sell_to_player =
-                    trading_port.is_some() ||
-                    (refinery.is_some() &&
-                        ({
+                let module_can_sell_to_player = trading_port.is_some()
+                    || (refinery.is_some()
+                        && ({
                             let refinary = refinery.as_ref().unwrap();
-                            refinary.output_ingot_resource_id == inventory.resource_item_id ||
-                                refinary.waste_resource_id.is_some_and(
-                                    |waste_id| waste_id == inventory.resource_item_id
-                                )
+                            refinary.output_ingot_resource_id == inventory.resource_item_id
+                                || refinary
+                                    .waste_resource_id
+                                    .is_some_and(|waste_id| waste_id == inventory.resource_item_id)
                         }));
 
                 ui.label(RichText::new("Sell:").strong().color(Color32::GREEN));
@@ -300,7 +284,7 @@ fn show_currently_selected_module(
                                 &docked_ship,
                                 &module,
                                 &inventory,
-                                ui
+                                ui,
                             );
                         }
                         if inventory.quantity > 1 {
@@ -310,7 +294,7 @@ fn show_currently_selected_module(
                                 &docked_ship,
                                 &module,
                                 &inventory,
-                                ui
+                                ui,
                             );
                         }
                     } else {
@@ -346,7 +330,7 @@ fn show_currently_selected_module(
                                 &docked_ship,
                                 &module,
                                 &inventory,
-                                ui
+                                ui,
                             );
                         }
                         if players_current_amount > 1 {
@@ -356,7 +340,7 @@ fn show_currently_selected_module(
                                 &docked_ship,
                                 &module,
                                 &inventory,
-                                ui
+                                ui,
                             );
                         }
                     } else {
@@ -380,23 +364,23 @@ fn buy_item_from_station(
     module: &StationModule,
     inventory: &StationModuleInventoryItem,
     ui: &mut Ui,
-    quantity: u32
+    quantity: u32,
 ) {
     if ui.button(format!("-{}-", quantity)).clicked() {
-        if
-            let Ok(_) = ctx.reducers.buy_item_from_trading_port(
-                module.id.into(),
-                docked_ship.id.into(),
-                inventory.resource_item_id.into(),
-                quantity
-            )
-        {
-            info!("Bought {} item(s) {} from trading port", quantity, inventory.resource_item_id);
+        if let Ok(_) = ctx.reducers.buy_item_from_trading_port(
+            module.id.into(),
+            docked_ship.id.into(),
+            inventory.resource_item_id.into(),
+            quantity,
+        ) {
+            info!(
+                "Bought {} item(s) {} from trading port",
+                quantity, inventory.resource_item_id
+            );
         } else {
             warn!(
                 "Failed to buy {} item(s) {} from trading port",
-                quantity,
-                inventory.resource_item_id
+                quantity, inventory.resource_item_id
             );
         }
     }
@@ -408,28 +392,25 @@ fn sell_item_to_station(
     docked_ship: &DockedShip,
     module: &StationModule,
     inventory: &StationModuleInventoryItem,
-    ui: &mut Ui
+    ui: &mut Ui,
 ) {
     if ui.button(format!("-{}-", quantity)).clicked() {
-        match
-            ctx
-                .reducers()
-                .sell_item_to_trading_port(
-                    module.id.into(),
-                    docked_ship.id.into(),
-                    inventory.resource_item_id.into(),
-                    quantity
-                )
-        {
+        match ctx.reducers().sell_item_to_trading_port(
+            module.id.into(),
+            docked_ship.id.into(),
+            inventory.resource_item_id.into(),
+            quantity,
+        ) {
             Ok(_) => {
-                info!("Sold {} item(s) {} to trading port", quantity, inventory.resource_item_id);
+                info!(
+                    "Sold {} item(s) {} to trading port",
+                    quantity, inventory.resource_item_id
+                );
             }
             Err(e) => {
                 warn!(
                     "Failed to sell {} item(s) {} to trading port: {}",
-                    quantity,
-                    inventory.resource_item_id,
-                    e
+                    quantity, inventory.resource_item_id, e
                 );
             }
         }
@@ -462,35 +443,33 @@ fn left_panel(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
 
     ui.heading("Assets Tree");
     ui.separator();
-    ui.label(
-        format!(
-            "Credits: {}",
-            get_player(&game_state.ctx.db, &game_state.ctx.identity()).map_or_else(
-                || 0,
-                |player| player.credits
-            )
-        )
-    );
+    ui.label(format!(
+        "Credits: {}",
+        get_player(&game_state.ctx.db, &game_state.ctx.identity())
+            .map_or_else(|| 0, |player| player.credits)
+    ));
 
     egui::ScrollArea::vertical().show(ui, |ui| {
         for (star_system, sectors_with_ships) in sorted_system_to_docked_ships {
-            egui::collapsing_header::CollapsingState
-                ::load_with_default_open(
-                    ui.ctx(),
-                    ui.make_persistent_id(format!("system_{}", star_system.id)),
-                    true // Default open state
-                )
-                .show_header(ui, |ui| {
-                    ui.label(format!("System: {} (ID: {})", star_system.name, star_system.id));
-                })
-                .body(|ui| {
-                    display_sectors_with_ships(
-                        ctx,
-                        sectors_with_ships,
-                        ui,
-                        &mut game_state.out_of_play_screen
-                    );
-                });
+            egui::collapsing_header::CollapsingState::load_with_default_open(
+                ui.ctx(),
+                ui.make_persistent_id(format!("system_{}", star_system.id)),
+                true, // Default open state
+            )
+            .show_header(ui, |ui| {
+                ui.label(format!(
+                    "System: {} (ID: {})",
+                    star_system.name, star_system.id
+                ));
+            })
+            .body(|ui| {
+                display_sectors_with_ships(
+                    ctx,
+                    sectors_with_ships,
+                    ui,
+                    &mut game_state.out_of_play_screen,
+                );
+            });
         }
     });
 }
@@ -499,31 +478,30 @@ fn display_sectors_with_ships(
     ctx: &DbConnection,
     sectors_with_ships: &Vec<(Sector, Vec<DockedShip>)>,
     ui: &mut Ui,
-    state: &mut State
+    state: &mut State,
 ) {
     if sectors_with_ships.is_empty() {
         ui.label("(No sectors with your docked ships in this system)");
     } else {
         for (sector, docked_ships_in_sector) in sectors_with_ships {
-            egui::collapsing_header::CollapsingState
-                ::load_with_default_open(
-                    ui.ctx(),
-                    ui.make_persistent_id(format!("sector_{}", sector.id)),
-                    true // Default open state
-                )
-                .show_header(ui, |ui| {
-                    ui.label(format!("  Sector: {} (ID: {})", sector.name, sector.id));
-                })
-                .body(|ui| {
-                    if docked_ships_in_sector.is_empty() {
-                        // This case should ideally not happen if collect_docked_ships_per_sector only includes sectors with ships
-                        ui.label("    (No docked ships - unexpected)");
-                    } else {
-                        for ship in docked_ships_in_sector {
-                            display_ship_on_tree(ctx, state, ui, ship);
-                        }
+            egui::collapsing_header::CollapsingState::load_with_default_open(
+                ui.ctx(),
+                ui.make_persistent_id(format!("sector_{}", sector.id)),
+                true, // Default open state
+            )
+            .show_header(ui, |ui| {
+                ui.label(format!("  Sector: {} (ID: {})", sector.name, sector.id));
+            })
+            .body(|ui| {
+                if docked_ships_in_sector.is_empty() {
+                    // This case should ideally not happen if collect_docked_ships_per_sector only includes sectors with ships
+                    ui.label("    (No docked ships - unexpected)");
+                } else {
+                    for ship in docked_ships_in_sector {
+                        display_ship_on_tree(ctx, state, ui, ship);
                     }
-                });
+                }
+            });
         }
     }
 }

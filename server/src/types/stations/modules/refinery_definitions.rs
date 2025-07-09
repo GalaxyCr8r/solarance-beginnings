@@ -1,4 +1,5 @@
 use super::*;
+use crate::types::items::GetItemDefinitionRowOptionById;
 
 pub fn create_basic_iron(
     ctx: &ReducerContext,
@@ -64,21 +65,35 @@ pub fn create_basic_iron(
         1.0
     )?;
 
-    dsl.create_station_module_inventory_item(
+    let mut item = dsl.create_station_module_inventory_item(
         module.get_id(),
         ItemDefinitionId::new(ITEM_IRON_ORE),
         0,
         blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
-        format!("{};{};input", module.id, iron_ref.id).as_str()
+        format!("{};{};input", module.id, iron_ref.id).as_str(),
+        0.0  // Initial cached price, will be updated immediately
     )?;
+    // Calculate and set initial cached current price
+    if let Ok(item_def) = dsl.get_item_definition_by_id(ItemDefinitionId::new(ITEM_IRON_ORE)) {
+        let initial_price = item.calculate_current_price(&item_def);
+        item.set_cached_current_price(initial_price);
+        dsl.update_station_module_inventory_item_by_id(item)?;
+    }
 
-    dsl.create_station_module_inventory_item(
+    let mut item = dsl.create_station_module_inventory_item(
         module.get_id(),
         ItemDefinitionId::new(ITEM_IRON_INGOT),
         0,
         blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
-        format!("{};{};output", module.id, iron_ref.id).as_str()
+        format!("{};{};output", module.id, iron_ref.id).as_str(),
+        0.0  // Initial cached price, will be updated immediately
     )?;
+    // Calculate and set initial cached current price
+    if let Ok(item_def) = dsl.get_item_definition_by_id(ItemDefinitionId::new(ITEM_IRON_INGOT)) {
+        let initial_price = item.calculate_current_price(&item_def);
+        item.set_cached_current_price(initial_price);
+        dsl.update_station_module_inventory_item_by_id(item)?;
+    }
 
     // // Silicon Submodule
     // let silicon_ref = dsl.create_refinery_module(
