@@ -40,7 +40,7 @@ pub fn create_turn_left_controller_for(
     let dsl = dsl(ctx);
 
     if let Ok(controller) = dsl.get_sobj_turn_left_controller_by_id(&sobj_id) {
-        dsl.delete_sobj_turn_left_controller_by_id(controller.get_id());
+        dsl.delete_sobj_turn_left_controller_by_id(controller.get_id())?;
         spacetimedb::log::info!("Deleted controller #{:?}", sobj_id.value);
     } else {
         let controller = dsl.create_sobj_turn_left_controller(sobj_id)?;

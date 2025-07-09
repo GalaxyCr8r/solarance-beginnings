@@ -279,6 +279,32 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
         None
     )?;
 
+    dsl.create_item_definition(
+        ITEM_FOOD_AVERAGE,
+        "Average Food",
+        Some(
+            "Everyday foodstuffs. Contains all the nutrients needed to survive for a few days.".into()
+        ),
+        current_category.clone(),
+        250,
+        1,
+        COMPACT_STACK_SIZE,
+        vec![], //vec![FoodQuality(0)],
+        None
+    )?;
+
+    dsl.create_item_definition(
+        ITEM_FOOD_LUXURY,
+        "Luxury Food",
+        Some("Super deluxe foodstuffs. Not necessary for anyone to survive.".into()),
+        current_category.clone(),
+        2000,
+        1,
+        COMPACT_STACK_SIZE,
+        vec![], //vec![FoodQuality(0)],
+        None
+    )?;
+
     ///////////////////////////////////////////////////////////////////////////////////////
     // BiomatterProcessedLuxury
     current_category = ItemCategory::Resource(ResourceCategory::BiomatterProcessedLuxury);
@@ -286,7 +312,7 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
     // Space "Fuel"
     dsl.create_item_definition(
         ITEM_ALCOHOL,
-        "Space Fuel",
+        "Space 'Fuel'",
         Some(
             "Actually a variant of vodka using common supplies found in spaceships to make. It's usually illegal due to its propensity to turn the users blind.".into()
         ),

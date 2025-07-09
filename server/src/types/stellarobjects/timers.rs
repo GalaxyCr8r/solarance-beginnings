@@ -75,13 +75,13 @@ pub fn recalculate_sobj_transforms(
 
     // Clear all high res positions
     for row in dsl.get_all_sobj_hi_res_transforms() {
-        dsl.delete_sobj_hi_res_transform_by_id(&row.get_id());
+        dsl.delete_sobj_hi_res_transform_by_id(&row.get_id())?;
     }
 
     // Clear all low res positions
     if low_resolution {
         for row in dsl.get_all_sobj_low_res_transforms() {
-            dsl.delete_sobj_low_res_transform_by_id(&row.get_id());
+            dsl.delete_sobj_low_res_transform_by_id(&row.get_id())?;
         }
     }
 
@@ -130,7 +130,7 @@ pub fn __move_stellar_object(ctx: &ReducerContext, sobj: StellarObject) -> Resul
         if let Some(despawn_ts) = cargo_crate.despawn_ts {
             if despawn_ts < ctx.timestamp {
                 info!("Cargo Crate outlived its despawn timestamp. Deleting #{}!", sobj.id);
-                sobj.delete(ctx, true);
+                sobj.delete(ctx, true)?;
             }
         }
     }

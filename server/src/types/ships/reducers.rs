@@ -29,7 +29,7 @@ pub fn jettison_cargo_from_ship(
             )
         );
     } else if ship_cargo.get_quantity() == &amount {
-        dsl.delete_ship_cargo_item_by_id(&ship_cargo);
+        dsl.delete_ship_cargo_item_by_id(&ship_cargo)?;
     } else {
         ship_cargo.quantity -= amount;
         dsl.update_ship_cargo_item_by_id(ship_cargo)?;

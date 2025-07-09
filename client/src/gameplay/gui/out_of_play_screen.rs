@@ -1,6 +1,19 @@
 use std::{ collections::HashMap, f32::consts::PI };
 
-use egui::{ Align, Color32, Context, FontId, Frame, Layout, Rangef, RichText, Shadow, Ui, Vec2 };
+use egui::{
+    Align,
+    Align2,
+    Color32,
+    Context,
+    FontId,
+    Frame,
+    Layout,
+    Rangef,
+    RichText,
+    Shadow,
+    Ui,
+    Vec2,
+};
 use macroquad::prelude::*;
 use spacetimedb_sdk::{ DbContext, Table };
 
@@ -119,177 +132,308 @@ fn show_station_window(
             });
 
             // Show tabs for each
-            for (index, module) in ctx
-                .db()
-                .station_module()
-                .iter()
-                .filter(|sm| sm.station_id == station.id)
-                .enumerate() {
-                if
-                    let Some(blueprint) = ctx
-                        .db()
-                        .station_module_blueprint()
-                        .id()
-                        .find(&module.blueprint)
-                {
-                    // Check if this is module is selected
-                    let mut selected = false;
+            ui.horizontal(|ui| {
+                for (index, module) in ctx
+                    .db()
+                    .station_module()
+                    .iter()
+                    .filter(|sm| sm.station_id == station.id)
+                    .enumerate() {
                     if
-                        let Some((selected_index, _, _)) =
-                            game_state.out_of_play_screen.currently_selected_module
+                        let Some(blueprint) = ctx
+                            .db()
+                            .station_module_blueprint()
+                            .id()
+                            .find(&module.blueprint)
                     {
-                        selected = (index as u8) == selected_index;
+                        show_station_module(game_state, ui, index, module, blueprint);
+                    } else {
+                        ui.label(format!("Module #{} (Unknown)", index));
                     }
-
-                    //
-                    if
-                        ui
-                            .selectable_label(
-                                selected,
-                                format!(
-                                    "Module #{} {:?}-type: {}",
-                                    index,
-                                    blueprint.category,
-                                    blueprint.name
-                                )
-                            )
-                            .clicked()
-                    {
-                        game_state.out_of_play_screen.currently_selected_module = Some((
-                            index as u8,
-                            module.clone(),
-                            blueprint.clone(),
-                        ));
-                    }
-                } else {
-                    ui.label(format!("Module #{}: Unknown type", index));
                 }
-            }
-            //
+            });
+            ui.separator();
             egui::ScrollArea::vertical().show(ui, |ui| {
                 if
                     let Some((index, module, blueprint)) =
                         game_state.out_of_play_screen.currently_selected_module.clone()
                 {
-                    ui.heading(format!("Station Module #{}: {}", index, blueprint.name));
-
-                    let trading_port = ctx.db().trading_port_module().id().find(&module.id);
-                    let refinery = ctx.db().refinery_module().id().find(&module.id);
-
-                    if trading_port.is_some() {
-                        ui.label("Trading Port Module connection established.");
-                    }
-
-                    if refinery.is_some() {
-                        ui.label("Refinery Module connection established.");
-                    }
-
-                    for inventory in ctx
-                        .db()
-                        .station_module_inventory_item()
-                        .iter()
-                        .filter(|smi| smi.module_id == module.id) {
-                        if
-                            let Some(item_def) = ctx
-                                .db()
-                                .item_definition()
-                                .id()
-                                .find(&inventory.resource_item_id)
-                        {
-                            ui.label(
-                                format!(
-                                    "Item: {} (ID: {}) - Quantity: {}",
-                                    item_def.name,
-                                    item_def.id,
-                                    inventory.quantity
-                                )
-                            );
-
-                            ui.horizontal(|ui| {
-                                // Handling Buying only of this is a trading port or it's a refinery's raw resource item
-                                let module_can_buy_from_player =
-                                    trading_port.is_some() ||
-                                    (refinery.is_some() &&
-                                        refinery.as_ref().unwrap().input_ore_resource_id ==
-                                            inventory.resource_item_id);
-
-                                // Handle Selling only if this is a trading port or it's a refinery's refined (or waste) resource item.
-                                let module_can_sell_to_player =
-                                    trading_port.is_some() ||
-                                    (refinery.is_some() &&
-                                        ({
-                                            let refinary = refinery.as_ref().unwrap();
-                                            refinary.output_ingot_resource_id ==
-                                                inventory.resource_item_id ||
-                                                refinary.waste_resource_id.is_some_and(
-                                                    |waste_id|
-                                                        waste_id == inventory.resource_item_id
-                                                )
-                                        }));
-
-                                if module_can_buy_from_player {
-                                    ui.label(RichText::new("Sell:").strong().color(Color32::GREEN));
-                                    // TODO check if the player has enough of this item to sell
-                                    if ui.button("-1-").clicked() {
-                                        match
-                                            ctx
-                                                .reducers()
-                                                .sell_item_to_trading_port(
-                                                    module.id.into(),
-                                                    docked_ship.id.into(),
-                                                    inventory.resource_item_id.into(),
-                                                    1
-                                                )
-                                        {
-                                            Ok(_) => {
-                                                info!(
-                                                    "Sold item {} to trading port",
-                                                    inventory.resource_item_id
-                                                );
-                                            }
-                                            Err(e) => {
-                                                warn!(
-                                                    "Failed to sell item {} to trading port: {}",
-                                                    inventory.resource_item_id,
-                                                    e
-                                                );
-                                            }
-                                        }
-                                    }
-                                }
-
-                                if module_can_sell_to_player {
-                                    ui.label(RichText::new("Buy:").strong().color(Color32::RED));
-                                    // TODO Check if the station has enough of this item to buy.
-                                    if ui.button("-1-").clicked() {
-                                        if
-                                            let Ok(_) = ctx.reducers.buy_item_from_trading_port(
-                                                module.id.into(),
-                                                docked_ship.id.into(),
-                                                inventory.resource_item_id.into(),
-                                                1
-                                            )
-                                        {
-                                            info!(
-                                                "Bought item {} from trading port",
-                                                inventory.resource_item_id
-                                            );
-                                        } else {
-                                            warn!(
-                                                "Failed to buy item {} from trading port",
-                                                inventory.resource_item_id
-                                            );
-                                        }
-                                    }
-                                }
-                            });
-                        } else {
-                            ui.label(format!("Item ID {} not found", inventory.resource_item_id));
-                        }
-                    }
+                    ui.group(|ui| {
+                        show_currently_selected_module(
+                            ctx,
+                            docked_ship,
+                            ui,
+                            index,
+                            module,
+                            blueprint
+                        );
+                    });
                 }
             });
         });
+}
+
+fn show_station_module(
+    game_state: &mut GameState<'_>,
+    ui: &mut Ui,
+    index: usize,
+    module: StationModule,
+    blueprint: StationModuleBlueprint
+) {
+    // Check if this is module is selected
+    let mut selected = false;
+    if let Some((selected_index, _, _)) = game_state.out_of_play_screen.currently_selected_module {
+        selected = (index as u8) == selected_index;
+    }
+
+    if ui.selectable_label(selected, format!("Module #{} ({})", index, blueprint.name)).clicked() {
+        game_state.out_of_play_screen.currently_selected_module = Some((
+            index as u8,
+            module.clone(),
+            blueprint.clone(),
+        ));
+    }
+}
+
+fn show_currently_selected_module(
+    ctx: &DbConnection,
+    docked_ship: DockedShip,
+    ui: &mut Ui,
+    index: u8,
+    module: StationModule,
+    blueprint: StationModuleBlueprint
+) {
+    ui.heading(format!("Station Module #{}: {}", index, blueprint.name));
+
+    let trading_port = ctx.db().trading_port_module().id().find(&module.id);
+    let refinery = ctx.db().refinery_module().id().find(&module.id);
+
+    if trading_port.is_some() {
+        ui.label("Trading Port Module connection established.");
+    }
+
+    if refinery.is_some() {
+        ui.label("Refinery Module connection established.");
+    }
+
+    for inventory in ctx
+        .db()
+        .station_module_inventory_item()
+        .iter()
+        .filter(|smi| smi.module_id == module.id) {
+        if let Some(item_def) = ctx.db().item_definition().id().find(&inventory.resource_item_id) {
+            ui.horizontal(|ui| {
+                ui.label(
+                    format!(
+                        "Item: {} (ID: {}) - {}",
+                        item_def.name,
+                        item_def.id,
+                        inventory.storage_purpose_tag
+                    )
+                );
+                ui.add(
+                    egui::ProgressBar
+                        ::new((inventory.quantity as f32) / (inventory.max_quantity as f32))
+                        .text(format!("{} / {}", inventory.quantity, inventory.max_quantity))
+                );
+            });
+
+            ui.horizontal(|ui| {
+                let players_current_amount = {
+                    ctx.db()
+                        .ship_cargo_item()
+                        .iter()
+                        .filter(|sci| {
+                            sci.ship_id == docked_ship.id &&
+                                sci.item_id == inventory.resource_item_id
+                        })
+                        .map(|sci| {
+                            info!(
+                                "Found cargo item {} with quantity {} in player inventory!!",
+                                sci.item_id,
+                                sci.quantity
+                            );
+                            sci.quantity
+                        })
+                        .sum::<u16>()
+                };
+
+                // Handling Buying only of this is a trading port or it's a refinery's raw resource item
+                let module_can_buy_from_player =
+                    trading_port.is_some() ||
+                    (refinery.is_some() &&
+                        refinery.as_ref().unwrap().input_ore_resource_id ==
+                            inventory.resource_item_id);
+
+                // Handle Selling only if this is a trading port or it's a refinery's refined (or waste) resource item.
+                let module_can_sell_to_player =
+                    trading_port.is_some() ||
+                    (refinery.is_some() &&
+                        ({
+                            let refinary = refinery.as_ref().unwrap();
+                            refinary.output_ingot_resource_id == inventory.resource_item_id ||
+                                refinary.waste_resource_id.is_some_and(
+                                    |waste_id| waste_id == inventory.resource_item_id
+                                )
+                        }));
+
+                ui.label(RichText::new("Sell:").strong().color(Color32::GREEN));
+                if module_can_buy_from_player {
+                    if players_current_amount > 0 {
+                        sell_item_to_station(ctx, 1, &docked_ship, &module, &inventory, ui);
+                        if inventory.quantity > 2 {
+                            sell_item_to_station(ctx, 2, &docked_ship, &module, &inventory, ui);
+                        }
+                        if inventory.quantity > 3 {
+                            sell_item_to_station(ctx, 3, &docked_ship, &module, &inventory, ui);
+                        }
+                        if inventory.quantity > 25 {
+                            sell_item_to_station(ctx, 25, &docked_ship, &module, &inventory, ui);
+                        }
+                        if inventory.quantity > 100 {
+                            sell_item_to_station(ctx, 100, &docked_ship, &module, &inventory, ui);
+                        }
+                        if inventory.quantity > 6 {
+                            sell_item_to_station(
+                                ctx,
+                                (players_current_amount as u32) / 2,
+                                &docked_ship,
+                                &module,
+                                &inventory,
+                                ui
+                            );
+                        }
+                        if inventory.quantity > 1 {
+                            sell_item_to_station(
+                                ctx,
+                                inventory.quantity as u32,
+                                &docked_ship,
+                                &module,
+                                &inventory,
+                                ui
+                            );
+                        }
+                    } else {
+                        ui.label("You do not have any of this item.");
+                    }
+                } else {
+                    ui.add_enabled_ui(false, |ui| {
+                        ui.label("You cannot sell this item here.");
+                    });
+                }
+
+                ui.label(RichText::new("Buy:").strong().color(Color32::RED));
+                if module_can_sell_to_player {
+                    // TODO Check if the station has enough of this item to buy.
+                    if inventory.quantity > 0 {
+                        buy_item_from_station(ctx, &docked_ship, &module, &inventory, ui, 1);
+                        if players_current_amount > 2 {
+                            sell_item_to_station(ctx, 2, &docked_ship, &module, &inventory, ui);
+                        }
+                        if players_current_amount > 3 {
+                            sell_item_to_station(ctx, 3, &docked_ship, &module, &inventory, ui);
+                        }
+                        if players_current_amount > 25 {
+                            sell_item_to_station(ctx, 25, &docked_ship, &module, &inventory, ui);
+                        }
+                        if players_current_amount > 100 {
+                            sell_item_to_station(ctx, 100, &docked_ship, &module, &inventory, ui);
+                        }
+                        if players_current_amount > 6 {
+                            sell_item_to_station(
+                                ctx,
+                                (players_current_amount as u32) / 2,
+                                &docked_ship,
+                                &module,
+                                &inventory,
+                                ui
+                            );
+                        }
+                        if players_current_amount > 1 {
+                            sell_item_to_station(
+                                ctx,
+                                players_current_amount as u32,
+                                &docked_ship,
+                                &module,
+                                &inventory,
+                                ui
+                            );
+                        }
+                    } else {
+                        ui.label("Module doesn't have any of this item.");
+                    }
+                } else {
+                    ui.add_enabled_ui(false, |ui| {
+                        ui.label("You cannot buy this item here.");
+                    });
+                }
+            });
+        } else {
+            ui.label(format!("Item ID {} not found", inventory.resource_item_id));
+        }
+    }
+}
+
+fn buy_item_from_station(
+    ctx: &DbConnection,
+    docked_ship: &DockedShip,
+    module: &StationModule,
+    inventory: &StationModuleInventoryItem,
+    ui: &mut Ui,
+    quantity: u32
+) {
+    if ui.button(format!("-{}-", quantity)).clicked() {
+        if
+            let Ok(_) = ctx.reducers.buy_item_from_trading_port(
+                module.id.into(),
+                docked_ship.id.into(),
+                inventory.resource_item_id.into(),
+                quantity
+            )
+        {
+            info!("Bought {} item(s) {} from trading port", quantity, inventory.resource_item_id);
+        } else {
+            warn!(
+                "Failed to buy {} item(s) {} from trading port",
+                quantity,
+                inventory.resource_item_id
+            );
+        }
+    }
+}
+
+fn sell_item_to_station(
+    ctx: &DbConnection,
+    quantity: u32,
+    docked_ship: &DockedShip,
+    module: &StationModule,
+    inventory: &StationModuleInventoryItem,
+    ui: &mut Ui
+) {
+    if ui.button(format!("-{}-", quantity)).clicked() {
+        match
+            ctx
+                .reducers()
+                .sell_item_to_trading_port(
+                    module.id.into(),
+                    docked_ship.id.into(),
+                    inventory.resource_item_id.into(),
+                    quantity
+                )
+        {
+            Ok(_) => {
+                info!("Sold {} item(s) {} to trading port", quantity, inventory.resource_item_id);
+            }
+            Err(e) => {
+                warn!(
+                    "Failed to sell {} item(s) {} to trading port: {}",
+                    quantity,
+                    inventory.resource_item_id,
+                    e
+                );
+            }
+        }
+    }
 }
 
 fn left_panel(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
@@ -318,6 +462,15 @@ fn left_panel(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
 
     ui.heading("Assets Tree");
     ui.separator();
+    ui.label(
+        format!(
+            "Credits: {}",
+            get_player(&game_state.ctx.db, &game_state.ctx.identity()).map_or_else(
+                || 0,
+                |player| player.credits
+            )
+        )
+    );
 
     egui::ScrollArea::vertical().show(ui, |ui| {
         for (star_system, sectors_with_ships) in sorted_system_to_docked_ships {

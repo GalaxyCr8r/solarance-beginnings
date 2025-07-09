@@ -100,7 +100,7 @@ pub fn remove_old_timers(
                 get_username(ctx, controller.id),
                 mining_timer.asteroid_sobj_id
             );
-            dsl.delete_ship_mining_timer_by_id(&mining_timer);
+            dsl.delete_ship_mining_timer_by_id(&mining_timer)?;
             return Ok(());
         }
     }

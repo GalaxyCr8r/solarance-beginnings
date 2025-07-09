@@ -112,9 +112,9 @@ pub fn create_mining_timer_for_ship(
     let dsl = dsl(ctx);
 
     // Check if the ship is already mining and remove those timers.
-    dsl.get_ship_mining_timers_by_ship_sobj_id(ship_sobj_id).for_each(|timer| {
-        dsl.delete_ship_mining_timer_by_id(timer.get_id());
-    });
+    for timer in dsl.get_ship_mining_timers_by_ship_sobj_id(ship_sobj_id) {
+        dsl.delete_ship_mining_timer_by_id(timer.get_id())?;
+    }
 
     // Check if the ship and asteroid are in the same sector
     if !same_sector_from_ids(ctx, &ship_sobj_id, &asteroid_sobj_id) {
@@ -204,7 +204,7 @@ pub fn ship_mining_timer_reducer(
     let mut asteroid_object = dsl.get_asteroid_by_id(timer.get_asteroid_sobj_id())?;
 
     if asteroid_object.current_resources == 0 {
-        dsl.delete_ship_mining_timer_by_id(timer.get_id());
+        dsl.delete_ship_mining_timer_by_id(timer.get_id())?;
 
         dsl.get_stellar_object_by_id(asteroid_object.get_id())?.delete(ctx, true)?;
 
@@ -243,7 +243,7 @@ pub fn ship_mining_timer_reducer(
 
     // Find the ship instance so we can check energy and update mining progress
     let mut ship_status = dsl.get_ship_status_by_id(ship_object.get_id()).or_else(|_stdsl_error| {
-        dsl.delete_ship_mining_timer_by_id(timer.get_id());
+        dsl.delete_ship_mining_timer_by_id(timer.get_id())?;
         Err(
             format!(
                 "Failed to find ship instance object for mining timer: {:?} Removed timer.",
@@ -310,8 +310,15 @@ pub fn ship_add_cargo_timer_reducer(
     try_server_only(ctx)?;
     let dsl = dsl(ctx);
 
+    info!(
+        "Attempting to add {}x #{:?} to ship id #{:?}",
+        timer.amount,
+        timer.get_item_id(),
+        timer.get_ship_id()
+    );
+
     // Either way, we don't want this to continue.
-    dsl.delete_ship_add_cargo_timer_by_id(&timer);
+    dsl.delete_ship_add_cargo_timer_by_id(&timer)?;
 
     let ship_object = dsl.get_ship_by_id(timer.get_ship_id())?;
     let mut ship_status = dsl.get_ship_status_by_id(timer.get_ship_id())?;

@@ -105,7 +105,7 @@ pub fn player_ship_controller_update_upkeep(
     let controller = match dsl.get_player_ship_controller_by_id(&timer.get_player()) {
         Ok(con) => con,
         Err(e) => {
-            dsl.delete_player_ship_controller_update_timer_by_id(&timer);
+            dsl.delete_player_ship_controller_update_timer_by_id(&timer)?;
             info!(
                 "Failed to find the player's controller! Error: [{}] PID:{} Removing timer.",
                 e,
@@ -150,7 +150,7 @@ pub fn player_ship_controller_logic_upkeep(
     let mut controller = match dsl.get_player_ship_controller_by_id(&timer.get_player()) {
         Ok(con) => con,
         Err(e) => {
-            dsl.delete_player_ship_controller_logic_timer_by_id(&timer);
+            dsl.delete_player_ship_controller_logic_timer_by_id(&timer)?;
             info!(
                 "Failed to find the player's controller! Error: [{}] ID:{} Removing timer.",
                 e,
@@ -198,7 +198,7 @@ pub fn player_ship_controller_logic_upkeep(
                         // Picking up the crate!
                         attempt_to_pickup_cargo_crate(ctx, &ship_object, &target_sobj)?;
                         controller.targetted_sobj_id = None;
-                        target_sobj.delete(ctx, true);
+                        target_sobj.delete(ctx, true)?;
                     }
                 }
                 StellarObjectKinds::Station => {

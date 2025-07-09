@@ -59,7 +59,7 @@ pub fn buy_item_from_trading_port(
                 // TOOD: Add credits to station
                 dsl.update_player_by_id(player)?;
 
-                item_listing.set_quantity(item_listing.get_max_quantity() - quantity);
+                item_listing.set_quantity(item_listing.get_quantity() - quantity);
                 dsl.update_station_module_inventory_item_by_id(item_listing)?;
             }
         }

@@ -4,7 +4,13 @@ use glam::Vec2;
 use spacetimedb::{ rand::Rng, * };
 use spacetimedsl::*;
 
-use crate::types::{ items::ItemDefinitionId, sectors::{ GetAsteroidSectorRowOptionById } };
+use crate::types::{
+    items::{
+        definitions::{ ITEM_IRON_ORE, ITEM_SILICON_ORE, ITEM_URANIUM_ORE, ITEM_WATER },
+        ItemDefinitionId,
+    },
+    sectors::GetAsteroidSectorRowOptionById,
+};
 
 use super::{ utility::create_asteroid, GetAsteroidRowsByCurrentSectorId };
 
@@ -60,9 +66,10 @@ pub fn asteroid_sector_upkeep(
         let pos = Vec2::from_angle(ctx.rng().gen_range(0.0..2.0 * PI)) * dist;
 
         let item = ItemDefinitionId::new(match ctx.rng().gen_range(0..100) {
-            0..75 => 1001,
-            75..99 => 1002,
-            _ => 1003,
+            0..25 => ITEM_WATER,
+            25..75 => ITEM_IRON_ORE,
+            75..99 => ITEM_SILICON_ORE,
+            _ => ITEM_URANIUM_ORE,
         });
 
         let amount = ctx.rng().gen_range(500..2000);

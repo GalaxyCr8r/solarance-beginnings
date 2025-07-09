@@ -62,29 +62,22 @@ pub fn create_player_controlled_ship(
         let ship_type = dsl.get_ship_type_definition_by_id(ShipTypeDefinitionId::new(1001))?;
         let (ship, mut status) = create_ship_from_sobj(ctx, &ship_type, &player, &sobj)?;
 
-        {
-            let item = get_item_definition(ctx, ITEM_FOOD_RATIONS)?;
-            let _ = attempt_to_load_cargo_into_ship(
-                ctx,
-                &mut status,
-                &ship.get_id(),
-                &item,
-                3,
-                false
-            )?;
-        }
-
-        {
-            let item = get_item_definition(ctx, ITEM_ENERGY_CELL)?;
-            let _ = attempt_to_load_cargo_into_ship(
-                ctx,
-                &mut status,
-                &ship.get_id(),
-                &item,
-                5,
-                false
-            )?;
-        }
+        let _ = attempt_to_load_cargo_into_ship(
+            ctx,
+            &mut status,
+            &ship.get_id(),
+            &get_item_definition(ctx, ITEM_FOOD_RATIONS)?,
+            3,
+            false
+        )?;
+        let _ = attempt_to_load_cargo_into_ship(
+            ctx,
+            &mut status,
+            &ship.get_id(),
+            &get_item_definition(ctx, ITEM_ENERGY_CELL)?,
+            5,
+            false
+        )?;
 
         dsl.create_ship_equipment_slot(
             &ship.get_id(),
@@ -131,7 +124,7 @@ pub fn update_player_controller(
         for mining_timer in dsl.get_ship_mining_timers_by_ship_sobj_id(
             previous_controller.get_stellar_object_id()
         ) {
-            dsl.delete_ship_mining_timer_by_id(&mining_timer);
+            dsl.delete_ship_mining_timer_by_id(&mining_timer)?;
         }
     }
 

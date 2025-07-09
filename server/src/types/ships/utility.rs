@@ -451,7 +451,7 @@ pub fn dock_to_station(
     // Remove Ship and StellarObject
     // ? Do NOT delete the specific ship-related rows, we need those to stick around.
     ship_sobj.delete(ctx, false);
-    dsl.delete_ship_by_id(ship.get_id());
+    dsl.delete_ship_by_id(ship.get_id())?;
 
     // Create DockedShip object
     let docked = dsl.create_docked_ship(
@@ -499,7 +499,7 @@ pub fn undock_from_station(ctx: &ReducerContext, docked: DockedShip) -> Result<S
         let _ = initialize_player_controller(ctx, &docked.get_player_id(), &sobj);
     }
 
-    dsl.delete_docked_ship_by_id(&docked.get_id());
+    dsl.delete_docked_ship_by_id(&docked.get_id())?;
 
     Ok(ship)
 }

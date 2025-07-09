@@ -2,7 +2,15 @@ use super::*;
 use crate::{
     factions::FactionId,
     types::items::{
-        definitions::{ ITEM_ICE_ORE, ITEM_IRON_INGOT, ITEM_IRON_ORE, ITEM_SILICON_ORE },
+        definitions::{
+            ITEM_ENERGY_CELL,
+            ITEM_FOOD_AVERAGE,
+            ITEM_FOOD_RATIONS,
+            ITEM_ICE_ORE,
+            ITEM_IRON_INGOT,
+            ITEM_IRON_ORE,
+            ITEM_SILICON_ORE,
+        },
         ItemDefinitionId,
     },
 };
@@ -107,6 +115,33 @@ pub fn create_basic_bazaar(
         format!("{};{};trading", module.id, ITEM_SILICON_ORE).as_str()
     )?;
     dsl.create_trading_port_listing(item.get_id(), Some(0.8), None)?;
+
+    item = dsl.create_station_module_inventory_item(
+        module.get_id(),
+        ItemDefinitionId::new(ITEM_ENERGY_CELL),
+        1000,
+        blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
+        format!("{};{};trading", module.id, ITEM_ENERGY_CELL).as_str()
+    )?;
+    dsl.create_trading_port_listing(item.get_id(), Some(0.5), None)?;
+
+    item = dsl.create_station_module_inventory_item(
+        module.get_id(),
+        ItemDefinitionId::new(ITEM_FOOD_RATIONS),
+        100,
+        blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
+        format!("{};{};trading", module.id, ITEM_FOOD_RATIONS).as_str()
+    )?;
+    dsl.create_trading_port_listing(item.get_id(), Some(0.5), None)?;
+
+    item = dsl.create_station_module_inventory_item(
+        module.get_id(),
+        ItemDefinitionId::new(ITEM_FOOD_AVERAGE),
+        100,
+        blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
+        format!("{};{};trading", module.id, ITEM_FOOD_AVERAGE).as_str()
+    )?;
+    dsl.create_trading_port_listing(item.get_id(), Some(0.5), None)?;
 
     Ok(())
 }
