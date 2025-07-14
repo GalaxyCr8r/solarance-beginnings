@@ -1,13 +1,13 @@
-use spacetimedb::{table, ReducerContext, SpacetimeType, Timestamp};
+use spacetimedb::{ table, ReducerContext, SpacetimeType, Timestamp };
 use spacetimedsl::*;
 
-use crate::{types::economy::ResourceAmount, *};
+use crate::{ types::economy::ResourceAmount, * };
 
 pub mod definitions; // Definitions for initial ingested data.
 pub mod impls; // Impls for this file's structs
 pub mod modules; // Station modules
 pub mod reducers; // SpacetimeDB Reducers for this file's structs.
-                  // pub mod rls; // Row-level-security rules for this file's structs.
+// pub mod rls; // Row-level-security rules for this file's structs.
 pub mod timers; // Timers related to this file's structs.
 pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
@@ -45,9 +45,9 @@ pub enum StationModuleSpecificType {
     CapitalDock,
     Wharf,
     // Resource Production & Refining
-    FarmStandard,        // Produces standard quality biomatter/food
-    FarmLuxury,          // Produces luxury quality biomatter/food
-    RefineryBasicOre,    // e.g., Iron -> Iron Ingots
+    FarmStandard, // Produces standard quality biomatter/food
+    FarmLuxury, // Produces luxury quality biomatter/food
+    RefineryBasicOre, // e.g., Iron -> Iron Ingots
     RefineryAdvancedOre, // e.g., Titanite -> Titanium Ingots
     SolarArray,
     SynthesizerJumpFuel,
@@ -96,7 +96,7 @@ pub struct StationModuleBlueprint {
     pub build_time_seconds: u32,
 
     pub power_consumption_mw_operational: f32, // Power needed when active
-    pub power_consumption_mw_idle: f32,        // Power needed when idle
+    pub power_consumption_mw_idle: f32, // Power needed when idle
     pub cpu_load_flops: f32,
 
     pub required_station_tech_level: u8,
@@ -108,7 +108,7 @@ pub struct StationModuleBlueprint {
     pub icon_asset_id: Option<String>,
 
     pub construction_hp: u32, // HP during construction phase
-    pub operational_hp: u32,  // Max HP when fully built
+    pub operational_hp: u32, // Max HP when fully built
 }
 
 #[dsl(plural_name = station_modules)]
@@ -186,7 +186,7 @@ pub struct StationModuleInventoryItem {
     pub storage_purpose_tag: String,
 
     /// Cached current price calculated during station production ticks
-    pub cached_current_price: f32,
+    pub cached_current_price: u32,
 }
 
 #[dsl(plural_name = stations)]

@@ -83,7 +83,14 @@ pub fn show_ship_details(ctx: &DbConnection, state: &mut State, ui: &mut Ui, pla
                     ship_contents(ui, ctx, state, ship_type, player_ship.id, player_ship_status);
                 }
                 CurrentTab::Cargo => {
-                    cargo_contents(ui, ctx, state, ship_type, player_ship, player_ship_status);
+                    cargo_contents(
+                        ui,
+                        ctx,
+                        state,
+                        ship_type,
+                        ShipGlobal { id: player_ship.id },
+                        player_ship_status
+                    );
                 }
                 CurrentTab::Equipment => {
                     equipment_contents(ui, ctx, state, ship_type, player_ship);
@@ -199,7 +206,7 @@ fn cargo_contents(
     ctx: &DbConnection,
     _state: &mut State,
     _ship_type: ShipTypeDefinition,
-    player_ship: Ship,
+    player_ship: ShipGlobal,
     player_ship_status: ShipStatus
 ) {
     ui.heading("Cargo Bay Contents");
@@ -213,9 +220,9 @@ fn cargo_contents(
 
                 ui.collapsing(
                     format!(
-                        "Cargo: {} x {}u @ {}v",
-                        item.name,
+                        "{}x --- {} --- {} volume",
                         cargo.quantity,
+                        item.name,
                         item.volume_per_unit * cargo.quantity
                     ),
                     |ui| {
@@ -381,7 +388,14 @@ pub fn show_docked_ship_details(
                     ship_contents(ui, ctx, state, ship_type, player_ship.id, player_ship_status);
                 }
                 CurrentTab::Cargo => {
-                    //cargo_contents(ui, ctx, state, ship_type, player_ship, player_ship_status);
+                    cargo_contents(
+                        ui,
+                        ctx,
+                        state,
+                        ship_type,
+                        ShipGlobal { id: player_ship.id },
+                        player_ship_status
+                    );
                 }
                 CurrentTab::Equipment => {
                     //equipment_contents(ui, ctx, state, ship_type, player_ship);

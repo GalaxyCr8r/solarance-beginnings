@@ -71,7 +71,7 @@ pub fn create_basic_iron(
         0,
         blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
         format!("{};{};input", module.id, iron_ref.id).as_str(),
-        0.0  // Initial cached price, will be updated immediately
+        0 // Initial cached price, will be updated immediately
     )?;
     // Calculate and set initial cached current price
     if let Ok(item_def) = dsl.get_item_definition_by_id(ItemDefinitionId::new(ITEM_IRON_ORE)) {
@@ -86,7 +86,7 @@ pub fn create_basic_iron(
         0,
         blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
         format!("{};{};output", module.id, iron_ref.id).as_str(),
-        0.0  // Initial cached price, will be updated immediately
+        0 // Initial cached price, will be updated immediately
     )?;
     // Calculate and set initial cached current price
     if let Ok(item_def) = dsl.get_item_definition_by_id(ItemDefinitionId::new(ITEM_IRON_INGOT)) {

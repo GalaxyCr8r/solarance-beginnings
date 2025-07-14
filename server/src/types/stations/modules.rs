@@ -96,7 +96,7 @@ pub fn create_basic_bazaar(
         10,
         blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
         format!("{};{};trading", module.id, ITEM_ICE_ORE).as_str(),
-        0.0  // Initial cached price, will be updated immediately
+        0 // Initial cached price, will be updated immediately
     )?;
     // Calculate and set initial cached current price
     if let Ok(item_def) = dsl.get_item_definition_by_id(ItemDefinitionId::new(ITEM_ICE_ORE)) {
@@ -112,7 +112,7 @@ pub fn create_basic_bazaar(
         20,
         blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
         format!("{};{};trading", module.id, ITEM_IRON_ORE).as_str(),
-        0.0  // Initial cached price, will be updated immediately
+        0 // Initial cached price, will be updated immediately
     )?;
     // Calculate and set initial cached current price
     if let Ok(item_def) = dsl.get_item_definition_by_id(ItemDefinitionId::new(ITEM_IRON_ORE)) {
@@ -128,7 +128,7 @@ pub fn create_basic_bazaar(
         40,
         blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
         format!("{};{};trading", module.id, ITEM_SILICON_ORE).as_str(),
-        0.0  // Initial cached price, will be updated immediately
+        0 // Initial cached price, will be updated immediately
     )?;
     // Calculate and set initial cached current price
     if let Ok(item_def) = dsl.get_item_definition_by_id(ItemDefinitionId::new(ITEM_SILICON_ORE)) {
@@ -144,7 +144,7 @@ pub fn create_basic_bazaar(
         1000,
         blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
         format!("{};{};trading", module.id, ITEM_ENERGY_CELL).as_str(),
-        0.0  // Initial cached price, will be updated immediately
+        0 // Initial cached price, will be updated immediately
     )?;
     // Calculate and set initial cached current price
     if let Ok(item_def) = dsl.get_item_definition_by_id(ItemDefinitionId::new(ITEM_ENERGY_CELL)) {
@@ -160,7 +160,7 @@ pub fn create_basic_bazaar(
         100,
         blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
         format!("{};{};trading", module.id, ITEM_FOOD_RATIONS).as_str(),
-        0.0  // Initial cached price, will be updated immediately
+        0 // Initial cached price, will be updated immediately
     )?;
     // Calculate and set initial cached current price
     if let Ok(item_def) = dsl.get_item_definition_by_id(ItemDefinitionId::new(ITEM_FOOD_RATIONS)) {
@@ -176,7 +176,7 @@ pub fn create_basic_bazaar(
         100,
         blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
         format!("{};{};trading", module.id, ITEM_FOOD_AVERAGE).as_str(),
-        0.0  // Initial cached price, will be updated immediately
+        0 // Initial cached price, will be updated immediately
     )?;
     // Calculate and set initial cached current price
     if let Ok(item_def) = dsl.get_item_definition_by_id(ItemDefinitionId::new(ITEM_FOOD_AVERAGE)) {
