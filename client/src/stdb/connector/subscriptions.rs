@@ -42,10 +42,17 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
         WHERE s.player_id = '{}'",
         ctx.identity()
     );
-    let ship_cargo_item = format!(
+    let ship_cargo_item_ship = format!(
         "SELECT i.* 
         FROM ship_cargo_item i
         JOIN ship s ON i.ship_id = s.id
+        WHERE s.player_id = '{}'",
+        ctx.identity()
+    );
+    let ship_cargo_item_docked = format!(
+        "SELECT i.* 
+        FROM ship_cargo_item i
+        JOIN docked_ship s ON i.ship_id = s.id
         WHERE s.player_id = '{}'",
         ctx.identity()
     );
@@ -125,7 +132,8 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
                 player_ship.as_str(),
                 ship.as_str(),
                 "SELECT * FROM docked_ship",
-                ship_cargo_item.as_str(),
+                ship_cargo_item_ship.as_str(),
+                ship_cargo_item_docked.as_str(),
                 "SELECT * FROM ship_equipment_slot",
                 "SELECT * FROM trading_port_module",
                 "SELECT * FROM trading_port_listing",

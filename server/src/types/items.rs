@@ -106,6 +106,7 @@ pub struct ItemDefinition {
     pub category: ItemCategory,
 
     pub base_value: u32, // Base monetary value
+    pub margin_percentage: u8, // Default margin e.g. 10%
     pub volume_per_unit: u16, // How much cargo space one unit takes
     pub units_per_stack: u8, // How units can be stacked in cargo slot
     // For equipment, additional stats might be here or in a linked table:

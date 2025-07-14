@@ -71,12 +71,12 @@ pub fn create_basic_iron(
         0,
         blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
         format!("{};{};input", module.id, iron_ref.id).as_str(),
-        0.0  // Initial cached price, will be updated immediately
+        0 // Initial cached price, will be updated immediately
     )?;
     // Calculate and set initial cached current price
     if let Ok(item_def) = dsl.get_item_definition_by_id(ItemDefinitionId::new(ITEM_IRON_ORE)) {
         let initial_price = item.calculate_current_price(&item_def);
-        item.set_cached_current_price(initial_price);
+        item.set_cached_price(initial_price);
         dsl.update_station_module_inventory_item_by_id(item)?;
     }
 
@@ -86,12 +86,12 @@ pub fn create_basic_iron(
         0,
         blueprint.max_internal_storage_volume_per_slot_m3.unwrap(),
         format!("{};{};output", module.id, iron_ref.id).as_str(),
-        0.0  // Initial cached price, will be updated immediately
+        0 // Initial cached price, will be updated immediately
     )?;
     // Calculate and set initial cached current price
     if let Ok(item_def) = dsl.get_item_definition_by_id(ItemDefinitionId::new(ITEM_IRON_INGOT)) {
         let initial_price = item.calculate_current_price(&item_def);
-        item.set_cached_current_price(initial_price);
+        item.set_cached_price(initial_price);
         dsl.update_station_module_inventory_item_by_id(item)?;
     }
 
