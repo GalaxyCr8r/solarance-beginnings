@@ -302,7 +302,11 @@ fn buy_and_sell_inventory_item(
 ) {
     ui.label(item_def.clone().description.unwrap_or("No description available.".to_string()));
     ui.separator();
-    ui.label(format!("Base Value: {}c", item_def.base_value));
+    ui.horizontal(|ui| {
+        ui.label(format!("Base Value: {}c", item_def.base_value));
+        ui.spacing();
+        ui.label(format!("Station's Value: {}c", inventory.cached_price));
+    });
     ui.label(format!("Volume per Unit: {}v", item_def.volume_per_unit));
 
     let (mut buy_scalar, mut sell_scalar) = {
