@@ -1,0 +1,2 @@
+/pub struct/ { N; s/pub struct (\w+).*: (\w+),/\1 \2/ }
+/--/d

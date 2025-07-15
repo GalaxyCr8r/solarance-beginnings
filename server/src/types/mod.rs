@@ -7,6 +7,7 @@ pub mod economy;
 pub mod factions;
 pub mod items;
 pub mod jumpgates;
+pub mod npcs;
 pub mod players;
 pub mod sectors;
 pub mod ships;

@@ -5,7 +5,7 @@ tasks:
   build:
     desc: "Client: Build"
     cmds:
-      - cargo fix --bin "solarance-beginnings" --allow-dirty
+      - cargo fix --bin "solarance_beginnings" --allow-dirty
       - cargo build
 
   build-release:
@@ -17,6 +17,11 @@ tasks:
     desc: "Client: Run"
     cmds:
       - cargo run
+    
+  test-system:
+    desc: "Client: Run Star System Test"
+    cmds:
+      - cargo run --example star_system_test
 
   generate:
     desc: "Client: Generate Bindings"
@@ -29,3 +34,11 @@ tasks:
       - generate
       - build
       - run
+
+  stdsl-impls:
+    desc: "Generate Impls for STDSL ID Types"
+    cmds:
+      - grep -rhIE -A1 '^pub struct (\w+Id) \{' . | sed -E --file=src/stdb/stdsl_sed_script.txt > src\stdb\stdsl_id_impls.txt
+      # '^#\[table\(name = (\w+), public\)\]'
+      # '^pub struct StationModuleId \{'  
+      #    pub fn new\(id: u64\) -> Self \{

@@ -1,0 +1,6 @@
+FactionId u32
+ItemDefinitionId u32
+SectorId u64
+ShipGlobalId u64
+StationModuleId u64
+StellarObjectId u64

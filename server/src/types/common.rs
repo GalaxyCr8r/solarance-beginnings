@@ -1,9 +1,9 @@
 use std::hash::Hasher;
 
-use spacetimedb::{table, ReducerContext, SpacetimeType, Timestamp};
-use spacetimedsl::{dsl};
+use spacetimedb::*;
+use spacetimedsl::dsl;
 
-use super::{items::ItemDefinitionId, stations::StationId};
+//use super::{ items::ItemDefinitionId, stations::StationId };
 
 // pub mod definitions; // Definitions for initial ingested data.
 pub mod impls; // Impls for this file's structs
@@ -22,31 +22,21 @@ pub struct Vec2 {
 #[table(name = global_config)]
 pub struct GlobalConfig {
     #[primary_key]
-    #[wrap]
-    pub id: u32,
-    
+    #[create_wrapper]
+    id: u32,
+
     pub active_players: u32,
     pub old_gods_defeated: u8,
+    pub version: String,
 
     created_at: Timestamp,
     modified_at: Timestamp,
 }
 
-// Enum for different types of equipment slots on a ship
-#[derive(SpacetimeType, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum EquipmentSlotType {
-    Weapon,
-    Shield,
-    Engine,
-    MiningLaser,
-    Special, // For things like cloaking devices, tractor beams etc.
-    CargoExpansion,
-}
-
-pub struct TradeCommand {
-    item_to_sell: ItemDefinitionId,
-    station: StationId
-}
+// pub struct TradeCommand {
+//     item_to_sell: ItemDefinitionId,
+//     station: StationId,
+// }
 
 // Enum for AI states or player commands, can be expanded
 #[derive(SpacetimeType, Clone, Debug, PartialEq, Hash)]
@@ -90,7 +80,10 @@ impl std::hash::Hash for Vec2 {
 
 impl Vec2 {
     pub fn to_glam(&self) -> glam::Vec2 {
-        glam::Vec2 { x: self.x, y: self.y }
+        glam::Vec2 {
+            x: self.x,
+            y: self.y,
+        }
     }
 }
 
@@ -98,15 +91,14 @@ impl Vec2 {
 // Reducers
 ///////////////////////////////////////////////////////////
 
-
 ///////////////////////////////////////////////////////////
 // Utility
 ///////////////////////////////////////////////////////////
 
 pub fn are_there_active_players(ctx: &ReducerContext) -> bool {
-    if let Some(config) = ctx.db.global_config().id().find(0) {
+    if let Some(config) = ctx.db().global_config().id().find(0) {
         if config.active_players == 0 {
-            return false
+            return false;
         }
     }
     true

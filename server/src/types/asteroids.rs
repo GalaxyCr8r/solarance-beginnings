@@ -1,4 +1,4 @@
-use spacetimedb::{table, ReducerContext};
+use spacetimedb::{ table, ReducerContext };
 use spacetimedsl::dsl;
 
 use crate::types::stellarobjects::StellarObjectId;
@@ -14,17 +14,20 @@ pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 #[table(name = asteroid, public)]
 pub struct Asteroid {
     #[primary_key]
-    #[wrapped(path = StellarObjectId)]
-    pub sobj_id: u64, // FK: StellarObject
+    #[use_wrapper(path = StellarObjectId)]
+    /// FK to StellarObject
+    id: u64,
 
     #[index(btree)] // To find asteroids in a specific sector
-    #[wrapped(path = crate::types::sectors::SectorId)]
-    pub current_sector_id: u64, // FK to Sector.id // Because asteroid_sector.id exists, this can't be named sector_id.
+    #[use_wrapper(path = crate::types::sectors::SectorId)]
+    /// FK to Sector.id // Because asteroid_sector.id exists, this can't be named sector_id.
+    pub current_sector_id: u64,
 
     pub size_radius: f32, // For collision
-    
-    #[wrapped(path = crate::types::items::ItemDefinitionId)]
-    pub resource_item_id: u32, // FK to ItemDefinition (e.g., Iron Ore, Silicon)
+
+    #[use_wrapper(path = crate::types::items::ItemDefinitionId)]
+    /// FK to ItemDefinition (e.g., Iron Ore, Silicon)
+    pub resource_item_id: u32,
 
     pub current_resources: u16, // Amount of resources left
     pub initial_resources: u16, // Original amount, for reference or respawn logic
@@ -38,7 +41,6 @@ pub struct Asteroid {
 
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     timers::init(ctx)?;
-    
+
     Ok(())
 }
-

@@ -1,6 +1,5 @@
-
 use macroquad::prelude::*;
-use spacetimedb_sdk::{DbContext, Table};
+use spacetimedb_sdk::{ DbContext, Table };
 
 use crate::module_bindings::*;
 
@@ -9,14 +8,27 @@ use crate::stdb::utils::*;
 use super::state::GameState;
 
 pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Result<(), String> {
-    if game_state.chat_window.has_focus {
-        return Ok(())
+    if game_state.chat_window.has_focus || ctx.try_identity().is_none() {
+        return Ok(());
     }
+
+    let id = &ctx.identity();
+    let db = ctx.db();
+    let con_t = db.player_ship_controller();
+    let pid = con_t.id();
+    let con = pid.find(id);
     let mut changed = false; // ONLY request an update if there's actually been a change!
-    if let Some(mut controller) = ctx.db.player_ship_controller().player_id().find(&ctx.identity()) {
+    if
+        let Some(mut controller) = con
+        // ctx
+        //     .db()
+        //     .player_ship_controller()
+        //     .player_id()
+        //     .find(&ctx.identity())
+    {
         // Synchronize the controller with the game state.
-         game_state.current_target_sobj = match controller.targetted_sobj_id {
-            Some(id) => ctx.db.stellar_object().id().find(&id),
+        game_state.current_target_sobj = match controller.targetted_sobj_id {
+            Some(id) => ctx.db().stellar_object().id().find(&id),
             None => None,
         };
 
@@ -77,25 +89,34 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
         if changed {
             ctx.reducers.update_player_controller(controller).or_else(|err| Err(err.to_string()))?;
         }
-    } 
+    }
 
     Ok(())
 }
 
-pub fn target_closest_stellar_object(ctx: &DbConnection, game_state: &mut GameState) -> Result<StellarObject, String> {
+pub fn target_closest_stellar_object(
+    ctx: &DbConnection,
+    game_state: &mut GameState
+) -> Result<StellarObject, String> {
     if game_state.chat_window.has_focus {
         return Err("Chat window has focus. Cannot target objects.".to_string());
     }
 
     //let player_id = ctx.identity();
-    let player_ship_id = get_player_sobj_id(ctx).ok_or("Player doesn't control a stellar object yet!")?;
-    let player_sobj = ctx.db.stellar_object().id().find(&player_ship_id).ok_or("Player doesn't control a stellar object yet!")?;
+    let player_ship_id = get_player_sobj_id(ctx).ok_or(
+        "Player doesn't control a stellar object yet!"
+    )?;
+    let player_sobj = ctx.db
+        .stellar_object()
+        .id()
+        .find(&player_ship_id)
+        .ok_or("Player doesn't control a stellar object yet!")?;
     let player_transform = get_transform(ctx, player_ship_id)?.to_vec2();
-    
+
     let mut closest_distance = f32::MAX;
     let mut closest_sobj = Option::None;
 
-    for sobj in ctx.db.stellar_object().iter() {
+    for sobj in ctx.db().stellar_object().iter() {
         if sobj.id == player_ship_id || sobj.sector_id != player_sobj.sector_id {
             continue; // Skip the player's ship and non-sector objects
         }
@@ -140,9 +161,9 @@ pub fn target_closest_stellar_object(ctx: &DbConnection, game_state: &mut GameSt
 //         .find(&controlled_entity_id.unwrap())
 //         .ok_or("Player's controlled object doesn't have a velocity table entry!")?;
 
-//     let ship_object = ctx.db.ship_object().sobj_id().find(&velocity.sobj_id).ok_or("control player ship_object error")?;
-//     let ship_instance = ctx.db.ship_instance().id().find(&ship_object.ship_id).ok_or("control player ship_instance error")?;
-//     let ship_type = ctx.db.ship_type_definition().id().find(&ship_instance.shiptype_id).ok_or("control player ship_type error")?;
+//     let ship_object = ctx.db().ship_object().sobj_id().find(&velocity.sobj_id).ok_or("control player ship_object error")?;
+//     let ship_instance = ctx.db().ship_instance().id().find(&ship_object.ship_id).ok_or("control player ship_instance error")?;
+//     let ship_type = ctx.db().ship_type_definition().id().find(&ship_instance.shiptype_id).ok_or("control player ship_type error")?;
 
 //     let vel = velocity.to_vec2();
 //     let mut changed = false;

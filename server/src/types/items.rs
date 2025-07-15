@@ -1,5 +1,4 @@
-
-use spacetimedb::{table, ReducerContext, SpacetimeType, Timestamp};
+use spacetimedb::{ table, ReducerContext, SpacetimeType, Timestamp };
 use spacetimedsl::dsl;
 
 use crate::types::ships::*;
@@ -11,39 +10,95 @@ pub mod rls; // Row-level-security rules for this file's structs.
 pub mod timers; // Timers related to this file's structs.
 pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
-// Enum for different categories of items
 #[derive(SpacetimeType, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum ItemCategory {
-    ShipEquipment,
-    Commodity, // Tradable goods like ore, food
-    ManufacturedGood, // Components, advanced materials
-    Ammunition,
-    Special, // Quest items, blueprints, etc.
+pub enum ResourceCategory {
+    RawOre,
+    RefinedIngot,
+    StoredEnergy,
+    ManufacturedComponentBasic,
+    ManufacturedComponentAdvanced,
+    BiomatterRaw,
+    BiomatterProcessedFood, // Basic food
+    BiomatterProcessedLuxury, // Luxury food
+    ConsumableShipAmmo,
+    ConsumableShipFuel,
+    ExoticMatter, // For high-tier research/construction
+    ResearchDataFragments, // Gathered from anomalies/ruins
+    FinishedGoods, // For trade, NPC requests
+}
+
+#[derive(SpacetimeType, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum OreType {
+    NickelIron,
+    Silicon,
+    Ice,
+    Platinum,
+    Tungsten,
+    Carbon,
+}
+
+#[derive(SpacetimeType, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum ShipModuleType {
+    Engine,
+    ShieldGenerator,
+    WeaponKinetic,
+    WeaponEnergy,
+    WeaponMissile,
+    MiningLaserBasic,
+    MiningLaserAdvanced,
+    CargoExpander,
+    ScannerBasic,
+    ScannerAdvanced,
+    TractorBeam,
+    CloakingDevice,
+    RepairSystem,
+    WarpDrive,
+    JumpDrive, // For inter-system travel
 }
 
 // Enum for different categories of items
+#[derive(SpacetimeType, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum ItemCategory {
+    ShipModule(ShipModuleType),
+    Resource(ResourceCategory),
+}
+
+/// Enum for different effects for items/modules
 #[derive(SpacetimeType, Clone, Debug, PartialEq)]
 pub enum ItemMetadata {
-    DamageBoost(f32), // Effects damage output
+    /// Effects damage output
+    DamageBoost(f32),
+    /// Effects shield output
     ShieldBoost(f32),
+    /// Adds additional cargo capacity
     CargoCapacityBoost(u16),
-    MiningSpeedMultiplier(f32), // From 0.001 to 10.0
-    EnergyConsumption(f32), // How much energy this item consumes per second.
+    /// From 0.001 to 10.0
+    MiningSpeedMultiplier(f32),
+    /// How much energy this item consumes per second.
+    EnergyConsumption(f32),
+    /// Some other special effect
     SpecialEffect(String),
 
-    Stacks(u8), // How many of this item can exist in a single stack
-    NoStacking, // This item cannot be stacked in ship cargo
-    NoTrade, // This item cannot be traded
-    NoSell, // This item cannot be sold
-    NoDrop, // Cannot be dropped from inventory
+    /// How many of this item can exist in a single stack
+    Stacks(u8),
+    /// This item cannot be stacked in ship cargo
+    NoStacking,
+    /// This item cannot be traded
+    NoTrade,
+    /// This item cannot be sold
+    NoSell,
+    /// Cannot be dropped from inventory
+    NoDrop,
+    /// Quality of the item, 0-100
+    Quality(u8),
 }
 
 #[dsl(plural_name = item_definitions)]
 #[table(name = item_definition, public)]
 pub struct ItemDefinition {
     #[primary_key]
-    #[wrap]
-    pub id: u32,
+    #[create_wrapper]
+    id: u32,
 
     pub name: String, // E.g., "Iron Ore", "Laser Cannon Mk2", "Energy Cells"
     pub description: Option<String>,
@@ -51,6 +106,7 @@ pub struct ItemDefinition {
     pub category: ItemCategory,
 
     pub base_value: u32, // Base monetary value
+    pub margin_percentage: u8, // Default margin e.g. 10%
     pub volume_per_unit: u16, // How much cargo space one unit takes
     pub units_per_stack: u8, // How units can be stacked in cargo slot
     // For equipment, additional stats might be here or in a linked table:
@@ -65,18 +121,22 @@ pub struct ItemDefinition {
 pub struct CargoCrate {
     #[primary_key]
     #[auto_inc]
-    pub id: u64,
+    #[create_wrapper]
+    id: u64,
 
-    #[wrapped(path = crate::types::sectors::SectorId)]
+    #[use_wrapper(path = crate::types::sectors::SectorId)]
     #[index(btree)] // To find crates in a specific sector
-    pub current_sector_id: u64, // FK: Sector.id
+    /// FK to Sector.id
+    pub current_sector_id: u64,
 
-    #[wrapped(path = crate::types::stellarobjects::StellarObjectId)]
+    #[use_wrapper(path = crate::types::stellarobjects::StellarObjectId)]
     #[unique]
-    pub sobj_id: u64, // FK: StellarObject
+    /// FK to StellarObject
+    pub sobj_id: u64,
 
-    #[wrapped(path = ItemDefinitionId)]
-    pub item_id: u32, // FK: ItemDefinition
+    #[use_wrapper(path = ItemDefinitionId)]
+    /// FK to ItemDefinition
+    pub item_id: u32,
     pub quantity: u16,
 
     pub despawn_ts: Option<Timestamp>, // When the crate should disappear if not collected
@@ -90,6 +150,6 @@ pub struct CargoCrate {
 
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     definitions::init(ctx)?;
-    
+
     Ok(())
 }

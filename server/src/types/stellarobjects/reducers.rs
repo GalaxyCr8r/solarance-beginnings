@@ -1,37 +1,50 @@
+use crate::types::players::PlayerId;
 
-use super::{utility::*, *};
+use super::{ utility::*, * };
 
 ///////////////////////////////////////////////////////////
 // Reducers ///
 ///////////////////////////////////////////////////////////
 
 #[spacetimedb::reducer]
-pub fn create_sobj_player_window_for(ctx: &ReducerContext, identity: Identity, sobj_id: StellarObjectId) -> Result<(), String> {
+pub fn create_sobj_player_window_for(
+    ctx: &ReducerContext,
+    identity: Identity,
+    sobj_id: StellarObjectId
+) -> Result<(), String> {
     let dsl = dsl(ctx);
 
     dsl.create_sobj_player_window(
-        identity, 
-        &sobj_id, 
+        PlayerId::new(identity),
+        &sobj_id,
         4000.0,
         2000.0,
         -2000.0,
         -2000.0,
         2000.0,
-        2000.0)?;
-    info!("Created player window for {} and object #{}!", identity.to_abbreviated_hex().to_string(), sobj_id.value);
+        2000.0
+    )?;
+    info!(
+        "Created player window for {} and object #{}!",
+        identity.to_abbreviated_hex().to_string(),
+        sobj_id.value
+    );
     Ok(())
 }
 
 #[spacetimedb::reducer]
-pub fn create_turn_left_controller_for(ctx: &ReducerContext, sobj_id: StellarObjectId) -> Result<(), String> {
+pub fn create_turn_left_controller_for(
+    ctx: &ReducerContext,
+    sobj_id: StellarObjectId
+) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    if let Some(controller) = dsl.get_sobj_turn_left_controller_by_sobj_id(&sobj_id) {
-        dsl.delete_sobj_turn_left_controller_by_sobj_id(controller.get_sobj_id());
+    if let Ok(controller) = dsl.get_sobj_turn_left_controller_by_id(&sobj_id) {
+        dsl.delete_sobj_turn_left_controller_by_id(controller.get_id())?;
         spacetimedb::log::info!("Deleted controller #{:?}", sobj_id.value);
     } else {
         let controller = dsl.create_sobj_turn_left_controller(sobj_id)?;
-        spacetimedb::log::info!("Created controller #{}", controller.sobj_id);
+        spacetimedb::log::info!("Created controller #{}", controller.id);
     }
     Ok(())
 }
@@ -60,7 +73,7 @@ pub fn create_sobj_random(ctx: &ReducerContext, sector_id: u64) -> Result<(), St
         StellarObjectKinds::Ship,
         SectorId::new(sector_id),
         StellarObjectTransformInternal {
-            sobj_id: 0,
+            id: 0,
             x: ctx.rng().gen_range(0.0..1024.0),
             y: ctx.rng().gen_range(0.0..512.0),
             rotation_radians: ctx.rng().gen_range(-std::f32::consts::PI..std::f32::consts::PI),
@@ -76,12 +89,12 @@ pub fn create_sobj_random(ctx: &ReducerContext, sector_id: u64) -> Result<(), St
 // ) -> Result<(), String> {
 //     let dsl = dsl(ctx);
 
-//     is_server_or_owner(ctx, velocity.get_sobj_id())?;
+//     is_server_or_owner(ctx, velocity.get_id())?;
 
 //     let mut update_velocity = velocity.clone();
 //     //let ship_def = dsl.get_ship_type_definition_by_id(dsl.get_ship_instance_by_id())
-    
-//     match dsl.get_sobj_velocity_by_sobj_id(velocity.get_sobj_id()) {
+
+//     match dsl.get_sobj_velocity_by_sobj_id(velocity.get_id()) {
 //         Some(prev_velocity) => {
 //             // Check if the acceleration required for the velocity change is too high
 //             let acceleration = (velocity.to_vec2() - prev_velocity.to_vec2()).length();
@@ -89,7 +102,7 @@ pub fn create_sobj_random(ctx: &ReducerContext, sector_id: u64) -> Result<(), St
 //                 //// TODO: Make this variable per ship type
 //                 //log::info!("Acceleration too high! {:?}", acceleration);
 
-//                 // Reduce the acceleration down                
+//                 // Reduce the acceleration down
 //                 update_velocity = update_velocity.from_vec2(
 //                     prev_velocity.to_vec2() +
 //                     (update_velocity.to_vec2() - prev_velocity.to_vec2()).normalize() * 1.0);

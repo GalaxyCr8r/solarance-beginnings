@@ -1,0 +1,9 @@
+name: Starcoder2
+version: 0.0.1
+schema: v1
+models:
+  - name: Starcoder2 7b LM Studio
+    provider: lmstudio
+    model: starcoder2-7b
+    roles:
+      - autocomplete

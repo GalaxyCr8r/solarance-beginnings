@@ -1,0 +1,9 @@
+name: nomic-embed-text-v1.5
+version: 0.0.1
+schema: v1
+models:
+  - provider: lmstudio
+    model: nomic-ai/nomic-embed-text-v1.5-GGUF
+    name: nomic-embed-text-v1.5
+    roles:
+      - embed

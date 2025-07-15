@@ -2,7 +2,10 @@ use log::info;
 use spacetimedb::{table, Identity, ReducerContext, SpacetimeType};
 use spacetimedsl::{dsl, Wrapper};
 
-use crate::types::{items::utility::*, stellarobjects::StellarObjectId, common::*, items::*, sectors::*, stations::*};
+use crate::types::{
+    common::*, items::utility::*, items::*, sectors::*, stations::*,
+    stellarobjects::StellarObjectId,
+};
 
 pub mod definitions; // Definitions for initial ingested data.
 pub mod impls; // Impls for this file's structs
@@ -23,12 +26,23 @@ pub enum ShipClass {
     Carrier,
 }
 
+// Enum for different types of equipment slots on a ship
+#[derive(SpacetimeType, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum EquipmentSlotType {
+    Weapon,
+    Shield,
+    Engine,
+    MiningLaser,
+    Special, // For things like cloaking devices, tractor beams etc.
+    CargoExpansion,
+}
+
 #[dsl(plural_name = ship_type_definitions)]
 #[table(name = ship_type_definition, public)]
 pub struct ShipTypeDefinition {
     #[primary_key] // NOT Auto-inc so it can be reloaded as-is
-    #[wrap]
-    pub id: u32,
+    #[create_wrapper]
+    id: u32,
 
     pub name: String, // E.g., "Fighter Mk1", "Heavy Hauler"
     pub description: Option<String>,
@@ -47,6 +61,9 @@ pub struct ShipTypeDefinition {
     pub cargo_capacity: u16, // Max cargo volume
 
     pub num_weapon_slots: u8,
+    pub num_large_weapon_slots: u8,
+    pub num_turret_slots: u8,
+    pub num_large_turret_slots: u8,
     pub num_shield_slots: u8,
     pub num_engine_slots: u8,
     pub num_mining_laser_slots: u8,
@@ -55,27 +72,29 @@ pub struct ShipTypeDefinition {
     pub gfx_key: Option<String>, // Key for client to look up 2D sprite/model
 }
 
-
 #[dsl(plural_name = ship_statuses)]
 #[table(name = ship_status, public)]
 pub struct ShipStatus {
     #[primary_key]
-    #[wrapped(path = ShipGlobalId)]
-    pub id: u64,
+    #[use_wrapper(path = ShipGlobalId)]
+    id: u64,
 
     #[index(btree)] // To easily find ships in a given sector
-    #[wrapped(path = SectorId)]
-    pub sector_id: u64, // FK to Sector.id // Needs to be kept in sync with StellarObject.sector_id
+    #[use_wrapper(path = SectorId)]
+    /// FK to Sector.id // Needs to be kept in sync with StellarObject.sector_id
+    pub sector_id: u64,
 
     #[index(btree)]
-    pub player_id: Identity,      // FK to player.id // You should only be able to see your ship, or other ships in your sector.
+    #[use_wrapper(path = crate::players::PlayerId)]
+    /// FK to player.id // You should only be able to see your ship, or other ships in your sector.
+    pub player_id: Identity,
 
     pub health: f32,
     pub shields: f32,
     pub energy: f32,
 
     pub used_cargo_capacity: u16, // Needs to be manually maintained via ShipCargoItem
-    pub max_cargo_capacity: u16, // Needs to be manually maintained via ShipCargoItem
+    pub max_cargo_capacity: u16,  // Needs to be manually maintained via ShipCargoItem
 
     pub ai_state: Option<CurrentAction>, // Current high-level AI state or player command
 }
@@ -83,63 +102,77 @@ pub struct ShipStatus {
 /// Because we can have ships created both docked and not docked - we need a central table to create the IDs in a controlled way.
 #[dsl(plural_name = ship_globals)]
 #[table(name = ship_global, public)]
-pub struct ShipGlobal { 
-    #[primary_key] // Due to Ship/DockedShip tables both wanting the use the same ID, we can no longer use AutoInc for them
+pub struct ShipGlobal {
+    #[primary_key]
+    // Due to Ship/DockedShip tables both wanting the use the same ID, we can no longer use AutoInc for them
     #[auto_inc]
-    #[wrap]
-    pub id: u64,
+    #[create_wrapper]
+    id: u64,
+    //pub custom_name: Option<String>,
 }
 
 #[dsl(plural_name = ships)]
 #[table(name = ship, public)]
-pub struct Ship { 
+pub struct Ship {
     #[primary_key]
-    #[wrapped(path = ShipGlobalId)]
-    pub id: u64,
+    #[use_wrapper(path = ShipGlobalId)]
+    id: u64,
 
     #[index(btree)]
-    #[wrapped(path = ShipTypeDefinitionId)]
-    pub shiptype_id: u32, // FK to ShipTypeDefinition.id
+    #[use_wrapper(path = ShipTypeDefinitionId)]
+    /// FK to ShipTypeDefinition.id
+    pub shiptype_id: u32,
 
     #[unique]
-    #[wrapped(path = StellarObjectId)]
-    pub sobj_id: u64, // FK: StellarObject
+    #[use_wrapper(path = StellarObjectId)]
+    /// FK to StellarObject
+    pub sobj_id: u64,
 
     #[index(btree)]
-    #[wrapped(path = crate::types::sectors::SectorId)]
-    pub sector_id: u64, // FK to Sector ID - Only because actually referencing the player's stellar object would require three table hits.
+    #[use_wrapper(path = crate::types::sectors::SectorId)]
+    /// FK to Sector ID - Only because actually referencing the player's stellar object would require three table hits.
+    pub sector_id: u64,
 
     #[index(btree)]
-    pub player_id: Identity, // FK to player.id
-    
-    #[wrapped(path = crate::types::factions::FactionDefinitionId)]
-    pub faction_id: u32, // FK to faction.id
+    #[use_wrapper(path = crate::players::PlayerId)]
+    /// FK to player.id
+    pub player_id: Identity,
+
+    #[use_wrapper(path = crate::types::factions::FactionId)]
+    /// FK to faction.id
+    pub faction_id: u32,
 }
 
 #[dsl(plural_name = docked_ships)]
 #[table(name = docked_ship, public)] // TODO Create utility functions to switch ships between docked and non-docked
-pub struct DockedShip { 
+pub struct DockedShip {
     #[primary_key]
-    #[wrapped(path = ShipGlobalId)]
-    pub id: u64,
+    #[use_wrapper(path = ShipGlobalId)]
+    id: u64,
 
     #[index(btree)]
-    #[wrapped(path = ShipTypeDefinitionId)]
-    pub shiptype_id: u32, // FK to ShipTypeDefinition.id
+    #[use_wrapper(path = ShipTypeDefinitionId)]
+    /// FK to ShipTypeDefinition.id
+    pub shiptype_id: u32,
 
     #[index(btree)]
-    #[wrapped(path = StationId)]
-    pub station_id: u64, // FK: Station
+    #[use_wrapper(path = StationId)]
+    /// FK to Station
+    pub station_id: u64,
 
     #[index(btree)]
-    #[wrapped(path = SectorId)]
-    pub sector_id: u64, // FK to Sector ID - Only because actually referencing the player's stellar object would require three table hits.
+    #[use_wrapper(path = SectorId)]
+    /// FK to Sector ID - Only because actually referencing the player's stellar object would require three table hits.
+    pub sector_id: u64,
 
     #[index(btree)]
-    pub player_id: Identity, // FK to player.id
-    
-    #[wrapped(path = crate::types::factions::FactionDefinitionId)]
-    pub faction_id: u32, // FK to faction.id
+    #[use_wrapper(path = crate::players::PlayerId)]
+    /// FK to player.id
+    pub player_id: Identity,
+
+    #[use_wrapper(path = crate::types::factions::FactionId)]
+    /// FK to faction.id
+    pub faction_id: u32,
 }
 
 #[dsl(plural_name = ship_cargo_items)]
@@ -147,18 +180,20 @@ pub struct DockedShip {
 pub struct ShipCargoItem {
     #[primary_key]
     #[auto_inc]
-    #[wrap]
-    pub id: u64,
+    #[create_wrapper]
+    id: u64,
 
     #[index(btree)] // To query all cargo for a specific ship
-    #[wrapped(path = ShipGlobalId)]
-    pub ship_id: u64, // FK to ShipGlobal
+    #[use_wrapper(path = ShipGlobalId)]
+    /// FK to ShipGlobal
+    pub ship_id: u64,
 
-    #[wrapped(path = crate::types::items::ItemDefinitionId)]
-    pub item_id: u32, // FK to ItemDefinition
+    #[use_wrapper(path = crate::types::items::ItemDefinitionId)]
+    /// FK to ItemDefinition
+    pub item_id: u32,
 
     pub quantity: u16, // How many of this item are currently in this stack
-    //pub stack_size: u8, // TODO: Do we keep this value here to save query time?
+                       //pub stack_size: u8, // TODO: Do we keep this value here to save query time?
 }
 
 #[dsl(plural_name = ship_equipment_slots)]
@@ -166,18 +201,20 @@ pub struct ShipCargoItem {
 pub struct ShipEquipmentSlot {
     #[primary_key]
     #[auto_inc]
-    #[wrap]
-    pub id: u64,
+    #[create_wrapper]
+    id: u64,
 
     #[index(btree)] // To query all equipment for a specific ship
-    #[wrapped(path = ShipGlobalId)]
-    pub ship_id: u64, // FK to ShipGlobal
+    #[use_wrapper(path = ShipGlobalId)]
+    /// FK to ShipGlobal
+    pub ship_id: u64,
 
     pub slot_type: EquipmentSlotType,
     pub slot_index: u8, // E.g., Weapon Slot 0, Weapon Slot 1 within its type
 
-    #[wrapped(path = ItemDefinitionId)]
-    pub item_id: u32, // FK to ItemDefinition
+    #[use_wrapper(path = ItemDefinitionId)]
+    /// FK to ItemDefinition
+    pub item_id: u32,
 }
 
 //////////////////////////////////////////////////////////////
@@ -187,7 +224,6 @@ pub struct ShipEquipmentSlot {
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     definitions::init(ctx)?;
     timers::init(ctx)?;
-    
+
     Ok(())
 }
-
