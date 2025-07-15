@@ -15,7 +15,7 @@ use super::*;
 ///////////////////////////////////////////////////////////
 
 #[spacetimedb::reducer]
-pub fn buy_item_from_trading_port(
+pub fn buy_item_from_station_module(
     ctx: &ReducerContext,
     station_module_id: StationModuleId,
     docked_ship_id: ShipGlobalId,
@@ -88,7 +88,7 @@ pub fn buy_item_from_trading_port(
 
 /// A docked ship sells an item to a station module and its player (or faction) receives credits in return.
 #[spacetimedb::reducer]
-pub fn sell_item_to_trading_port(
+pub fn sell_item_to_station_module(
     ctx: &ReducerContext,
     station_module_id: StationModuleId,
     docked_ship_id: ShipGlobalId,
