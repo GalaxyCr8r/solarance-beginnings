@@ -9,7 +9,7 @@ use std::{
 use solarance_beginnings::*;
 
 use dotenv::dotenv;
-use egui::{ Align2, Button, Color32, Frame, RichText, Shadow };
+use egui::{ Align2, Color32, Frame, RichText, Shadow };
 use gameplay::resources::Resources;
 use macroquad::{
     math::Vec2,

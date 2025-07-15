@@ -1,4 +1,4 @@
-use egui::{epaint::RectShape, *};
+use egui::*;
 use macroquad::prelude::*;
 use spacetimedb_sdk::Table;
 use spacetimedb_sdk::*;

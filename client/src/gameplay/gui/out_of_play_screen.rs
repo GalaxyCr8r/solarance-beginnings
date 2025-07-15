@@ -1,19 +1,6 @@
-use std::{ collections::HashMap, f32::consts::PI };
+use std::collections::HashMap;
 
-use egui::{
-    Align,
-    Align2,
-    Color32,
-    Context,
-    FontId,
-    Frame,
-    Layout,
-    Rangef,
-    RichText,
-    Shadow,
-    Ui,
-    Vec2,
-};
+use egui::{ Align, Color32, Context, Frame, Layout, Rangef, RichText, Shadow, Ui };
 use macroquad::prelude::*;
 use spacetimedb_sdk::{ DbContext, Table };
 
@@ -21,11 +8,8 @@ pub mod utils;
 
 use crate::{
     gameplay::{
-        gui::{
-            out_of_play_screen::utils::*,
-            ship_details_window::{ show_docked_ship_details, show_ship_details },
-        },
-        state::{ self, GameState },
+        gui::{ out_of_play_screen::utils::*, ship_details_window::show_docked_ship_details },
+        state::{ GameState },
     },
     module_bindings::*,
     stdb::utils::*,
@@ -356,6 +340,7 @@ fn buy_and_sell_inventory_item(
                     players_current_amount > 0,
                     egui::Slider::new(&mut sell_scalar, 0..=players_current_amount)
                 );
+                ui.label(format!("{}c", sell_scalar * inventory.cached_price));
                 sell_item_to_station(ctx, sell_scalar, docked_ship, module, inventory, ui);
 
                 if players_current_amount == 0 {
@@ -404,6 +389,7 @@ fn buy_and_sell_inventory_item(
                         })
                     )
                 );
+                ui.label(format!("{}c", buy_scalar * inventory.cached_price));
                 buy_item_from_station(ctx, buy_scalar, docked_ship, module, inventory, ui);
 
                 if space_available == 0 {
@@ -440,7 +426,7 @@ fn buy_item_from_station(
 
     if ui.button("BUY").clicked() {
         if
-            let Ok(_) = ctx.reducers.buy_item_from_trading_port(
+            let Ok(_) = ctx.reducers.buy_item_from_station_module(
                 module.id.into(),
                 docked_ship.id.into(),
                 inventory.resource_item_id.into(),
@@ -475,7 +461,7 @@ fn sell_item_to_station(
         match
             ctx
                 .reducers()
-                .sell_item_to_trading_port(
+                .sell_item_to_station_module(
                     module.id.into(),
                     docked_ship.id.into(),
                     inventory.resource_item_id.into(),

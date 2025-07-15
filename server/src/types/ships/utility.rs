@@ -175,6 +175,8 @@ pub fn remove_cargo_from_ship(
                 info!("New amount after removal: {}", new_amount);
                 updated_cargo_item.set_quantity(new_amount);
                 dsl.update_ship_cargo_item_by_id(updated_cargo_item)?;
+
+                ship_status.used_cargo_capacity = ship_status.calculate_used_cargo_space(ctx);
                 let _ = dsl.update_ship_status_by_id(ship_status.clone())?;
 
                 return Ok(());
