@@ -14,6 +14,8 @@ use super::*;
 // Reducers ///
 ///////////////////////////////////////////////////////////
 
+/// Allows a docked ship to purchase items from a station's trading module.
+/// Validates player ownership, credits, and cargo space before completing the transaction.
 #[spacetimedb::reducer]
 pub fn buy_item_from_station_module(
     ctx: &ReducerContext,

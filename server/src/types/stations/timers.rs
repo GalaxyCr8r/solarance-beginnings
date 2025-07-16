@@ -44,6 +44,8 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 // Reducers
 //////////////////////////////////////////////////////////////
 
+/// Scheduled reducer that processes production for all modules in a station.
+/// Handles resource production, manufacturing, logistics, and other station module operations.
 #[spacetimedb::reducer]
 pub fn process_station_production_tick(
     ctx: &ReducerContext,
@@ -93,6 +95,8 @@ pub fn process_station_production_tick(
     Err("Not implemented".to_string())
 }
 
+/// Scheduled reducer that processes station status updates and maintenance.
+/// Currently not implemented - placeholder for future station health/status monitoring.
 #[spacetimedb::reducer]
 pub fn process_station_status_tick(
     ctx: &ReducerContext,

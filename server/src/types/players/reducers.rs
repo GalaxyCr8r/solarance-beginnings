@@ -16,6 +16,8 @@ use crate::stellarobjects::{ reducers::*, utility::* };
 // Reducers ///
 //////////////////////////////////////////////////////////////
 
+/// Registers a new player with a unique username and creates their player account.
+/// Validates username uniqueness and initializes the player with starting credits.
 #[spacetimedb::reducer]
 pub fn register_playername(
     ctx: &ReducerContext,
@@ -35,6 +37,8 @@ pub fn register_playername(
     Ok(())
 }
 
+/// Creates a new ship for a registered player with starting equipment and cargo.
+/// Sets up the ship's stellar object, player window, controller, and initial inventory.
 #[spacetimedb::reducer]
 pub fn create_player_controlled_ship(
     ctx: &ReducerContext,

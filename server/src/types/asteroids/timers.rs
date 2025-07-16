@@ -45,6 +45,8 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 // Reducers
 //////////////////////////////////////////////////////////////
 
+/// Scheduled reducer that maintains asteroid populations in sectors.
+/// Creates new asteroids when the count falls below the sector's sparseness threshold.
 #[spacetimedb::reducer]
 pub fn asteroid_sector_upkeep(
     ctx: &ReducerContext,

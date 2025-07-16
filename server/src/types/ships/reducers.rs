@@ -6,6 +6,8 @@ use super::*;
 // Reducers ///
 ///////////////////////////////////////////////////////////
 
+/// Allows a player to jettison cargo from their ship into space as a cargo crate.
+/// Validates ship ownership and cargo availability before creating the crate.
 #[spacetimedb::reducer]
 pub fn jettison_cargo_from_ship(
     ctx: &ReducerContext,
@@ -40,6 +42,8 @@ pub fn jettison_cargo_from_ship(
     Ok(())
 }
 
+/// Teleports a ship to a specific sector by ID (convenience wrapper).
+/// This is a hard teleport that bypasses jump gates and jump drives.
 #[spacetimedb::reducer]
 pub fn teleport_to_sector_ids(
     ctx: &ReducerContext,

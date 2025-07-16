@@ -35,6 +35,8 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 // Reducers
 //////////////////////////////////////////////////////////////
 
+/// Scheduled reducer that performs sector maintenance and upkeep tasks.
+/// Runs every 60 seconds to ensure asteroid sectors have proper upkeep timers.
 #[spacetimedb::reducer]
 pub fn sector_upkeep(ctx: &ReducerContext, timer: SectorUpkeepTimer) -> Result<(), String> {
     try_server_only(ctx)?;
