@@ -3,7 +3,10 @@ use crate::types::{
     factions::FactionId,
     items::GetItemDefinitionRowOptionById,
     sectors::Sector,
-    stations::timers::{CreateStationProductionScheduleRow, CreateStationStatusScheduleRow},
+    stations::{
+        modules::{farm::*, laboratory::*, manufacturing::*, refinery::*, solar_array::*},
+        timers::{CreateStationProductionScheduleRow, CreateStationStatusScheduleRow},
+    },
     stellarobjects::StellarObject,
 };
 use spacetimedb::ScheduleAt;
@@ -92,17 +95,17 @@ pub fn create_station_with_modules(
         module_creator(ctx, &station)?;
     }
 
-    // Set up station production schedule (every 30 seconds)
+    // Set up station production schedule (every 30 seconds) TODO Tie this to GlobalConfig
     dsl.create_station_production_schedule(
         station.get_id(),
         ScheduleAt::Interval(Duration::from_secs(30).into()),
         ctx.timestamp,
     )?;
 
-    // Set up station status schedule (every 60 seconds)
+    // Set up station status schedule (every 60 seconds) TODO Tie this to GlobalConfig
     dsl.create_station_status_schedule(
         station.get_id(),
-        ScheduleAt::Interval(Duration::from_secs(60).into()),
+        ScheduleAt::Interval(Duration::from_secs(10).into()),
         ctx.timestamp,
     )?;
 
@@ -153,32 +156,179 @@ pub fn update_logistics_and_storage(
 /// ResourceProductionAndRefining,
 pub fn update_resource_production_and_refining(
     ctx: &ReducerContext,
-    station: &Station,
+    _station: &Station,
     module: &StationModule,
     blueprint: &StationModuleBlueprint,
 ) -> Result<(), String> {
-    //
+    let dsl = dsl(ctx);
+
+    // Calculate time elapsed since last update (assuming 30 second intervals)
+    let time_elapsed_hours = 30.0 / 3600.0; // 30 seconds in hours
+
+    match blueprint.specific_type {
+        StationModuleSpecificType::RefineryBasicOre => {
+            // Handle refinery modules
+            if let Ok(refinery) = dsl.get_refinery_module_by_id(module.get_id()) {
+                let production_result = modules::refinery::timers::calculate_refinery_production(
+                    ctx,
+                    &refinery,
+                    time_elapsed_hours,
+                )?;
+
+                modules::refinery::timers::apply_refinery_production(
+                    ctx,
+                    &refinery,
+                    &production_result,
+                )?;
+
+                spacetimedb::log::info!(
+                    "Refinery module {} produced {:.2} ingots, consumed {:.2} ore",
+                    module.id,
+                    production_result.ingots_produced,
+                    production_result.ore_consumed
+                );
+            }
+        }
+        StationModuleSpecificType::FarmStandard | StationModuleSpecificType::FarmLuxury => {
+            // Handle farm modules
+            if let Ok(farm) = dsl.get_farm_module_by_id(module.get_id()) {
+                let production_result = modules::farm::timers::calculate_farm_production(
+                    ctx,
+                    &farm,
+                    time_elapsed_hours,
+                )?;
+
+                modules::farm::timers::apply_farm_production(ctx, &farm, &production_result)?;
+
+                spacetimedb::log::info!(
+                    "Farm module {} produced {:.2} food units",
+                    module.id,
+                    production_result.food_produced
+                );
+            }
+        }
+        StationModuleSpecificType::SolarArray => {
+            // Handle solar array modules
+            if let Ok(solar_array) = dsl.get_solar_array_module_by_id(module.get_id()) {
+                let production_result =
+                    modules::solar_array::timers::calculate_solar_array_production(
+                        ctx,
+                        &solar_array,
+                        time_elapsed_hours,
+                    )?;
+
+                modules::solar_array::timers::apply_solar_array_production(
+                    ctx,
+                    &solar_array,
+                    &production_result,
+                )?;
+
+                spacetimedb::log::info!(
+                    "Solar array module {} produced {:.2} energy cells",
+                    module.id,
+                    production_result.energy_cells_produced
+                );
+            }
+        }
+        _ => {
+            // Not a resource production/refining module, skip
+        }
+    }
+
     Ok(())
 }
 /// ManufacturingAndAssembly,
 pub fn update_manufacturing_and_assembly(
     ctx: &ReducerContext,
-    station: &Station,
+    _station: &Station,
     module: &StationModule,
     blueprint: &StationModuleBlueprint,
 ) -> Result<(), String> {
-    //
+    let dsl = dsl(ctx);
+
+    // Calculate time elapsed since last update (assuming 30 second intervals)
+    let time_elapsed_seconds = 30.0; // 30 seconds
+
+    match blueprint.specific_type {
+        StationModuleSpecificType::FactoryBasicComponents
+        | StationModuleSpecificType::FactoryAdvancedComponents => {
+            // Handle manufacturing modules
+            if let Ok(manufacturing) = dsl.get_manufacturing_module_by_id(module.get_id()) {
+                let production_result =
+                    modules::manufacturing::timers::calculate_manufacturing_production(
+                        ctx,
+                        &manufacturing,
+                        time_elapsed_seconds,
+                    )?;
+
+                modules::manufacturing::timers::apply_manufacturing_production(
+                    ctx,
+                    &manufacturing,
+                    &production_result,
+                )?;
+
+                if production_result.items_completed > 0 {
+                    spacetimedb::log::info!(
+                        "Manufacturing module {} completed {} items, progress: {:.2}",
+                        module.id,
+                        production_result.items_completed,
+                        production_result.progress_made
+                    );
+                }
+            }
+        }
+        _ => {
+            // Not a manufacturing/assembly module, skip
+        }
+    }
+
     Ok(())
 }
 
 /// ResearchAndDevelopment,
 pub fn update_research_and_development(
     ctx: &ReducerContext,
-    station: &Station,
+    _station: &Station,
     module: &StationModule,
     blueprint: &StationModuleBlueprint,
 ) -> Result<(), String> {
-    //
+    let dsl = dsl(ctx);
+
+    // Calculate time elapsed since last update (assuming 30 second intervals)
+    let time_elapsed_hours = 30.0 / 3600.0; // 30 seconds in hours
+
+    match blueprint.specific_type {
+        StationModuleSpecificType::Laboratory => {
+            // Handle laboratory modules
+            if let Ok(laboratory) = dsl.get_laboratory_module_by_id(module.get_id()) {
+                let production_result =
+                    modules::laboratory::timers::calculate_laboratory_production(
+                        ctx,
+                        &laboratory,
+                        time_elapsed_hours,
+                    )?;
+
+                modules::laboratory::timers::apply_laboratory_production(
+                    ctx,
+                    &laboratory,
+                    &production_result,
+                )?;
+
+                if production_result.fragments_produced > 0.0 {
+                    spacetimedb::log::info!(
+                        "Laboratory module {} produced {:.2} research fragments ({:.2} points)",
+                        module.id,
+                        production_result.fragments_produced,
+                        production_result.research_points_produced
+                    );
+                }
+            }
+        }
+        _ => {
+            // Not a research/development module, skip
+        }
+    }
+
     Ok(())
 }
 
