@@ -3,9 +3,7 @@ use spacetimedb::ReducerContext;
 use spacetimedsl::dsl;
 
 use crate::types::{
-    common::Vec2,
-    stations::{ modules::{ refinery_definitions::*, * }, * },
-    stellarobjects::{ utility::create_sobj_internal, StellarObjectTransformInternal },
+    common::Vec2, items::{definitions::*, *}, stations::{ modules::{ refinery::definitions::*, * }, * }, stellarobjects::{ utility::create_sobj_internal, StellarObjectTransformInternal }
 };
 
 use super::*;
@@ -164,7 +162,24 @@ fn demo_sectors(ctx: &ReducerContext) -> Result<(), String> {
         None
     )?;
     create_basic_bazaar(ctx, &station, false)?;
-    create_basic_iron(ctx, &station, false)?;
+    create_basic_refinery_module(ctx,
+        &station,
+        false,
+        ItemDefinitionId::new(ITEM_IRON_ORE),
+        ItemDefinitionId::new(ITEM_IRON_INGOT),
+        None)?;
+    create_basic_refinery_module(ctx,
+        &station,
+        false,
+        ItemDefinitionId::new(ITEM_ICE_ORE),
+        ItemDefinitionId::new(ITEM_WATER),
+        None)?;
+    create_basic_refinery_module(ctx,
+        &station,
+        false,
+        ItemDefinitionId::new(ITEM_SILICON_ORE),
+        ItemDefinitionId::new(ITEM_SILICON_RAW),
+        None)?;
 
     dsl.create_station(
         crate::types::stations::StationSize::Capital,
