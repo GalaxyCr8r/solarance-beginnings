@@ -49,7 +49,7 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 #[spacetimedb::reducer]
 pub fn process_station_production_tick(
     ctx: &ReducerContext,
-    timer: StationProductionSchedule
+    timer: StationProductionSchedule,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
@@ -100,7 +100,7 @@ pub fn process_station_production_tick(
 #[spacetimedb::reducer]
 pub fn process_station_status_tick(
     ctx: &ReducerContext,
-    _timer: StationStatusSchedule
+    _timer: StationStatusSchedule,
 ) -> Result<(), String> {
     let _dsl = dsl(ctx);
 

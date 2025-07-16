@@ -1,5 +1,8 @@
 use super::*;
 
+pub mod definitions;
+pub mod timers;
+
 #[derive(SpacetimeType, Clone, Debug, PartialEq)]
 pub enum FarmOutputQuality {
     Lower,

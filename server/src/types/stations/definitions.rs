@@ -30,6 +30,29 @@ pub const MODULE_REFINERY_URANIUM: u32 = 3_104;
 pub const MODULE_REFINERY_VIVEIUM: u32 = 3_105;
 pub const MODULE_REFINERY_TITANIUM: u32 = 3_106;
 
+// Farm modules
+pub const MODULE_FARM_BASIC: u32 = 4_000;
+pub const MODULE_FARM_STANDARD: u32 = 4_001;
+pub const MODULE_FARM_ADVANCED: u32 = 4_002;
+pub const MODULE_FARM_LUXURY: u32 = 4_003;
+
+// Laboratory modules
+pub const MODULE_LABORATORY_BASIC: u32 = 5_000;
+pub const MODULE_LABORATORY_ADVANCED: u32 = 5_001;
+pub const MODULE_LABORATORY_EXOTIC: u32 = 5_002;
+
+// Manufacturing modules
+pub const MODULE_MANUFACTURING_FACTORY: u32 = 6_000;
+pub const MODULE_MANUFACTURING_FACTORY_ADVANCED: u32 = 6_001;
+pub const MODULE_MANUFACTURING_ASSEMBLER: u32 = 6_002;
+pub const MODULE_MANUFACTURING_SHIPYARD: u32 = 6_003;
+
+// Solar array modules
+pub const MODULE_SOLAR_ARRAY_SMALL: u32 = 7_000;
+pub const MODULE_SOLAR_ARRAY_MEDIUM: u32 = 7_001;
+pub const MODULE_SOLAR_ARRAY_LARGE: u32 = 7_002;
+pub const MODULE_SOLAR_ARRAY_INDUSTRIAL: u32 = 7_003;
+
 //////////////////////////////////////////////////////////////
 // Init
 //////////////////////////////////////////////////////////////

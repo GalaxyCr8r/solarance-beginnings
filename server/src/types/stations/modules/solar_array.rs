@@ -1,5 +1,8 @@
 use super::*;
 
+pub mod definitions;
+pub mod timers;
+
 #[dsl(plural_name = solar_array_modules)]
 #[table(name = solar_array_module, public)]
 pub struct SolarArray {

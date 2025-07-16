@@ -1,5 +1,8 @@
 use super::*;
 
+pub mod definitions;
+pub mod timers;
+
 /// Defines a recipe that a manufacturing module can use.
 #[dsl(plural_name = production_recipe_definitions)]
 #[table(name = production_recipe_definition, public)]

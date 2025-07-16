@@ -1,5 +1,8 @@
 use super::*;
 
+pub mod definitions;
+pub mod timers;
+
 #[dsl(plural_name = laboratory_modules)]
 #[table(name = laboratory_module, public)]
 pub struct Laboratory {
@@ -20,5 +23,5 @@ pub struct Laboratory {
 
     pub primary_input_consumption_rate: f32, // units per hour
     pub secondary_input_consumption_rate: Option<f32>, // units per hour
-    pub current_efficiency_modifier: f32, // Based on upgrades, staffing
+    pub current_efficiency_modifier: f32,    // Based on upgrades, staffing
 }
