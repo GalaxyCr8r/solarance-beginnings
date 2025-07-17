@@ -67,7 +67,7 @@ pub fn process_station_production_tick(
         }
         let blueprint = wrapped_blueprint.unwrap();
 
-        (match blueprint.category {
+        return match blueprint.category {
             StationModuleCategory::LogisticsAndStorage => {
                 update_logistics_and_storage(ctx, &station, &module, &blueprint)
             }
@@ -89,7 +89,7 @@ pub fn process_station_production_tick(
             StationModuleCategory::DefenseAndMilitary => {
                 update_defense_and_military(ctx, &station, &module, &blueprint)
             }
-        })?;
+        };
     }
 
     Err("Not implemented".to_string())

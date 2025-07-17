@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "SpacetimeDB Table Sync",
+  "description": "Monitors Rust files for changes to structs annotated with the `table` macro from `spacetimedb` and automatically runs `task client:generate` to update client server module bindings",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "server/src/**/*.rs"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A Rust file in the server directory has been modified. Check if any structs with the `#[spacetimedb::table]` annotation have been added, modified, or removed. If so, run `task client:generate` in the bash shell to update the client's server module bindings. Only run the command if table-annotated structs were actually changed."
+  }
+}
