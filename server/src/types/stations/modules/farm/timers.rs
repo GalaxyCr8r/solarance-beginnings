@@ -49,22 +49,50 @@ pub fn calculate_farm_production(
     let production_capacity =
         farm.base_production_units_per_hour * farm.current_efficiency_modifier * time_elapsed_hours;
 
-    // Actual production is limited by inputs or capacity
-    let actual_food_produced = max_from_inputs.min(production_capacity);
+    // Calculate maximum whole units that can be produced from inputs
+    let max_whole_from_inputs = max_from_inputs.floor();
 
-    // Calculate resource consumption
-    let primary_consumed = actual_food_produced * farm.primary_input_conversion_rate;
+    // Calculate production capacity as whole units
+    let production_capacity_whole = production_capacity.floor();
+
+    // Actual production is limited by inputs or capacity (whole units only)
+    let actual_food_produced_whole = max_whole_from_inputs.min(production_capacity_whole);
+
+    // Only proceed if we can produce at least 1 whole unit of food
+    if actual_food_produced_whole < 1.0 {
+        spacetimedb::log::info!(
+            "Farm module {} cannot produce whole food units: max from inputs={:.2}, capacity={:.2}",
+            station_module.id,
+            max_whole_from_inputs,
+            production_capacity_whole
+        );
+        return Ok(FarmProductionResult {
+            food_produced: 0.0,
+            primary_consumed: 0.0,
+            secondary_consumed: 0.0,
+            was_limited_by_inputs: max_whole_from_inputs < production_capacity_whole,
+        });
+    }
+
+    // Calculate exact resource consumption for the whole units we're producing
+    let primary_consumed = actual_food_produced_whole * farm.primary_input_conversion_rate;
     let secondary_consumed = if let Some(rate) = farm.secondary_input_conversion_rate {
-        actual_food_produced * rate
+        actual_food_produced_whole * rate
     } else {
         0.0
     };
 
+    spacetimedb::log::info!(
+        "Farm module {} producing {} whole food units",
+        station_module.id,
+        actual_food_produced_whole
+    );
+
     Ok(FarmProductionResult {
-        food_produced: actual_food_produced,
+        food_produced: actual_food_produced_whole,
         primary_consumed,
         secondary_consumed,
-        was_limited_by_inputs: max_from_inputs < production_capacity,
+        was_limited_by_inputs: max_whole_from_inputs < production_capacity_whole,
     })
 }
 

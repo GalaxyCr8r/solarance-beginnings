@@ -53,9 +53,22 @@ pub fn process_station_production_tick(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    // Iterate through each station's modules.
-    let station = dsl.get_station_by_id(timer.get_id()).unwrap();
-    for module in dsl.get_station_modules_by_station_id(timer.get_id()) {
+    info!("Processing production tick for station {}", timer.id);
+
+    // Get the station
+    let station = dsl.get_station_by_id(timer.get_id())?;
+    let modules: Vec<_> = dsl
+        .get_station_modules_by_station_id(timer.get_id())
+        .collect();
+
+    info!(
+        "Station {} has {} modules to process",
+        timer.id,
+        modules.len()
+    );
+
+    // Iterate through each station's modules
+    for module in modules {
         let wrapped_blueprint = dsl.get_station_module_blueprint_by_id(&module.get_blueprint());
         if wrapped_blueprint.is_err() {
             info!(
@@ -67,7 +80,12 @@ pub fn process_station_production_tick(
         }
         let blueprint = wrapped_blueprint.unwrap();
 
-        return match blueprint.category {
+        info!(
+            "Processing module {} of type {:?}",
+            module.id, blueprint.category
+        );
+
+        let result = match blueprint.category {
             StationModuleCategory::LogisticsAndStorage => {
                 update_logistics_and_storage(ctx, &station, &module, &blueprint)
             }
@@ -90,9 +108,14 @@ pub fn process_station_production_tick(
                 update_defense_and_military(ctx, &station, &module, &blueprint)
             }
         };
+
+        if let Err(e) = result {
+            info!("Error processing module {}: {}", module.id, e);
+        }
     }
 
-    Err("Not implemented".to_string())
+    info!("Completed production tick for station {}", timer.id);
+    Ok(())
 }
 
 /// Scheduled reducer that processes station status updates and maintenance.
@@ -104,5 +127,8 @@ pub fn process_station_status_tick(
 ) -> Result<(), String> {
     let _dsl = dsl(ctx);
 
-    Err("Not implemented".to_string())
+    // TODO: Implement station shields
+    //Err("Not implemented".to_string())
+
+    Ok(())
 }

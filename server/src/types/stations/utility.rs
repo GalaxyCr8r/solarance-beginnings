@@ -121,12 +121,18 @@ pub fn verify(ctx: &ReducerContext, station: Station) -> Result<(), String> {
     let dsl = dsl(ctx);
 
     // Verify the station does not have more modules than it should.
-    if dsl
+    let current_module_count = dsl
         .get_station_modules_by_station_id(station.get_id())
-        .count()
-        > (station.size.modules() as usize)
-    {
-        return Err("Too many station modules attached.".to_string());
+        .count();
+    let max_modules = station.size.modules() as usize;
+
+    if current_module_count > max_modules {
+        return Err(format!(
+            "Too many station modules attached. Found {} modules but station size {:?} only allows {} modules.",
+            current_module_count,
+            station.size,
+            max_modules
+        ));
     }
 
     Ok(())

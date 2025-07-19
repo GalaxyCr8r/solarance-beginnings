@@ -1,47 +1,68 @@
 use super::*;
 
 /// Calculate the production output for a refinery module based on available input resources
-/// and current efficiency modifiers.
+/// and current efficiency modifiers. Only produces whole units of output.
 pub fn calculate_refinery_production(
     ctx: &ReducerContext,
     refinery: &Refinery,
     time_elapsed_hours: f32,
 ) -> Result<RefineryProductionResult, String> {
     let dsl = dsl(ctx);
-    
+
     // Get the station module to access inventory
     let station_module = dsl.get_station_module_by_id(refinery.get_id())?;
-    
+
     // Find input ore inventory item
     let input_inventory = dsl
-        .get_all_station_module_inventory_items()
-        .into_iter()
-        .find(|item| {
-            item.module_id == station_module.id && 
-            item.resource_item_id == refinery.input_ore_resource_id
-        })
+        .get_station_module_inventory_items_by_module_id(refinery.get_id())
+        .find(|item| item.resource_item_id == refinery.input_ore_resource_id)
         .ok_or("Input ore inventory not found")?;
-    
-    // Calculate maximum possible production based on available ore
-    let max_ingots_from_ore = input_inventory.quantity as f32 / refinery.ore_to_ingot_ratio;
-    
-    // Calculate production capacity based on time and efficiency
-    let production_capacity = refinery.base_ingots_produced_per_hour 
-        * refinery.current_efficiency_modifier 
+
+    // Calculate maximum possible whole ingots based on available ore
+    let max_whole_ingots_from_ore =
+        (input_inventory.quantity as f32 / refinery.ore_to_ingot_ratio).floor();
+
+    // Calculate production capacity based on time and efficiency (as whole units)
+    let production_capacity_float = refinery.base_ingots_produced_per_hour
+        * refinery.current_efficiency_modifier
         * time_elapsed_hours;
-    
-    // Actual production is limited by available ore or production capacity
-    let actual_ingots_produced = max_ingots_from_ore.min(production_capacity);
-    
-    // Calculate resource consumption and waste production
-    let ore_consumed = actual_ingots_produced * refinery.ore_to_ingot_ratio;
-    let waste_produced = actual_ingots_produced * refinery.waste_per_ingot_ratio;
-    
+    let production_capacity_whole = production_capacity_float.floor();
+
+    // Actual production is limited by available ore or production capacity (whole units only)
+    let actual_ingots_produced_whole = max_whole_ingots_from_ore.min(production_capacity_whole);
+
+    // Only proceed if we can produce at least 1 whole ingot
+    if actual_ingots_produced_whole < 1.0 {
+        spacetimedb::log::info!(
+            "Refinery module {} cannot produce whole ingots: max from ore={:.2}, capacity={:.2}",
+            station_module.id,
+            max_whole_ingots_from_ore,
+            production_capacity_whole
+        );
+        return Ok(RefineryProductionResult {
+            ingots_produced: 0.0,
+            ore_consumed: 0.0,
+            waste_produced: 0.0,
+            was_limited_by_ore: max_whole_ingots_from_ore < production_capacity_whole,
+        });
+    }
+
+    // Calculate exact resource consumption for the whole ingots we're producing
+    let ore_consumed = actual_ingots_produced_whole * refinery.ore_to_ingot_ratio;
+    let waste_produced = actual_ingots_produced_whole * refinery.waste_per_ingot_ratio;
+
+    spacetimedb::log::info!(
+        "Refinery module {} producing {} whole ingots from {:.2} ore",
+        station_module.id,
+        actual_ingots_produced_whole,
+        ore_consumed
+    );
+
     Ok(RefineryProductionResult {
-        ingots_produced: actual_ingots_produced,
+        ingots_produced: actual_ingots_produced_whole,
         ore_consumed,
         waste_produced,
-        was_limited_by_ore: max_ingots_from_ore < production_capacity,
+        was_limited_by_ore: max_whole_ingots_from_ore < production_capacity_whole,
     })
 }
 
@@ -52,61 +73,116 @@ pub fn apply_refinery_production(
     production_result: &RefineryProductionResult,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
-    
+
     if production_result.ingots_produced <= 0.0 {
+        spacetimedb::log::info!("No ingots produced, skipping production application");
         return Ok(()); // No production to apply
     }
-    
+
     let station_module = dsl.get_station_module_by_id(refinery.get_id())?;
-    
+
+    spacetimedb::log::info!(
+        "Applying refinery production: {} ingots, {} ore consumed for module {}",
+        production_result.ingots_produced,
+        production_result.ore_consumed,
+        station_module.id
+    );
+
+    // Get all inventory items for this module
+    let module_inventory_items: Vec<_> = dsl
+        .get_station_module_inventory_items_by_module_id(refinery.get_id())
+        .collect();
+
+    spacetimedb::log::info!(
+        "Found {} inventory items for module {}",
+        module_inventory_items.len(),
+        station_module.id
+    );
+
     // Update input ore inventory (consume ore)
-    if let Some(mut input_inventory) = dsl
-        .get_all_station_module_inventory_items()
-        .into_iter()
-        .find(|item| {
-            item.module_id == station_module.id && 
-            item.resource_item_id == refinery.input_ore_resource_id
-        }) {
-        
-        let ore_to_consume = production_result.ore_consumed as u32;
-        if input_inventory.quantity >= ore_to_consume {
-            input_inventory.set_quantity(input_inventory.quantity - ore_to_consume);
-            dsl.update_station_module_inventory_item_by_id(input_inventory)?;
+    let mut input_found = false;
+    for mut input_inventory in module_inventory_items.iter().cloned() {
+        if input_inventory.resource_item_id == refinery.input_ore_resource_id {
+            input_found = true;
+            let ore_to_consume = production_result.ore_consumed as u32;
+            spacetimedb::log::info!(
+                "Found input inventory with {} ore, consuming {}",
+                input_inventory.quantity,
+                ore_to_consume
+            );
+
+            if input_inventory.quantity >= ore_to_consume {
+                input_inventory.set_quantity(input_inventory.quantity - ore_to_consume);
+                dsl.update_station_module_inventory_item_by_id(input_inventory)?;
+                spacetimedb::log::info!("Successfully consumed {} ore", ore_to_consume);
+            } else {
+                spacetimedb::log::info!(
+                    "Not enough ore to consume: {} available, {} needed",
+                    input_inventory.quantity,
+                    ore_to_consume
+                );
+            }
+            break;
         }
     }
-    
-    // Update output ingot inventory (add ingots)
-    if let Some(mut output_inventory) = dsl
-        .get_all_station_module_inventory_items()
-        .into_iter()
-        .find(|item| {
-            item.module_id == station_module.id && 
-            item.resource_item_id == refinery.output_ingot_resource_id
-        }) {
-        
-        let ingots_to_add = production_result.ingots_produced as u32;
-        output_inventory.set_quantity(output_inventory.quantity + ingots_to_add);
-        dsl.update_station_module_inventory_item_by_id(output_inventory)?;
+
+    if !input_found {
+        spacetimedb::log::info!(
+            "WARNING: Input ore inventory not found for resource_id {}",
+            refinery.input_ore_resource_id
+        );
     }
-    
+
+    // Update output ingot inventory (add ingots)
+    let mut output_found = false;
+    for mut output_inventory in module_inventory_items.iter().cloned() {
+        if output_inventory.resource_item_id == refinery.output_ingot_resource_id {
+            output_found = true;
+            let ingots_to_add = production_result.ingots_produced as u32;
+            spacetimedb::log::info!(
+                "Found output inventory with {} ingots, adding {}",
+                output_inventory.quantity,
+                ingots_to_add
+            );
+
+            output_inventory.set_quantity(output_inventory.quantity + ingots_to_add);
+            dsl.update_station_module_inventory_item_by_id(output_inventory)?;
+            spacetimedb::log::info!("Successfully added {} ingots", ingots_to_add);
+            break;
+        }
+    }
+
+    if !output_found {
+        spacetimedb::log::info!(
+            "WARNING: Output ingot inventory not found for resource_id {}",
+            refinery.output_ingot_resource_id
+        );
+    }
+
     // Update waste inventory if waste is produced
     if let Some(waste_resource_id) = refinery.waste_resource_id {
         if production_result.waste_produced > 0.0 {
-            if let Some(mut waste_inventory) = dsl
-                .get_all_station_module_inventory_items()
-                .into_iter()
-                .find(|item| {
-                    item.module_id == station_module.id && 
-                    item.resource_item_id == waste_resource_id
-                }) {
-                
-                let waste_to_add = production_result.waste_produced as u32;
-                waste_inventory.set_quantity(waste_inventory.quantity + waste_to_add);
-                dsl.update_station_module_inventory_item_by_id(waste_inventory)?;
+            let mut waste_found = false;
+            for mut waste_inventory in module_inventory_items.iter().cloned() {
+                if waste_inventory.resource_item_id == waste_resource_id {
+                    waste_found = true;
+                    let waste_to_add = production_result.waste_produced as u32;
+                    waste_inventory.set_quantity(waste_inventory.quantity + waste_to_add);
+                    dsl.update_station_module_inventory_item_by_id(waste_inventory)?;
+                    spacetimedb::log::info!("Added {} waste", waste_to_add);
+                    break;
+                }
+            }
+
+            if !waste_found {
+                spacetimedb::log::info!(
+                    "WARNING: Waste inventory not found for resource_id {}",
+                    waste_resource_id
+                );
             }
         }
     }
-    
+
     Ok(())
 }
 
@@ -116,26 +192,26 @@ pub fn calculate_refinery_efficiency(
     refinery: &Refinery,
 ) -> Result<f32, String> {
     let dsl = dsl(ctx);
-    
+
     // Get the station module to check conditions
     let station_module = dsl.get_station_module_by_id(refinery.get_id())?;
     let station = dsl.get_station_by_id(StationId::new(station_module.station_id))?;
-    
+
     let mut efficiency = 1.0;
-    
+
     // Base efficiency from the refinery's current modifier
     efficiency *= refinery.current_efficiency_modifier;
-    
+
     // Station health affects efficiency (get from StationStatus)
     if let Ok(station_status) = dsl.get_station_status_by_id(station.get_id()) {
         efficiency *= (station_status.health / 100.0).max(0.1); // Minimum 10% efficiency
     }
-    
+
     // Module operational status
     if !station_module.is_operational {
         efficiency = 0.0;
     }
-    
+
     // Clamp efficiency between 0.0 and 2.0 (max 200% efficiency)
     Ok(efficiency.max(0.0).min(2.0))
 }

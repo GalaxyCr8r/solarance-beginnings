@@ -29,13 +29,35 @@ pub fn calculate_solar_array_production(
         0.0
     };
 
-    // Calculate energy production
-    let energy_cells_produced = (solar_array.base_energy_cells_produced_per_hour as f32)
+    // Calculate energy production (as whole units only)
+    let energy_cells_produced_float = (solar_array.base_energy_cells_produced_per_hour as f32)
         * operational_efficiency
         * time_elapsed_hours;
+    let energy_cells_produced_whole = energy_cells_produced_float.floor();
+
+    // Only produce if we can make at least 1 whole energy cell
+    if energy_cells_produced_whole < 1.0 {
+        spacetimedb::log::info!(
+            "Solar array module {} cannot produce whole energy cells: calculated {:.2}",
+            station_module.id,
+            energy_cells_produced_float
+        );
+        return Ok(SolarArrayProductionResult {
+            energy_cells_produced: 0.0,
+            sunlight_efficiency,
+            total_efficiency: operational_efficiency,
+            was_limited_by_sunlight: sunlight_efficiency < 1.0,
+        });
+    }
+
+    spacetimedb::log::info!(
+        "Solar array module {} producing {} whole energy cells",
+        station_module.id,
+        energy_cells_produced_whole
+    );
 
     Ok(SolarArrayProductionResult {
-        energy_cells_produced,
+        energy_cells_produced: energy_cells_produced_whole,
         sunlight_efficiency,
         total_efficiency: operational_efficiency,
         was_limited_by_sunlight: sunlight_efficiency < 1.0,
