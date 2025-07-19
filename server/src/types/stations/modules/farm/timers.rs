@@ -67,29 +67,33 @@ pub fn calculate_farm_production(
             production_capacity_whole
         );
         return Ok(FarmProductionResult {
-            food_produced: 0.0,
-            primary_consumed: 0.0,
-            secondary_consumed: 0.0,
+            food_produced: 0,
+            primary_consumed: 0,
+            secondary_consumed: 0,
             was_limited_by_inputs: max_whole_from_inputs < production_capacity_whole,
         });
     }
 
+    // Convert to u32 for final calculations
+    let food_produced = actual_food_produced_whole as u32;
+
     // Calculate exact resource consumption for the whole units we're producing
-    let primary_consumed = actual_food_produced_whole * farm.primary_input_conversion_rate;
+    let primary_consumed =
+        ((food_produced as f32) * farm.primary_input_conversion_rate).ceil() as u32;
     let secondary_consumed = if let Some(rate) = farm.secondary_input_conversion_rate {
-        actual_food_produced_whole * rate
+        ((food_produced as f32) * rate).ceil() as u32
     } else {
-        0.0
+        0
     };
 
     spacetimedb::log::info!(
         "Farm module {} producing {} whole food units",
         station_module.id,
-        actual_food_produced_whole
+        food_produced
     );
 
     Ok(FarmProductionResult {
-        food_produced: actual_food_produced_whole,
+        food_produced,
         primary_consumed,
         secondary_consumed,
         was_limited_by_inputs: max_whole_from_inputs < production_capacity_whole,
@@ -104,7 +108,7 @@ pub fn apply_farm_production(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    if production_result.food_produced <= 0.0 {
+    if production_result.food_produced == 0 {
         return Ok(());
     }
 
@@ -119,7 +123,7 @@ pub fn apply_farm_production(
                 && item.resource_item_id == farm.primary_input_resource_id
         })
     {
-        let to_consume = production_result.primary_consumed as u32;
+        let to_consume = production_result.primary_consumed;
         if primary_inventory.quantity >= to_consume {
             primary_inventory.set_quantity(primary_inventory.quantity - to_consume);
             dsl.update_station_module_inventory_item_by_id(primary_inventory)?;
@@ -128,7 +132,7 @@ pub fn apply_farm_production(
 
     // Consume secondary input if applicable
     if let Some(secondary_id) = farm.secondary_input_resource_id {
-        if production_result.secondary_consumed > 0.0 {
+        if production_result.secondary_consumed > 0 {
             if let Some(mut secondary_inventory) = dsl
                 .get_all_station_module_inventory_items()
                 .into_iter()
@@ -136,7 +140,7 @@ pub fn apply_farm_production(
                     item.module_id == station_module.id && item.resource_item_id == secondary_id
                 })
             {
-                let to_consume = production_result.secondary_consumed as u32;
+                let to_consume = production_result.secondary_consumed;
                 if secondary_inventory.quantity >= to_consume {
                     secondary_inventory.set_quantity(secondary_inventory.quantity - to_consume);
                     dsl.update_station_module_inventory_item_by_id(secondary_inventory)?;
@@ -153,7 +157,7 @@ pub fn apply_farm_production(
             item.module_id == station_module.id && item.resource_item_id == farm.output_resource_id
         })
     {
-        let to_add = production_result.food_produced as u32;
+        let to_add = production_result.food_produced;
         output_inventory.set_quantity(output_inventory.quantity + to_add);
         dsl.update_station_module_inventory_item_by_id(output_inventory)?;
     }
@@ -185,8 +189,8 @@ pub fn calculate_farm_efficiency(ctx: &ReducerContext, farm: &Farm) -> Result<f3
 
 #[derive(Clone, Debug)]
 pub struct FarmProductionResult {
-    pub food_produced: f32,
-    pub primary_consumed: f32,
-    pub secondary_consumed: f32,
+    pub food_produced: u32,
+    pub primary_consumed: u32,
+    pub secondary_consumed: u32,
     pub was_limited_by_inputs: bool,
 }

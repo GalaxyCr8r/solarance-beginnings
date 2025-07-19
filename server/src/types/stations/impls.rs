@@ -47,16 +47,19 @@ impl StationModuleInventoryItem {
         // Calc the percent and resultant multiplier
         let percent_full = current_quantity / max_quantity;
         let multiplier = percent_full * -2.0 + 1.0; // 1.0 .. -1.0
-        info!("    Curr/Max : {}/{}", current_quantity, max_quantity);
-        info!("    Multipler : {}", multiplier);
+                                                    // info!("    Curr/Max : {}/{}", current_quantity, max_quantity);
+                                                    // info!("    Multipler : {}", multiplier);
 
         // Find the value of the given margin
         let curr_margin_perc = (item_def.margin_percentage as f32) * 0.01;
         let margin_value = value * curr_margin_perc;
-        info!("    Curr Margin Perc : {}", curr_margin_perc);
-        info!("    Base Margin Value : {}", margin_value);
-        info!("    Adjusted Value : {}", margin_value * multiplier);
-        info!("    Current Value : {}", (value + margin_value * multiplier) as u32);
+        // info!("    Curr Margin Perc : {}", curr_margin_perc);
+        // info!("    Base Margin Value : {}c", margin_value);
+        // info!("    Adjusted Value : {}c", margin_value * multiplier);
+        info!(
+            "    New Value : {}c",
+            (value + margin_value * multiplier) as u32
+        );
 
         // If current_quantity == max_quantity then the current price should be base_value + (base_value * default_margin * -1.0)
         // If current_quantity == 0 then the current price should be base_value + (base_value * default_margin * 1.0)

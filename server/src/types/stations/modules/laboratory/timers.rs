@@ -62,16 +62,16 @@ pub fn calculate_laboratory_production(
         * time_elapsed_hours
         * production_fraction;
 
-    // Calculate resource consumption
-    let primary_consumed = primary_consumption_needed * production_fraction;
+    // Calculate resource consumption (as whole units)
+    let primary_consumed = (primary_consumption_needed * production_fraction).ceil() as u32;
     let secondary_consumed = if let Some(rate) = laboratory.secondary_input_consumption_rate {
-        rate * time_elapsed_hours * production_fraction
+        (rate * time_elapsed_hours * production_fraction).ceil() as u32
     } else {
-        0.0
+        0
     };
 
     // Convert research points to research fragments (10 points = 1 fragment)
-    let fragments_produced = (research_points_produced / 10.0).floor();
+    let fragments_produced = (research_points_produced / 10.0).floor() as u32;
 
     Ok(LaboratoryProductionResult {
         research_points_produced,
@@ -90,14 +90,14 @@ pub fn apply_laboratory_production(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    if production_result.fragments_produced <= 0.0 {
+    if production_result.fragments_produced == 0 {
         return Ok(());
     }
 
     let station_module = dsl.get_station_module_by_id(laboratory.get_id())?;
 
     // Consume primary input
-    if production_result.primary_consumed > 0.0 {
+    if production_result.primary_consumed > 0 {
         if let Some(mut primary_inventory) = dsl
             .get_all_station_module_inventory_items()
             .into_iter()
@@ -106,7 +106,7 @@ pub fn apply_laboratory_production(
                     && item.resource_item_id == laboratory.primary_input_resource_id
             })
         {
-            let to_consume = production_result.primary_consumed as u32;
+            let to_consume = production_result.primary_consumed;
             if primary_inventory.quantity >= to_consume {
                 primary_inventory.set_quantity(primary_inventory.quantity - to_consume);
                 dsl.update_station_module_inventory_item_by_id(primary_inventory)?;
@@ -116,7 +116,7 @@ pub fn apply_laboratory_production(
 
     // Consume secondary input if applicable
     if let Some(secondary_id) = laboratory.secondary_input_resource_id {
-        if production_result.secondary_consumed > 0.0 {
+        if production_result.secondary_consumed > 0 {
             if let Some(mut secondary_inventory) = dsl
                 .get_all_station_module_inventory_items()
                 .into_iter()
@@ -124,7 +124,7 @@ pub fn apply_laboratory_production(
                     item.module_id == station_module.id && item.resource_item_id == secondary_id
                 })
             {
-                let to_consume = production_result.secondary_consumed as u32;
+                let to_consume = production_result.secondary_consumed;
                 if secondary_inventory.quantity >= to_consume {
                     secondary_inventory.set_quantity(secondary_inventory.quantity - to_consume);
                     dsl.update_station_module_inventory_item_by_id(secondary_inventory)?;
@@ -144,7 +144,7 @@ pub fn apply_laboratory_production(
             item.module_id == station_module.id && item.resource_item_id == output_fragment_id
         })
     {
-        let to_add = production_result.fragments_produced as u32;
+        let to_add = production_result.fragments_produced;
         output_inventory.set_quantity(output_inventory.quantity + to_add);
         dsl.update_station_module_inventory_item_by_id(output_inventory)?;
     }
@@ -194,8 +194,8 @@ pub fn calculate_laboratory_efficiency(
 #[derive(Clone, Debug)]
 pub struct LaboratoryProductionResult {
     pub research_points_produced: f32,
-    pub fragments_produced: f32,
-    pub primary_consumed: f32,
-    pub secondary_consumed: f32,
+    pub fragments_produced: u32,
+    pub primary_consumed: u32,
+    pub secondary_consumed: u32,
     pub was_limited_by_inputs: bool,
 }

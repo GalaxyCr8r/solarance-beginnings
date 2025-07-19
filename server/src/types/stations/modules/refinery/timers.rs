@@ -1,3 +1,7 @@
+use log::info;
+
+use crate::types::items::GetItemDefinitionRowOptionById;
+
 use super::*;
 
 /// Calculate the production output for a refinery module based on available input resources
@@ -33,33 +37,45 @@ pub fn calculate_refinery_production(
 
     // Only proceed if we can produce at least 1 whole ingot
     if actual_ingots_produced_whole < 1.0 {
-        spacetimedb::log::info!(
-            "Refinery module {} cannot produce whole ingots: max from ore={:.2}, capacity={:.2}",
-            station_module.id,
-            max_whole_ingots_from_ore,
-            production_capacity_whole
+        info!(
+            "Refinery module #{} cannot produce whole ingots: max from ore={:.2}, capacity={:.2}",
+            station_module.id, max_whole_ingots_from_ore, production_capacity_whole
         );
         return Ok(RefineryProductionResult {
-            ingots_produced: 0.0,
-            ore_consumed: 0.0,
-            waste_produced: 0.0,
+            ingots_produced: 0,
+            ore_consumed: 0,
+            waste_produced: 0,
             was_limited_by_ore: max_whole_ingots_from_ore < production_capacity_whole,
         });
     }
+    info!(
+        "Refinery module #{}: Calculating Input: '{}' amount: {}/{}, Output '{}'",
+        station_module.id,
+        dsl.get_item_definition_by_id(refinery.get_input_ore_resource_id())?
+            .name,
+        input_inventory.quantity,
+        input_inventory.max_quantity,
+        dsl.get_item_definition_by_id(refinery.get_output_ingot_resource_id())?
+            .name
+    );
+
+    // Convert to u32 for final calculations
+    let ingots_produced = actual_ingots_produced_whole as u32;
 
     // Calculate exact resource consumption for the whole ingots we're producing
-    let ore_consumed = actual_ingots_produced_whole * refinery.ore_to_ingot_ratio;
-    let waste_produced = actual_ingots_produced_whole * refinery.waste_per_ingot_ratio;
+    let ore_consumed = ((ingots_produced as f32) * refinery.ore_to_ingot_ratio).ceil() as u32;
+    let waste_produced = ((ingots_produced as f32) * refinery.waste_per_ingot_ratio).ceil() as u32;
 
     spacetimedb::log::info!(
-        "Refinery module {} producing {} whole ingots from {:.2} ore",
+        "Refinery module {} producing {} whole ingots from {} ore ({} waste produced)",
         station_module.id,
-        actual_ingots_produced_whole,
-        ore_consumed
+        ingots_produced,
+        ore_consumed,
+        waste_produced
     );
 
     Ok(RefineryProductionResult {
-        ingots_produced: actual_ingots_produced_whole,
+        ingots_produced,
         ore_consumed,
         waste_produced,
         was_limited_by_ore: max_whole_ingots_from_ore < production_capacity_whole,
@@ -74,7 +90,7 @@ pub fn apply_refinery_production(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    if production_result.ingots_produced <= 0.0 {
+    if production_result.ingots_produced == 0 {
         spacetimedb::log::info!("No ingots produced, skipping production application");
         return Ok(()); // No production to apply
     }
@@ -161,7 +177,7 @@ pub fn apply_refinery_production(
 
     // Update waste inventory if waste is produced
     if let Some(waste_resource_id) = refinery.waste_resource_id {
-        if production_result.waste_produced > 0.0 {
+        if production_result.waste_produced > 0 {
             let mut waste_found = false;
             for mut waste_inventory in module_inventory_items.iter().cloned() {
                 if waste_inventory.resource_item_id == waste_resource_id {
@@ -218,8 +234,8 @@ pub fn calculate_refinery_efficiency(
 
 #[derive(Clone, Debug)]
 pub struct RefineryProductionResult {
-    pub ingots_produced: f32,
-    pub ore_consumed: f32,
-    pub waste_produced: f32,
+    pub ingots_produced: u32,
+    pub ore_consumed: u32,
+    pub waste_produced: u32,
     pub was_limited_by_ore: bool,
 }

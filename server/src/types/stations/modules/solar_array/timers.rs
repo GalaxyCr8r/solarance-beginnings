@@ -43,7 +43,7 @@ pub fn calculate_solar_array_production(
             energy_cells_produced_float
         );
         return Ok(SolarArrayProductionResult {
-            energy_cells_produced: 0.0,
+            energy_cells_produced: 0,
             sunlight_efficiency,
             total_efficiency: operational_efficiency,
             was_limited_by_sunlight: sunlight_efficiency < 1.0,
@@ -57,7 +57,7 @@ pub fn calculate_solar_array_production(
     );
 
     Ok(SolarArrayProductionResult {
-        energy_cells_produced: energy_cells_produced_whole,
+        energy_cells_produced: energy_cells_produced_whole as u32,
         sunlight_efficiency,
         total_efficiency: operational_efficiency,
         was_limited_by_sunlight: sunlight_efficiency < 1.0,
@@ -100,7 +100,7 @@ pub fn apply_solar_array_production(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    if production_result.energy_cells_produced <= 0.0 {
+    if production_result.energy_cells_produced == 0 {
         return Ok(());
     }
 
@@ -115,7 +115,7 @@ pub fn apply_solar_array_production(
                 && item.resource_item_id == solar_array.output_energy_cell_resource_id
         })
     {
-        let cells_to_add = production_result.energy_cells_produced as u32;
+        let cells_to_add = production_result.energy_cells_produced;
         output_inventory.set_quantity(output_inventory.quantity + cells_to_add);
         dsl.update_station_module_inventory_item_by_id(output_inventory)?;
     }
@@ -151,7 +151,7 @@ pub fn calculate_solar_array_efficiency(
 
 #[derive(Clone, Debug)]
 pub struct SolarArrayProductionResult {
-    pub energy_cells_produced: f32,
+    pub energy_cells_produced: u32,
     pub sunlight_efficiency: f32,
     pub total_efficiency: f32,
     pub was_limited_by_sunlight: bool,
