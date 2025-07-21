@@ -159,6 +159,8 @@ pub fn create_timer_to_add_cargo_to_ship(
 // Timer Reducers
 //////////////////////////////////////////////////////////////
 
+/// Scheduled reducer that handles ship status updates like shield and energy regeneration.
+/// Runs every 500ms to gradually restore shields and energy based on ship type specifications.
 #[spacetimedb::reducer]
 pub fn ship_status_timer_reducer(
     ctx: &ReducerContext,
@@ -192,6 +194,8 @@ pub fn ship_status_timer_reducer(
     Ok(())
 }
 
+/// Scheduled reducer that processes ship mining operations against asteroids.
+/// Runs every 3 seconds to extract resources based on mining equipment and energy consumption.
 #[spacetimedb::reducer]
 pub fn ship_mining_timer_reducer(
     ctx: &ReducerContext,
@@ -302,6 +306,8 @@ pub fn ship_mining_timer_reducer(
     Ok(())
 }
 
+/// Scheduled reducer that adds mined cargo to a ship's inventory after a delay.
+/// If the ship's cargo bay is full, creates a cargo crate in space instead.
 #[spacetimedb::reducer]
 pub fn ship_add_cargo_timer_reducer(
     ctx: &ReducerContext,

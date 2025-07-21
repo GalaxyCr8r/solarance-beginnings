@@ -92,7 +92,8 @@ pub fn initialize_player_controller(
 // Timer Reducers
 //////////////////////////////////////////////////////////////
 
-/// Update the movement-related controls.
+/// Scheduled reducer that updates player ship movement controls and physics.
+/// Runs at 20 FPS to handle ship acceleration, rotation, and velocity damping based on player input.
 #[spacetimedb::reducer]
 pub fn player_ship_controller_update_upkeep(
     ctx: &ReducerContext,
@@ -139,7 +140,8 @@ pub fn player_ship_controller_update_upkeep(
     Ok(())
 }
 
-/// Update the logical features that players control that aren't as time sensitive.
+/// Scheduled reducer that handles player ship logic operations like mining, docking, and cargo pickup.
+/// Runs at 2 FPS to process less time-sensitive actions based on player targets and proximity.
 #[spacetimedb::reducer]
 pub fn player_ship_controller_logic_upkeep(
     ctx: &ReducerContext,

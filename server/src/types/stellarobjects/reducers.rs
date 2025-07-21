@@ -6,6 +6,8 @@ use super::{ utility::*, * };
 // Reducers ///
 ///////////////////////////////////////////////////////////
 
+/// Creates a viewing window for a player around a specific stellar object.
+/// This defines the area of space that the player can see and interact with.
 #[spacetimedb::reducer]
 pub fn create_sobj_player_window_for(
     ctx: &ReducerContext,
@@ -32,6 +34,8 @@ pub fn create_sobj_player_window_for(
     Ok(())
 }
 
+/// Toggles a turn-left controller for a stellar object (used for testing/debugging).
+/// Creates the controller if it doesn't exist, or removes it if it does.
 #[spacetimedb::reducer]
 pub fn create_turn_left_controller_for(
     ctx: &ReducerContext,
@@ -49,6 +53,8 @@ pub fn create_turn_left_controller_for(
     Ok(())
 }
 
+/// Creates a new stellar object of the specified type in a given sector with initial transform.
+/// This is a general-purpose reducer for creating any type of stellar object (ships, asteroids, stations, etc.).
 #[spacetimedb::reducer]
 pub fn create_stellar_object(
     ctx: &ReducerContext,
@@ -64,6 +70,8 @@ pub fn create_stellar_object(
     }
 }
 
+/// Creates a random stellar object (ship) in the specified sector for testing purposes.
+/// Generates random position and rotation within predefined bounds.
 #[spacetimedb::reducer]
 pub fn create_sobj_random(ctx: &ReducerContext, sector_id: u64) -> Result<(), String> {
     //server_only(ctx);

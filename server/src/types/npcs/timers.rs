@@ -13,6 +13,8 @@ pub struct NpcBehaviorSchedule {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Reducers
 
+/// Scheduled reducer that processes NPC behavior and AI logic.
+/// Currently not implemented - placeholder for future NPC autonomous actions.
 #[spacetimedb::reducer]
 pub fn process_npc_behavior_tick(
     _ctx: &ReducerContext,

@@ -92,6 +92,8 @@ pub fn init(_ctx: &ReducerContext) -> Result<(), String> {
 // Reducers ///
 //////////////////////////////////////////////////////////////
 
+/// Sends a message to the global chat channel visible to all players.
+/// Validates the sender and logs the message before storing it in the database.
 #[spacetimedb::reducer]
 pub fn send_global_chat(ctx: &ReducerContext, chat_message: String) -> Result<(), String> {
     let dsl = dsl(ctx);
@@ -103,6 +105,8 @@ pub fn send_global_chat(ctx: &ReducerContext, chat_message: String) -> Result<()
     Ok(())
 }
 
+/// Sends a message to a specific sector's chat channel.
+/// Validates that the sender has a ship in the target sector before allowing the message.
 #[spacetimedb::reducer]
 pub fn send_sector_chat(
     ctx: &ReducerContext,

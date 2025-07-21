@@ -54,6 +54,9 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 // Reducers
 //////////////////////////////////////////////////////////////
 
+/// Scheduled reducer that recalculates and updates stellar object transforms.
+/// Runs every 50ms (20 FPS) to move objects and update their positions.
+/// Updates both high-resolution (every tick) and low-resolution (every 5th tick) transform tables.
 #[spacetimedb::reducer]
 pub fn recalculate_sobj_transforms(
     ctx: &ReducerContext,
@@ -138,6 +141,8 @@ pub fn __move_stellar_object(ctx: &ReducerContext, sobj: StellarObject) -> Resul
     Ok(())
 }
 
+/// Server-only reducer that applies physics updates to all stellar objects.
+/// Updates position, rotation, and velocity for each object based on their current state.
 #[spacetimedb::reducer]
 pub fn move_stellar_objects(ctx: &ReducerContext) -> Result<(), String> {
     try_server_only(ctx)?;
@@ -151,6 +156,9 @@ pub fn move_stellar_objects(ctx: &ReducerContext) -> Result<(), String> {
     Ok(())
 }
 
+/// Scheduled reducer that updates player viewing windows based on ship movement.
+/// Runs every 750ms to recalculate viewing boundaries when players move near window margins.
+/// Only processes if there are active players connected to optimize performance.
 #[spacetimedb::reducer]
 pub fn recalculate_player_windows(
     ctx: &ReducerContext,

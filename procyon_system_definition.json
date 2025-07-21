@@ -1,0 +1,228 @@
+{
+  "StarSystem": {
+    "struct": {
+      "name": "Procyon",
+      "map_coordinates": {
+        "x": 13.0,
+        "y": 37.0
+      },
+      "spectral": "G",
+      "luminosity": 5,
+      "controlling_faction_id": 0
+    },
+    "StarSystemObjects": [
+      {
+        "kind": "Star",
+        "orbit_au": 0.0,
+        "rotation_or_width_km": 0.0,
+        "gfx_key": "star.1"
+      },
+      {
+        "kind": "Planet",
+        "orbit_au": 128.0,
+        "rotation_or_width_km": 0.0,
+        "gfx_key": "planet.1"
+      },
+      {
+        "kind": "Planet",
+        "orbit_au": -24.0,
+        "rotation_or_width_km": 1.5707963,
+        "gfx_key": "planet.2"
+      },
+      {
+        "kind": "Moon",
+        "orbit_au": 130.0,
+        "rotation_or_width_km": 0.05235988,
+        "gfx_key": null
+      },
+      {
+        "kind": "AsteroidBelt",
+        "orbit_au": 48.0,
+        "rotation_or_width_km": 12.0,
+        "gfx_key": null
+      },
+      {
+        "kind": "NebulaBelt",
+        "orbit_au": 12.0,
+        "rotation_or_width_km": 8.0,
+        "gfx_key": null
+      }
+    ],
+    "Sectors": [
+      {
+        "struct": {
+          "id": 0,
+          "name": "Alpha Sector",
+          "description": null,
+          "controlling_faction_id": 0,
+          "security_level": 0,
+          "sunlight": 0.9,
+          "anomalous": 0.1,
+          "nebula": 0.1,
+          "rare_ore": 0.1,
+          "x": 4.0,
+          "y": 0.0,
+          "background_gfx_key": null
+        },
+        "Asteroids": {
+          "sparseness": 1,
+          "cluster_extent": 3000.0,
+          "cluster_inner": 1000.0
+        },
+        "JumpGates": [
+          {
+            "target_sector_id": 1,
+            "target_gate_arrival_pos": {
+              "x": -4472.136,
+              "y": -2236.068
+            },
+            "position": {
+              "x": 4472.136,
+              "y": 2236.068
+            },
+            "gfx_key": null,
+            "is_active": true
+          }
+        ],
+        "Stations": [
+          {
+            "name": "Tarol's Rest & Refinery Stop",
+            "size": "Outpost",
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "owner_faction_id": 0,
+            "gfx_key": null,
+            "modules": [
+              {
+                "type": "IronRefinery",
+                "name": "Iron Refinery Module"
+              },
+              {
+                "type": "IceRefinery",
+                "name": "Ice Refinery Module"
+              },
+              {
+                "type": "SiliconRefinery",
+                "name": "Silicon Refinery Module"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "struct": {
+          "id": 1,
+          "name": "Beta Sector",
+          "description": null,
+          "controlling_faction_id": 0,
+          "security_level": 0,
+          "sunlight": 0.9,
+          "anomalous": 0.1,
+          "nebula": 0.1,
+          "rare_ore": 0.1,
+          "x": 2.0,
+          "y": -24.0,
+          "background_gfx_key": null
+        },
+        "Asteroids": {
+          "sparseness": 5,
+          "cluster_extent": 5000.0,
+          "cluster_inner": null
+        },
+        "JumpGates": [
+          {
+            "target_sector_id": 0,
+            "target_gate_arrival_pos": {
+              "x": 4472.136,
+              "y": 2236.068
+            },
+            "position": {
+              "x": -4472.136,
+              "y": -2236.068
+            },
+            "gfx_key": null,
+            "is_active": true
+          },
+          {
+            "target_sector_id": 2,
+            "target_gate_arrival_pos": {
+              "x": -4999.0,
+              "y": 600.0
+            },
+            "position": {
+              "x": 4999.0,
+              "y": -600.0
+            },
+            "gfx_key": null,
+            "is_active": true
+          }
+        ],
+        "Stations": [
+          {
+            "name": "Beta Sector Trading Station",
+            "size": "Medium",
+            "position": {
+              "x": 613.0,
+              "y": 1337.0
+            },
+            "owner_faction_id": 0,
+            "gfx_key": null,
+            "modules": [
+              {
+                "type": "TradingPort",
+                "name": "Basic Trading Module"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "struct": {
+          "id": 2,
+          "name": "Gamma Sector",
+          "description": null,
+          "controlling_faction_id": 0,
+          "security_level": 0,
+          "sunlight": 0.9,
+          "anomalous": 0.1,
+          "nebula": 0.1,
+          "rare_ore": 0.1,
+          "x": 126.0,
+          "y": 0.0,
+          "background_gfx_key": null
+        },
+        "Asteroids": null,
+        "JumpGates": [
+          {
+            "target_sector_id": 1,
+            "target_gate_arrival_pos": {
+              "x": 4999.0,
+              "y": -600.0
+            },
+            "position": {
+              "x": -4999.0,
+              "y": 600.0
+            },
+            "gfx_key": null,
+            "is_active": true
+          }
+        ],
+        "Stations": [
+          {
+            "name": "Homeworld Station",
+            "size": "Capital",
+            "position": {
+              "x": 455.0,
+              "y": -1337.0
+            },
+            "owner_faction_id": 0,
+            "gfx_key": null,
+            "modules": []
+          }
+        ]
+      }
+    ]
+  }
+}

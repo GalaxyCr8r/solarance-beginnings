@@ -4,8 +4,10 @@ use spacetimedsl::dsl;
 
 use crate::types::{
     common::Vec2,
-    stations::{ modules::{ refinery_definitions::*, * }, * },
-    stellarobjects::{ utility::create_sobj_internal, StellarObjectTransformInternal },
+    stations::{utility::*, StationSize},
+    stellarobjects::{
+        utility::create_sobj_internal, StellarObjectKinds, StellarObjectTransformInternal,
+    },
 };
 
 use super::*;
@@ -28,67 +30,88 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 //////////////////////////////////////////////////////////////
 
 fn demo_sectors(ctx: &ReducerContext) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     let faction_none = FactionId::new(0);
+    let procyon = create_procyon_star_system(ctx, &faction_none)?;
+    let (alpha, beta, gamma) = create_procyon_sectors(ctx, &procyon, &faction_none)?;
+
+    setup_sector_connections(ctx, &alpha, &beta, &gamma)?;
+    populate_sectors_with_asteroids(ctx, &alpha, &beta)?;
+    create_sector_stations(ctx, &alpha, &beta, &gamma, &faction_none)?;
+
+    Ok(())
+}
+
+/// Creates the Procyon star system with all its celestial objects
+fn create_procyon_star_system(
+    ctx: &ReducerContext,
+    faction_none: &FactionId,
+) -> Result<StarSystem, String> {
+    let dsl = dsl(ctx);
 
     let procyon = dsl.create_star_system(
         "Procyon",
         Vec2::new(13.0, 37.0),
         SpectralKind::G,
         5,
-        &faction_none
+        faction_none,
     )?;
 
+    // Create celestial objects in the star system
     let _star = dsl.create_star_system_object(
         &procyon,
         StarSystemObjectKind::Star,
         0.0,
         0.0,
-        Some("star.1".to_string())
+        Some("star.1".to_string()),
     );
     let _planet1 = dsl.create_star_system_object(
         &procyon,
         StarSystemObjectKind::Planet,
         128.0,
         0.0,
-        Some("planet.1".to_string())
+        Some("planet.1".to_string()),
     );
     let _planet2 = dsl.create_star_system_object(
         &procyon,
         StarSystemObjectKind::Planet,
         -24.0,
         (90f32).to_radians(),
-        Some("planet.2".to_string())
+        Some("planet.2".to_string()),
     );
     let _moon = dsl.create_star_system_object(
         &procyon,
         StarSystemObjectKind::Moon,
         130.0,
         (3.0_f32).to_radians(),
-        None
+        None,
     );
     let _astbelt = dsl.create_star_system_object(
         &procyon,
         StarSystemObjectKind::AsteroidBelt,
         48.0,
         12.0,
-        None
+        None,
     );
-    let _nebbelt = dsl.create_star_system_object(
-        &procyon,
-        StarSystemObjectKind::NebulaBelt,
-        12.0,
-        8.0,
-        None
-    );
+    let _nebbelt =
+        dsl.create_star_system_object(&procyon, StarSystemObjectKind::NebulaBelt, 12.0, 8.0, None);
 
-    let a = dsl.create_sector(
+    Ok(procyon)
+}
+
+/// Creates the three main sectors in the Procyon system
+fn create_procyon_sectors(
+    ctx: &ReducerContext,
+    procyon: &StarSystem,
+    faction_none: &FactionId,
+) -> Result<(Sector, Sector, Sector), String> {
+    let dsl = dsl(ctx);
+
+    let alpha = dsl.create_sector(
         0,
-        &procyon,
+        procyon,
         "Alpha Sector",
         None,
-        &faction_none,
+        faction_none,
         0,
         0.9,
         0.1,
@@ -96,14 +119,15 @@ fn demo_sectors(ctx: &ReducerContext) -> Result<(), String> {
         0.1,
         4.0,
         0.0,
-        None
+        None,
     )?;
-    let b = dsl.create_sector(
+
+    let beta = dsl.create_sector(
         1,
-        &procyon,
+        procyon,
         "Beta Sector",
         None,
-        &faction_none,
+        faction_none,
         0,
         0.9,
         0.1,
@@ -111,14 +135,15 @@ fn demo_sectors(ctx: &ReducerContext) -> Result<(), String> {
         0.1,
         2.0,
         -24.0,
-        None
+        None,
     )?;
-    let c = dsl.create_sector(
+
+    let gamma = dsl.create_sector(
         2,
-        &procyon,
+        procyon,
         "Gamma Sector",
         None,
-        &faction_none,
+        faction_none,
         0,
         0.9,
         0.1,
@@ -126,59 +151,124 @@ fn demo_sectors(ctx: &ReducerContext) -> Result<(), String> {
         0.1,
         126.0,
         0.0,
-        None
+        None,
     )?;
 
-    connect_sectors_with_warpgates(ctx, &a, &b)?;
-    connect_sectors_with_warpgates(ctx, &b, &c)?;
+    Ok((alpha, beta, gamma))
+}
 
-    dsl.create_asteroid_sector(&a, 1, 3000.0, Some(1000.0))?;
-    dsl.create_asteroid_sector(&b, 5, 5000.0, None)?;
+/// Sets up warp gate connections between sectors
+fn setup_sector_connections(
+    ctx: &ReducerContext,
+    alpha: &Sector,
+    beta: &Sector,
+    gamma: &Sector,
+) -> Result<(), String> {
+    connect_sectors_with_warpgates(ctx, alpha, beta)?;
+    connect_sectors_with_warpgates(ctx, beta, gamma)?;
+    Ok(())
+}
 
-    let mut station = dsl.create_station(
-        crate::types::stations::StationSize::Medium,
-        &b,
+/// Populates sectors with asteroid fields
+fn populate_sectors_with_asteroids(
+    ctx: &ReducerContext,
+    alpha: &Sector,
+    beta: &Sector,
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
+
+    dsl.create_asteroid_sector(alpha, 1, 3000.0, Some(1000.0))?;
+    dsl.create_asteroid_sector(beta, 5, 5000.0, None)?;
+
+    Ok(())
+}
+
+/// Creates stations in each sector with appropriate modules
+fn create_sector_stations(
+    ctx: &ReducerContext,
+    alpha: &Sector,
+    beta: &Sector,
+    gamma: &Sector,
+    faction_none: &FactionId,
+) -> Result<(), String> {
+    create_beta_trading_station(ctx, beta, faction_none)?;
+    create_alpha_refinery_station(ctx, alpha, faction_none)?;
+    create_gamma_capital_station(ctx, gamma, faction_none)?;
+    Ok(())
+}
+
+/// Creates the trading station in Beta sector
+fn create_beta_trading_station(
+    ctx: &ReducerContext,
+    beta: &Sector,
+    faction_none: &FactionId,
+) -> Result<(), String> {
+    let _station = create_station_with_modules(
+        ctx,
+        StationSize::Medium,
+        beta,
         &create_sobj_internal(
             ctx,
-            crate::types::stellarobjects::StellarObjectKinds::Station,
-            &b.get_id(),
-            StellarObjectTransformInternal::default().from_xy(613.0, 1337.0)
+            StellarObjectKinds::Station,
+            &beta.get_id(),
+            StellarObjectTransformInternal::default().from_xy(613.0, 1337.0),
         )?,
-        FactionId::new(0),
-        format!("{} Trading Station", b.name).as_str(),
-        None
+        faction_none.clone(),
+        format!("{} Trading Station", beta.name).as_str(),
+        None,
+        vec![create_trading_module()],
     )?;
-    create_basic_bazaar(ctx, &station, false)?;
+    Ok(())
+}
 
-    station = dsl.create_station(
-        crate::types::stations::StationSize::Outpost,
-        &a,
+/// Creates the refinery station in Alpha sector
+fn create_alpha_refinery_station(
+    ctx: &ReducerContext,
+    alpha: &Sector,
+    faction_none: &FactionId,
+) -> Result<(), String> {
+    let _station = create_station_with_modules(
+        ctx,
+        StationSize::Outpost,
+        alpha,
         &create_sobj_internal(
             ctx,
-            crate::types::stellarobjects::StellarObjectKinds::Station,
-            &a.get_id(),
-            StellarObjectTransformInternal::default()
+            StellarObjectKinds::Station,
+            &alpha.get_id(),
+            StellarObjectTransformInternal::default(),
         )?,
-        FactionId::new(0),
+        faction_none.clone(),
         "Tarol's Rest & Refinery Stop",
-        None
+        None,
+        vec![
+            create_iron_refinery_module(),
+            create_ice_refinery_module(),
+            create_silicon_refinery_module(),
+        ],
     )?;
-    create_basic_bazaar(ctx, &station, false)?;
-    create_basic_iron(ctx, &station, false)?;
+    Ok(())
+}
 
-    dsl.create_station(
-        crate::types::stations::StationSize::Capital,
-        &c,
+/// Creates the capital station in Gamma sector
+fn create_gamma_capital_station(
+    ctx: &ReducerContext,
+    gamma: &Sector,
+    faction_none: &FactionId,
+) -> Result<(), String> {
+    let _station = create_station_with_modules(
+        ctx,
+        StationSize::Capital,
+        gamma,
         &create_sobj_internal(
             ctx,
-            crate::types::stellarobjects::StellarObjectKinds::Station,
-            &c.get_id(),
-            StellarObjectTransformInternal::default().from_xy(455.0, -1337.0)
+            StellarObjectKinds::Station,
+            &gamma.get_id(),
+            StellarObjectTransformInternal::default().from_xy(455.0, -1337.0),
         )?,
-        FactionId::new(0),
+        faction_none.clone(),
         "Homeworld Station",
-        None
+        None,
+        vec![], // No modules for this capital station yet
     )?;
-
     Ok(())
 }

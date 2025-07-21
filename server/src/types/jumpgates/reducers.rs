@@ -12,6 +12,8 @@ use crate::types::{
     stellarobjects::{utility::create_sobj_vec2, StellarObjectKinds},
 };
 
+/// Creates a jump gate in a sector that connects to another sector.
+/// Automatically determines gate orientation (north/south/east/west) based on position.
 #[spacetimedb::reducer]
 pub fn create_jumpgate_in_sector(
     ctx: &ReducerContext,

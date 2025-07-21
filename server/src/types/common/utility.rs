@@ -1,7 +1,8 @@
+use log::info;
 use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 
-use crate::{ ships::*, stellarobjects::* };
+use crate::{ships::*, stellarobjects::*};
 
 const IS_SERVER_ERROR: &str = "This reducer can only be called by SpacetimeDB!";
 const IS_SERVER_OR_OWNER_ERROR: &str =
@@ -16,10 +17,11 @@ pub fn try_server_only(ctx: &ReducerContext) -> Result<(), String> {
         //log::info!("I'm a server!");
         return Ok(());
     }
-    if ctx.sender.to_string().contains("eyJhbGciOiJSUzI1NiJ9.eyJzdWIiO") {
+    if ctx.sender.to_string().contains("c2009ba0980240569a0be51") {
         //log::info!("I'm Karl's desktop!");
         return Ok(());
     }
+    //info!("{} is NOT an admin!", ctx.sender.to_string());
 
     Err(IS_SERVER_ERROR.to_string())
 }
@@ -34,7 +36,7 @@ pub fn server_only(ctx: &ReducerContext) {
 /// Checks if the context sender is the server or the owner of the given stellar object.
 pub fn is_server_or_sobj_owner(
     ctx: &ReducerContext,
-    stellar_object_id: Option<StellarObjectId>
+    stellar_object_id: Option<StellarObjectId>,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
@@ -57,7 +59,7 @@ pub fn is_server_or_sobj_owner(
 /// Checks if the context sender is the server or the owner of the given Ship.
 pub fn is_server_or_ship_owner(
     ctx: &ReducerContext,
-    ship_id: Option<ShipGlobalId>
+    ship_id: Option<ShipGlobalId>,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
