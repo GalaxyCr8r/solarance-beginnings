@@ -152,7 +152,7 @@ pub fn update_logistics_and_storage(
     for mut inventory_item in dsl.get_station_module_inventory_items_by_module_id(module.get_id()) {
         if let Ok(item_def) = dsl.get_item_definition_by_id(inventory_item.get_resource_item_id()) {
             let current_price = inventory_item.calculate_current_price(&item_def);
-            info!("    Old Value : {}c", inventory_item.cached_price);
+            //info!("    Old Value : {}c", inventory_item.cached_price);
             inventory_item.set_cached_price(current_price);
             dsl.update_station_module_inventory_item_by_id(inventory_item)?;
         }

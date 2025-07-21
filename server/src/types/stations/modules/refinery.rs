@@ -24,10 +24,10 @@ pub struct Refinery {
     pub waste_resource_id: Option<u32>, // FK to ResourceDefinition
 
     /// How many units of ore to make 1 unit of ingot.
-    pub ore_to_ingot_ratio: f32,
+    pub ore_to_ingot_ratio: u32,
     /// How many units of waste are produced to make 1 unit of ingot.
-    pub waste_per_ingot_ratio: f32,
+    pub waste_per_ingot_ratio: u32,
 
-    pub base_ingots_produced_per_hour: f32,
+    pub base_ingots_produced_per_hour: u32,
     pub current_efficiency_modifier: f32, // Default 1.0
 }

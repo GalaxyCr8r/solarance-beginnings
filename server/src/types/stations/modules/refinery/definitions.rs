@@ -36,9 +36,9 @@ pub fn create_basic_refinery_module(
         &input_resource,
         &output_resource,
         None,
-        10.0,
-        0.0,
-        30.0,
+        5,
+        0,
+        30,
         1.0,
     )?;
 

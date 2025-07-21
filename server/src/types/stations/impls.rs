@@ -43,7 +43,7 @@ impl StationModuleInventoryItem {
         let current_quantity = self.quantity as f32;
         let value = item_def.base_value as f32;
 
-        info!("Calculating price for {}", item_def.name);
+        //info!("Calculating price for {}", item_def.name);
         // Calc the percent and resultant multiplier
         let percent_full = current_quantity / max_quantity;
         let multiplier = percent_full * -2.0 + 1.0; // 1.0 .. -1.0
@@ -56,10 +56,10 @@ impl StationModuleInventoryItem {
         // info!("    Curr Margin Perc : {}", curr_margin_perc);
         // info!("    Base Margin Value : {}c", margin_value);
         // info!("    Adjusted Value : {}c", margin_value * multiplier);
-        info!(
-            "    New Value : {}c",
-            (value + margin_value * multiplier) as u32
-        );
+        // info!(
+        //     "    New Value : {}c",
+        //     (value + margin_value * multiplier) as u32
+        // );
 
         // If current_quantity == max_quantity then the current price should be base_value + (base_value * default_margin * -1.0)
         // If current_quantity == 0 then the current price should be base_value + (base_value * default_margin * 1.0)

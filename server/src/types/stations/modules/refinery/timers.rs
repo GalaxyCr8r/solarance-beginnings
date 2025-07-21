@@ -22,49 +22,73 @@ pub fn calculate_refinery_production(
         .find(|item| item.resource_item_id == refinery.input_ore_resource_id)
         .ok_or("Input ore inventory not found")?;
 
+    // info!(
+    //     "Input: id{} Amount: {}/{}",
+    //     input_inventory.id, input_inventory.quantity, input_inventory.max_quantity
+    // );
+
     // Calculate maximum possible whole ingots based on available ore
     let max_whole_ingots_from_ore =
-        (input_inventory.quantity as f32 / refinery.ore_to_ingot_ratio).floor();
+        (input_inventory.quantity as f32 / refinery.ore_to_ingot_ratio as f32).floor() as u32;
+
+    // info!(
+    //     "max_whole_ingots_from_ore: {} / {} = {}",
+    //     input_inventory.quantity, refinery.ore_to_ingot_ratio, max_whole_ingots_from_ore
+    // );
 
     // Calculate production capacity based on time and efficiency (as whole units)
-    let production_capacity_float = refinery.base_ingots_produced_per_hour
-        * refinery.current_efficiency_modifier
-        * time_elapsed_hours;
-    let production_capacity_whole = production_capacity_float.floor();
+    // let production_capacity_float = refinery.base_ingots_produced_per_hour
+    //     * refinery.current_efficiency_modifier
+    //     * time_elapsed_hours;
+    // let production_capacity_whole = production_capacity_float.floor() as u32;
+
+    // info!(
+    //     "production_capacity_float: {} / {} = {}",
+    //     refinery.base_ingots_produced_per_hour,
+    //     refinery.current_efficiency_modifier,
+    //     time_elapsed_hours
+    // );
 
     // Actual production is limited by available ore or production capacity (whole units only)
-    let actual_ingots_produced_whole = max_whole_ingots_from_ore.min(production_capacity_whole);
+    let actual_ingots_produced_whole = max_whole_ingots_from_ore; // max_whole_ingots_from_ore.min(production_capacity_whole);
+
+    // info!(
+    //     "actual_ingots_produced_whole: min({}, {})",
+    //     max_whole_ingots_from_ore, production_capacity_whole
+    // );
 
     // Only proceed if we can produce at least 1 whole ingot
-    if actual_ingots_produced_whole < 1.0 {
+    if actual_ingots_produced_whole < 1 {
         info!(
-            "Refinery module #{} cannot produce whole ingots: max from ore={:.2}, capacity={:.2}",
-            station_module.id, max_whole_ingots_from_ore, production_capacity_whole
+            "Refinery module #{} cannot produce whole ingots: max from ore={}, capacity={}",
+            station_module.id,
+            max_whole_ingots_from_ore,
+            -1 //production_capacity_whole
         );
         return Ok(RefineryProductionResult {
             ingots_produced: 0,
             ore_consumed: 0,
             waste_produced: 0,
-            was_limited_by_ore: max_whole_ingots_from_ore < production_capacity_whole,
+            was_limited_by_ore: max_whole_ingots_from_ore < 1,
         });
     }
-    info!(
-        "Refinery module #{}: Calculating Input: '{}' amount: {}/{}, Output '{}'",
-        station_module.id,
-        dsl.get_item_definition_by_id(refinery.get_input_ore_resource_id())?
-            .name,
-        input_inventory.quantity,
-        input_inventory.max_quantity,
-        dsl.get_item_definition_by_id(refinery.get_output_ingot_resource_id())?
-            .name
-    );
+    // info!(
+    //     "Refinery module #{}: Calculating Input: '{}' amount: {}/{}, Output '{}'",
+    //     station_module.id,
+    //     dsl.get_item_definition_by_id(refinery.get_input_ore_resource_id())?
+    //         .name,
+    //     input_inventory.quantity,
+    //     input_inventory.max_quantity,
+    //     dsl.get_item_definition_by_id(refinery.get_output_ingot_resource_id())?
+    //         .name
+    // );
 
     // Convert to u32 for final calculations
     let ingots_produced = actual_ingots_produced_whole as u32;
 
     // Calculate exact resource consumption for the whole ingots we're producing
-    let ore_consumed = ((ingots_produced as f32) * refinery.ore_to_ingot_ratio).ceil() as u32;
-    let waste_produced = ((ingots_produced as f32) * refinery.waste_per_ingot_ratio).ceil() as u32;
+    let ore_consumed = ingots_produced * refinery.ore_to_ingot_ratio;
+    let waste_produced = ingots_produced * refinery.waste_per_ingot_ratio;
 
     spacetimedb::log::info!(
         "Refinery module {} producing {} whole ingots from {} ore ({} waste produced)",
@@ -78,7 +102,7 @@ pub fn calculate_refinery_production(
         ingots_produced,
         ore_consumed,
         waste_produced,
-        was_limited_by_ore: max_whole_ingots_from_ore < production_capacity_whole,
+        was_limited_by_ore: max_whole_ingots_from_ore < 1,
     })
 }
 
