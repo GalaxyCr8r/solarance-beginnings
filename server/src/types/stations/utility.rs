@@ -1,10 +1,17 @@
 use super::*;
 use crate::types::{
     factions::FactionId,
-    items::GetItemDefinitionRowOptionById,
+    items::{definitions::*, *},
     sectors::Sector,
     stations::{
-        modules::{farm::*, laboratory::*, manufacturing::*, refinery::*, solar_array::*},
+        modules::{
+            farm::{self, *},
+            laboratory::{self, *},
+            manufacturing::{self, *},
+            refinery::{self, *},
+            solar_array::{self, *},
+            trading_port,
+        },
         timers::{CreateStationProductionScheduleRow, CreateStationStatusScheduleRow},
     },
     stellarobjects::StellarObject,
@@ -18,22 +25,18 @@ pub type ModuleCreationFn = Box<dyn Fn(&ReducerContext, &Station) -> Result<(), 
 
 /// Helper function to create a basic trading module
 pub fn create_trading_module() -> ModuleCreationFn {
-    Box::new(|ctx, station| modules::trading_port::create_basic_bazaar(ctx, station, false))
+    Box::new(|ctx, station| trading_port::create_basic_bazaar(ctx, station, false))
 }
 
 /// Helper function to create a basic refinery module for iron ore
 pub fn create_iron_refinery_module() -> ModuleCreationFn {
     Box::new(|ctx, station| {
-        modules::refinery::definitions::create_basic_refinery_module(
+        refinery::definitions::create_basic_refinery_module(
             ctx,
             station,
             false,
-            crate::types::items::ItemDefinitionId::new(
-                crate::types::items::definitions::ITEM_IRON_ORE,
-            ),
-            crate::types::items::ItemDefinitionId::new(
-                crate::types::items::definitions::ITEM_IRON_INGOT,
-            ),
+            ItemDefinitionId::new(ITEM_IRON_ORE),
+            ItemDefinitionId::new(ITEM_IRON_INGOT),
             None,
         )
     })
@@ -42,16 +45,12 @@ pub fn create_iron_refinery_module() -> ModuleCreationFn {
 /// Helper function to create a basic refinery module for ice ore
 pub fn create_ice_refinery_module() -> ModuleCreationFn {
     Box::new(|ctx, station| {
-        modules::refinery::definitions::create_basic_refinery_module(
+        refinery::definitions::create_basic_refinery_module(
             ctx,
             station,
             false,
-            crate::types::items::ItemDefinitionId::new(
-                crate::types::items::definitions::ITEM_ICE_ORE,
-            ),
-            crate::types::items::ItemDefinitionId::new(
-                crate::types::items::definitions::ITEM_WATER,
-            ),
+            ItemDefinitionId::new(ITEM_ICE_ORE),
+            ItemDefinitionId::new(ITEM_WATER),
             None,
         )
     })
@@ -60,16 +59,12 @@ pub fn create_ice_refinery_module() -> ModuleCreationFn {
 /// Helper function to create a basic refinery module for silicon ore
 pub fn create_silicon_refinery_module() -> ModuleCreationFn {
     Box::new(|ctx, station| {
-        modules::refinery::definitions::create_basic_refinery_module(
+        refinery::definitions::create_basic_refinery_module(
             ctx,
             station,
             false,
-            crate::types::items::ItemDefinitionId::new(
-                crate::types::items::definitions::ITEM_SILICON_ORE,
-            ),
-            crate::types::items::ItemDefinitionId::new(
-                crate::types::items::definitions::ITEM_SILICON_RAW,
-            ),
+            ItemDefinitionId::new(ITEM_SILICON_ORE),
+            ItemDefinitionId::new(ITEM_SILICON_RAW),
             None,
         )
     })
@@ -177,17 +172,13 @@ pub fn update_resource_production_and_refining(
         StationModuleSpecificType::RefineryBasicOre => {
             // Handle refinery modules
             if let Ok(refinery) = dsl.get_refinery_module_by_id(module.get_id()) {
-                let production_result = modules::refinery::timers::calculate_refinery_production(
+                let production_result = refinery::timers::calculate_refinery_production(
                     ctx,
                     &refinery,
                     time_elapsed_hours,
                 )?;
 
-                modules::refinery::timers::apply_refinery_production(
-                    ctx,
-                    &refinery,
-                    &production_result,
-                )?;
+                refinery::timers::apply_refinery_production(ctx, &refinery, &production_result)?;
 
                 spacetimedb::log::info!(
                     "Refinery module {} produced {:.2} ingots, consumed {:.2} ore",
@@ -200,13 +191,10 @@ pub fn update_resource_production_and_refining(
         StationModuleSpecificType::FarmStandard | StationModuleSpecificType::FarmLuxury => {
             // Handle farm modules
             if let Ok(farm) = dsl.get_farm_module_by_id(module.get_id()) {
-                let production_result = modules::farm::timers::calculate_farm_production(
-                    ctx,
-                    &farm,
-                    time_elapsed_hours,
-                )?;
+                let production_result =
+                    farm::timers::calculate_farm_production(ctx, &farm, time_elapsed_hours)?;
 
-                modules::farm::timers::apply_farm_production(ctx, &farm, &production_result)?;
+                farm::timers::apply_farm_production(ctx, &farm, &production_result)?;
 
                 spacetimedb::log::info!(
                     "Farm module {} produced {:.2} food units",
@@ -218,14 +206,13 @@ pub fn update_resource_production_and_refining(
         StationModuleSpecificType::SolarArray => {
             // Handle solar array modules
             if let Ok(solar_array) = dsl.get_solar_array_module_by_id(module.get_id()) {
-                let production_result =
-                    modules::solar_array::timers::calculate_solar_array_production(
-                        ctx,
-                        &solar_array,
-                        time_elapsed_hours,
-                    )?;
+                let production_result = solar_array::timers::calculate_solar_array_production(
+                    ctx,
+                    &solar_array,
+                    time_elapsed_hours,
+                )?;
 
-                modules::solar_array::timers::apply_solar_array_production(
+                solar_array::timers::apply_solar_array_production(
                     ctx,
                     &solar_array,
                     &production_result,
@@ -262,14 +249,13 @@ pub fn update_manufacturing_and_assembly(
         | StationModuleSpecificType::FactoryAdvancedComponents => {
             // Handle manufacturing modules
             if let Ok(manufacturing) = dsl.get_manufacturing_module_by_id(module.get_id()) {
-                let production_result =
-                    modules::manufacturing::timers::calculate_manufacturing_production(
-                        ctx,
-                        &manufacturing,
-                        time_elapsed_seconds,
-                    )?;
+                let production_result = manufacturing::timers::calculate_manufacturing_production(
+                    ctx,
+                    &manufacturing,
+                    time_elapsed_seconds,
+                )?;
 
-                modules::manufacturing::timers::apply_manufacturing_production(
+                manufacturing::timers::apply_manufacturing_production(
                     ctx,
                     &manufacturing,
                     &production_result,
@@ -309,14 +295,13 @@ pub fn update_research_and_development(
         StationModuleSpecificType::Laboratory => {
             // Handle laboratory modules
             if let Ok(laboratory) = dsl.get_laboratory_module_by_id(module.get_id()) {
-                let production_result =
-                    modules::laboratory::timers::calculate_laboratory_production(
-                        ctx,
-                        &laboratory,
-                        time_elapsed_hours,
-                    )?;
+                let production_result = laboratory::timers::calculate_laboratory_production(
+                    ctx,
+                    &laboratory,
+                    time_elapsed_hours,
+                )?;
 
-                modules::laboratory::timers::apply_laboratory_production(
+                laboratory::timers::apply_laboratory_production(
                     ctx,
                     &laboratory,
                     &production_result,
@@ -375,11 +360,11 @@ pub fn update_defense_and_military(
 /// Helper function to create a basic food farm module
 pub fn create_basic_farm_module() -> ModuleCreationFn {
     Box::new(|ctx, station| {
-        modules::farm::definitions::create_basic_food_farm(
+        farm::definitions::create_basic_food_farm(
             ctx,
             station,
             false,
-            modules::farm::FarmOutputQuality::Average,
+            farm::FarmOutputQuality::Average,
         )
     })
 }
@@ -387,11 +372,11 @@ pub fn create_basic_farm_module() -> ModuleCreationFn {
 /// Helper function to create a luxury food farm module
 pub fn create_luxury_farm_module() -> ModuleCreationFn {
     Box::new(|ctx, station| {
-        modules::farm::definitions::create_basic_food_farm(
+        farm::definitions::create_basic_food_farm(
             ctx,
             station,
             false,
-            modules::farm::FarmOutputQuality::Luxury,
+            farm::FarmOutputQuality::Luxury,
         )
     })
 }
@@ -399,11 +384,11 @@ pub fn create_luxury_farm_module() -> ModuleCreationFn {
 /// Helper function to create a basic laboratory module
 pub fn create_basic_laboratory_module() -> ModuleCreationFn {
     Box::new(|ctx, station| {
-        modules::laboratory::definitions::create_basic_laboratory(
+        laboratory::definitions::create_basic_laboratory(
             ctx,
             station,
             false,
-            modules::laboratory::definitions::LaboratoryType::Basic,
+            laboratory::definitions::LaboratoryType::Basic,
         )
     })
 }
@@ -411,11 +396,11 @@ pub fn create_basic_laboratory_module() -> ModuleCreationFn {
 /// Helper function to create an advanced laboratory module
 pub fn create_advanced_laboratory_module() -> ModuleCreationFn {
     Box::new(|ctx, station| {
-        modules::laboratory::definitions::create_basic_laboratory(
+        laboratory::definitions::create_basic_laboratory(
             ctx,
             station,
             false,
-            modules::laboratory::definitions::LaboratoryType::Advanced,
+            laboratory::definitions::LaboratoryType::Advanced,
         )
     })
 }
@@ -423,11 +408,11 @@ pub fn create_advanced_laboratory_module() -> ModuleCreationFn {
 /// Helper function to create a basic manufacturing module
 pub fn create_basic_manufacturing_module() -> ModuleCreationFn {
     Box::new(|ctx, station| {
-        modules::manufacturing::definitions::create_basic_manufacturing_module(
+        manufacturing::definitions::create_basic_manufacturing_module(
             ctx,
             station,
             false,
-            modules::manufacturing::definitions::ManufacturingType::BasicFactory,
+            manufacturing::definitions::ManufacturingType::BasicFactory,
         )
     })
 }
@@ -435,11 +420,11 @@ pub fn create_basic_manufacturing_module() -> ModuleCreationFn {
 /// Helper function to create an advanced manufacturing module
 pub fn create_advanced_manufacturing_module() -> ModuleCreationFn {
     Box::new(|ctx, station| {
-        modules::manufacturing::definitions::create_basic_manufacturing_module(
+        manufacturing::definitions::create_basic_manufacturing_module(
             ctx,
             station,
             false,
-            modules::manufacturing::definitions::ManufacturingType::AdvancedFactory,
+            manufacturing::definitions::ManufacturingType::AdvancedFactory,
         )
     })
 }
@@ -447,11 +432,11 @@ pub fn create_advanced_manufacturing_module() -> ModuleCreationFn {
 /// Helper function to create a small solar array module
 pub fn create_small_solar_array_module() -> ModuleCreationFn {
     Box::new(|ctx, station| {
-        modules::solar_array::definitions::create_basic_solar_array(
+        solar_array::definitions::create_basic_solar_array(
             ctx,
             station,
             false,
-            modules::solar_array::definitions::SolarArraySize::Small,
+            solar_array::definitions::SolarArraySize::Small,
         )
     })
 }
@@ -459,11 +444,11 @@ pub fn create_small_solar_array_module() -> ModuleCreationFn {
 /// Helper function to create a large solar array module
 pub fn create_large_solar_array_module() -> ModuleCreationFn {
     Box::new(|ctx, station| {
-        modules::solar_array::definitions::create_basic_solar_array(
+        solar_array::definitions::create_basic_solar_array(
             ctx,
             station,
             false,
-            modules::solar_array::definitions::SolarArraySize::Large,
+            solar_array::definitions::SolarArraySize::Large,
         )
     })
 }
