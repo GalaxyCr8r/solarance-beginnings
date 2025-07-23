@@ -1,12 +1,12 @@
-use spacetimedb::{ table, ReducerContext, SpacetimeType };
-use spacetimedsl::{ dsl, Wrapper };
+use spacetimedb::{table, ReducerContext, SpacetimeType};
+use spacetimedsl::{dsl, Wrapper};
 
-use crate::types::{ common, factions::*, jumpgates::reducers::* };
+use crate::types::{common, factions::*, jumpgates::reducers::*};
 
 pub mod definitions; // Definitions for initial ingested data.
 pub mod impls; // Impls for this file's structs
 pub mod reducers; // SpacetimeDB Reducers for this file's structs.
-//pub mod rls; // Row-level-security rules for this file's structs.
+                  //pub mod rls; // Row-level-security rules for this file's structs.
 pub mod timers; // Timers related to this file's structs.
 pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
@@ -43,6 +43,8 @@ pub struct StarSystem {
     #[primary_key]
     #[auto_inc]
     #[create_wrapper]
+    #[referenced_by(path = crate::types::sectors, table = star_system_object)]
+    #[referenced_by(path = crate::types::sectors, table = sector)]
     id: u32,
 
     #[unique]
@@ -55,6 +57,7 @@ pub struct StarSystem {
 
     #[index(btree)]
     #[use_wrapper(path = FactionId)]
+    #[foreign_key(path = crate::types::factions, table = faction_definition, on_delete = Error)]
     /// FK to Faction, can change
     pub controlling_faction_id: u32,
     //pub discovered_by_faction_id: Option<u32>, // First faction to chart it
@@ -70,6 +73,7 @@ pub struct StarSystemObject {
 
     #[index(btree)]
     #[use_wrapper(path = StarSystemId)]
+    #[foreign_key(path = crate::types::sectors, table = star_system, on_delete = Delete)]
     /// FK to StarSystem
     pub system_id: u32,
 
@@ -88,10 +92,19 @@ pub struct StarSystemObject {
 pub struct Sector {
     #[primary_key] // NOT Auto-inc so it can be reloaded as-is
     #[create_wrapper]
+    #[referenced_by(path = crate::types::sectors, table = asteroid_sector)]
+    #[referenced_by(path = crate::types::stellarobjects, table = stellar_object)]
+    #[referenced_by(path = crate::types::asteroids, table = asteroid)]
+    #[referenced_by(path = crate::types::ships, table = ship)]
+    #[referenced_by(path = crate::types::ships, table = docked_ship)]
+    #[referenced_by(path = crate::types::stations, table = station)]
+    #[referenced_by(path = crate::types::jumpgates, table = jump_gate)]
+    #[referenced_by(path = crate::types::chats, table = sector_chat_message)]
     id: u64,
 
     #[index(btree)]
     #[use_wrapper(path = StarSystemId)]
+    #[foreign_key(path = crate::types::sectors, table = star_system, on_delete = Error)]
     /// FK to StarSystem
     pub system_id: u32,
 
@@ -100,6 +113,7 @@ pub struct Sector {
 
     #[index(btree)]
     #[use_wrapper(path = FactionId)]
+    #[foreign_key(path = crate::types::factions, table = faction_definition, on_delete = Error)]
     /// FK to Faction, can change
     pub controlling_faction_id: u32,
     /// 0 (lawless) to 10 (heavily policed)
@@ -137,10 +151,11 @@ pub struct Sector {
 pub struct AsteroidSector {
     #[primary_key] // NOT Auto-inc so it can be reloaded as-is
     #[use_wrapper(path = SectorId)]
+    #[foreign_key(path = crate::types::sectors, table = sector, on_delete = Delete)]
     id: u64,
 
-    pub sparseness: u8, // Relative amount of asteroids to spawn
-    pub cluster_extent: f32, // How far from 0,0 can asteroids spawn
+    pub sparseness: u8,             // Relative amount of asteroids to spawn
+    pub cluster_extent: f32,        // How far from 0,0 can asteroids spawn
     pub cluster_inner: Option<f32>, // How far from 0,0 can asteroids NOT spawn
 }
 //////////////////////////////////////////////////////////////
@@ -174,7 +189,7 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 fn connect_sectors_with_warpgates(
     ctx: &ReducerContext,
     a: &Sector,
-    b: &Sector
+    b: &Sector,
 ) -> Result<(), String> {
     let a_pos = glam::Vec2::new(a.x, a.y);
     let b_pos = glam::Vec2::new(b.x, b.y);
@@ -188,8 +203,12 @@ fn connect_sectors_with_warpgates(
     let b_wp_pos = glam::Vec2::from_angle(b_angle) * 5000.0;
     //info!("Sector WP Pos: A{} B{}", a_wp_pos, b_wp_pos);
 
-    create_jumpgate_in_sector(ctx, a.id, a_wp_pos.x, a_wp_pos.y, b.id, b_wp_pos.x, b_wp_pos.y)?;
-    create_jumpgate_in_sector(ctx, b.id, b_wp_pos.x, b_wp_pos.y, a.id, a_wp_pos.x, a_wp_pos.y)?;
+    create_jumpgate_in_sector(
+        ctx, a.id, a_wp_pos.x, a_wp_pos.y, b.id, b_wp_pos.x, b_wp_pos.y,
+    )?;
+    create_jumpgate_in_sector(
+        ctx, b.id, b_wp_pos.x, b_wp_pos.y, a.id, a_wp_pos.x, a_wp_pos.y,
+    )?;
 
     Ok(())
 }

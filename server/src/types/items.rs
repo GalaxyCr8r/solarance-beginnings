@@ -1,4 +1,4 @@
-use spacetimedb::{ table, ReducerContext, SpacetimeType, Timestamp };
+use spacetimedb::{table, ReducerContext, SpacetimeType, Timestamp};
 use spacetimedsl::dsl;
 
 use crate::types::ships::*;
@@ -18,13 +18,13 @@ pub enum ResourceCategory {
     ManufacturedComponentBasic,
     ManufacturedComponentAdvanced,
     BiomatterRaw,
-    BiomatterProcessedFood, // Basic food
+    BiomatterProcessedFood,   // Basic food
     BiomatterProcessedLuxury, // Luxury food
     ConsumableShipAmmo,
     ConsumableShipFuel,
-    ExoticMatter, // For high-tier research/construction
+    ExoticMatter,          // For high-tier research/construction
     ResearchDataFragments, // Gathered from anomalies/ruins
-    FinishedGoods, // For trade, NPC requests
+    FinishedGoods,         // For trade, NPC requests
 }
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq, Hash)]
@@ -98,6 +98,11 @@ pub enum ItemMetadata {
 pub struct ItemDefinition {
     #[primary_key]
     #[create_wrapper]
+    #[referenced_by(path = crate::types::asteroids, table = asteroid)]
+    #[referenced_by(path = crate::types::ships, table = ship_cargo_item)]
+    #[referenced_by(path = crate::types::ships, table = ship_equipment_slot)]
+    #[referenced_by(path = crate::types::stations, table = station_module_inventory_item)]
+    #[referenced_by(path = crate::types::items, table = cargo_crate)]
     id: u32,
 
     pub name: String, // E.g., "Iron Ore", "Laser Cannon Mk2", "Energy Cells"
@@ -105,10 +110,10 @@ pub struct ItemDefinition {
 
     pub category: ItemCategory,
 
-    pub base_value: u32, // Base monetary value
+    pub base_value: u32,       // Base monetary value
     pub margin_percentage: u8, // Default margin e.g. 10%
-    pub volume_per_unit: u16, // How much cargo space one unit takes
-    pub units_per_stack: u8, // How units can be stacked in cargo slot
+    pub volume_per_unit: u16,  // How much cargo space one unit takes
+    pub units_per_stack: u8,   // How units can be stacked in cargo slot
     // For equipment, additional stats might be here or in a linked table:
     // E.g., damage: Option<u32>, shield_boost: Option<u32>, etc.
     pub metadata: Vec<ItemMetadata>,
@@ -126,15 +131,19 @@ pub struct CargoCrate {
 
     #[use_wrapper(path = crate::types::sectors::SectorId)]
     #[index(btree)] // To find crates in a specific sector
+    #[foreign_key(path = crate::types::sectors, table = sector, on_delete = Delete)]
     /// FK to Sector.id
     pub current_sector_id: u64,
 
     #[use_wrapper(path = crate::types::stellarobjects::StellarObjectId)]
     #[unique]
+    #[foreign_key(path = crate::types::stellarobjects, table = stellar_object, on_delete = Delete)]
     /// FK to StellarObject
     pub sobj_id: u64,
 
     #[use_wrapper(path = ItemDefinitionId)]
+    #[index(btree)]
+    #[foreign_key(path = crate::types::items, table = item_definition, on_delete = Delete)]
     /// FK to ItemDefinition
     pub item_id: u32,
     pub quantity: u16,

@@ -1,9 +1,9 @@
-use spacetimedb::{ table, Identity, ReducerContext, Timestamp };
-use spacetimedsl::{ dsl, Wrapper };
+use spacetimedb::{table, Identity, ReducerContext, Timestamp};
+use spacetimedsl::{dsl, Wrapper};
 
 use crate::types::factions::FactionId;
 
-use super::{ common::CurrentAction, ships::*, stellarobjects::* };
+use super::{common::CurrentAction, ships::*, stellarobjects::*};
 
 //pub mod definitions; // Definitions for initial ingested data.
 pub mod impls; // Impls for this file's structs
@@ -17,6 +17,13 @@ pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 pub struct Player {
     #[primary_key]
     #[create_wrapper]
+    #[referenced_by(path = crate::types::players, table = player_ship_controller)]
+    #[referenced_by(path = crate::types::ships, table = ship)]
+    #[referenced_by(path = crate::types::ships, table = docked_ship)]
+    #[referenced_by(path = crate::types::chats, table = global_chat_message)]
+    #[referenced_by(path = crate::types::chats, table = sector_chat_message)]
+    #[referenced_by(path = crate::types::chats, table = faction_chat_message)]
+    #[referenced_by(path = crate::types::stellarobjects, table = sobj_player_window)]
     id: Identity,
 
     #[unique]
@@ -35,10 +42,12 @@ pub struct Player {
 pub struct PlayerShipController {
     #[primary_key]
     #[use_wrapper(path = PlayerId)]
+    #[foreign_key(path = crate::types::players, table = player, on_delete = Delete)]
     id: Identity,
 
     #[index(btree)]
     #[use_wrapper(path = StellarObjectId)]
+    #[foreign_key(path = crate::types::stellarobjects, table = stellar_object, on_delete = Delete)]
     pub stellar_object_id: u64,
 
     // Movement

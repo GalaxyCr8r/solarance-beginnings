@@ -1,4 +1,4 @@
-use spacetimedb::{ table, ReducerContext };
+use spacetimedb::{table, ReducerContext};
 use spacetimedsl::dsl;
 
 use crate::types::stellarobjects::StellarObjectId;
@@ -15,17 +15,21 @@ pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 pub struct Asteroid {
     #[primary_key]
     #[use_wrapper(path = StellarObjectId)]
+    #[foreign_key(path = crate::types::stellarobjects, table = stellar_object, on_delete = Delete)]
     /// FK to StellarObject
     id: u64,
 
     #[index(btree)] // To find asteroids in a specific sector
     #[use_wrapper(path = crate::types::sectors::SectorId)]
+    #[foreign_key(path = crate::types::sectors, table = sector, on_delete = Delete)]
     /// FK to Sector.id // Because asteroid_sector.id exists, this can't be named sector_id.
     pub current_sector_id: u64,
 
     pub size_radius: f32, // For collision
 
     #[use_wrapper(path = crate::types::items::ItemDefinitionId)]
+    #[index(btree)]
+    #[foreign_key(path = crate::types::items, table = item_definition, on_delete = Delete)]
     /// FK to ItemDefinition (e.g., Iron Ore, Silicon)
     pub resource_item_id: u32,
 

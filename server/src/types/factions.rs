@@ -1,4 +1,4 @@
-use spacetimedb::{ table, Identity, ReducerContext, SpacetimeType };
+use spacetimedb::{table, Identity, ReducerContext, SpacetimeType};
 use spacetimedsl::dsl;
 
 // pub mod definitions; // Definitions for initial ingested data.
@@ -27,6 +27,14 @@ pub enum FactionTier {
 pub struct Faction {
     #[primary_key]
     #[create_wrapper]
+    #[referenced_by(path = crate::types::sectors, table = star_system)]
+    #[referenced_by(path = crate::types::sectors, table = sector)]
+    #[referenced_by(path = crate::types::ships, table = ship)]
+    #[referenced_by(path = crate::types::ships, table = docked_ship)]
+    #[referenced_by(path = crate::types::stations, table = station)]
+    #[referenced_by(path = crate::types::chats, table = faction_chat_message)]
+    #[referenced_by(path = crate::types::factions, table = faction_standing)]
+    #[referenced_by(path = crate::types::factions, table = player_faction_standing)]
     id: u32,
 
     pub name: String,
