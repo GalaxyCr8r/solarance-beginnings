@@ -23,6 +23,7 @@ pub struct GlobalChatMessage {
     #[create_wrapper]
     id: u64,
 
+    #[index(btree)]
     #[use_wrapper(path = crate::players::PlayerId)]
     #[foreign_key(path = crate::players, table = player, on_delete = Delete)]
     /// FK to Player
@@ -41,6 +42,7 @@ pub struct SectorChatMessage {
     #[create_wrapper]
     id: u64,
 
+    #[index(btree)]
     #[use_wrapper(path = crate::players::PlayerId)]
     #[foreign_key(path = crate::players, table = player, on_delete = Delete)]
     /// FK to Player
@@ -65,6 +67,7 @@ pub struct FactionChatMessage {
     #[create_wrapper]
     id: u64,
 
+    #[index(btree)]
     #[use_wrapper(path = crate::players::PlayerId)]
     #[foreign_key(path = crate::players, table = player, on_delete = Delete)]
     /// FK to Player

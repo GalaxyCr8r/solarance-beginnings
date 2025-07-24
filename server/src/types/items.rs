@@ -135,8 +135,8 @@ pub struct CargoCrate {
     /// FK to Sector.id
     pub current_sector_id: u64,
 
-    #[use_wrapper(path = crate::types::stellarobjects::StellarObjectId)]
     #[unique]
+    #[use_wrapper(path = crate::types::stellarobjects::StellarObjectId)]
     #[foreign_key(path = crate::types::stellarobjects, table = stellar_object, on_delete = Delete)]
     /// FK to StellarObject
     pub sobj_id: u64,

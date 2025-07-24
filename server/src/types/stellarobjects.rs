@@ -132,6 +132,7 @@ pub struct StellarObjectControllerTurnLeft {
 pub struct StellarObjectPlayerWindow {
     #[primary_key]
     #[use_wrapper(path = crate::players::PlayerId)]
+    #[foreign_key(path = crate::players, table = player, on_delete = Delete)]
     id: Identity,
 
     #[unique]

@@ -149,6 +149,7 @@ pub struct Ship {
     /// FK to player.id
     pub player_id: Identity,
 
+    #[index(btree)]
     #[use_wrapper(path = crate::types::factions::FactionId)]
     #[foreign_key(path = crate::types::factions, table = faction_definition, on_delete = Error)]
     /// FK to faction.id
@@ -187,6 +188,7 @@ pub struct DockedShip {
     /// FK to player.id
     pub player_id: Identity,
 
+    #[index(btree)]
     #[use_wrapper(path = crate::types::factions::FactionId)]
     #[foreign_key(path = crate::types::factions, table = faction_definition, on_delete = Error)]
     /// FK to faction.id
@@ -207,6 +209,7 @@ pub struct ShipCargoItem {
     /// FK to ShipGlobal
     pub ship_id: u64,
 
+    #[index(btree)]
     #[use_wrapper(path = crate::types::items::ItemDefinitionId)]
     #[foreign_key(path = crate::types::items, table = item_definition, on_delete = Error)]
     /// FK to ItemDefinition
@@ -233,6 +236,7 @@ pub struct ShipEquipmentSlot {
     pub slot_type: EquipmentSlotType,
     pub slot_index: u8, // E.g., Weapon Slot 0, Weapon Slot 1 within its type
 
+    #[index(btree)]
     #[use_wrapper(path = ItemDefinitionId)]
     #[foreign_key(path = crate::types::items, table = item_definition, on_delete = Error)]
     /// FK to ItemDefinition

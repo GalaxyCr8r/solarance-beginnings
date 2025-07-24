@@ -25,6 +25,7 @@ pub struct JumpGate {
     /// FK to SectorDefinition where this gate physically is
     pub current_sector_id: u64,
 
+    #[index(btree)]
     #[use_wrapper(path = crate::types::sectors::SectorId)]
     #[foreign_key(path = crate::types::sectors, table = sector, on_delete = Error)]
     /// FK to SectorDefinition for the destination sector
