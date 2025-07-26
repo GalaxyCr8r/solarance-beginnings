@@ -1,6 +1,6 @@
 # Implementation Plan
 
-- [ ] 1. Create server message data structures and database tables
+- [x] 1. Create server message data structures and database tables
 
   - Implement ServerMessage and ServerMessageRecipient table definitions with proper SpacetimeDB attributes
   - Create ServerMessageType enum with appropriate derive macros
