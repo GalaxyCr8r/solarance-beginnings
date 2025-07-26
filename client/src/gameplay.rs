@@ -1,41 +1,48 @@
-use std::sync::mpsc::{ self, Sender };
+use std::sync::mpsc::{self, Sender};
 
-use macroquad::{ math::Vec2, prelude::*, ui };
+use macroquad::{math::Vec2, prelude::*, ui};
 
 use super::module_bindings::*;
-use spacetimedb_sdk::{ DbContext, Table };
+use spacetimedb_sdk::{DbContext, Table};
 
-use crate::{ shader::*, stdb::utils::* };
+use crate::{shader::*, stdb::utils::*};
 
 mod gui;
 mod player;
 pub mod render;
 pub mod resources;
+pub mod server_messages;
 pub mod state;
 
 /// Register all the callbacks our app will use to respond to database events.
 pub fn register_callbacks(
     ctx: &DbConnection,
     global_chat_channel: Sender<GlobalChatMessage>,
-    sector_chat_channel: Sender<SectorChatMessage>
+    sector_chat_channel: Sender<SectorChatMessage>,
 ) {
-    ctx.db()
-        .stellar_object()
-        .on_insert(|_ec, sobj| {
-            info!("Stellar Object Inserted: {:?}", sobj);
-        });
+    ctx.db().stellar_object().on_insert(|_ec, sobj| {
+        info!("Stellar Object Inserted: {:?}", sobj);
+    });
 
     ctx.db()
         .global_chat_message()
         .on_insert(move |_ec, message| {
-            info!("G{}: {}", message.player_id.to_abbreviated_hex().to_string(), message.message);
+            info!(
+                "G{}: {}",
+                message.player_id.to_abbreviated_hex().to_string(),
+                message.message
+            );
             let _ = global_chat_channel.send(message.clone());
         });
 
     ctx.db()
         .sector_chat_message()
         .on_insert(move |_ec, message| {
-            info!("S{}: {}", message.player_id.to_abbreviated_hex().to_string(), message.message);
+            info!(
+                "S{}: {}",
+                message.player_id.to_abbreviated_hex().to_string(),
+                message.message
+            );
             let _ = sector_chat_channel.send(message.clone());
         });
 }
@@ -100,19 +107,18 @@ pub async fn gameplay(connection: Option<DbConnection>) {
             &render_target,
             &sf_shader,
             game_state.camera.target,
-            game_state.camera.target * 0.000_01337
+            game_state.camera.target * 0.000_01337,
         );
 
         render::sector(&mut game_state);
 
         egui_macroquad::ui(|egui_ctx| {
             if player_ship.is_none() {
-                if
-                    ctx
-                        .db()
-                        .docked_ship()
-                        .iter()
-                        .any(|ds| ds.player_id == ctx.identity())
+                if ctx
+                    .db()
+                    .docked_ship()
+                    .iter()
+                    .any(|ds| ds.player_id == ctx.identity())
                 {
                     gui::out_of_play_screen::draw(egui_ctx, &ctx, &mut game_state);
                 } else {
@@ -135,13 +141,13 @@ pub async fn gameplay(connection: Option<DbConnection>) {
                     egui_ctx,
                     &game_state.ctx,
                     &mut game_state.details_window,
-                    &mut game_state.details_window_open
+                    &mut game_state.details_window_open,
                 );
                 gui::map_window::draw(
                     egui_ctx,
                     &ctx,
                     &mut game_state.map_window,
-                    &mut game_state.map_window_open
+                    &mut game_state.map_window_open,
                 );
             }
         });
@@ -154,16 +160,12 @@ pub async fn gameplay(connection: Option<DbConnection>) {
         if !game_state.chat_window.has_focus && player_ship.is_some() {
             if is_key_pressed(KeyCode::E) {
                 if let Ok(target) = player::target_closest_stellar_object(&ctx, &mut game_state) {
-                    if
-                        let Some(mut controller) = ctx.db
-                            .player_ship_controller()
-                            .id()
-                            .find(&ctx.identity())
+                    if let Some(mut controller) =
+                        ctx.db.player_ship_controller().id().find(&ctx.identity())
                     {
                         // Deselect target if it's already selected
-                        if
-                            controller.targetted_sobj_id.is_some() &&
-                            controller.targetted_sobj_id.unwrap() == target.id
+                        if controller.targetted_sobj_id.is_some()
+                            && controller.targetted_sobj_id.unwrap() == target.id
                         {
                             controller.targetted_sobj_id = None;
                             game_state.current_target_sobj = None;
@@ -193,24 +195,32 @@ pub async fn gameplay(connection: Option<DbConnection>) {
         // Handle callbacks
         if let Ok(message) = global_chat_receiver.try_recv() {
             game_state.chat_window.global_chat_channel.push(message);
-            game_state.chat_window.global_chat_channel.sort_by_key(|chat| chat.created_at);
+            game_state
+                .chat_window
+                .global_chat_channel
+                .sort_by_key(|chat| chat.created_at);
         }
 
         if player_ship.is_some() {
             if let Ok(message) = sector_chat_receiver.try_recv() {
                 let sector_id = player_ship.unwrap().sector_id;
-                if
-                    game_state.chat_window.sector_chat_channel
-                        .iter()
-                        .any(|msg| msg.sector_id != sector_id)
+                if game_state
+                    .chat_window
+                    .sector_chat_channel
+                    .iter()
+                    .any(|msg| msg.sector_id != sector_id)
                 {
                     // Just dump prior sector messages.
-                    game_state.chat_window.sector_chat_channel.retain(
-                        |msg| msg.sector_id == sector_id
-                    );
+                    game_state
+                        .chat_window
+                        .sector_chat_channel
+                        .retain(|msg| msg.sector_id == sector_id);
                 }
                 game_state.chat_window.sector_chat_channel.push(message);
-                game_state.chat_window.sector_chat_channel.sort_by_key(|chat| chat.created_at);
+                game_state
+                    .chat_window
+                    .sector_chat_channel
+                    .sort_by_key(|chat| chat.created_at);
             }
         }
 

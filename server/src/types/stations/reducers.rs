@@ -32,6 +32,27 @@ pub fn buy_item_from_station_module(
 
     let ship = dsl.get_docked_ship_by_id(&docked_ship_id)?;
 
+    // Validate that the docked ship is at the same station as the module
+    let station_module = dsl.get_station_module_by_id(&station_module_id)?;
+    if ship.get_station_id() != station_module.get_station_id() {
+        let player_id = ship.get_player_id().clone();
+        let error_message = format!(
+            "Cannot buy from station module: Your ship is docked at station {} but the module is at station {}.",
+            ship.get_station_id(),
+            station_module.get_station_id()
+        );
+
+        // Send server message for error feedback
+        send_error_message(
+            ctx,
+            &player_id,
+            error_message.clone(),
+            Some("Station Trading"),
+        )?;
+
+        return Err(error_message);
+    }
+
     // Get Trading Port Module and it's inventory item that matches the item_id
     //let trading_port_module = dsl.get_trading_port_module_by_id(&station_module_id)?;
 
@@ -179,6 +200,27 @@ pub fn sell_item_to_station_module(
         ship.get_id(),
         station_module_id
     );
+
+    // Validate that the docked ship is at the same station as the module
+    let station_module = dsl.get_station_module_by_id(&station_module_id)?;
+    if ship.get_station_id() != station_module.get_station_id() {
+        let player_id = ship.get_player_id().clone();
+        let error_message = format!(
+            "Cannot sell to station module: Your ship is docked at station {} but the module is at station {}.",
+            ship.get_station_id(),
+            station_module.get_station_id()
+        );
+
+        // Send server message for error feedback
+        send_error_message(
+            ctx,
+            &player_id,
+            error_message.clone(),
+            Some("Station Trading"),
+        )?;
+
+        return Err(error_message);
+    }
 
     // Get Trading Port Module and it's inventory item that matches the item_id
     ////let trading_port_module = dsl.get_trading_port_module_by_id(&station_module_id)?;

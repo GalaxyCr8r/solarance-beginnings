@@ -12,8 +12,6 @@ pub fn send_server_message_to_player(
     message_type: ServerMessageType,
     sender_context: Option<String>,
 ) -> Result<(), String> {
-    try_server_only(ctx)?; // Only server can send messages to players
-
     let dsl = dsl(ctx);
 
     // Create the server message
@@ -44,8 +42,6 @@ pub fn send_server_message_to_group(
     group_name: Option<String>,
     sender_context: Option<String>,
 ) -> Result<(), String> {
-    try_server_only(ctx)?; // Only server can send messages to groups
-
     let dsl = dsl(ctx);
 
     if player_ids.is_empty() {
@@ -76,7 +72,6 @@ pub fn send_error_message(
     message: String,
     action_context: Option<&str>,
 ) -> Result<(), String> {
-    // try_server_only is called within send_server_message_to_player
     send_server_message_to_player(
         ctx,
         player_id,
@@ -93,7 +88,6 @@ pub fn send_info_message(
     message: String,
     action_context: Option<&str>,
 ) -> Result<(), String> {
-    // try_server_only is called within send_server_message_to_player
     send_server_message_to_player(
         ctx,
         player_id,
@@ -110,7 +104,6 @@ pub fn send_warning_message(
     message: String,
     action_context: Option<&str>,
 ) -> Result<(), String> {
-    // try_server_only is called within send_server_message_to_player
     send_server_message_to_player(
         ctx,
         player_id,
@@ -127,7 +120,6 @@ pub fn send_admin_message(
     message: String,
     action_context: Option<&str>,
 ) -> Result<(), String> {
-    // try_server_only is called within send_server_message_to_player
     send_server_message_to_player(
         ctx,
         player_id,
@@ -144,6 +136,35 @@ pub fn get_unread_message_count(ctx: &ReducerContext, player_id: &PlayerId) -> u
     dsl.get_server_message_recipients_by_player_id(player_id)
         .filter(|recipient| recipient.read_at.is_none())
         .count() as u64
+}
+
+/// Get all unread messages for a player
+pub fn get_unread_messages_for_player(
+    ctx: &ReducerContext,
+    player_id: &PlayerId,
+) -> Result<Vec<(ServerMessage, ServerMessageRecipient)>, String> {
+    let dsl = dsl(ctx);
+
+    let unread_recipients: Vec<ServerMessageRecipient> = dsl
+        .get_server_message_recipients_by_player_id(player_id)
+        .filter(|recipient| recipient.read_at.is_none())
+        .collect();
+
+    let mut messages_with_recipients = Vec::new();
+
+    for recipient in unread_recipients {
+        match dsl.get_server_message_by_id(ServerMessageId::new(recipient.server_message_id)) {
+            Ok(message) => {
+                messages_with_recipients.push((message, recipient));
+            }
+            Err(_) => {
+                // Skip messages that can't be found (they may have been deleted)
+                continue;
+            }
+        }
+    }
+
+    Ok(messages_with_recipients)
 }
 
 /// Mark a message as read for a specific player

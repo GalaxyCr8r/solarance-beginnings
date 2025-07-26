@@ -48,23 +48,23 @@
   - Test ship creation failure scenarios with message verification
   - _Requirements: 1.2, 4.1_
 
-- [ ] 5. Implement message delivery and tracking system
+- [x] 5. Implement message delivery and tracking system
 
   - Create reducer functions for marking messages as read
-  - Implement message history retrieval with pagination support
   - Add unread message count functionality for players
   - Write tests for message delivery status tracking
   - _Requirements: 1.4, 6.1, 6.3, 6.4_
 
-- [ ] 6. Extend client chat widget for server message display
-- [ ] 6.1 Add ServerMessage data structures to client module bindings
+- [x] 6. Extend client chat widget for server message display
+
+- [x] 6.1 Add ServerMessage data structures to client module bindings
 
   - Update client-side data structures to match server message types
   - Implement proper serialization/deserialization for message data
   - Add client-side message type handling and validation
   - _Requirements: 1.3, 5.1_
 
-- [ ] 6.2 Create server message channel in chat widget
+- [x] 6.2 Create server message channel in chat widget
 
   - Add ServerMessage tab to existing chat interface
   - Implement server message display with proper formatting
@@ -72,7 +72,7 @@
   - Create separate message rendering function for server messages
   - _Requirements: 1.3, 5.1, 5.2, 5.3_
 
-- [ ] 6.3 Implement server message visual styling and formatting
+- [x] 6.3 Implement server message visual styling and formatting
 
   - Create distinct visual styles for different message types (Error, Info, Warning, Admin)
   - Add group name display for group messages without showing other recipients

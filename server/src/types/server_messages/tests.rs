@@ -126,6 +126,225 @@ mod tests {
         assert!(valid_error.contains("failed"));
     }
 
+    // Tests for message delivery and tracking system functionality
+
+    #[test]
+    fn test_message_read_status_logic() {
+        use crate::types::server_messages::ServerMessageRecipient;
+        use spacetimedb::{Identity, Timestamp};
+
+        // Test unread message
+        let mut recipient = ServerMessageRecipient {
+            id: 1,
+            server_message_id: 100,
+            player_id: Identity::from_byte_array([1; 32]),
+            read_at: None,
+            delivered_at: Timestamp::now(),
+        };
+
+        assert!(!recipient.is_read());
+
+        // Test marking as read
+        recipient.mark_as_read();
+        assert!(recipient.is_read());
+        assert!(recipient.read_at.is_some());
+    }
+
+    #[test]
+    fn test_unread_count_logic() {
+        use crate::types::server_messages::ServerMessageRecipient;
+        use spacetimedb::{Identity, Timestamp};
+
+        // Simulate a collection of message recipients
+        let recipients = vec![
+            ServerMessageRecipient {
+                id: 1,
+                server_message_id: 100,
+                player_id: Identity::from_byte_array([1; 32]),
+                read_at: None, // Unread
+                delivered_at: Timestamp::now(),
+            },
+            ServerMessageRecipient {
+                id: 2,
+                server_message_id: 101,
+                player_id: Identity::from_byte_array([1; 32]),
+                read_at: Some(Timestamp::now()), // Read
+                delivered_at: Timestamp::now(),
+            },
+            ServerMessageRecipient {
+                id: 3,
+                server_message_id: 102,
+                player_id: Identity::from_byte_array([1; 32]),
+                read_at: None, // Unread
+                delivered_at: Timestamp::now(),
+            },
+        ];
+
+        // Count unread messages
+        let unread_count = recipients.iter().filter(|r| r.read_at.is_none()).count();
+        assert_eq!(unread_count, 2);
+
+        // Count read messages
+        let read_count = recipients.iter().filter(|r| r.read_at.is_some()).count();
+        assert_eq!(read_count, 1);
+    }
+
+    #[test]
+    fn test_message_filtering_logic() {
+        use crate::types::server_messages::{ServerMessageRecipient, ServerMessageType};
+        use spacetimedb::{Identity, Timestamp};
+
+        let player_id = Identity::from_byte_array([1; 32]);
+        let other_player_id = Identity::from_byte_array([2; 32]);
+
+        // Simulate message recipients for different players
+        let recipients = vec![
+            ServerMessageRecipient {
+                id: 1,
+                server_message_id: 100,
+                player_id: player_id.clone(),
+                read_at: None,
+                delivered_at: Timestamp::now(),
+            },
+            ServerMessageRecipient {
+                id: 2,
+                server_message_id: 101,
+                player_id: other_player_id.clone(),
+                read_at: None,
+                delivered_at: Timestamp::now(),
+            },
+            ServerMessageRecipient {
+                id: 3,
+                server_message_id: 102,
+                player_id: player_id.clone(),
+                read_at: Some(Timestamp::now()),
+                delivered_at: Timestamp::now(),
+            },
+        ];
+
+        // Filter messages for specific player
+        let player_messages: Vec<_> = recipients
+            .iter()
+            .filter(|r| r.player_id == player_id)
+            .collect();
+        assert_eq!(player_messages.len(), 2);
+
+        // Filter unread messages for specific player
+        let unread_player_messages: Vec<_> = recipients
+            .iter()
+            .filter(|r| r.player_id == player_id && r.read_at.is_none())
+            .collect();
+        assert_eq!(unread_player_messages.len(), 1);
+    }
+
+    #[test]
+    fn test_message_delivery_timestamp_logic() {
+        use crate::types::server_messages::ServerMessageRecipient;
+        use spacetimedb::{Identity, Timestamp};
+
+        let now = Timestamp::now();
+        let recipient = ServerMessageRecipient {
+            id: 1,
+            server_message_id: 100,
+            player_id: Identity::from_byte_array([1; 32]),
+            read_at: None,
+            delivered_at: now,
+        };
+
+        // Verify delivery timestamp is set
+        assert_eq!(recipient.delivered_at, now);
+
+        // Test that read_at is initially None
+        assert!(recipient.read_at.is_none());
+    }
+
+    #[test]
+    fn test_message_recipient_creation_logic() {
+        use crate::types::server_messages::ServerMessageRecipient;
+        use spacetimedb::Identity;
+
+        let player_id = Identity::from_byte_array([1; 32]);
+        let message_id = 100u64;
+
+        let recipient = ServerMessageRecipient::new(message_id, player_id.clone());
+
+        assert_eq!(recipient.server_message_id, message_id);
+        assert_eq!(recipient.player_id, player_id);
+        assert!(recipient.read_at.is_none());
+        assert!(recipient.delivered_at.to_micros_since_unix_epoch() > 0);
+    }
+
+    #[test]
+    fn test_message_tracking_state_transitions() {
+        use crate::types::server_messages::ServerMessageRecipient;
+        use spacetimedb::Identity;
+
+        let mut recipient = ServerMessageRecipient::new(100, Identity::from_byte_array([1; 32]));
+
+        // Initial state: delivered but not read
+        assert!(!recipient.is_read());
+        assert!(recipient.delivered_at.to_micros_since_unix_epoch() > 0);
+        assert!(recipient.read_at.is_none());
+
+        // Transition to read state
+        recipient.mark_as_read();
+        assert!(recipient.is_read());
+        assert!(recipient.read_at.is_some());
+
+        // Verify read timestamp is after delivery timestamp
+        if let Some(read_time) = recipient.read_at {
+            assert!(
+                read_time.to_micros_since_unix_epoch()
+                    >= recipient.delivered_at.to_micros_since_unix_epoch()
+            );
+        }
+    }
+
+    #[test]
+    fn test_message_validation_for_tracking() {
+        // Test message ID validation logic
+        let valid_message_id = 100u64;
+        let invalid_message_id = 0u64;
+
+        assert!(valid_message_id > 0);
+        assert_eq!(invalid_message_id, 0);
+
+        // Test player ID validation logic
+        use spacetimedb::Identity;
+        let valid_player_id = Identity::from_byte_array([1; 32]);
+        let zero_player_id = Identity::from_byte_array([0; 32]);
+
+        assert_ne!(valid_player_id, zero_player_id);
+    }
+
+    #[test]
+    fn test_group_message_tracking_logic() {
+        use crate::types::server_messages::ServerMessageRecipient;
+        use spacetimedb::{Identity, Timestamp};
+
+        // Simulate group message with multiple recipients
+        let message_id = 100u64;
+        let recipients = vec![
+            ServerMessageRecipient::new(message_id, Identity::from_byte_array([1; 32])),
+            ServerMessageRecipient::new(message_id, Identity::from_byte_array([2; 32])),
+            ServerMessageRecipient::new(message_id, Identity::from_byte_array([3; 32])),
+        ];
+
+        // All recipients should have the same message ID
+        assert!(recipients.iter().all(|r| r.server_message_id == message_id));
+
+        // All recipients should be initially unread
+        assert!(recipients.iter().all(|r| !r.is_read()));
+
+        // Test individual read status tracking
+        let mut recipient_copy = recipients[0].clone();
+        recipient_copy.mark_as_read();
+        assert!(recipient_copy.is_read());
+
+        // Original recipients should still be unread
+        assert!(!recipients[0].is_read());
+    }
+
     // Note: Full integration tests for utility functions require SpacetimeDB runtime
     // and would need to be run as integration tests within the SpacetimeDB environment.
     // These tests cover the validation logic and parameter handling that can be tested

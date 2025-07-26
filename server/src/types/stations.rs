@@ -8,6 +8,7 @@ pub mod impls; // Impls for this file's structs
 pub mod modules; // Station modules
 pub mod reducers; // SpacetimeDB Reducers for this file's structs.
                   // pub mod rls; // Row-level-security rules for this file's structs.
+pub mod tests; // Tests for station functionality
 pub mod timers; // Timers related to this file's structs.
 pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
