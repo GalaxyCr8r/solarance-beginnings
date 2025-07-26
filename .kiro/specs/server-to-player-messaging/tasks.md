@@ -24,15 +24,16 @@
   - Add module registration to main types module
   - _Requirements: 4.3, 4.4_
 
-- [ ] 4. Integrate server messaging into existing reducers for error feedback
-- [ ] 4.1 Update player registration reducer with server message error feedback
+- [x] 4. Integrate server messaging into existing reducers for error feedback
+
+- [x] 4.1 Update player registration reducer with server message error feedback
 
   - Modify register_playername reducer to send server messages on username conflicts
   - Replace existing error returns with server message calls plus error returns
   - Test username conflict scenarios with message delivery verification
   - _Requirements: 1.1, 1.2, 4.1_
 
-- [ ] 4.2 Update station trading reducers with server message feedback
+- [x] 4.2 Update station trading reducers with server message feedback
 
   - Modify buy_item_from_station_module to send detailed error messages for failures
   - Update sell_item_to_station_module with specific failure reason messages
@@ -40,7 +41,7 @@
   - Test all trading failure scenarios with proper message delivery
   - _Requirements: 1.1, 1.2, 4.1_
 
-- [ ] 4.3 Add server message integration to ship creation reducer
+- [x] 4.3 Add server message integration to ship creation reducer
 
   - Update create_player_controlled_ship with server message error feedback
   - Send informative messages for ship creation failures and validation errors
