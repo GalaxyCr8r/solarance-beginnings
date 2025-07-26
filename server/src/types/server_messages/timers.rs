@@ -4,9 +4,6 @@
 // - Delivery retry timers
 // - Notification reminder timers
 
-use super::*;
-use spacetimedb::{ReducerContext, ScheduleAt};
-
 // Placeholder for future timer implementations
 // Example: Message cleanup timer that removes old messages after a certain period
 

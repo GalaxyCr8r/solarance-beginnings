@@ -103,6 +103,40 @@ pub fn send_info_message(
     )
 }
 
+/// Convenience function for warning messages from reducers (server-only)
+pub fn send_warning_message(
+    ctx: &ReducerContext,
+    player_id: &PlayerId,
+    message: String,
+    action_context: Option<&str>,
+) -> Result<(), String> {
+    // try_server_only is called within send_server_message_to_player
+    send_server_message_to_player(
+        ctx,
+        player_id,
+        message,
+        ServerMessageType::Warning,
+        action_context.map(|s| s.to_string()),
+    )
+}
+
+/// Convenience function for admin messages from reducers (server-only)
+pub fn send_admin_message(
+    ctx: &ReducerContext,
+    player_id: &PlayerId,
+    message: String,
+    action_context: Option<&str>,
+) -> Result<(), String> {
+    // try_server_only is called within send_server_message_to_player
+    send_server_message_to_player(
+        ctx,
+        player_id,
+        message,
+        ServerMessageType::Admin,
+        action_context.map(|s| s.to_string()),
+    )
+}
+
 /// Get unread message count for a player
 pub fn get_unread_message_count(ctx: &ReducerContext, player_id: &PlayerId) -> u64 {
     let dsl = dsl(ctx);

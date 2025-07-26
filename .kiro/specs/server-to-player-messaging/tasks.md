@@ -8,7 +8,7 @@
   - Write unit tests for data structure creation and validation
   - _Requirements: 1.3, 1.4, 4.3, 6.2_
 
-- [ ] 2. Implement core server messaging utility functions
+- [x] 2. Implement core server messaging utility functions
 
   - Create send_server_message_to_player function with proper error handling
   - Implement send_server_message_to_group function for multiple recipients
@@ -16,7 +16,7 @@
   - Write comprehensive unit tests for all utility functions
   - _Requirements: 2.1, 2.2, 4.1, 4.2_
 
-- [ ] 3. Create server message module structure and initialization
+- [x] 3. Create server message module structure and initialization
 
   - Set up server/src/types/server_messages.rs module with standard submodules
   - Implement module initialization function following existing patterns
