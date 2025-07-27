@@ -2,7 +2,7 @@ use spacetimedb::ReducerContext;
 use spacetimedsl::dsl;
 
 use super::*;
-use crate::types::{common::utility::try_server_only, players::PlayerId};
+use crate::types::players::PlayerId;
 
 /// Send message to individual player (server-only)
 pub fn send_server_message_to_player(

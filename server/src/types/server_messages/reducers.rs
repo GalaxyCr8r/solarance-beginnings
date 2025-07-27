@@ -32,6 +32,7 @@ pub fn get_unread_messages_for_player_reducer(
 }
 
 /// Administrative reducer for sending targeted messages (server-only)
+/// Supports both individual and group message targeting with proper authorization
 #[spacetimedb::reducer]
 pub fn send_admin_message(
     ctx: &ReducerContext,
@@ -40,16 +41,57 @@ pub fn send_admin_message(
     message_type: ServerMessageType,
     group_name: Option<String>,
 ) -> Result<(), String> {
-    try_server_only(ctx)?; // Only server can send admin messages
+    // Authorization check - only server can send admin messages
+    try_server_only(ctx)?;
 
+    // Validate input parameters
+    if target_player_ids.is_empty() {
+        return Err("Cannot send admin message to empty recipient list".to_string());
+    }
+
+    if message.trim().is_empty() {
+        return Err("Cannot send empty admin message".to_string());
+    }
+
+    // Convert Identity to PlayerId
     let player_ids: Vec<PlayerId> = target_player_ids.into_iter().map(PlayerId::new).collect();
 
+    // Send message using utility function
     super::utility::send_server_message_to_group(
         ctx,
         player_ids,
         message,
         message_type,
         group_name,
+        Some("Admin".to_string()),
+    )
+}
+
+/// Administrative reducer for sending a message to a single player (server-only)
+/// Convenience function for individual player targeting
+#[spacetimedb::reducer]
+pub fn send_admin_message_to_player(
+    ctx: &ReducerContext,
+    target_player_id: Identity,
+    message: String,
+    message_type: ServerMessageType,
+) -> Result<(), String> {
+    // Authorization check - only server can send admin messages
+    try_server_only(ctx)?;
+
+    // Validate input parameters
+    if message.trim().is_empty() {
+        return Err("Cannot send empty admin message".to_string());
+    }
+
+    let player_id = PlayerId::new(target_player_id);
+
+    // Send message using utility function
+    super::utility::send_server_message_to_player(
+        ctx,
+        &player_id,
+        message,
+        message_type,
         Some("Admin".to_string()),
     )
 }

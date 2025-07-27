@@ -1,5 +1,5 @@
 use crate::module_bindings::*;
-use spacetimedb_sdk::{DbContext, Identity, Table, Timestamp};
+use spacetimedb_sdk::{DbContext, Identity, Table};
 
 /// Client-side utilities for handling server messages
 pub struct ServerMessageUtils;

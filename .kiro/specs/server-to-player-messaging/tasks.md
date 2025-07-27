@@ -80,8 +80,9 @@
   - Add unread message indicators and highlighting
   - _Requirements: 2.3, 3.1, 3.3, 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 7. Add administrative server message functionality
-- [ ] 7.1 Create admin reducer for sending targeted messages
+- [x] 7. Add administrative server message functionality
+
+- [x] 7.1 Create admin reducer for sending targeted messages
 
   - Implement send_admin_message reducer with proper authorization checks
   - Add support for individual and group message targeting
@@ -89,7 +90,7 @@
   - Write authorization tests and message delivery verification
   - _Requirements: 2.1, 2.2, 2.4, 2.5_
 
-- [ ] 7.2 Implement group messaging with privacy protection
+- [x] 7.2 Implement group messaging with privacy protection
 
   - Create group message delivery system that hides recipient lists
   - Add group name display functionality for recipients
