@@ -1,6 +1,6 @@
 use spacetimedb::ReducerContext;
-use types::{ common::*, * };
 use spacetimedsl::dsl;
+use types::{common::*, *};
 
 pub mod types;
 
@@ -12,6 +12,7 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     items::init(ctx)?;
     stations::init(ctx)?;
     sectors::init(ctx)?;
+    server_messages::init(ctx)?;
     stellarobjects::init(ctx)?;
     ships::init(ctx)?;
 
