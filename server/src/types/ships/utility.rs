@@ -123,7 +123,7 @@ pub fn remove_cargo_from_ship(
     if amount == 0 {
         return Err(format!(
             "Tried to remove 0 amount of {} from ship #{:?}",
-            item_def.name,
+            item_def.get_name(),
             ship_status.get_id()
         ));
     }
@@ -132,8 +132,8 @@ pub fn remove_cargo_from_ship(
     info!(
         "Attempting to remove {}x {} ({}v) from ship #{} with remaining cargo space of {}v",
         amount,
-        item_def.name,
-        amount * item_def.volume_per_unit,
+        item_def.get_name(),
+        amount * item_def.get_volume_per_unit(),
         ship_status.id,
         ship_status.get_remaining_cargo_space()
     );
@@ -149,7 +149,7 @@ pub fn remove_cargo_from_ship(
                     remaining_amount,
                     ship_status.get_id(),
                     *cargo_item.get_quantity(),
-                    item_def.name
+                    item_def.get_name()
                 );
 
                 dsl.delete_ship_cargo_item_by_id(&cargo_item.get_id())?;
@@ -158,7 +158,7 @@ pub fn remove_cargo_from_ship(
                 info!(
                     "Found an existing stack of {} {} that has more than the requested quantity, removing {}",
                     cargo_item.get_quantity(),
-                    item_def.name,
+                    item_def.get_name(),
                     remaining_amount
                 );
 
@@ -180,7 +180,9 @@ pub fn remove_cargo_from_ship(
     if remaining_amount > 0 {
         return Err(format!(
             "Ship #{} does not have enough {} to remove: requested {}, available 0",
-            ship_status.id, item_def.name, remaining_amount
+            ship_status.id,
+            item_def.get_name(),
+            remaining_amount
         ));
     }
 
@@ -211,7 +213,7 @@ pub fn attempt_to_load_cargo_into_ship(
     if amount == 0 {
         return Err(format!(
             "Tried to load 0 amount of {} into ship #{:?}",
-            item_def.name,
+            item_def.get_name(),
             ship_status.get_id()
         ));
     }
@@ -220,15 +222,15 @@ pub fn attempt_to_load_cargo_into_ship(
     info!(
         "Attempting to load {}x {} ({}v) into ship #{} with remaining cargo space of {}v",
         amount,
-        item_def.name,
-        amount * item_def.volume_per_unit,
+        item_def.get_name(),
+        amount * item_def.get_volume_per_unit(),
         ship_status.id,
         ship_status.get_remaining_cargo_space()
     );
 
     // First check how many items can actually fit inside the cargo hold
     let additional_items_that_can_fit =
-        ship_status.get_remaining_cargo_space() / item_def.volume_per_unit;
+        ship_status.get_remaining_cargo_space() / item_def.get_volume_per_unit();
     if additional_items_that_can_fit < amount {
         overflow_amount = amount - additional_items_that_can_fit;
         remaining_amount = additional_items_that_can_fit;
@@ -241,7 +243,7 @@ pub fn attempt_to_load_cargo_into_ship(
         info!(
             "Expected final used cargo capacity: {} / {}",
             ship_status.get_used_cargo_capacity()
-                + additional_items_that_can_fit * item_def.volume_per_unit,
+                + additional_items_that_can_fit * item_def.get_volume_per_unit(),
             ship_status.max_cargo_capacity
         );
     }
@@ -260,7 +262,7 @@ pub fn attempt_to_load_cargo_into_ship(
                     info!(
                         "Found an existing stack of {} {}, filling to max amount...",
                         cargo_item.get_quantity(),
-                        item_def.name
+                        item_def.get_name()
                     );
                     remaining_amount =
                         cargo_item.get_quantity() + remaining_amount - units_per_stack;
@@ -269,7 +271,7 @@ pub fn attempt_to_load_cargo_into_ship(
                     info!(
                         "Found an existing stack of {} {}, adding {}",
                         cargo_item.get_quantity(),
-                        item_def.name,
+                        item_def.get_name(),
                         remaining_amount
                     );
                     let tmp_amount = remaining_amount;
@@ -283,7 +285,7 @@ pub fn attempt_to_load_cargo_into_ship(
                     "Updating cargo item for ship #{:?}: {}x {}",
                     ship_status.get_id(),
                     new_amount,
-                    item_def.name
+                    item_def.get_name()
                 );
                 let _ = dsl.update_ship_cargo_item_by_id(cargo_item)?;
             }
@@ -295,7 +297,7 @@ pub fn attempt_to_load_cargo_into_ship(
         info!(
             "Remaining amount to load {}x {} into ship #{} with remaining cargo space of {}v",
             remaining_amount,
-            item_def.name,
+            item_def.get_name(),
             ship_status.id,
             ship_status.get_remaining_cargo_space()
         );
@@ -315,7 +317,7 @@ pub fn attempt_to_load_cargo_into_ship(
                 "Creating cargo item for ship #{:?}: {}x {}",
                 ship_status.get_id(),
                 stack_amount,
-                item_def.name
+                item_def.get_name()
             );
             if let Err(e) =
                 dsl.create_ship_cargo_item(ship_status.get_id(), item_def, stack_amount.into())

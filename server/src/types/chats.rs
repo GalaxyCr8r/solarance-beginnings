@@ -25,7 +25,7 @@ pub struct GlobalChatMessage {
 
     #[index(btree)]
     #[use_wrapper(path = crate::players::PlayerId)]
-    #[foreign_key(path = crate::players, table = player, on_delete = Delete)]
+    #[foreign_key(path = crate::players, table = player, column = id, on_delete = Delete)]
     /// FK to Player
     pub player_id: Identity,
 
@@ -44,13 +44,13 @@ pub struct SectorChatMessage {
 
     #[index(btree)]
     #[use_wrapper(path = crate::players::PlayerId)]
-    #[foreign_key(path = crate::players, table = player, on_delete = Delete)]
+    #[foreign_key(path = crate::players, table = player, column = id, on_delete = Delete)]
     /// FK to Player
     pub player_id: Identity,
 
     #[index(btree)] // To find asteroids in a specific sector
     #[use_wrapper(path = crate::types::sectors::SectorId)]
-    #[foreign_key(path = crate::types::sectors, table = sector, on_delete = Delete)]
+    #[foreign_key(path = crate::types::sectors, table = sector, column = id, on_delete = Delete)]
     /// FK to Sector.id
     pub sector_id: u64,
 
@@ -69,13 +69,13 @@ pub struct FactionChatMessage {
 
     #[index(btree)]
     #[use_wrapper(path = crate::players::PlayerId)]
-    #[foreign_key(path = crate::players, table = player, on_delete = Delete)]
+    #[foreign_key(path = crate::players, table = player, column = id, on_delete = Delete)]
     /// FK to Player
     pub player_id: Identity,
 
     #[index(btree)]
     #[use_wrapper(path = crate::types::factions::FactionId)]
-    #[foreign_key(path = crate::types::factions, table = faction_definition, on_delete = Error)]
+    #[foreign_key(path = crate::types::factions, table = faction_definition, column = id, on_delete = Error)]
     /// FK to FactionDefinition
     pub faction_id: u32,
 

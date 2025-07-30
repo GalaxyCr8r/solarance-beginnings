@@ -24,6 +24,7 @@ pub struct Player {
     #[referenced_by(path = crate::types::chats, table = sector_chat_message)]
     #[referenced_by(path = crate::types::chats, table = faction_chat_message)]
     #[referenced_by(path = crate::types::stellarobjects, table = sobj_player_window)]
+    #[referenced_by(path = crate::types::factions, table = player_faction_standing)]
     id: Identity,
 
     #[unique]
@@ -42,12 +43,12 @@ pub struct Player {
 pub struct PlayerShipController {
     #[primary_key]
     #[use_wrapper(path = PlayerId)]
-    #[foreign_key(path = crate::types::players, table = player, on_delete = Delete)]
+    #[foreign_key(path = crate::types::players, table = player, column = id, on_delete = Delete)]
     id: Identity,
 
     #[index(btree)]
     #[use_wrapper(path = StellarObjectId)]
-    #[foreign_key(path = crate::types::stellarobjects, table = stellar_object, on_delete = Delete)]
+    #[foreign_key(path = crate::types::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     pub stellar_object_id: u64,
 
     // Movement

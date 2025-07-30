@@ -68,11 +68,11 @@ pub fn is_server_or_ship_owner(
 
     if let Some(s_id) = ship_id {
         if let Ok(ship) = dsl.get_ship_by_id(&s_id) {
-            if ship.player_id == ctx.sender {
+            if ship.get_player_id().value() == ctx.sender {
                 return Ok(());
             }
         } else if let Ok(ship) = dsl.get_docked_ship_by_id(&s_id) {
-            if ship.player_id == ctx.sender {
+            if ship.get_player_id().value() == ctx.sender {
                 return Ok(());
             }
         }

@@ -57,7 +57,7 @@ pub struct StarSystem {
 
     #[index(btree)]
     #[use_wrapper(path = FactionId)]
-    #[foreign_key(path = crate::types::factions, table = faction_definition, on_delete = Error)]
+    #[foreign_key(path = crate::types::factions, table = faction_definition, column = id, on_delete = Error)]
     /// FK to Faction, can change
     pub controlling_faction_id: u32,
     //pub discovered_by_faction_id: Option<u32>, // First faction to chart it
@@ -73,7 +73,7 @@ pub struct StarSystemObject {
 
     #[index(btree)]
     #[use_wrapper(path = StarSystemId)]
-    #[foreign_key(path = crate::types::sectors, table = star_system, on_delete = Delete)]
+    #[foreign_key(path = crate::types::sectors, table = star_system, column = id, on_delete = Delete)]
     /// FK to StarSystem
     pub system_id: u32,
 
@@ -100,11 +100,12 @@ pub struct Sector {
     #[referenced_by(path = crate::types::stations, table = station)]
     #[referenced_by(path = crate::types::jumpgates, table = jump_gate)]
     #[referenced_by(path = crate::types::chats, table = sector_chat_message)]
+    #[referenced_by(path = crate::types::items, table = cargo_crate)]
     id: u64,
 
     #[index(btree)]
     #[use_wrapper(path = StarSystemId)]
-    #[foreign_key(path = crate::types::sectors, table = star_system, on_delete = Error)]
+    #[foreign_key(path = crate::types::sectors, table = star_system, column = id, on_delete = Error)]
     /// FK to StarSystem
     pub system_id: u32,
 
@@ -113,7 +114,7 @@ pub struct Sector {
 
     #[index(btree)]
     #[use_wrapper(path = FactionId)]
-    #[foreign_key(path = crate::types::factions, table = faction_definition, on_delete = Error)]
+    #[foreign_key(path = crate::types::factions, table = faction_definition, column = id, on_delete = Error)]
     /// FK to Faction, can change
     pub controlling_faction_id: u32,
     /// 0 (lawless) to 10 (heavily policed)
@@ -151,7 +152,7 @@ pub struct Sector {
 pub struct AsteroidSector {
     #[primary_key] // NOT Auto-inc so it can be reloaded as-is
     #[use_wrapper(path = SectorId)]
-    #[foreign_key(path = crate::types::sectors, table = sector, on_delete = Delete)]
+    #[foreign_key(path = crate::types::sectors, table = sector, column = id, on_delete = Delete)]
     id: u64,
 
     pub sparseness: u8,             // Relative amount of asteroids to spawn

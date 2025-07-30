@@ -38,7 +38,7 @@ pub fn identity_connected(ctx: &ReducerContext) -> Result<(), String> {
     // TODO: When someone logs in set their player to online
 
     if let Some(mut config) = dsl.get_all_global_configurations().last() {
-        config.set_active_players(config.active_players + 1);
+        config.set_active_players(config.get_active_players() + 1);
         dsl.update_global_config_by_id(config)?;
     }
 
@@ -51,8 +51,8 @@ pub fn identity_disconnected(ctx: &ReducerContext) -> Result<(), String> {
     // Called everytime a client disconnects
 
     if let Some(mut config) = dsl.get_all_global_configurations().last() {
-        if config.active_players > 0 {
-            config.set_active_players(config.active_players - 1);
+        if *config.get_active_players() > 0 {
+            config.set_active_players(config.get_active_players() - 1);
             dsl.update_global_config_by_id(config)?;
         }
     }

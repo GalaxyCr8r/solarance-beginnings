@@ -1,18 +1,18 @@
 use std::f32::consts::PI;
 
 use glam::Vec2;
-use spacetimedb::{ rand::Rng, * };
+use spacetimedb::{rand::Rng, *};
 use spacetimedsl::*;
 
 use crate::types::{
     items::{
-        definitions::{ ITEM_IRON_ORE, ITEM_SILICON_ORE, ITEM_URANIUM_ORE, ITEM_WATER },
+        definitions::{ITEM_IRON_ORE, ITEM_SILICON_ORE, ITEM_URANIUM_ORE, ITEM_WATER},
         ItemDefinitionId,
     },
     sectors::GetAsteroidSectorRowOptionById,
 };
 
-use super::{ utility::create_asteroid, GetAsteroidRowsByCurrentSectorId };
+use super::{utility::create_asteroid, GetAsteroidRowsByCurrentSectorId};
 
 #[dsl(plural_name = asteroid_sector_upkeep_timers)]
 #[spacetimedb::table(name = asteroid_sector_upkeep_timer, scheduled(asteroid_sector_upkeep))]
@@ -50,19 +50,20 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 #[spacetimedb::reducer]
 pub fn asteroid_sector_upkeep(
     ctx: &ReducerContext,
-    timer: AsteroidSectorUpkeepTimer
+    timer: AsteroidSectorUpkeepTimer,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
     let asteroid_sector = dsl.get_asteroid_sector_by_id(timer.get_sector_id())?;
-    if
-        dsl.get_asteroids_by_current_sector_id(timer.get_sector_id()).count() <
-        (asteroid_sector.get_sparseness() * 10).into()
+    if dsl
+        .get_asteroids_by_current_sector_id(timer.get_sector_id())
+        .count()
+        < (asteroid_sector.get_sparseness() * 10).into()
     {
         // 100
-        let field = asteroid_sector.cluster_extent;
-        let dist = match asteroid_sector.cluster_inner {
-            Some(inner_extent) => ctx.rng().gen_range(inner_extent..field), // Pick a distance between inner and outer bounds.,
+        let field = *asteroid_sector.get_cluster_extent();
+        let dist = match asteroid_sector.get_cluster_inner() {
+            Some(inner_extent) => ctx.rng().gen_range(*inner_extent..field), // Pick a distance between inner and outer bounds.,
             None => ctx.rng().gen_range(0.0..field),
         };
         let pos = Vec2::from_angle(ctx.rng().gen_range(0.0..2.0 * PI)) * dist;

@@ -1,10 +1,10 @@
-use std::{ f32::consts::PI, time::Duration };
 use glam::Vec2;
 use spacetimedb::*;
 use spacetimedsl::*;
+use std::{f32::consts::PI, time::Duration};
 
 use crate::types::{
-    common::{ utility::try_server_only, * },
+    common::{utility::try_server_only, *},
     items::GetCargoCrateRowOptionBySobjId,
     ships::GetShipRowsByPlayerId,
     stellarobjects::*,
@@ -41,11 +41,11 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 
     dsl.create_all_transforms_timer(
         spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 20).into()),
-        0
+        0,
     )?;
-    dsl.create_player_windows_timer(
-        spacetimedb::ScheduleAt::Interval(Duration::from_millis(750).into())
-    )?;
+    dsl.create_player_windows_timer(spacetimedb::ScheduleAt::Interval(
+        Duration::from_millis(750).into(),
+    ))?;
 
     Ok(())
 }
@@ -60,7 +60,7 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 #[spacetimedb::reducer]
 pub fn recalculate_sobj_transforms(
     ctx: &ReducerContext,
-    timer: AllTransformsTimer
+    timer: AllTransformsTimer,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
@@ -130,9 +130,12 @@ pub fn __move_stellar_object(ctx: &ReducerContext, sobj: StellarObject) -> Resul
 
     if sobj.kind == StellarObjectKinds::CargoCrate {
         let cargo_crate = dsl.get_cargo_crate_by_sobj_id(sobj.get_id())?;
-        if let Some(despawn_ts) = cargo_crate.despawn_ts {
-            if despawn_ts < ctx.timestamp {
-                info!("Cargo Crate outlived its despawn timestamp. Deleting #{}!", sobj.id);
+        if let Some(despawn_ts) = cargo_crate.get_despawn_ts() {
+            if *despawn_ts < ctx.timestamp {
+                info!(
+                    "Cargo Crate outlived its despawn timestamp. Deleting #{}!",
+                    sobj.id
+                );
                 sobj.delete(ctx, true)?;
             }
         }
@@ -162,7 +165,7 @@ pub fn move_stellar_objects(ctx: &ReducerContext) -> Result<(), String> {
 #[spacetimedb::reducer]
 pub fn recalculate_player_windows(
     ctx: &ReducerContext,
-    _timer: PlayerWindowsTimer
+    _timer: PlayerWindowsTimer,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
@@ -175,11 +178,10 @@ pub fn recalculate_player_windows(
         if let Some(ship_obj) = dsl.get_ships_by_player_id(&window.get_id()).next() {
             let transform = dsl.get_sobj_internal_transform_by_id(&ship_obj.get_sobj_id())?;
             // Check to see if the player has moved too close to window's margin and recalculate the window if needed.
-            if
-                transform.x < window.tl_x + window.margin ||
-                transform.x > window.br_x - window.margin ||
-                transform.y < window.tl_y + window.margin ||
-                transform.y > window.br_y - window.margin
+            if transform.x < window.tl_x + window.margin
+                || transform.x > window.br_x - window.margin
+                || transform.y < window.tl_y + window.margin
+                || transform.y > window.br_y - window.margin
             {
                 dsl.update_sobj_player_window_by_id(StellarObjectPlayerWindow {
                     tl_x: transform.x - window.window,

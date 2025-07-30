@@ -122,36 +122,36 @@ pub struct ShipGlobal {
 pub struct Ship {
     #[primary_key]
     #[use_wrapper(path = ShipGlobalId)]
-    #[foreign_key(path = crate::types::ships, table = ship_global, on_delete = Delete)]
+    #[foreign_key(path = crate::types::ships, table = ship_global, column = id, on_delete = Delete)]
     id: u64,
 
     #[index(btree)]
     #[use_wrapper(path = ShipTypeDefinitionId)]
-    #[foreign_key(path = crate::types::ships, table = ship_type_definition, on_delete = Error)]
+    #[foreign_key(path = crate::types::ships, table = ship_type_definition, column = id, on_delete = Error)]
     /// FK to ShipTypeDefinition.id
     pub shiptype_id: u32,
 
     #[unique]
     #[use_wrapper(path = StellarObjectId)]
-    #[foreign_key(path = crate::types::stellarobjects, table = stellar_object, on_delete = Delete)]
+    #[foreign_key(path = crate::types::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     /// FK to StellarObject
     pub sobj_id: u64,
 
     #[index(btree)]
     #[use_wrapper(path = crate::types::sectors::SectorId)]
-    #[foreign_key(path = crate::types::sectors, table = sector, on_delete = Error)]
+    #[foreign_key(path = crate::types::sectors, table = sector, column = id, on_delete = Error)]
     /// FK to Sector ID - Only because actually referencing the player's stellar object would require three table hits.
     pub sector_id: u64,
 
     #[index(btree)]
     #[use_wrapper(path = crate::players::PlayerId)]
-    #[foreign_key(path = crate::players, table = player, on_delete = Error)]
+    #[foreign_key(path = crate::players, table = player, column = id, on_delete = Error)]
     /// FK to player.id
     pub player_id: Identity,
 
     #[index(btree)]
     #[use_wrapper(path = crate::types::factions::FactionId)]
-    #[foreign_key(path = crate::types::factions, table = faction_definition, on_delete = Error)]
+    #[foreign_key(path = crate::types::factions, table = faction_definition, column = id, on_delete = Error)]
     /// FK to faction.id
     pub faction_id: u32,
 }
@@ -161,36 +161,36 @@ pub struct Ship {
 pub struct DockedShip {
     #[primary_key]
     #[use_wrapper(path = ShipGlobalId)]
-    #[foreign_key(path = crate::types::ships, table = ship_global, on_delete = Delete)]
+    #[foreign_key(path = crate::types::ships, table = ship_global, column = id, on_delete = Delete)]
     id: u64,
 
     #[index(btree)]
     #[use_wrapper(path = ShipTypeDefinitionId)]
-    #[foreign_key(path = crate::types::ships, table = ship_type_definition, on_delete = Error)]
+    #[foreign_key(path = crate::types::ships, table = ship_type_definition, column = id, on_delete = Error)]
     /// FK to ShipTypeDefinition.id
     pub shiptype_id: u32,
 
     #[index(btree)]
     #[use_wrapper(path = StationId)]
-    #[foreign_key(path = crate::types::stations, table = station, on_delete = Error)]
+    #[foreign_key(path = crate::types::stations, table = station, column = id, on_delete = Error)]
     /// FK to Station
     pub station_id: u64,
 
     #[index(btree)]
     #[use_wrapper(path = SectorId)]
-    #[foreign_key(path = crate::types::sectors, table = sector, on_delete = Error)]
+    #[foreign_key(path = crate::types::sectors, table = sector, column = id, on_delete = Error)]
     /// FK to Sector ID - Only because actually referencing the player's stellar object would require three table hits.
     pub sector_id: u64,
 
     #[index(btree)]
     #[use_wrapper(path = crate::players::PlayerId)]
-    #[foreign_key(path = crate::players, table = player, on_delete = Error)]
+    #[foreign_key(path = crate::players, table = player, column = id, on_delete = Error)]
     /// FK to player.id
     pub player_id: Identity,
 
     #[index(btree)]
     #[use_wrapper(path = crate::types::factions::FactionId)]
-    #[foreign_key(path = crate::types::factions, table = faction_definition, on_delete = Error)]
+    #[foreign_key(path = crate::types::factions, table = faction_definition, column = id, on_delete = Error)]
     /// FK to faction.id
     pub faction_id: u32,
 }
@@ -205,13 +205,13 @@ pub struct ShipCargoItem {
 
     #[index(btree)] // To query all cargo for a specific ship
     #[use_wrapper(path = ShipGlobalId)]
-    #[foreign_key(path = crate::types::ships, table = ship_global, on_delete = Delete)]
+    #[foreign_key(path = crate::types::ships, table = ship_global, column = id, on_delete = Delete)]
     /// FK to ShipGlobal
     pub ship_id: u64,
 
     #[index(btree)]
     #[use_wrapper(path = crate::types::items::ItemDefinitionId)]
-    #[foreign_key(path = crate::types::items, table = item_definition, on_delete = Error)]
+    #[foreign_key(path = crate::types::items, table = item_definition, column = id, on_delete = Error)]
     /// FK to ItemDefinition
     pub item_id: u32,
 
@@ -229,7 +229,7 @@ pub struct ShipEquipmentSlot {
 
     #[index(btree)] // To query all equipment for a specific ship
     #[use_wrapper(path = ShipGlobalId)]
-    #[foreign_key(path = crate::types::ships, table = ship_global, on_delete = Delete)]
+    #[foreign_key(path = crate::types::ships, table = ship_global, column = id, on_delete = Delete)]
     /// FK to ShipGlobal
     pub ship_id: u64,
 
@@ -238,7 +238,7 @@ pub struct ShipEquipmentSlot {
 
     #[index(btree)]
     #[use_wrapper(path = ItemDefinitionId)]
-    #[foreign_key(path = crate::types::items, table = item_definition, on_delete = Error)]
+    #[foreign_key(path = crate::types::items, table = item_definition, column = id, on_delete = Error)]
     /// FK to ItemDefinition
     pub item_id: u32,
 }
