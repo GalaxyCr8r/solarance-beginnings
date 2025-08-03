@@ -92,7 +92,7 @@ pub fn draw(
     egui::Window::new("Chat Window")
         .min_width(256.0)
         .title_bar(false)
-        .resizable(false)
+        .resizable(true)
         .collapsible(true)
         .movable(false)
         .anchor(Align2::LEFT_TOP, egui::Vec2::new(0.0, 0.0))

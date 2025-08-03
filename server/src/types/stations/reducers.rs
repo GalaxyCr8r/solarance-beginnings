@@ -6,7 +6,7 @@ use crate::types::{
     common::utility::*,
     items::{ItemDefinitionId, *},
     players::{GetPlayerRowOptionById, UpdatePlayerRowById},
-    server_messages::utility::send_error_message,
+    server_messages::utility::{send_error_message, send_info_message},
     ships::{utility::*, *},
     stations::timers::*,
 };
@@ -149,7 +149,6 @@ pub fn buy_item_from_station_module(
         quantity as u16,
         false,
     ) {
-        let player_id = ship.get_player_id().clone();
         let error_message = format!(
             "Cannot buy {}x {} from station: {}",
             quantity,
@@ -160,7 +159,7 @@ pub fn buy_item_from_station_module(
         // Send server message for error feedback
         send_error_message(
             ctx,
-            &player_id,
+            &ship.get_player_id(),
             error_message.clone(),
             Some("Station Trading"),
         )?;
@@ -175,6 +174,20 @@ pub fn buy_item_from_station_module(
     item_listing.set_quantity(item_listing.get_quantity() - quantity);
     item_listing.set_cached_price(item_listing.calculate_current_price(&item_def));
     dsl.update_station_module_inventory_item_by_id(item_listing)?;
+
+    send_info_message(
+        ctx,
+        &ship.get_player_id(),
+        format!(
+            "Station #{} Module #{}: Bought {}x {} for {}c.",
+            station_module.station_id,
+            station_module_id,
+            quantity,
+            item_def.get_name(),
+            total_price
+        ),
+        Some("station_module"),
+    )?;
 
     Ok(())
 }
@@ -314,7 +327,20 @@ pub fn sell_item_to_station_module(
     item_listing.set_quantity(item_listing.get_quantity() + quantity);
     item_listing.set_cached_price(item_listing.calculate_current_price(&item_def));
     dsl.update_station_module_inventory_item_by_id(item_listing)?;
-    //}
+
+    send_info_message(
+        ctx,
+        &ship.get_player_id(),
+        format!(
+            "Station #{} Module #{}: Sold {}x {} for {}c.",
+            station_module.station_id,
+            station_module_id,
+            quantity,
+            item_def.get_name(),
+            total_price
+        ),
+        Some("station_module"),
+    )?;
 
     Ok(())
 }

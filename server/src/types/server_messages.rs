@@ -23,6 +23,7 @@ pub struct ServerMessage {
     #[primary_key]
     #[auto_inc]
     #[create_wrapper]
+    #[referenced_by(path = crate::types::server_messages, table = server_message_recipient)]
     id: u64,
 
     pub message: String,
@@ -43,10 +44,12 @@ pub struct ServerMessageRecipient {
 
     #[index(btree)]
     #[use_wrapper(path = crate::types::server_messages::ServerMessageId)]
+    #[foreign_key(path = crate::types::server_messages, table = server_message, column = id, on_delete = Delete)]
     pub server_message_id: u64,
 
     #[index(btree)]
     #[use_wrapper(path = crate::types::players::PlayerId)]
+    #[foreign_key(path = crate::types::players, table = player, column = id, on_delete = Delete)]
     pub player_id: Identity,
 
     pub read_at: Option<Timestamp>,

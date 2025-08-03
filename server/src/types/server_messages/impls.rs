@@ -7,6 +7,7 @@ impl ServerMessage {
         message_type: ServerMessageType,
         group_name: Option<String>,
         sender_context: Option<String>,
+        now: &Timestamp,
     ) -> Self {
         Self {
             id: 0, // Will be auto-incremented by SpacetimeDB
@@ -14,26 +15,26 @@ impl ServerMessage {
             message_type,
             group_name,
             sender_context,
-            created_at: Timestamp::now(),
+            created_at: now.clone(),
         }
     }
 }
 
 impl ServerMessageRecipient {
     /// Creates a new message recipient record
-    pub fn new(server_message_id: u64, player_id: Identity) -> Self {
+    pub fn new(server_message_id: u64, player_id: Identity, now: &Timestamp) -> Self {
         Self {
             id: 0, // Will be auto-incremented by SpacetimeDB
             server_message_id,
             player_id,
             read_at: None,
-            delivered_at: Timestamp::now(),
+            delivered_at: now.clone(),
         }
     }
 
     /// Marks the message as read
-    pub fn mark_as_read(&mut self) {
-        self.read_at = Some(Timestamp::now());
+    pub fn mark_as_read(&mut self, now: &Timestamp) {
+        self.read_at = Some(now.clone());
     }
 
     /// Checks if the message has been read

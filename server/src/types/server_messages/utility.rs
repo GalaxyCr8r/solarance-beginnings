@@ -27,7 +27,7 @@ pub fn send_server_message_to_player(
         ServerMessageId::new(server_message.id),
         player_id.clone(),
         None, // read_at starts as None
-        spacetimedb::Timestamp::now(),
+        ctx.timestamp,
     )?;
 
     Ok(())
@@ -58,7 +58,7 @@ pub fn send_server_message_to_group(
             ServerMessageId::new(server_message.id),
             player_id,
             None, // read_at starts as None
-            spacetimedb::Timestamp::now(),
+            ctx.timestamp,
         )?;
     }
 
@@ -181,7 +181,7 @@ pub fn mark_message_as_read(
         .find(|r| r.server_message_id == server_message_id);
 
     if let Some(mut recipient) = recipient_opt {
-        recipient.read_at = Some(spacetimedb::Timestamp::now());
+        recipient.read_at = Some(ctx.timestamp);
         dsl.update_server_message_recipient_by_id(recipient)?;
         Ok(())
     } else {

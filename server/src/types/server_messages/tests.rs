@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::types::server_messages::ServerMessageType;
+    use spacetimedb::Timestamp;
 
     #[test]
     fn test_server_message_type_display_string() {
@@ -133,19 +134,21 @@ mod tests {
         use crate::types::server_messages::ServerMessageRecipient;
         use spacetimedb::{Identity, Timestamp};
 
+        let now = Timestamp::now();
+
         // Test unread message
         let mut recipient = ServerMessageRecipient {
             id: 1,
             server_message_id: 100,
             player_id: Identity::from_byte_array([1; 32]),
             read_at: None,
-            delivered_at: Timestamp::now(),
+            delivered_at: now.clone(),
         };
 
         assert!(!recipient.is_read());
 
         // Test marking as read
-        recipient.mark_as_read();
+        recipient.mark_as_read(&now);
         assert!(recipient.is_read());
         assert!(recipient.read_at.is_some());
     }
@@ -155,6 +158,8 @@ mod tests {
         use crate::types::server_messages::ServerMessageRecipient;
         use spacetimedb::{Identity, Timestamp};
 
+        let now = Timestamp::now();
+
         // Simulate a collection of message recipients
         let recipients = vec![
             ServerMessageRecipient {
@@ -162,21 +167,21 @@ mod tests {
                 server_message_id: 100,
                 player_id: Identity::from_byte_array([1; 32]),
                 read_at: None, // Unread
-                delivered_at: Timestamp::now(),
+                delivered_at: now.clone(),
             },
             ServerMessageRecipient {
                 id: 2,
                 server_message_id: 101,
                 player_id: Identity::from_byte_array([1; 32]),
-                read_at: Some(Timestamp::now()), // Read
-                delivered_at: Timestamp::now(),
+                read_at: Some(now.clone()), // Read
+                delivered_at: now.clone(),
             },
             ServerMessageRecipient {
                 id: 3,
                 server_message_id: 102,
                 player_id: Identity::from_byte_array([1; 32]),
                 read_at: None, // Unread
-                delivered_at: Timestamp::now(),
+                delivered_at: now.clone(),
             },
         ];
 
@@ -191,9 +196,10 @@ mod tests {
 
     #[test]
     fn test_message_filtering_logic() {
-        use crate::types::server_messages::{ServerMessageRecipient, ServerMessageType};
+        use crate::types::server_messages::ServerMessageRecipient;
         use spacetimedb::{Identity, Timestamp};
 
+        let now = Timestamp::now();
         let player_id = Identity::from_byte_array([1; 32]);
         let other_player_id = Identity::from_byte_array([2; 32]);
 
@@ -204,21 +210,21 @@ mod tests {
                 server_message_id: 100,
                 player_id: player_id.clone(),
                 read_at: None,
-                delivered_at: Timestamp::now(),
+                delivered_at: now.clone(),
             },
             ServerMessageRecipient {
                 id: 2,
                 server_message_id: 101,
                 player_id: other_player_id.clone(),
                 read_at: None,
-                delivered_at: Timestamp::now(),
+                delivered_at: now.clone(),
             },
             ServerMessageRecipient {
                 id: 3,
                 server_message_id: 102,
                 player_id: player_id.clone(),
-                read_at: Some(Timestamp::now()),
-                delivered_at: Timestamp::now(),
+                read_at: Some(now.clone()),
+                delivered_at: now.clone(),
             },
         ];
 
@@ -261,12 +267,13 @@ mod tests {
     #[test]
     fn test_message_recipient_creation_logic() {
         use crate::types::server_messages::ServerMessageRecipient;
-        use spacetimedb::Identity;
+        use spacetimedb::{Identity, Timestamp};
 
+        let now = Timestamp::now();
         let player_id = Identity::from_byte_array([1; 32]);
         let message_id = 100u64;
 
-        let recipient = ServerMessageRecipient::new(message_id, player_id.clone());
+        let recipient = ServerMessageRecipient::new(message_id, player_id.clone(), &now);
 
         assert_eq!(recipient.server_message_id, message_id);
         assert_eq!(recipient.player_id, player_id);
@@ -277,9 +284,11 @@ mod tests {
     #[test]
     fn test_message_tracking_state_transitions() {
         use crate::types::server_messages::ServerMessageRecipient;
-        use spacetimedb::Identity;
+        use spacetimedb::{Identity, Timestamp};
 
-        let mut recipient = ServerMessageRecipient::new(100, Identity::from_byte_array([1; 32]));
+        let now = Timestamp::now();
+        let mut recipient =
+            ServerMessageRecipient::new(100, Identity::from_byte_array([1; 32]), &now);
 
         // Initial state: delivered but not read
         assert!(!recipient.is_read());
@@ -287,7 +296,8 @@ mod tests {
         assert!(recipient.read_at.is_none());
 
         // Transition to read state
-        recipient.mark_as_read();
+        let read_time = Timestamp::now();
+        recipient.mark_as_read(&read_time);
         assert!(recipient.is_read());
         assert!(recipient.read_at.is_some());
 
@@ -322,12 +332,14 @@ mod tests {
         use crate::types::server_messages::ServerMessageRecipient;
         use spacetimedb::{Identity, Timestamp};
 
+        let now = Timestamp::now();
+
         // Simulate group message with multiple recipients
         let message_id = 100u64;
         let recipients = vec![
-            ServerMessageRecipient::new(message_id, Identity::from_byte_array([1; 32])),
-            ServerMessageRecipient::new(message_id, Identity::from_byte_array([2; 32])),
-            ServerMessageRecipient::new(message_id, Identity::from_byte_array([3; 32])),
+            ServerMessageRecipient::new(message_id, Identity::from_byte_array([1; 32]), &now),
+            ServerMessageRecipient::new(message_id, Identity::from_byte_array([2; 32]), &now),
+            ServerMessageRecipient::new(message_id, Identity::from_byte_array([3; 32]), &now),
         ];
 
         // All recipients should have the same message ID
@@ -338,7 +350,8 @@ mod tests {
 
         // Test individual read status tracking
         let mut recipient_copy = recipients[0].clone();
-        recipient_copy.mark_as_read();
+        let read_time = Timestamp::now();
+        recipient_copy.mark_as_read(&read_time);
         assert!(recipient_copy.is_read());
 
         // Original recipients should still be unread
@@ -539,12 +552,14 @@ mod tests {
         use crate::types::server_messages::ServerMessageRecipient;
         use spacetimedb::{Identity, Timestamp};
 
+        let now = Timestamp::now();
+
         // Test message delivery verification logic
         let message_id = 100u64;
         let recipients = vec![
-            ServerMessageRecipient::new(message_id, Identity::from_byte_array([1; 32])),
-            ServerMessageRecipient::new(message_id, Identity::from_byte_array([2; 32])),
-            ServerMessageRecipient::new(message_id, Identity::from_byte_array([3; 32])),
+            ServerMessageRecipient::new(message_id, Identity::from_byte_array([1; 32]), &now),
+            ServerMessageRecipient::new(message_id, Identity::from_byte_array([2; 32]), &now),
+            ServerMessageRecipient::new(message_id, Identity::from_byte_array([3; 32]), &now),
         ];
 
         // Verify all recipients have the same message ID
@@ -656,17 +671,19 @@ mod tests {
             Identity::from_byte_array([4; 32]),
         ];
 
+        let now = Timestamp::now();
+
         // Create recipient records for group message
         let recipients: Vec<ServerMessageRecipient> = group_members
             .iter()
-            .map(|&member| ServerMessageRecipient::new(message_id, member))
+            .map(|&member| ServerMessageRecipient::new(message_id, member, &now))
             .collect();
 
         // Verify all recipients have the same message ID
         assert!(recipients.iter().all(|r| r.server_message_id == message_id));
 
         // Test that each member can only see their own recipient record
-        for (index, member) in group_members.iter().enumerate() {
+        for (_index, member) in group_members.iter().enumerate() {
             let member_recipients: Vec<&ServerMessageRecipient> = recipients
                 .iter()
                 .filter(|r| r.player_id == *member)
@@ -769,7 +786,7 @@ mod tests {
 
             // But each member only knows about their own participation
             // (they don't see the list of other recipients)
-            let visible_recipient = *member;
+            let _visible_recipient = *member;
 
             // Verify they can't determine other recipients from the message
             for other_member in &group_members {
@@ -798,14 +815,17 @@ mod tests {
             Identity::from_byte_array([3; 32]),
         ];
 
+        let now = Timestamp::now();
+
         // Create recipient records
         let mut recipients: Vec<ServerMessageRecipient> = group_members
             .iter()
-            .map(|&member| ServerMessageRecipient::new(message_id, member))
+            .map(|&member| ServerMessageRecipient::new(message_id, member, &now))
             .collect();
 
         // Simulate one member reading the message
-        recipients[0].mark_as_read();
+        let read_time = Timestamp::now();
+        recipients[0].mark_as_read(&read_time);
 
         // Test privacy of read status
         for (index, member) in group_members.iter().enumerate() {
@@ -837,6 +857,7 @@ mod tests {
         use crate::types::server_messages::ServerMessageRecipient;
         use spacetimedb::Identity;
 
+        let now = Timestamp::now();
         let message_id = 300u64;
         let group_size = 10;
         let group_members: Vec<Identity> = (0..group_size)
@@ -850,7 +871,7 @@ mod tests {
         // Create recipient records for all group members
         let recipients: Vec<ServerMessageRecipient> = group_members
             .iter()
-            .map(|&member| ServerMessageRecipient::new(message_id, member))
+            .map(|&member| ServerMessageRecipient::new(message_id, member, &now))
             .collect();
 
         // Verify delivery to all members

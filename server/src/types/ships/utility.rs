@@ -9,6 +9,7 @@ use crate::types::{
     factions::FactionId,
     jumpgates::JumpGate,
     players::{timers::initialize_player_controller, PlayerId},
+    server_messages::utility::send_info_message,
     ships::{reducers::teleport_to_sector, timers::*},
     stellarobjects::{reducers::create_sobj_player_window_for, utility::*, *},
 };
@@ -371,6 +372,14 @@ pub fn attempt_to_load_cargo_into_ship(
         );
     }
     let _ = dsl.update_ship_status_by_id(ship_status.clone())?;
+
+    send_info_message(
+        ctx,
+        &ship_status.get_player_id(),
+        format!("Loaded successfully {}x {}", amount, item_def.get_name(),),
+        Some("status"),
+    )?;
+
     Ok(())
 }
 
@@ -469,6 +478,17 @@ pub fn dock_to_station(
         ship.get_faction_id(),
     )?;
 
+    send_info_message(
+        ctx,
+        &ship.get_player_id(),
+        format!(
+            "Docked successfully with Station #{}: {}",
+            station.get_id().value(),
+            station.get_name(),
+        ),
+        Some("status"),
+    )?;
+
     Ok(docked)
 }
 
@@ -492,7 +512,7 @@ pub fn undock_from_station(ctx: &ReducerContext, docked: DockedShip) -> Result<S
         &sobj,
         sobj.get_sector_id(),
         docked.get_player_id(),
-        FactionId::new(0),
+        FactionId::new(0), // TODO: This will have to be dependent on the player later.
     )?;
 
     if dsl
@@ -509,6 +529,17 @@ pub fn undock_from_station(ctx: &ReducerContext, docked: DockedShip) -> Result<S
     }
 
     dsl.delete_docked_ship_by_id(&docked.get_id())?;
+
+    send_info_message(
+        ctx,
+        &ship.get_player_id(),
+        format!(
+            "Undocked successfully with Station #{}: {}",
+            station.get_id().value(),
+            station.get_name(),
+        ),
+        Some("status"),
+    )?;
 
     Ok(ship)
 }

@@ -53,19 +53,21 @@ pub fn process_station_production_tick(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    info!("Processing production tick for station {}", timer.id);
-
     // Get the station
     let station = dsl.get_station_by_id(timer.get_id())?;
     let modules: Vec<_> = dsl
         .get_station_modules_by_station_id(timer.get_id())
         .collect();
 
-    info!(
-        "Station {} has {} modules to process",
-        timer.id,
-        modules.len()
-    );
+    // info!(
+    //     "Processing production tick for station #{}: {}",
+    //     timer.id, station.name
+    // );
+    // info!(
+    //     "Station {} has {} modules to process",
+    //     timer.id,
+    //     modules.len()
+    // );
 
     // Iterate through each station's modules
     for module in modules {
@@ -114,7 +116,10 @@ pub fn process_station_production_tick(
         }
     }
 
-    info!("Completed production tick for station {}", timer.id);
+    info!(
+        "Completed production tick for station #{}: {} (Sector ID#:{})",
+        timer.id, station.name, station.sector_id
+    );
     Ok(())
 }
 
