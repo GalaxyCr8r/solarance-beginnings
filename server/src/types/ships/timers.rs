@@ -6,7 +6,7 @@ use spacetimedsl::{dsl, Wrapper};
 
 use crate::types::{
     asteroids::*, common::utility::try_server_only, items::utility::*, ships::utility::*,
-    stellarobjects::GetStellarObjectRowOptionById,
+    stellarobjects::*,
 };
 
 use super::*;
@@ -77,7 +77,7 @@ pub struct ShipAddCargoTimer {
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init(ctx: &ReducerContext) -> Result<(), String> {
+pub fn init(_ctx: &ReducerContext) -> Result<(), String> {
     Ok(())
 }
 
@@ -201,8 +201,7 @@ pub fn ship_mining_timer_reducer(
     if *asteroid_object.get_current_resources() == 0 {
         dsl.delete_ship_mining_timer_by_id(timer.get_id())?;
 
-        dsl.get_stellar_object_by_id(asteroid_object.get_id())?
-            .delete(ctx, true)?;
+        let _ = dsl.delete_stellar_object_by_id(&asteroid_object.get_id());
 
         info!(
             "Asteroid #{:?} exhausted of resources! Timer and Asteroid deleted",

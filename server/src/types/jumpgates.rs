@@ -1,5 +1,5 @@
 use spacetimedb::{table, ReducerContext};
-use spacetimedsl::{dsl, Wrapper};
+use spacetimedsl::dsl;
 
 use super::common::Vec2;
 

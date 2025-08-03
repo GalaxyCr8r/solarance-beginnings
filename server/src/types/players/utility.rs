@@ -196,8 +196,6 @@ pub fn try_to_dock_to_station(
     ship_sobj: &StellarObject,
     station: &Station,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     // Check if same faction
 
     // If not, check faction standing

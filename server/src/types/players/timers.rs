@@ -47,9 +47,7 @@ pub struct PlayerControllerLogicTimer {
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init(ctx: &ReducerContext) -> Result<(), String> {
-    let dsl = dsl(ctx); // Waiting for DSL implementation of timers
-
+pub fn init(_ctx: &ReducerContext) -> Result<(), String> {
     // Timers are created when the Player Controller is created.
 
     Ok(())
@@ -119,7 +117,18 @@ pub fn player_ship_controller_update_upkeep(
         }
     };
 
-    let ship_object = dsl.get_ship_by_sobj_id(controller.get_stellar_object_id())?;
+    let ship_object = match dsl.get_ship_by_sobj_id(controller.get_stellar_object_id()) {
+        Ok(ship) => ship,
+        Err(_) => {
+            // Ship might be docked, clean up the timer
+            dsl.delete_player_ship_controller_update_timer_by_id(&timer)?;
+            info!(
+                "Ship not found (likely docked), removing update timer for player {}",
+                timer.player
+            );
+            return Ok(());
+        }
+    };
     let mut velocity = dsl.get_sobj_velocity_by_id(ship_object.get_sobj_id())?;
 
     // If no input was given, slow down the rotation & speed
@@ -163,7 +172,18 @@ pub fn player_ship_controller_logic_upkeep(
             return Ok(());
         }
     };
-    let ship_object = dsl.get_ship_by_sobj_id(controller.get_stellar_object_id())?;
+    let ship_object = match dsl.get_ship_by_sobj_id(controller.get_stellar_object_id()) {
+        Ok(ship) => ship,
+        Err(_) => {
+            // Ship might be docked, clean up the timer
+            dsl.delete_player_ship_controller_logic_timer_by_id(&timer)?;
+            info!(
+                "Ship not found (likely docked), removing logic timer for player {}",
+                timer.player
+            );
+            return Ok(());
+        }
+    };
 
     remove_old_timers(ctx, &controller, &ship_object)?;
 
@@ -203,7 +223,7 @@ pub fn player_ship_controller_logic_upkeep(
                         // Picking up the crate!
                         attempt_to_pickup_cargo_crate(ctx, &ship_object, &target_sobj)?;
                         controller.targetted_sobj_id = None;
-                        target_sobj.delete(ctx, true)?;
+                        let _ = dsl.delete_stellar_object_by_id(&target_sobj);
                     }
                 }
                 StellarObjectKinds::Station => {

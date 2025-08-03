@@ -105,7 +105,7 @@ pub fn draw(
         })
 }
 
-pub fn draw_widget(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
+pub fn _draw_widget(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
     ui.horizontal(|ui| {
         if !chat_window.hidden && ui.button("v").clicked() {
             chat_window.hidden = true;

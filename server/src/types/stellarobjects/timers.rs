@@ -136,7 +136,7 @@ pub fn __move_stellar_object(ctx: &ReducerContext, sobj: StellarObject) -> Resul
                     "Cargo Crate outlived its despawn timestamp. Deleting #{}!",
                     sobj.id
                 );
-                sobj.delete(ctx, true)?;
+                dsl.delete_stellar_object_by_id(&sobj)?;
             }
         }
     }

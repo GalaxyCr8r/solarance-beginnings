@@ -174,8 +174,6 @@ impl Sector {
 //////////////////////////////////////////////////////////////
 
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     timers::init(ctx)?;
     definitions::init(ctx)?;
 

@@ -456,9 +456,8 @@ pub fn dock_to_station(
     let dsl = dsl(ctx);
 
     // Remove Ship and StellarObject
-    // ? Do NOT delete the specific ship-related rows, we need those to stick around.
-    ship_sobj.delete(ctx, false)?;
-    dsl.delete_ship_by_id(ship.get_id())?;
+    let _ = dsl.delete_stellar_object_by_id(ship_sobj);
+    let _ = dsl.delete_ship_by_id(ship.get_id());
 
     // Create DockedShip object
     let docked = dsl.create_docked_ship(
