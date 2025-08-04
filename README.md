@@ -112,6 +112,7 @@ The project continues to evolve with **Milestone 3 (v0.3.0)** introducing the fo
   - Station module construction and management
 
 - **Server Messaging & Communication**
+The following are only features of the Server message channel - in general chat there's no way to do these.. yet.
 
   - Admin messaging system for server announcements
   - Targeted player messaging with privacy protection
@@ -137,7 +138,7 @@ The project continues to evolve with **Milestone 3 (v0.3.0)** introducing the fo
 
 - **Technical Infrastructure Upgrades**
 
-  - Upgraded to SpacetimeDB 0.10.0 with improved foreign key relationships
+  - Upgraded to SpacetimeDSL 0.10.0 with improved foreign key relationships
   - Enhanced database schema with proper referential integrity
   - Improved subscription system for real-time multiplayer updates
   - Better error handling and graceful failure recovery
