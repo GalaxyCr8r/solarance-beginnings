@@ -24,6 +24,9 @@ pub fn register_callbacks(
         info!("Stellar Object Inserted: {:?}", sobj);
     });
 
+    for message in ctx.db().global_chat_message().iter() {
+        let _ = &global_chat_channel.send(message.clone());
+    }
     ctx.db()
         .global_chat_message()
         .on_insert(move |_ec, message| {
@@ -35,6 +38,9 @@ pub fn register_callbacks(
             let _ = global_chat_channel.send(message.clone());
         });
 
+    for message in ctx.db().sector_chat_message().iter() {
+        let _ = &sector_chat_channel.send(message.clone());
+    }
     ctx.db()
         .sector_chat_message()
         .on_insert(move |_ec, message| {
