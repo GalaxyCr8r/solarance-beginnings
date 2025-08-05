@@ -65,13 +65,18 @@ impl ServerMessageUtils {
 
     /// Get a shorter timestamp format for inline display
     pub fn format_timestamp_short(timestamp: &spacetimedb_sdk::Timestamp) -> String {
-        // Extract just the time portion for a cleaner display
-        let full_time = format!("{:?}", timestamp);
-        // This is a simplified approach - in production you'd want proper time formatting
-        if full_time.len() > 10 {
-            full_time[11..19].to_string() // Extract HH:MM:SS portion
-        } else {
-            full_time
+        // // Extract just the time portion for a cleaner display
+        // let full_time = format!("{:?}", timestamp);
+
+        // // This is a simplified approach - in production you'd want proper time formatting
+        // if full_time.len() > 10 {
+        //     full_time[11..19].to_string() // Extract HH:MM:SS portion
+        // } else {
+        //     full_time
+        // }
+        match timestamp.to_rfc3339() {
+            Ok(datetime) => datetime.as_str()[..16].to_string(), // 2025-05-05T11:33
+            Err(_) => "n/a".to_string(),
         }
     }
 

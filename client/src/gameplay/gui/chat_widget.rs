@@ -317,11 +317,23 @@ fn draw_global_chat(ctx: &DbConnection, chat_window: &mut State, ui: &mut Ui) {
                 let mut count = 0;
                 for message in &chat_window.global_chat_channel {
                     if row_range.contains(&count) {
-                        ui.label(format!(
-                            "[{}]: {}",
-                            get_username(ctx, &message.player_id),
-                            message.message
-                        ));
+                        ui.horizontal(|ui| {
+                            // Timestamp
+                            let timestamp_text =
+                                ServerMessageUtils::format_timestamp_short(&message.created_at);
+                            ui.label(
+                                RichText::new(format!("[{}]", timestamp_text))
+                                    .color(Color32::GRAY)
+                                    .size(10.0),
+                            );
+
+                            // Message
+                            ui.label(format!(
+                                "[{}]: {}",
+                                get_username(ctx, &message.player_id),
+                                message.message
+                            ));
+                        });
                     }
                     count += 1;
                 }
@@ -345,11 +357,23 @@ fn draw_sector_chat(ctx: &DbConnection, chat_window: &mut State, ui: &mut Ui) {
                 let mut count = 0;
                 for message in &chat_window.sector_chat_channel {
                     if row_range.contains(&count) {
-                        ui.label(format!(
-                            "({}): {}",
-                            get_username(ctx, &message.player_id),
-                            message.message
-                        ));
+                        ui.horizontal(|ui| {
+                            // Timestamp
+                            let timestamp_text =
+                                ServerMessageUtils::format_timestamp_short(&message.created_at);
+                            ui.label(
+                                RichText::new(format!("[{}]", timestamp_text))
+                                    .color(Color32::GRAY)
+                                    .size(10.0),
+                            );
+
+                            // Message
+                            ui.label(format!(
+                                "({}): {}",
+                                get_username(ctx, &message.player_id),
+                                message.message
+                            ));
+                        });
                     }
                     count += 1;
                 }
