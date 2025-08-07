@@ -2,22 +2,22 @@ use std::{
     env,
     f32::consts::PI,
     path::PathBuf,
-    thread::{ self, sleep, JoinHandle },
+    thread::{self, sleep, JoinHandle},
     time::Duration,
 };
 
-use solarance_beginnings::*;
+use solarance_beginnings::{stdb::connector::creds_store, *};
 
 use dotenv::dotenv;
-use egui::{ Align2, Color32, Frame, RichText, Shadow };
+use egui::{Align2, Color32, Frame, RichText, Shadow};
 use gameplay::resources::Resources;
 use macroquad::{
     math::Vec2,
-    prelude::{ collections::storage, coroutines::start_coroutine, * },
+    prelude::{collections::storage, coroutines::start_coroutine, *},
     time,
 };
 
-use solarance_beginnings::{ module_bindings::DbConnection, stdb::connector::connect_to_spacetime };
+use solarance_beginnings::{module_bindings::DbConnection, stdb::connector::connect_to_spacetime};
 use spacetimedb_sdk::DbContext;
 
 struct MenuAssets {
@@ -27,9 +27,11 @@ struct MenuAssets {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
-/// Main Loop
+// Main Loop
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
+
+/// Configures the game window properties including title, dimensions, and resizability
 fn window_conf() -> Conf {
     Conf {
         window_title: "Solarance:Beginnings".to_owned(),
@@ -40,6 +42,15 @@ fn window_conf() -> Conf {
     }
 }
 
+/// Main entry point for the Solarance:Beginnings game
+///
+/// Handles environment setup, asset loading, and game flow control:
+/// 1. Sets up environment variables and asset paths based on OS
+/// 2. Loads menu assets
+/// 3. Shows EULA screen
+/// 4. Manages login flow
+/// 5. Connects to SpacetimeDB
+/// 6. Launches gameplay
 #[macroquad::main(window_conf)]
 async fn main() -> Result<(), macroquad::Error> {
     #[cfg(not(target_os = "macos"))]
@@ -54,12 +65,15 @@ async fn main() -> Result<(), macroquad::Error> {
             let env_path = get_exe_path().join("../Resources/.env");
             dotenv::from_path(env_path.clone()).ok();
 
-            info!("Current Directory: {:?}", env::current_dir().unwrap().to_str().unwrap());
+            info!(
+                "Current Directory: {:?}",
+                env::current_dir().unwrap().to_str().unwrap()
+            );
             info!("Env Path: {:?}", env_path.clone().to_str().unwrap());
             info!("Binary Path: {:?}", exe_directory.to_str().unwrap());
 
             set_pc_assets_folder(
-                format!("{}/../Resources/Assets", exe_directory.to_str().unwrap()).as_str()
+                format!("{}/../Resources/Assets", exe_directory.to_str().unwrap()).as_str(),
             );
         } else {
             info!(
@@ -75,11 +89,19 @@ async fn main() -> Result<(), macroquad::Error> {
 
     storage::store(MenuAssets {
         rings: vec![
-            load_texture("Ring1.png").await.expect("Couldn't load assets"),
-            load_texture("Ring2.png").await.expect("Couldn't load assets"),
-            load_texture("Ring3.png").await.expect("Couldn't load assets")
+            load_texture("Ring1.png")
+                .await
+                .expect("Couldn't load assets"),
+            load_texture("Ring2.png")
+                .await
+                .expect("Couldn't load assets"),
+            load_texture("Ring3.png")
+                .await
+                .expect("Couldn't load assets"),
         ],
-        logo: load_texture("Solarance_Logo.png").await.expect("Couldn't load assets"),
+        logo: load_texture("Solarance_Logo.png")
+            .await
+            .expect("Couldn't load assets"),
     });
 
     if !confirm_eula_screen().await {
@@ -100,6 +122,10 @@ async fn main() -> Result<(), macroquad::Error> {
     Ok(())
 }
 
+/// Returns the directory path of the current executable
+///
+/// Used for locating resources and configuration files relative to the executable location,
+/// particularly important for macOS bundle structure
 fn get_exe_path() -> PathBuf {
     match env::current_exe() {
         Ok(mut p) => {
@@ -112,10 +138,15 @@ fn get_exe_path() -> PathBuf {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
-/// Login Screen
-/// TODO: Refactor out of main.rs
+// Login Screen
+// TODO: Refactor out of main.rs
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
+
+/// Displays the EULA/welcome screen and waits for user confirmation
+///
+/// Shows game information, project details, and legal disclaimers
+/// Returns true if user accepts and wishes to continue, false otherwise
 async fn confirm_eula_screen() -> bool {
     let mut result: Option<bool> = None;
 
@@ -194,6 +225,20 @@ async fn confirm_eula_screen() -> bool {
     return result.is_some_and(|continue_| continue_);
 }
 
+/// Enum representing the possible exit states of the login screen
+enum EndLoginScreenSelection {
+    No,            // Continue showing login screen
+    BreakLoop,     // Exit login screen with current token
+    QuitGame,      // Exit the game entirely
+    UsePriorToken, // Use previously stored authentication token
+}
+
+/// Displays the login screen and handles authentication flow
+///
+/// Manages authentication via Auth0, guest login, or using a previously stored token
+/// Returns a tuple containing:
+/// - Boolean indicating whether to continue to the game (true) or exit (false)
+/// - Optional authentication token for SpacetimeDB connection
 pub async fn login_screen() -> (bool, Option<String>) {
     info!("Entering login screen");
 
@@ -202,30 +247,43 @@ pub async fn login_screen() -> (bool, Option<String>) {
     let mut id_token: Option<String> = None;
     let mut error_message: Option<String> = None;
 
-    let mut break_the_loop = false;
-    let mut quit_game = false;
+    // let mut break_the_loop = false;
+    // let mut quit_game = false;
+    let mut end_loop = EndLoginScreenSelection::No;
+
+    let prior_token = {
+        let tmp = creds_store().load();
+        if tmp.is_ok() {
+            tmp.unwrap()
+        } else {
+            None
+        }
+    };
+    let has_prior_token = prior_token.is_some() && !prior_token.clone().unwrap().is_empty();
 
     //let menu_assets = storage::get::<MenuAssets>();
     info!("Starting login screen");
 
+    use EndLoginScreenSelection::*;
     loop {
-        if client_token_thread.as_ref().is_some_and(|thread| thread.is_finished()) {
+        if client_token_thread
+            .as_ref()
+            .is_some_and(|thread| thread.is_finished())
+        {
             let thread = client_token_thread.take().unwrap();
             if thread.is_finished() {
                 match thread.join() {
-                    Ok(token_result) =>
-                        match token_result {
-                            Ok(token) => {
-                                id_token = Some(token.to_string());
-                            }
-                            Err(error) => {
-                                error_message = Some(error.to_string());
-                            }
+                    Ok(token_result) => match token_result {
+                        Ok(token) => {
+                            id_token = Some(token.to_string());
                         }
+                        Err(error) => {
+                            error_message = Some(error.to_string());
+                        }
+                    },
                     Err(join_error) => {
-                        error_message = Some(
-                            format!("Unexpected error during login! {:?}", join_error)
-                        );
+                        error_message =
+                            Some(format!("Unexpected error during login! {:?}", join_error));
                     }
                 }
             }
@@ -234,8 +292,7 @@ pub async fn login_screen() -> (bool, Option<String>) {
         draw_login_screen_background();
 
         egui_macroquad::ui(|egui_ctx| {
-            egui::Window
-                ::new("Solarance:Beginnings")
+            egui::Window::new("Solarance:Beginnings")
                 .resizable(false)
                 .collapsible(false)
                 .movable(false)
@@ -243,7 +300,7 @@ pub async fn login_screen() -> (bool, Option<String>) {
                 .frame(
                     Frame::group(&egui_ctx.style())
                         .fill(Color32::from_rgba_unmultiplied(15, 15, 15, 245))
-                        .shadow(Shadow::NONE)
+                        .shadow(Shadow::NONE),
                 )
                 .show(egui_ctx, |ui| {
                     ui.vertical_centered(|ui| {
@@ -252,72 +309,72 @@ pub async fn login_screen() -> (bool, Option<String>) {
                         }
                         if error_message.is_some() {
                             ui.label(
-                                RichText::new(
-                                    format!(
-                                        "ERROR: {}",
-                                        error_message.as_ref().unwrap().to_string()
-                                    )
-                                ).color(Color32::RED)
+                                RichText::new(format!(
+                                    "ERROR: {}",
+                                    error_message.as_ref().unwrap().to_string()
+                                ))
+                                .color(Color32::RED),
                             );
                         }
                         ui.horizontal(|ui| {
                             if client_token_thread.as_ref().is_none() {
                                 if id_token.is_none() {
-                                    if
-                                        ui
-                                            .button(
-                                                RichText::new("\n    Login via Auth0    \n").size(
-                                                    24.0
-                                                )
-                                            )
-                                            .clicked()
+                                    if ui
+                                        .button(
+                                            RichText::new("\n    Login via Auth0    \n").size(24.0),
+                                        )
+                                        .clicked()
                                     {
                                         info!("CLICKED!");
-                                        client_token_thread = Some(
-                                            thread::spawn(|| {
-                                                oidc_auth_helper::get_client_token()
-                                            })
-                                        );
+                                        client_token_thread = Some(thread::spawn(|| {
+                                            oidc_auth_helper::get_client_token()
+                                        }));
                                     }
                                 }
-                                if
-                                    id_token.is_some() &&
-                                    ui
+                                if id_token.is_some()
+                                    && ui
                                         .button(
-                                            RichText::new("\n    Play via Auth0    \n").size(24.0)
+                                            RichText::new("\n    Play via Auth0    \n").size(24.0),
                                         )
                                         .clicked()
                                 {
                                     info!("CLICKED!");
-                                    break_the_loop = true;
+                                    end_loop = BreakLoop;
                                 }
                             } else {
-                                if
-                                    ui
-                                        .button(
-                                            RichText::new("\n    Login via Auth0    \n").size(24.0)
-                                        )
-                                        .clicked()
+                                if ui
+                                    .button(RichText::new("\n    Login via Auth0    \n").size(24.0))
+                                    .clicked()
                                 {
                                     info!("CLICKED again");
                                     // Ditch the value and try again.
                                     let _ = client_token_thread.take().unwrap().join();
-                                    client_token_thread = Some(
-                                        thread::spawn(|| { oidc_auth_helper::get_client_token() })
-                                    );
+                                    client_token_thread = Some(thread::spawn(|| {
+                                        oidc_auth_helper::get_client_token()
+                                    }));
                                 }
                             }
-                            if
-                                ui
-                                    .button(RichText::new("\n    Play as Guest    \n").size(24.0))
+                            if ui
+                                .button(RichText::new("\n    Play as Guest    \n").size(24.0))
+                                .clicked()
+                            {
+                                info!("CLICKED!");
+                                end_loop = BreakLoop;
+                            }
+                            if has_prior_token
+                                && ui
+                                    .button(RichText::new("\n    Continue    \n").size(24.0))
                                     .clicked()
                             {
                                 info!("CLICKED!");
-                                break_the_loop = true;
+                                end_loop = UsePriorToken;
                             }
                         });
-                        if ui.button(RichText::new("\n\t\tExit\t\t\n").size(24.0)).clicked() {
-                            quit_game = true;
+                        if ui
+                            .button(RichText::new("\t\tExit\t\t").size(24.0))
+                            .clicked()
+                        {
+                            end_loop = QuitGame;
                         }
                     })
                 });
@@ -326,17 +383,31 @@ pub async fn login_screen() -> (bool, Option<String>) {
         egui_macroquad::draw();
         next_frame().await;
 
-        if quit_game {
-            return (false, None);
-        }
-        if break_the_loop {
-            break;
+        match end_loop {
+            No => {
+                // Intentionally left blank
+            }
+            BreakLoop => break,
+            UsePriorToken => break,
+            QuitGame => return (false, None),
         }
     }
 
-    (true, id_token)
+    match end_loop {
+        UsePriorToken => {
+            let _ = creds_store().save("");
+            (true, prior_token)
+        }
+        _ => (true, id_token),
+    }
 }
 
+/// Renders the animated background for the login and EULA screens
+///
+/// Creates a space-themed background with:
+/// - Circular blue glows
+/// - Rotating ring textures that respond to mouse position
+/// - Game logo centered on screen
 fn draw_login_screen_background() {
     let menu_assets = storage::get::<MenuAssets>();
 
@@ -345,13 +416,13 @@ fn draw_login_screen_background() {
         screen_width() / 2.0,
         screen_height() / 2.0,
         (screen_height() * 2.0) / 3.0,
-        Color::from_rgba(0xbe, 0xda, 0xff, 0x11)
+        Color::from_rgba(0xbe, 0xda, 0xff, 0x11),
     );
     draw_circle(
         screen_width() / 2.0,
         screen_height() / 2.0,
         (screen_height() * 2.0) / 4.0,
-        Color::from_rgba(0xbe, 0xda, 0xff, 0x11)
+        Color::from_rgba(0xbe, 0xda, 0xff, 0x11),
     );
 
     for i in 0..3 {
@@ -371,14 +442,12 @@ fn draw_login_screen_background() {
             },
             DrawTextureParams {
                 rotation: rot * PI,
-                dest_size: Some(
-                    Vec2::new(
-                        menu_assets.rings[i].width() / 2.0,
-                        menu_assets.rings[i].height() / 2.0
-                    )
-                ),
+                dest_size: Some(Vec2::new(
+                    menu_assets.rings[i].width() / 2.0,
+                    menu_assets.rings[i].height() / 2.0,
+                )),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -386,13 +455,22 @@ fn draw_login_screen_background() {
         &menu_assets.logo,
         screen_width() / 2.0 - menu_assets.logo.width() / 2.0,
         screen_height() / 2.0 - menu_assets.logo.height() / 2.0,
-        WHITE
+        WHITE,
     );
 }
 
 // Loading Screen
 //////////
 
+/// Displays a loading screen while connecting to SpacetimeDB and loading game resources
+///
+/// Handles:
+/// 1. Establishing connection to SpacetimeDB using the provided authentication token
+/// 2. Waiting for identity verification
+/// 3. Loading game resources asynchronously
+/// 4. Displaying visual feedback during the loading process
+///
+/// Returns the database connection if successful, None if connection fails
 async fn loading_screen(token: Option<String>) -> Option<DbConnection> {
     let menu_assets = storage::get::<MenuAssets>();
 
@@ -412,21 +490,19 @@ async fn loading_screen(token: Option<String>) -> Option<DbConnection> {
                     ..Color::from_hex(0xbedaff)
                 },
                 DrawTextureParams {
-                    dest_size: Some(
-                        Vec2::new(
-                            menu_assets.rings[i].width() / 2.0,
-                            menu_assets.rings[i].height() / 2.0
-                        )
-                    ),
+                    dest_size: Some(Vec2::new(
+                        menu_assets.rings[i].width() / 2.0,
+                        menu_assets.rings[i].height() / 2.0,
+                    )),
                     ..Default::default()
-                }
+                },
             );
         }
         draw_texture(
             &menu_assets.logo,
             screen_width() / 2.0 - menu_assets.logo.width() / 2.0,
             screen_height() / 2.0 - menu_assets.logo.height() / 2.0,
-            Color { a: 0.25, ..WHITE }
+            Color { a: 0.25, ..WHITE },
         );
 
         let text = format!(
@@ -445,7 +521,10 @@ async fn loading_screen(token: Option<String>) -> Option<DbConnection> {
             }
             let cnx_time = get_time() as u64;
 
-            while connection.as_ref().is_some_and(|cnx| cnx.try_identity().is_none()) {
+            while connection
+                .as_ref()
+                .is_some_and(|cnx| cnx.try_identity().is_none())
+            {
                 if cnx_time + 10 < (get_time() as u64) {
                     return None;
                 }
@@ -455,12 +534,10 @@ async fn loading_screen(token: Option<String>) -> Option<DbConnection> {
             // TODO - if the version of this binary and the version in GlobalConfig table is different, ask the user if they want to continue.
         } else if resources_loading.is_none() {
             // Only after the connection is alive do we actually load the resources.
-            resources_loading = Some(
-                start_coroutine(async move {
-                    let resources = Resources::new().await.unwrap();
-                    storage::store(resources);
-                })
-            );
+            resources_loading = Some(start_coroutine(async move {
+                let resources = Resources::new().await.unwrap();
+                storage::store(resources);
+            }));
         }
     }
     return connection;

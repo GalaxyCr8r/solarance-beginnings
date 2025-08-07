@@ -1,4 +1,4 @@
-use spacetimedb::{ table, Identity, ReducerContext, SpacetimeType };
+use spacetimedb::{table, Identity, ReducerContext, SpacetimeType};
 use spacetimedsl::dsl;
 
 // pub mod definitions; // Definitions for initial ingested data.
@@ -27,6 +27,14 @@ pub enum FactionTier {
 pub struct Faction {
     #[primary_key]
     #[create_wrapper]
+    #[referenced_by(path = crate::types::sectors, table = star_system)]
+    #[referenced_by(path = crate::types::sectors, table = sector)]
+    #[referenced_by(path = crate::types::ships, table = ship)]
+    #[referenced_by(path = crate::types::ships, table = docked_ship)]
+    #[referenced_by(path = crate::types::stations, table = station)]
+    #[referenced_by(path = crate::types::chats, table = faction_chat_message)]
+    #[referenced_by(path = crate::types::factions, table = faction_standing)]
+    #[referenced_by(path = crate::types::factions, table = player_faction_standing)]
     id: u32,
 
     pub name: String,
@@ -48,11 +56,13 @@ pub struct FactionStanding {
 
     #[index(btree)] // To find all players with standing for a faction
     #[use_wrapper(path = FactionId)]
+    #[foreign_key(path = crate::types::factions, table = faction_definition, column = id, on_delete = Error)]
     /// FK to FactionDefinition
     pub faction_one_id: u32,
 
     #[index(btree)] // To find all players with standing for a faction
     #[use_wrapper(path = FactionId)]
+    #[foreign_key(path = crate::types::factions, table = faction_definition, column = id, on_delete = Error)]
     /// FK to FactionDefinition
     pub faction_two_id: u32,
 
@@ -72,10 +82,12 @@ pub struct PlayerFactionStanding {
 
     #[index(btree)] // To find all standings for a player
     #[use_wrapper(path = crate::players::PlayerId)]
+    #[foreign_key(path = crate::types::players, table = player, column = id, on_delete = Delete)]
     pub player_identity: Identity,
 
     #[index(btree)] // To find all players with standing for a faction
     #[use_wrapper(path = FactionId)]
+    #[foreign_key(path = crate::types::factions, table = faction_definition, column = id, on_delete = Error)]
     /// FK to FactionDefinition
     pub faction_id: u32,
 

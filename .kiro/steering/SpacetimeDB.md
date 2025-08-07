@@ -78,7 +78,8 @@ Solarance: Beginnings is a 2D top-down space MMO built with Rust, using Spacetim
 ### Security & Access Control
 
 - Implement server-side validation in reducers
-- Use `try_server_only(ctx)?` for server-only operations
+- Use `try_server_only(ctx)?` for server-only operations (available in `server/src/types/common/utility.rs`)
+- For reducers that should only be called by the server, add `try_server_only(ctx)?;` at the beginning
 - Plan for row-level security implementation (currently disabled)
 
 ### Asset Management
@@ -97,6 +98,23 @@ pub fn create_entity(ctx: &ReducerContext, params: Type) -> Result<(), String> {
     let dsl = dsl(ctx);
     let entity = dsl.create_entity(params)?;
     spacetimedb::log::info!("Created entity #{}", entity.id);
+    Ok(())
+}
+```
+
+### Server-Only Reducers
+
+For reducers that should only be callable by the server (not by clients), use the `try_server_only` function:
+
+```rust
+use crate::types::common::utility::try_server_only;
+
+#[spacetimedb::reducer]
+pub fn server_only_operation(ctx: &ReducerContext, params: Type) -> Result<(), String> {
+    try_server_only(ctx)?; // Ensures only server can call this reducer
+
+    let dsl = dsl(ctx);
+    // Server-only logic here
     Ok(())
 }
 ```

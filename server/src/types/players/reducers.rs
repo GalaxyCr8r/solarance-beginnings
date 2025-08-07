@@ -1,16 +1,17 @@
 use log::info;
-use spacetimedb::{ Identity, ReducerContext };
-use spacetimedsl::{ dsl, Wrapper };
+use spacetimedb::{Identity, ReducerContext};
+use spacetimedsl::{dsl, Wrapper};
 
 use crate::types::{
     chats::*,
-    items::{ definitions::*, utility::*, * },
-    players::{ timers::*, utility::get_username },
-    ships::{ timers::*, utility::* },
+    items::{definitions::*, utility::*, *},
+    players::{timers::*, utility::get_username},
+    server_messages::utility::send_error_message,
+    ships::{timers::*, utility::*},
 };
 
-use crate::{ players::*, sectors::* };
-use crate::stellarobjects::{ reducers::*, utility::* };
+use crate::stellarobjects::{reducers::*, utility::*};
+use crate::{players::*, sectors::*};
 
 //////////////////////////////////////////////////////////////
 // Reducers ///
@@ -22,11 +23,25 @@ use crate::stellarobjects::{ reducers::*, utility::* };
 pub fn register_playername(
     ctx: &ReducerContext,
     identity: Identity,
-    username: String
+    username: String,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
     if dsl.get_player_by_username(&username).is_ok() {
+        let player_id = PlayerId::new(identity);
+        let error_message = format!(
+            "Username '{}' is already taken. Please choose a different username.",
+            username
+        );
+
+        // Send server message for error feedback
+        send_error_message(
+            ctx,
+            &player_id,
+            error_message.clone(),
+            Some("Player Registration"),
+        )?;
+
         return Err("Username already taken!".to_string());
     }
 
@@ -43,23 +58,26 @@ pub fn register_playername(
 pub fn create_player_controlled_ship(
     ctx: &ReducerContext,
     identity: Identity,
-    username: String // TODO ReMOVE
+    username: String, // TODO ReMOVE
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
     let player = PlayerId::new(identity);
 
     if dsl.get_player_by_id(&player).is_err() {
+        let error_message = "You must register a username before creating a ship. Please use the registration system first.".to_string();
+
+        // Send server message for error feedback
+        send_error_message(ctx, &player, error_message.clone(), Some("Ship Creation"))?;
+
         return Err("Client hasn't created a username yet!".to_string());
     }
 
-    if
-        let Ok(sobj) = create_sobj_internal(
-            ctx,
-            StellarObjectKinds::Ship,
-            &SectorId::new(0), // TODO: Make this the proper sector id!
-            StellarObjectTransformInternal::default().from_xy(64.0, 64.0)
-        )
-    {
+    if let Ok(sobj) = create_sobj_internal(
+        ctx,
+        StellarObjectKinds::Ship,
+        &SectorId::new(0), // TODO: Make this the proper sector id!
+        StellarObjectTransformInternal::default().from_xy(64.0, 64.0),
+    ) {
         let _ = create_sobj_player_window_for(ctx, identity, sobj.get_id())?;
         initialize_player_controller(ctx, &player, &sobj)?;
 
@@ -72,7 +90,7 @@ pub fn create_player_controlled_ship(
             &ship.get_id(),
             &get_item_definition(ctx, ITEM_FOOD_RATIONS)?,
             3,
-            false
+            false,
         )?;
         let _ = attempt_to_load_cargo_into_ship(
             ctx,
@@ -80,20 +98,25 @@ pub fn create_player_controlled_ship(
             &ship.get_id(),
             &get_item_definition(ctx, ITEM_ENERGY_CELL)?,
             5,
-            false
+            false,
         )?;
 
         dsl.create_ship_equipment_slot(
             &ship.get_id(),
             EquipmentSlotType::MiningLaser,
             0,
-            ItemDefinitionId::new(SMOD_BASIC_MINING_LASER)
+            ItemDefinitionId::new(SMOD_BASIC_MINING_LASER),
         )?;
 
         info!("Successfully created ship!");
         send_global_chat(ctx, format!("{} has created a ship!", username))?;
         Ok(())
     } else {
+        let error_message = "Failed to create ship due to a system error. Please try again or contact support if the problem persists.".to_string();
+
+        // Send server message for error feedback
+        send_error_message(ctx, &player, error_message.clone(), Some("Ship Creation"))?;
+
         Err("Failed to create ship!".to_string())
     }
 }
@@ -102,7 +125,7 @@ pub fn create_player_controlled_ship(
 #[spacetimedb::reducer]
 pub fn update_player_controller(
     ctx: &ReducerContext,
-    controller: PlayerShipController
+    controller: PlayerShipController,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
@@ -125,9 +148,9 @@ pub fn update_player_controller(
             "Player {} no longer mining, removing mining timers.",
             get_username(ctx, controller.id)
         );
-        for mining_timer in dsl.get_ship_mining_timers_by_ship_sobj_id(
-            previous_controller.get_stellar_object_id()
-        ) {
+        for mining_timer in
+            dsl.get_ship_mining_timers_by_ship_sobj_id(previous_controller.get_stellar_object_id())
+        {
             dsl.delete_ship_mining_timer_by_id(&mining_timer)?;
         }
     }

@@ -177,8 +177,8 @@ fn populate_sectors_with_asteroids(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    dsl.create_asteroid_sector(alpha, 1, 3000.0, Some(1000.0))?;
-    dsl.create_asteroid_sector(beta, 5, 5000.0, None)?;
+    dsl.create_asteroid_sector(alpha, 1, 25, 3000.0, Some(1000.0))?;
+    dsl.create_asteroid_sector(beta, 5, 0, 5000.0, None)?;
 
     Ok(())
 }
