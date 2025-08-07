@@ -5,8 +5,8 @@ use spacetimedb::*;
 use spacetimedsl::{dsl, Wrapper};
 
 use crate::types::{
-    asteroids::*, common::utility::try_server_only, items::utility::*, ships::utility::*,
-    stellarobjects::*,
+    asteroids::*, common::utility::try_server_only, items::utility::*,
+    server_messages::utility::send_info_message, ships::utility::*, stellarobjects::*,
 };
 
 use super::*;
@@ -203,6 +203,12 @@ pub fn ship_mining_timer_reducer(
 
         let _ = dsl.delete_stellar_object_by_id(&asteroid_object.get_id());
 
+        let _ = send_info_message(
+            ctx,
+            &ship_object.get_player_id(),
+            "Targetted asteroid exhausted!".to_string(),
+            Some("mining"),
+        );
         info!(
             "Asteroid #{:?} exhausted of resources! Timer and Asteroid deleted",
             asteroid_object.get_id()
@@ -246,6 +252,16 @@ pub fn ship_mining_timer_reducer(
             })?;
 
     if ship_status.get_energy() < &energy_consumption {
+        let _ = send_info_message(
+            ctx,
+            &ship_object.get_player_id(),
+            format!(
+                "Your ship does not have enough energy to mine. {} energy / {} required",
+                ship_status.get_energy(),
+                energy_consumption
+            ),
+            Some("mining"),
+        );
         return Err(format!(
             "Ship {:?} does not have enough energy to mine. Req: {}, Current: {}",
             ship_object.get_id(),
@@ -280,6 +296,16 @@ pub fn ship_mining_timer_reducer(
 
         timer.set_mining_progress(0.0); //timer.get_mining_progress() - diff.floor()); // Just reset it to 0 instead of letting it roll over
 
+        let _ = send_info_message(
+            ctx,
+            &ship_object.get_player_id(),
+            format!(
+                "Your ship has mined {}x of {}. Attempting to load...",
+                diff.floor() as u16,
+                item_def.get_name()
+            ),
+            Some("mining"),
+        );
         info!(
             "Ship #{:?} mined {}x of {}. Current progress to next item: {}",
             ship_object.get_id(),

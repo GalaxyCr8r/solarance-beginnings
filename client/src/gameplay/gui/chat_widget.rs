@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use egui::{Align2, Color32, Context, RichText, ScrollArea, TextStyle, Ui};
 use macroquad::prelude::*;
 use spacetimedb_sdk::{DbContext, Timestamp};
@@ -171,6 +173,7 @@ pub fn _draw_widget(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
 }
 
 pub fn draw_panel(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
+    /// Ensure that we only show sector chat if the player is actively piloting a ship in a sector.
     let sector_enabled = ctx
         .db()
         .sobj_player_window()
@@ -192,7 +195,7 @@ pub fn draw_panel(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
                 // Server tab with unread indicator (first tab)
                 let unread_count = ServerMessageUtils::get_unread_count(ctx, &ctx.identity());
                 let server_tab_text = if unread_count > 0 {
-                    format!("Server*")
+                    format!("*Server")
                 } else {
                     "Server".to_string()
                 };
@@ -243,14 +246,14 @@ pub fn draw_panel(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
         });
 
     egui::CentralPanel::default().show_inside(ui, |ui| match chat_window.selected_tab {
+        GlobalChatMessageType::Server => {
+            draw_server_messages(ctx, ui);
+        }
         GlobalChatMessageType::Global => {
             draw_global_chat(ctx, chat_window, ui);
         }
         GlobalChatMessageType::Sector => {
             draw_sector_chat(ctx, chat_window, ui);
-        }
-        GlobalChatMessageType::Server => {
-            draw_server_messages(ctx, ui);
         }
         GlobalChatMessageType::Alliance => todo!(),
         GlobalChatMessageType::Faction => todo!(),
@@ -308,7 +311,7 @@ fn draw_global_chat(ctx: &DbConnection, chat_window: &mut State, ui: &mut Ui) {
     ScrollArea::vertical()
         .auto_shrink([false, true])
         .stick_to_bottom(true)
-        .max_height(screen_height() / 4.0)
+        //.max_height(screen_height() / 4.0)
         .show_rows(
             ui,
             row_height,
@@ -348,7 +351,7 @@ fn draw_sector_chat(ctx: &DbConnection, chat_window: &mut State, ui: &mut Ui) {
     ScrollArea::vertical()
         .auto_shrink([false, true])
         .stick_to_bottom(true)
-        .max_height(screen_height() / 4.0)
+        //.max_height(screen_height() / 4.0)
         .show_rows(
             ui,
             row_height,
@@ -385,33 +388,54 @@ fn draw_server_messages(ctx: &DbConnection, ui: &mut Ui) {
     let row_height = ui.text_style_height(&text_style) * 1.5; // Slightly taller for better readability
 
     // Get server messages for the current player
-    let messages = ServerMessageUtils::get_messages_for_player(ctx, &ctx.identity());
+    let mut messages = ServerMessageUtils::get_messages_for_player(ctx, &ctx.identity());
+    messages.sort_by(|a, b| a.0.created_at.cmp(&b.0.created_at));
+
+    if ui.button("Mark all as read").clicked() {
+        messages
+            .iter()
+            .filter_map(|(m, r)| if r.read_at.is_none() { Some(m) } else { None })
+            .for_each(|m| {
+                let _ = ServerMessageUtils::mark_message_as_read(ctx, m.id);
+            });
+    }
+    ui.separator();
 
     ScrollArea::vertical()
         .auto_shrink([false, true])
         .stick_to_bottom(true)
-        .max_height(screen_height() / 4.0)
+        //.max_height(screen_height() / 4.0)
         .show_rows(ui, row_height, messages.len(), |ui, row_range| {
             let mut count = 0;
+            let mut last_timestamp = "".to_string();
             for (message, recipient) in &messages {
                 if row_range.contains(&count) {
-                    ui.horizontal(|ui| {
-                        // Unread indicator
-                        if recipient.read_at.is_none() {
-                            ui.label(RichText::new("●").color(Color32::from_rgb(255, 215, 0)));
-                        // Gold dot for unread
-                        } else {
-                            ui.label(RichText::new("○").color(Color32::GRAY)); // Gray circle for read
-                        }
-
-                        // Timestamp
-                        let timestamp_text =
-                            ServerMessageUtils::format_timestamp_short(&message.created_at);
+                    // Timestamp
+                    let timestamp_text =
+                        ServerMessageUtils::format_timestamp_short(&message.created_at);
+                    if timestamp_text.cmp(&last_timestamp) != Ordering::Equal {
                         ui.label(
                             RichText::new(format!("[{}]", timestamp_text))
                                 .color(Color32::GRAY)
                                 .size(10.0),
                         );
+                        last_timestamp = timestamp_text;
+                    }
+
+                    ui.horizontal(|ui| {
+                        // Unread indicator
+                        if recipient.read_at.is_none() {
+                            // Make the indicator clickable to mark as read
+                            if ui
+                                .label(RichText::new("!").color(Color32::from_rgb(255, 215, 0)))
+                                .clicked()
+                            {
+                                let _ = ServerMessageUtils::mark_message_as_read(ctx, message.id);
+                            }
+                        // Gold dot for unread
+                        } else {
+                            ui.label(RichText::new("○").color(Color32::GRAY)); // Gray circle for read
+                        }
 
                         // Message type prefix with color
                         let type_prefix = match message.message_type {

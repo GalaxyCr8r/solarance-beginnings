@@ -8,6 +8,7 @@ use spacetimedsl::*;
 use crate::types::{
     items::*,
     jumpgates::*,
+    server_messages::utility::send_info_message,
     ships::{timers::*, utility::*},
     stations::*,
 };
@@ -136,6 +137,16 @@ pub fn try_mining_asteroid(
             .any(|timer| timer.get_asteroid_sobj_id().value() == asteroid_sobj.get_id().value())
         {
             // Only add if there is no mining timer for this ship and asteroid.
+            let _ = send_info_message(
+                ctx,
+                &controller.get_id(),
+                format!(
+                    "Player {} started mining asteroid {:?}!",
+                    get_username(ctx, controller.id),
+                    asteroid_sobj.get_id()
+                ),
+                Some("mining"),
+            );
             info!(
                 "Player {} started mining asteroid {:?}!",
                 get_username(ctx, controller.id),

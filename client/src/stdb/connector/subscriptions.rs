@@ -143,7 +143,7 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
             "SELECT * FROM star_system",
             "SELECT * FROM star_system_object",
             "SELECT * FROM sector",
-            "SELECT * FROM asteroid_sector",
+            //"SELECT * FROM asteroid_sector",
             "SELECT * FROM ship_type_definition",
             "SELECT * FROM ship_status",
             "SELECT * FROM ship_global",

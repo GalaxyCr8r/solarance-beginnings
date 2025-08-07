@@ -6,7 +6,10 @@ use spacetimedsl::*;
 
 use crate::types::{
     items::{
-        definitions::{ITEM_IRON_ORE, ITEM_SILICON_ORE, ITEM_URANIUM_ORE, ITEM_WATER},
+        definitions::{
+            ITEM_GOLD_ORE, ITEM_ICE_ORE, ITEM_IRON_ORE, ITEM_SILICON_ORE, ITEM_URANIUM_ORE,
+            ITEM_VIVEIUM_ORE,
+        },
         ItemDefinitionId,
     },
     sectors::GetAsteroidSectorRowOptionById,
@@ -68,10 +71,25 @@ pub fn asteroid_sector_upkeep(
         };
         let pos = Vec2::from_angle(ctx.rng().gen_range(0.0..2.0 * PI)) * dist;
 
-        let item = ItemDefinitionId::new(match ctx.rng().gen_range(0..100) {
-            0..25 => ITEM_WATER,
-            25..75 => ITEM_IRON_ORE,
-            75..99 => ITEM_SILICON_ORE,
+        let roll_with_disadvantage = {
+            let a = ctx.rng().gen_range(0..100);
+            // Only ONE of the 'rolls' should be effected by rarity, so that there's always a chance for lower rarities.
+            let b = ctx
+                .rng()
+                .gen_range((*asteroid_sector.get_rarity() as i32)..100);
+            if a < b {
+                a
+            } else {
+                b
+            }
+        };
+
+        let item = ItemDefinitionId::new(match roll_with_disadvantage {
+            0..25 => ITEM_ICE_ORE,
+            25..60 => ITEM_IRON_ORE,
+            60..75 => ITEM_SILICON_ORE,
+            75..85 => ITEM_GOLD_ORE,
+            85..90 => ITEM_VIVEIUM_ORE,
             _ => ITEM_URANIUM_ORE,
         });
 

@@ -201,7 +201,7 @@ pub fn player_ship_controller_logic_upkeep(
                 // StellarObjectKinds::Ship => {
                 //     // Nothing to do.. yet
 
-                //     // Maybe implement ship scanning?
+                // TODO: Maybe implement ship scanning? Combat?
                 // }
                 StellarObjectKinds::Asteroid => {
                     try_mining_asteroid(

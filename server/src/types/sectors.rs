@@ -148,7 +148,7 @@ pub struct Sector {
 }
 
 #[dsl(plural_name = asteroid_sectors)]
-#[table(name = asteroid_sector, public)]
+#[table(name = asteroid_sector)]
 pub struct AsteroidSector {
     #[primary_key] // NOT Auto-inc so it can be reloaded as-is
     #[use_wrapper(path = SectorId)]
@@ -156,6 +156,7 @@ pub struct AsteroidSector {
     id: u64,
 
     pub sparseness: u8,             // Relative amount of asteroids to spawn
+    pub rarity: u8,                 // Skews the amount of spawned asteroids with high rarity ores
     pub cluster_extent: f32,        // How far from 0,0 can asteroids spawn
     pub cluster_inner: Option<f32>, // How far from 0,0 can asteroids NOT spawn
 }
