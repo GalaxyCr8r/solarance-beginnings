@@ -1,7 +1,5 @@
 use log::info;
 
-use crate::types::items::GetItemDefinitionRowOptionById;
-
 use super::*;
 
 /// Calculate the production output for a refinery module based on available input resources
@@ -9,7 +7,7 @@ use super::*;
 pub fn calculate_refinery_production(
     ctx: &ReducerContext,
     refinery: &Refinery,
-    time_elapsed_hours: f32,
+    _time_elapsed_hours: f32,
 ) -> Result<RefineryProductionResult, String> {
     let dsl = dsl(ctx);
 

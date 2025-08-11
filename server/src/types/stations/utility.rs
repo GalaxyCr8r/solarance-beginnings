@@ -7,7 +7,11 @@ use crate::types::{
         modules::{
             farm::{self, *},
             laboratory::{self, *},
-            manufacturing::{self, *},
+            manufacturing::{
+                self,
+                timers::{apply_manufacturing_production, calculate_manufacturing_production},
+                *,
+            },
             refinery::{self, *},
             solar_array::{self, *},
             trading_port,
@@ -16,6 +20,7 @@ use crate::types::{
     },
     stellarobjects::StellarObject,
 };
+
 use log::info;
 use spacetimedb::ScheduleAt;
 use std::time::Duration;
@@ -137,9 +142,9 @@ pub fn verify(ctx: &ReducerContext, station: Station) -> Result<(), String> {
 /// LogisticsAndStorage,
 pub fn update_logistics_and_storage(
     ctx: &ReducerContext,
-    station: &Station,
+    _station: &Station,
     module: &StationModule,
-    blueprint: &StationModuleBlueprint,
+    _blueprint: &StationModuleBlueprint,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
@@ -243,34 +248,36 @@ pub fn update_manufacturing_and_assembly(
 
     // Calculate time elapsed since last update (assuming 30 second intervals)
     let time_elapsed_seconds = 30.0; // 30 seconds
+    let manufacturing = dsl.get_manufacturing_module_by_id(module.get_id())?;
+    info!(
+        "Recipe: {:?} - Type: {:?}",
+        manufacturing
+            .get_current_recipe_id()
+            .map(|r| dsl.get_production_recipe_definition_by_id(r)),
+        blueprint.specific_type
+    );
 
     match blueprint.specific_type {
         StationModuleSpecificType::FactoryBasicComponents
         | StationModuleSpecificType::FactoryAdvancedComponents => {
             // Handle manufacturing modules
-            if let Ok(manufacturing) = dsl.get_manufacturing_module_by_id(module.get_id()) {
-                let production_result = manufacturing::timers::calculate_manufacturing_production(
-                    ctx,
-                    &manufacturing,
-                    time_elapsed_seconds,
-                )?;
+            let production_result =
+                calculate_manufacturing_production(ctx, &manufacturing, time_elapsed_seconds)?;
 
-                manufacturing::timers::apply_manufacturing_production(
-                    ctx,
-                    &manufacturing,
-                    &production_result,
-                )?;
+            info!("Production Result: {:?}", production_result);
 
-                if production_result.items_completed > 0 {
-                    spacetimedb::log::info!(
-                        "Manufacturing module {} completed {} items, progress: {:.2}",
-                        module.id,
-                        production_result.items_completed,
-                        production_result.progress_made
-                    );
-                }
+            apply_manufacturing_production(ctx, &manufacturing, &production_result)?;
+
+            if production_result.items_completed > 0 {
+                spacetimedb::log::info!(
+                    "Manufacturing module {} completed {} items, progress: {:.2}",
+                    module.id,
+                    production_result.items_completed,
+                    production_result.progress_made
+                );
             }
         }
+
         _ => {
             // Not a manufacturing/assembly module, skip
         }
@@ -327,10 +334,10 @@ pub fn update_research_and_development(
 
 /// CivilianAndSupportServices,
 pub fn update_civilian_and_support_services(
-    ctx: &ReducerContext,
-    station: &Station,
-    module: &StationModule,
-    blueprint: &StationModuleBlueprint,
+    _ctx: &ReducerContext,
+    _station: &Station,
+    _module: &StationModule,
+    _blueprint: &StationModuleBlueprint,
 ) -> Result<(), String> {
     //
     Ok(())
@@ -338,10 +345,10 @@ pub fn update_civilian_and_support_services(
 
 /// DiplomacyAndFaction,
 pub fn update_diplomacy_and_faction(
-    ctx: &ReducerContext,
-    station: &Station,
-    module: &StationModule,
-    blueprint: &StationModuleBlueprint,
+    _ctx: &ReducerContext,
+    _station: &Station,
+    _module: &StationModule,
+    _blueprint: &StationModuleBlueprint,
 ) -> Result<(), String> {
     //
     Ok(())
@@ -349,10 +356,10 @@ pub fn update_diplomacy_and_faction(
 
 /// DefenseAndMilitary,
 pub fn update_defense_and_military(
-    ctx: &ReducerContext,
-    station: &Station,
-    module: &StationModule,
-    blueprint: &StationModuleBlueprint,
+    _ctx: &ReducerContext,
+    _station: &Station,
+    _module: &StationModule,
+    _blueprint: &StationModuleBlueprint,
 ) -> Result<(), String> {
     //
     Ok(())
@@ -450,5 +457,12 @@ pub fn create_large_solar_array_module() -> ModuleCreationFn {
             false,
             solar_array::definitions::SolarArraySize::Large,
         )
+    })
+}
+
+/// Helper function to create a metal plate manufacturing module
+pub fn create_metal_plate_module() -> ModuleCreationFn {
+    Box::new(|ctx, station| {
+        manufacturing::definitions::create_metal_plate_module(ctx, station, false)
     })
 }

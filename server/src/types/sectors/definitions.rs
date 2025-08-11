@@ -216,7 +216,7 @@ fn create_beta_trading_station(
         faction_none.clone(),
         format!("{} Trading Station", beta.name).as_str(),
         None,
-        vec![create_trading_module()],
+        vec![create_trading_module(), create_metal_plate_module()],
     )?;
     Ok(())
 }
@@ -268,7 +268,7 @@ fn create_gamma_capital_station(
         faction_none.clone(),
         "Homeworld Station",
         None,
-        vec![], // No modules for this capital station yet
+        vec![create_trading_module()], // No modules for this capital station yet
     )?;
     Ok(())
 }

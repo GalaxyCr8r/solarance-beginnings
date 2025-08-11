@@ -181,7 +181,7 @@ pub fn buy_item_from_station_module(
         format!(
             "Station #{} Module #{}: Bought {}x {} for {}c.",
             station_module.station_id,
-            station_module_id,
+            station_module_id.value(),
             quantity,
             item_def.get_name(),
             total_price
@@ -334,7 +334,7 @@ pub fn sell_item_to_station_module(
         format!(
             "Station #{} Module #{}: Sold {}x {} for {}c.",
             station_module.station_id,
-            station_module_id,
+            station_module_id.value(),
             quantity,
             item_def.get_name(),
             total_price

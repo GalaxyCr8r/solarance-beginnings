@@ -222,7 +222,7 @@ fn draw_radar(
 }
 
 fn draw_hud(
-    game_state: &mut GameState<'_>,
+    _game_state: &mut GameState<'_>,
     radar_radius: f32,
     velocity: &StellarObjectVelocity,
     transform: &StellarObjectTransformHiRes,

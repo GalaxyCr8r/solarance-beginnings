@@ -176,7 +176,7 @@ fn show_station_module(
     }
 
     if ui
-        .selectable_label(selected, format!("Module #{} ({})", index, blueprint.name))
+        .selectable_label(selected, format!("#{}: {}", index, blueprint.name))
         .clicked()
     {
         game_state.out_of_play_screen.currently_selected_module =
@@ -197,6 +197,7 @@ fn show_currently_selected_module(
 
     let trading_port = ctx.db().trading_port_module().id().find(&module.id);
     let refinery = ctx.db().refinery_module().id().find(&module.id);
+    let manufacturing = ctx.db().manufacturing_module().id().find(&module.id);
 
     if trading_port.is_some() {
         ui.label("Trading Port Module connection established.");
@@ -204,6 +205,39 @@ fn show_currently_selected_module(
 
     if refinery.is_some() {
         ui.label("Refinery Module connection established.");
+    }
+
+    if let Some(manufacturing_module) = &manufacturing {
+        ui.label("Manufacturing Module connection established.");
+        ui.group(|ui| {
+            if let Some(recipe_id) = manufacturing_module.current_recipe_id {
+                if let Some(recipe) = ctx
+                    .db()
+                    .production_recipe_definition()
+                    .id()
+                    .find(&recipe_id)
+                {
+                    ui.label(format!("Current Recipe: {}", recipe.name));
+                    ui.label(format!(
+                        "Production Progress: {:.1}%",
+                        manufacturing_module.current_production_progress_seconds * 100.0
+                    ));
+                    if manufacturing_module.is_producing {
+                        ui.label("Status: Producing");
+                    } else {
+                        ui.label("Status: Idle");
+                    }
+                    if manufacturing_module.production_queue_count > 0 {
+                        ui.label(format!(
+                            "Queue: {} items",
+                            manufacturing_module.production_queue_count
+                        ));
+                    }
+                }
+            } else {
+                ui.label("No recipe configured.");
+            }
+        });
     }
 
     // Sort the station module inventory items by their item names
@@ -269,7 +303,6 @@ fn show_currently_selected_module(
                         ui,
                         &module,
                         &trading_port,
-                        &refinery,
                         &inventory,
                         &item_def,
                     )
@@ -286,8 +319,7 @@ fn buy_and_sell_inventory_item(
     docked_ship: &DockedShip,
     ui: &mut Ui,
     module: &StationModule,
-    trading_port: &Option<TradingPort>,
-    refinery: &Option<Refinery>,
+    _trading_port: &Option<TradingPort>,
     inventory: &StationModuleInventoryItem,
     item_def: &ItemDefinition,
 ) {
@@ -342,11 +374,9 @@ fn buy_and_sell_inventory_item(
                     .sum::<u32>()
             };
 
-            // Handling Buying only of this is a trading port or it's a refinery's raw resource item
-            let module_can_buy_from_player = trading_port.is_some()
-                || (refinery.is_some()
-                    && refinery.as_ref().unwrap().input_ore_resource_id
-                        == inventory.resource_item_id);
+            // Check if this module can buy this item from the player
+            let module_can_buy_from_player =
+                utils::module_can_buy_from_player(ctx, module, inventory.resource_item_id);
 
             ui.label(RichText::new("Sell:").strong().color(Color32::GREEN));
             if module_can_buy_from_player {
@@ -368,16 +398,9 @@ fn buy_and_sell_inventory_item(
         });
 
         ui.horizontal(|ui| {
-            // Handle Selling only if this is a trading port or it's a refinery's refined (or waste) resource item.
-            let module_can_sell_to_player = trading_port.is_some()
-                || (refinery.is_some()
-                    && ({
-                        let refinary = refinery.as_ref().unwrap();
-                        refinary.output_ingot_resource_id == inventory.resource_item_id
-                            || refinary
-                                .waste_resource_id
-                                .is_some_and(|waste_id| waste_id == inventory.resource_item_id)
-                    }));
+            // Check if this module can sell this item to the player
+            let module_can_sell_to_player =
+                utils::module_can_sell_to_player(ctx, module, inventory.resource_item_id);
             let space_available = {
                 if let Some(status) = ctx.db().ship_status().id().find(&docked_ship.id) {
                     (status.max_cargo_capacity - status.used_cargo_capacity)

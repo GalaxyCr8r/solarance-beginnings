@@ -141,16 +141,16 @@ pub fn try_mining_asteroid(
                 ctx,
                 &controller.get_id(),
                 format!(
-                    "Player {} started mining asteroid {:?}!",
+                    "Player {} started mining asteroid #{}!",
                     get_username(ctx, controller.id),
-                    asteroid_sobj.get_id()
+                    asteroid_sobj.get_id().value()
                 ),
                 Some("mining"),
             );
             info!(
-                "Player {} started mining asteroid {:?}!",
+                "Player {} started mining asteroid #{}!",
                 get_username(ctx, controller.id),
-                asteroid_sobj.get_id()
+                asteroid_sobj.get_id().value()
             );
             let _ = create_mining_timer_for_ship(
                 ctx,
