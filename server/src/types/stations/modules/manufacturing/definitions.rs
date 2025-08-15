@@ -40,7 +40,7 @@ pub fn create_basic_manufacturing_module(
     let module = dsl.create_station_module(
         station.get_id(),
         blueprint.get_id(),
-        "manufacturing",
+        "Manufacturing",
         true,
         None,
         ctx.timestamp,

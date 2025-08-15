@@ -42,6 +42,7 @@ pub fn create_trading_port_with_items(
     ctx: &ReducerContext,
     station: &Station,
     module_name: &str,
+    trading_type: u32, // e.g. defintions::MODULE_TRADING_BAZAAR
     items: &[TradingPortItemConfig],
     under_construction: bool,
 ) -> Result<(), String> {
@@ -51,9 +52,8 @@ pub fn create_trading_port_with_items(
         return Err("Stations under construction are not yet implemented".to_string());
     }
 
-    let blueprint = dsl.get_station_module_blueprint_by_id(StationModuleBlueprintId::new(
-        definitions::MODULE_TRADING_BAZAAR,
-    ))?;
+    let blueprint: StationModuleBlueprint =
+        dsl.get_station_module_blueprint_by_id(StationModuleBlueprintId::new(trading_type))?;
 
     let module = dsl.create_station_module(
         station.get_id(),
@@ -153,7 +153,14 @@ pub fn create_basic_bazaar(
         },
     ];
 
-    create_trading_port_with_items(ctx, station, "bazaar", &items, under_construction)
+    create_trading_port_with_items(
+        ctx,
+        station,
+        "bazaar",
+        definitions::MODULE_TRADING_BAZAAR,
+        &items,
+        under_construction,
+    )
 }
 
 pub fn create_rich_speciality(
@@ -200,5 +207,12 @@ pub fn create_rich_speciality(
         },
     ];
 
-    create_trading_port_with_items(ctx, station, "speciality", &items, under_construction)
+    create_trading_port_with_items(
+        ctx,
+        station,
+        "speciality",
+        definitions::MODULE_TRADING_MARKET,
+        &items,
+        under_construction,
+    )
 }

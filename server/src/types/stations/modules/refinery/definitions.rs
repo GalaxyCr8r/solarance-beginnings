@@ -21,10 +21,13 @@ pub fn create_basic_refinery_module(
     let blueprint = dsl
         .get_station_module_blueprint_by_id(StationModuleBlueprintId::new(MODULE_REFINERY_MINOR))?;
 
+    let output_item_def = dsl.get_item_definition_by_id(&output_resource)?;
+    let identifier = format!("{} Refinery", output_item_def.get_name());
+
     let module = dsl.create_station_module(
         station.get_id(),
         blueprint.get_id(),
-        "refinery", // TODO: Do we even need this field?
+        identifier.as_str(), // TODO: Do we even need this field?
         true,
         None,
         ctx.timestamp,
@@ -66,11 +69,9 @@ pub fn create_basic_refinery_module(
         0, // Initial cached price, will be updated immediately
     )?;
     // Calculate and set initial cached current price
-    if let Ok(item_def) = dsl.get_item_definition_by_id(&output_resource) {
-        let initial_price = item.calculate_current_price(&item_def);
-        item.set_cached_price(initial_price);
-        dsl.update_station_module_inventory_item_by_id(item)?;
-    }
+    let initial_price = item.calculate_current_price(&output_item_def);
+    item.set_cached_price(initial_price);
+    dsl.update_station_module_inventory_item_by_id(item)?;
 
     if let Some(waste) = waste_resource {
         let mut item = dsl.create_station_module_inventory_item(

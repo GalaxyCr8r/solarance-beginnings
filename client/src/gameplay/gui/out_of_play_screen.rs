@@ -100,8 +100,8 @@ fn show_station_window(
     station: Station,
 ) {
     egui::Window::new(format!(
-        "{} Station - Docked Ship ID {}",
-        station.name, docked_ship.id
+        "{} Station - Sector #{} - Docked Ship #{}",
+        station.name, station.sector_id, docked_ship.id
     ))
     .title_bar(true)
     .resizable(true)
@@ -114,9 +114,9 @@ fn show_station_window(
             .multiply_with_opacity(0.75),
     )
     .show(egui_ctx, |ui| {
-        ui.vertical_centered(|ui| {
-            ui.heading("Station Panel");
-        });
+        // ui.vertical_centered(|ui| {
+        //     ui.heading("Station Panel");
+        // });
 
         // Show tabs for each
         ui.horizontal(|ui| {
@@ -176,7 +176,10 @@ fn show_station_module(
     }
 
     if ui
-        .selectable_label(selected, format!("#{}: {}", index, blueprint.name))
+        .selectable_label(
+            selected,
+            format!("#{}: {}", index + 1, module.station_slot_identifier),
+        )
         .clicked()
     {
         game_state.out_of_play_screen.currently_selected_module =

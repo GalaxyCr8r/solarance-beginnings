@@ -22,11 +22,12 @@ pub fn create_basic_solar_array(
 
     let blueprint =
         dsl.get_station_module_blueprint_by_id(StationModuleBlueprintId::new(blueprint_id))?;
+    let identifier = format!("{:?} Solar Array", array_size);
 
     let module = dsl.create_station_module(
         station.get_id(),
         blueprint.get_id(),
-        "solar_array",
+        identifier.as_str(),
         true,
         None,
         ctx.timestamp,

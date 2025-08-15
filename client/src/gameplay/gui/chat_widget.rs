@@ -432,9 +432,6 @@ fn draw_server_messages(ctx: &DbConnection, ui: &mut Ui) {
                             {
                                 let _ = ServerMessageUtils::mark_message_as_read(ctx, message.id);
                             }
-                        // Gold dot for unread
-                        } else {
-                            ui.label(RichText::new("○").color(Color32::GRAY)); // Gray circle for read
                         }
 
                         // Message type prefix with color
