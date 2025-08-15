@@ -27,6 +27,10 @@ pub fn register_playername(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
+    if username.len() > 32 {
+        return Err("Username is toooooo long.".to_string());
+    }
+
     if dsl.get_player_by_username(&username).is_ok() {
         let player_id = PlayerId::new(identity);
         let error_message = format!(

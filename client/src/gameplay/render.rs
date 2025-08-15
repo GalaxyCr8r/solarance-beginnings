@@ -59,6 +59,8 @@ pub fn sector(game_state: &mut GameState) {
                 draw_asteroid(&transform, asteroid, game_state);
             } else if let Some(cargo_crate) = db.cargo_crate().sobj_id().find(&object.id) {
                 draw_crate(&transform, cargo_crate, game_state);
+            } else {
+                return; // We theorize that this is causing problems when we dock/change sectors, so return and wait for the STDB cache to be stable.
             }
             local_targets.push((object.id, transform.clone().to_vec2(), object.kind));
         } else if let Some(transform) = db.sobj_low_res_transform().id().find(&object.id) {
