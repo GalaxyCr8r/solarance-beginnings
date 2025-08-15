@@ -1,25 +1,7 @@
-use egui::{Align2, Context};
+use egui::{Align2, Context, RichText, ScrollArea};
 use spacetimedb_sdk::*;
 
 use crate::{gameplay::state::GameState, module_bindings::*, stdb::utils::*};
-
-#[derive(PartialEq)]
-enum CurrentTab {
-    Ship,
-    Cargo,
-}
-
-pub struct State {
-    current_tab: CurrentTab,
-}
-
-impl State {
-    pub fn new() -> Self {
-        State {
-            current_tab: CurrentTab::Ship,
-        }
-    }
-}
 
 pub fn draw(
     egui_ctx: &Context,
@@ -29,23 +11,116 @@ pub fn draw(
 
     egui::Window::new("Minimap")
         .title_bar(true)
-        .resizable(false)
+        .resizable(true)
         .collapsible(true)
         .movable(false)
         .anchor(Align2::RIGHT_BOTTOM, egui::Vec2::new(0.0, 0.0))
+        .default_size(egui::Vec2::new(300.0, 400.0))
         .show(egui_ctx, |ui| {
             if let Some(player_ship) = get_player_ship(ctx) {
                 if let Some(sector) = ctx.db().sector().id().find(&player_ship.sector_id) {
-                    ui.label("Current Sector:");
-                    ui.label(sector.name);
+                    ui.horizontal(|ui| {
+                        ui.heading("Current Sector:");
+                        ui.heading(RichText::new(&sector.name).strong());
+                    });
+                    ui.label("Sector Faction: n/a");
+                    ui.separator();
 
-                    // ui.separator();
-
-                    // match state.current_tab {
-                    //     CurrentTab::Ship => { todo!() },
-                    //     CurrentTab::Cargo => { todo!() },
-                    // }
+                    if let Some(mut controller) =
+                        ctx.db().player_ship_controller().id().find(&ctx.identity())
+                    {
+                        let _ = list_sector_objects(
+                            game_state,
+                            ctx,
+                            ui,
+                            sector,
+                            player_ship,
+                            &mut controller,
+                        );
+                    }
                 }
+            } else {
+                ui.label("No ship detected");
             }
         })
+}
+
+fn list_sector_objects(
+    game_state: &mut GameState<'_>,
+    ctx: &DbConnection,
+    ui: &mut egui::Ui,
+    _sector: Sector,
+    player_ship: Ship,
+    controller: &mut PlayerShipController,
+) -> std::result::Result<(), String> {
+    // Get player position for distance calculations
+    let player_sobj_id = get_player_sobj_id(ctx).ok_or("Failed to find player".to_string())?;
+    let player_transform = get_transform(ctx, player_sobj_id)?;
+    let player_pos = player_transform.to_vec2();
+
+    // Collect all stellar objects in the current sector with distances
+    let mut stellar_objects_with_distance: Vec<(StellarObject, f32)> = Vec::new();
+
+    for sobj in ctx.db().stellar_object().iter() {
+        // Skip player's own ship and objects not in current sector
+        if sobj.id == player_sobj_id || sobj.sector_id != player_ship.sector_id {
+            continue;
+        }
+
+        if let Ok(transform) = get_transform(ctx, sobj.id) {
+            let distance = player_pos.distance(transform.to_vec2());
+            stellar_objects_with_distance.push((sobj, distance));
+        }
+    }
+
+    // Sort by distance (ascending)
+    stellar_objects_with_distance
+        .sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+
+    ScrollArea::vertical()
+        .auto_shrink([false, false])
+        .max_height(200.0)
+        .show(ui, |ui| {
+            if stellar_objects_with_distance.is_empty() {
+                ui.label("No objects detected in sector");
+            } else {
+                for (sobj, distance) in stellar_objects_with_distance {
+                    let selected = controller
+                        .targetted_sobj_id
+                        .map_or(false, |sobj_id| sobj_id == sobj.id);
+
+                    ui.horizontal(|ui| {
+                        // Target button
+                        if ui.button(if selected { "X" } else { "O" }).clicked() {
+                            // Toggle target if already selected
+                            if controller.targetted_sobj_id.is_some()
+                                && controller.targetted_sobj_id.unwrap() == sobj.id
+                            {
+                                controller.targetted_sobj_id = None;
+                                game_state.current_target_sobj = None;
+                            } else {
+                                controller.targetted_sobj_id = Some(sobj.id);
+                                game_state.current_target_sobj = Some(sobj.clone());
+                            }
+                            let _ = ctx.reducers.update_player_controller(controller.clone());
+                        }
+
+                        // Object type
+                        let type_str = match sobj.kind {
+                            StellarObjectKinds::Ship => "Ship",
+                            StellarObjectKinds::Asteroid => "Asteroid",
+                            StellarObjectKinds::CargoCrate => "Cargo Crate",
+                            StellarObjectKinds::Station => "Station",
+                            StellarObjectKinds::JumpGate => "Jump Gate",
+                        };
+
+                        let text =
+                            RichText::new(format!("{} #{}: {:.0}m", type_str, sobj.id, distance));
+                        ui.label(if selected { text.strong() } else { text });
+                    });
+                }
+            }
+        });
+
+    Ok(())
 }
