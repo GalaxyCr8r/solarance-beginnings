@@ -37,9 +37,9 @@ impl From<u64> for SectorId {
     }
 }
 
-impl From<u64> for ShipGlobalId {
+impl From<u64> for Ship {
     fn from(id: u64) -> Self {
-        ShipGlobalId { value: id }
+        Ship { value: id }
     }
 }
 

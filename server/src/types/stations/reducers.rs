@@ -23,14 +23,14 @@ use super::*;
 pub fn buy_item_from_station_module(
     ctx: &ReducerContext,
     station_module_id: StationModuleId,
-    docked_ship_id: ShipGlobalId,
+    docked_ship_id: ShipId,
     item_id: ItemDefinitionId,
     quantity: u32,
 ) -> Result<(), String> {
     is_server_or_ship_owner(ctx, Some(docked_ship_id.clone()))?;
     let dsl = dsl(ctx);
 
-    let ship = dsl.get_docked_ship_by_id(&docked_ship_id)?;
+    let ship = dsl.get_ship_by_id(&docked_ship_id)?;
 
     // Validate that the docked ship is at the same station as the module
     let station_module = dsl.get_station_module_by_id(&station_module_id)?;
@@ -197,15 +197,16 @@ pub fn buy_item_from_station_module(
 pub fn sell_item_to_station_module(
     ctx: &ReducerContext,
     station_module_id: StationModuleId,
-    docked_ship_id: ShipGlobalId,
+    docked_ship_id: ShipId,
     item_id: ItemDefinitionId,
     quantity: u32,
 ) -> Result<(), String> {
     is_server_or_ship_owner(ctx, Some(docked_ship_id.clone()))?;
     let dsl = dsl(ctx);
+    let ship = dsl.get_ship_by_id(&docked_ship_id)?;
+    let station_module = dsl.get_station_module_by_id(&station_module_id)?;
 
-    let ship = dsl.get_docked_ship_by_id(&docked_ship_id)?;
-
+    // Validate that the docked ship is at the same station as the module
     info!(
         "Attempting to sell {}x {} from ship {} to trading port {}",
         quantity,
@@ -214,8 +215,6 @@ pub fn sell_item_to_station_module(
         station_module_id
     );
 
-    // Validate that the docked ship is at the same station as the module
-    let station_module = dsl.get_station_module_by_id(&station_module_id)?;
     if ship.get_station_id() != station_module.get_station_id() {
         let player_id = ship.get_player_id().clone();
         let error_message = format!(

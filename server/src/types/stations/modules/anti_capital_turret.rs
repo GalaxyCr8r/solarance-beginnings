@@ -13,7 +13,7 @@ pub struct AntiCapitalTurret {
     #[use_wrapper(path = crate::types::items::ItemDefinitionId)]
     pub weapon_core_blueprint_id: u32,
 
-    #[use_wrapper(path = ships::ShipGlobalId)]
+    #[use_wrapper(path = ships::ShipId)]
     pub current_target_ship_id: Option<u64>, // FK to ShipInstance
 
     pub can_launch_fighters: bool,

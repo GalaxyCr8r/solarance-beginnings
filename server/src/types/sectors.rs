@@ -96,7 +96,6 @@ pub struct Sector {
     #[referenced_by(path = crate::types::stellarobjects, table = stellar_object)]
     #[referenced_by(path = crate::types::asteroids, table = asteroid)]
     #[referenced_by(path = crate::types::ships, table = ship)]
-    #[referenced_by(path = crate::types::ships, table = docked_ship)]
     #[referenced_by(path = crate::types::stations, table = station)]
     #[referenced_by(path = crate::types::jumpgates, table = jump_gate)]
     #[referenced_by(path = crate::types::chats, table = sector_chat_message)]

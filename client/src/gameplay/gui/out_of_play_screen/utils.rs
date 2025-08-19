@@ -123,7 +123,7 @@ pub fn display_ship_on_tree(ctx: &DbConnection, state: &mut State, ui: &mut Ui, 
                 println!("Undock clicked for ship ID: {}", ship.id);
                 state.selected_ship = None;
                 state.currently_selected_module = None;
-                let _ = ctx.reducers().undock_ship(ShipGlobalId { value: ship.id });
+                let _ = ctx.reducers().undock_ship(Ship { value: ship.id });
                 // TODO Add a system message to alert the player if it failed.
             }
             if select_enabled && ui.button("Select").clicked() {

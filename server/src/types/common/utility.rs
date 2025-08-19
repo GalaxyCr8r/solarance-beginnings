@@ -58,7 +58,7 @@ pub fn is_server_or_sobj_owner(
 /// Checks if the context sender is the server or the owner of the given Ship.
 pub fn is_server_or_ship_owner(
     ctx: &ReducerContext,
-    ship_id: Option<ShipGlobalId>,
+    ship_id: Option<ShipId>,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
@@ -68,10 +68,6 @@ pub fn is_server_or_ship_owner(
 
     if let Some(s_id) = ship_id {
         if let Ok(ship) = dsl.get_ship_by_id(&s_id) {
-            if ship.get_player_id().value() == ctx.sender {
-                return Ok(());
-            }
-        } else if let Ok(ship) = dsl.get_docked_ship_by_id(&s_id) {
             if ship.get_player_id().value() == ctx.sender {
                 return Ok(());
             }

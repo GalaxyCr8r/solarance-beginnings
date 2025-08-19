@@ -19,7 +19,6 @@ pub struct Player {
     #[create_wrapper]
     #[referenced_by(path = crate::types::players, table = player_ship_controller)]
     #[referenced_by(path = crate::types::ships, table = ship)]
-    #[referenced_by(path = crate::types::ships, table = docked_ship)]
     #[referenced_by(path = crate::types::chats, table = global_chat_message)]
     #[referenced_by(path = crate::types::chats, table = sector_chat_message)]
     #[referenced_by(path = crate::types::chats, table = faction_chat_message)]

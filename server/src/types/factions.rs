@@ -30,7 +30,6 @@ pub struct Faction {
     #[referenced_by(path = crate::types::sectors, table = star_system)]
     #[referenced_by(path = crate::types::sectors, table = sector)]
     #[referenced_by(path = crate::types::ships, table = ship)]
-    #[referenced_by(path = crate::types::ships, table = docked_ship)]
     #[referenced_by(path = crate::types::stations, table = station)]
     #[referenced_by(path = crate::types::chats, table = faction_chat_message)]
     #[referenced_by(path = crate::types::factions, table = faction_standing)]
