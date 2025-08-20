@@ -26,6 +26,12 @@ pub fn sector(game_state: &mut GameState) {
     set_camera(&game_state.camera);
 
     let db = &game_state.ctx.db;
+
+    // Collect ships to draw after stations
+    let mut ships_to_draw: Vec<(Ship, StellarObjectTransformHiRes, ShipTypeDefinition)> =
+        Vec::new();
+
+    // First pass: Draw everything except ships
     for object in db.stellar_object().iter() {
         // Don't continue if isn't in the same sector.
         // if player_ship.as_ref().is_some_and(|ship_obj| ship_obj.sector_id != object.sector_id) {
@@ -48,7 +54,12 @@ pub fn sector(game_state: &mut GameState) {
                         player_transform = Some(transform.clone());
                         player_ship_type = Some(ship_type);
                     } else {
-                        draw_ship(&ship_object, &transform, ship_type, game_state);
+                        // Collect non-player ships to draw later
+                        ships_to_draw.push((
+                            ship_object.clone(),
+                            transform.clone(),
+                            ship_type.clone(),
+                        ));
                     }
                 }
             } else if let Some(station) = db.station().sobj_id().find(&object.id) {
@@ -69,6 +80,11 @@ pub fn sector(game_state: &mut GameState) {
         }
     }
 
+    // Second pass: Draw all non-player ships AFTER stations
+    for (ship_object, transform, ship_type) in ships_to_draw {
+        draw_ship(&ship_object, &transform, &ship_type, game_state);
+    }
+
     if let Some(controller) = db
         .player_ship_controller()
         .id()
@@ -86,7 +102,7 @@ pub fn sector(game_state: &mut GameState) {
         draw_ship(
             &player_ship.unwrap(),
             &actual_player_transform,
-            player_ship_type.unwrap(),
+            &player_ship_type.unwrap(),
             game_state,
         );
 
@@ -202,11 +218,23 @@ fn draw_radar(
         };
 
         // Actually draw the icon.
+        let radius = radar_icon_size * distance_fade;
+        if is_targetted {
+            draw_poly(
+                from.x,
+                from.y,
+                polygon_points_per_kind(kind),
+                radius * 2.0,
+                0.0,
+                Color::from_rgba(255, 255, 255, 96),
+            );
+        }
+
         draw_poly_lines(
             from.x,
             from.y,
             polygon_points_per_kind(kind),
-            (radar_icon_size * distance_fade) + 1.0,
+            radius + 1.0,
             1.0,
             thickness,
             Color::from_rgba(0, 0, 0, actual_fade),
@@ -215,7 +243,7 @@ fn draw_radar(
             from.x,
             from.y,
             polygon_points_per_kind(kind),
-            radar_icon_size * distance_fade,
+            radius,
             1.0,
             thickness,
             Color::from_rgba(255, 255, 255, actual_fade),
@@ -269,7 +297,7 @@ fn draw_hud(
 fn draw_ship(
     ship: &Ship,
     transform: &StellarObjectTransformHiRes,
-    ship_type: ShipTypeDefinition,
+    ship_type: &ShipTypeDefinition,
     game_state: &mut GameState,
 ) {
     let resources = storage::get::<Resources>();
@@ -289,7 +317,7 @@ fn draw_ship(
         );
     }
 
-    let tex = &resources.ship_textures[ship_type.gfx_key.unwrap().as_str()];
+    let tex = &resources.ship_textures[ship_type.gfx_key.clone().unwrap().as_str()];
     draw_texture_ex(
         tex,
         position.x - tex.width() * 0.5,
@@ -450,7 +478,7 @@ fn draw_station(
             let size = (tex.width() + tex.height()) * 0.33;
             draw_targeting_bracket(
                 position,
-                size,
+                size * 2.0,
                 target.kind,
                 Color::from_rgba(255, 255, 255, 200),
             );
