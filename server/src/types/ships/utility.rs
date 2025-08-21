@@ -197,7 +197,7 @@ pub fn remove_cargo_from_ship(
 /// Loads cargo into a ship's cargo hold, preferring existing cargo items.
 /// It creates new cargo items if necessary, but if it can't it will create
 /// a cargo crate instead if create_a_crate_if_failed is true and Ship
-/// points to a Ship and not a DockedShip row.
+/// points to a Ship and not a Ship row.
 pub fn attempt_to_load_cargo_into_ship(
     ctx: &ReducerContext,
     ship_status: &mut ShipStatus,
@@ -456,7 +456,7 @@ pub fn teleport_via_jumpgate(
     )
 }
 
-/// Creates the DockedShip object plus removes the Ship and StellarObject but keeps the cargo, health, etc.
+/// Creates the Ship object plus removes the Ship and StellarObject but keeps the cargo, health, etc.
 pub fn dock_to_station(
     ctx: &ReducerContext,
     ship: &Ship,
@@ -465,14 +465,16 @@ pub fn dock_to_station(
 ) -> Result<Ship, String> {
     let dsl = dsl(ctx);
 
-    // Remove Ship and StellarObject
+    // Remove the ship's StellarObject
     let _ = dsl.delete_stellar_object_by_id(ship_sobj);
-    let _ = dsl.delete_ship_by_id(ship.get_id());
 
-    // Create DockedShip object
+    // Create Ship object
     let docked = &mut ship.clone();
+    docked.set_sobj_id(StellarObjectId::new(0));
     docked.set_station_id(station.get_id());
-    dsl.update_ship_by_id(docked.clone());
+    docked.set_location(ShipLocation::Station);
+    info!("Updating docked ship's station and location");
+    let _ = dsl.update_ship_by_id(docked.clone())?;
 
     send_info_message(
         ctx,
@@ -503,8 +505,11 @@ pub fn undock_from_station(ctx: &ReducerContext, docked: Ship) -> Result<Ship, S
     )?;
 
     let ship = &mut docked.clone();
+    ship.set_sobj_id(&sobj);
     ship.set_sector_id(station.get_sector_id());
     ship.set_station_id(StationId::new(0));
+    ship.set_location(ShipLocation::Sector);
+    dsl.update_ship_by_id(ship.clone())?;
 
     // Ensure there's still a ship status timer.
     if dsl
@@ -523,7 +528,6 @@ pub fn undock_from_station(ctx: &ReducerContext, docked: Ship) -> Result<Ship, S
         return Err("Unsupported: There was an attempt to undock an NPC ship!".to_string());
     }
 
-    dsl.update_ship_by_id(ship.clone())?;
     send_info_message(
         ctx,
         &ship.get_player_id(),

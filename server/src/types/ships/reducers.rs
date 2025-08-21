@@ -113,7 +113,7 @@ pub fn teleport_to_sector(
     Ok(())
 }
 
-// /// Docks the given Ship to the given station it is docking at and returns the new DockedShip row.
+// /// Docks the given Ship to the given station it is docking at and returns the new Ship row.
 // #[spacetimedb::reducer]
 // pub fn dock_ship(
 //     ctx: &ReducerContext,
@@ -125,18 +125,18 @@ pub fn teleport_to_sector(
 //     todo!() // I don't think this is something a client can directly request? We have `dock` as a flag in the player controller.
 // }
 
-/// Undocks the given DockedShip on top of the station it was docked at and returns the new Ship row.
+/// Undocks the given Ship on top of the station it was docked at and returns the new Ship row.
 #[spacetimedb::reducer]
-pub fn undock_ship(ctx: &ReducerContext, docked_ship: Ship) -> Result<(), String> {
-    is_server_or_ship_owner(ctx, Some(docked_ship.get_id().clone()))?;
+pub fn undock_ship(ctx: &ReducerContext, ship: Ship) -> Result<(), String> {
+    is_server_or_ship_owner(ctx, Some(ship.get_id().clone()))?;
     //let dsl = dsl(ctx);
 
-    if *docked_ship.get_location() == ShipLocation::Station {
-        undock_from_station(ctx, docked_ship)?;
+    if *ship.get_location() == ShipLocation::Station {
+        undock_from_station(ctx, ship)?;
     } else {
         info!(
             "Ship {} attempting to undock is already undocked!",
-            docked_ship.get_id()
+            ship.get_id()
         );
     }
 

@@ -52,7 +52,7 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
     let ship_cargo_item_docked = format!(
         "SELECT i.* 
         FROM ship_cargo_item i
-        JOIN docked_ship s ON i.ship_id = s.id
+        JOIN ship s ON i.ship_id = s.id
         WHERE s.player_id = '{}'",
         ctx.identity()
     );
@@ -146,10 +146,8 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
             //"SELECT * FROM asteroid_sector",
             "SELECT * FROM ship_type_definition",
             "SELECT * FROM ship_status",
-            "SELECT * FROM ship_global",
             player_ship.as_str(),
             ship.as_str(),
-            "SELECT * FROM docked_ship",
             ship_cargo_item_ship.as_str(),
             ship_cargo_item_docked.as_str(),
             "SELECT * FROM ship_equipment_slot",

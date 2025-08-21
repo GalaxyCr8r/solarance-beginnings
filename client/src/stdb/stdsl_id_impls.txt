@@ -1,6 +1,6 @@
 FactionId u32
 ItemDefinitionId u32
 SectorId u64
-Ship u64
+ShipId u64
 StationModuleId u64
 StellarObjectId u64

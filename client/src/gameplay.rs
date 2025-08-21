@@ -122,7 +122,7 @@ pub async fn gameplay(connection: Option<DbConnection>) {
             if player_ship.is_none() {
                 if ctx
                     .db()
-                    .docked_ship()
+                    .ship()
                     .iter()
                     .any(|ds| ds.player_id == ctx.identity())
                 {

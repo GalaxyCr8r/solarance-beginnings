@@ -130,7 +130,7 @@ pub struct Ship {
 
     #[unique]
     #[use_wrapper(path = StellarObjectId)]
-    #[foreign_key(path = crate::types::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
+    #[foreign_key(path = crate::types::stellarobjects, table = stellar_object, column = id, on_delete = Ignore)]
     /// FK to StellarObject
     pub sobj_id: u64,
 
@@ -170,7 +170,7 @@ pub struct ShipCargoItem {
     #[index(btree)] // To query all cargo for a specific ship
     #[use_wrapper(path = ShipId)]
     #[foreign_key(path = crate::types::ships, table = ship, column = id, on_delete = Delete)]
-    /// FK to ShipGlobal
+    /// FK to Ship
     pub ship_id: u64,
 
     #[index(btree)]
@@ -194,7 +194,7 @@ pub struct ShipEquipmentSlot {
     #[index(btree)] // To query all equipment for a specific ship
     #[use_wrapper(path = ShipId)]
     #[foreign_key(path = crate::types::ships, table = ship, column = id, on_delete = Delete)]
-    /// FK to ShipGlobal
+    /// FK to Ship
     pub ship_id: u64,
 
     pub slot_type: EquipmentSlotType,

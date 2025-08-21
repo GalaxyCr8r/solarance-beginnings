@@ -23,14 +23,14 @@ use super::*;
 pub fn buy_item_from_station_module(
     ctx: &ReducerContext,
     station_module_id: StationModuleId,
-    docked_ship_id: ShipId,
+    ship_id: ShipId,
     item_id: ItemDefinitionId,
     quantity: u32,
 ) -> Result<(), String> {
-    is_server_or_ship_owner(ctx, Some(docked_ship_id.clone()))?;
+    is_server_or_ship_owner(ctx, Some(ship_id.clone()))?;
     let dsl = dsl(ctx);
 
-    let ship = dsl.get_ship_by_id(&docked_ship_id)?;
+    let ship = dsl.get_ship_by_id(&ship_id)?;
 
     // Validate that the docked ship is at the same station as the module
     let station_module = dsl.get_station_module_by_id(&station_module_id)?;
@@ -143,8 +143,8 @@ pub fn buy_item_from_station_module(
 
     if let Err(cargo_err) = attempt_to_load_cargo_into_ship(
         ctx,
-        &mut dsl.get_ship_status_by_id(&docked_ship_id)?,
-        &docked_ship_id,
+        &mut dsl.get_ship_status_by_id(&ship_id)?,
+        &ship_id,
         &item_def,
         quantity as u16,
         false,
@@ -197,13 +197,13 @@ pub fn buy_item_from_station_module(
 pub fn sell_item_to_station_module(
     ctx: &ReducerContext,
     station_module_id: StationModuleId,
-    docked_ship_id: ShipId,
+    ship_id: ShipId,
     item_id: ItemDefinitionId,
     quantity: u32,
 ) -> Result<(), String> {
-    is_server_or_ship_owner(ctx, Some(docked_ship_id.clone()))?;
+    is_server_or_ship_owner(ctx, Some(ship_id.clone()))?;
     let dsl = dsl(ctx);
-    let ship = dsl.get_ship_by_id(&docked_ship_id)?;
+    let ship = dsl.get_ship_by_id(&ship_id)?;
     let station_module = dsl.get_station_module_by_id(&station_module_id)?;
 
     // Validate that the docked ship is at the same station as the module
@@ -296,7 +296,7 @@ pub fn sell_item_to_station_module(
     //if total_price <= *station.get_credits() {
     if let Err(cargo_err) = remove_cargo_from_ship(
         ctx,
-        &mut dsl.get_ship_status_by_id(&docked_ship_id)?,
+        &mut dsl.get_ship_status_by_id(&ship_id)?,
         &item_def,
         quantity as u16,
     ) {

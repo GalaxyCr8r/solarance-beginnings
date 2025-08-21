@@ -18,6 +18,6 @@ pub struct AntiCapitalTurret {
 
     pub can_launch_fighters: bool,
     pub fighter_capacity: Option<u8>,
-    // Fighters stored here would be ShipInstances linked to this module, perhaps in a `DockedShipAtModule` table.
+    // Fighters stored here would be ShipInstances linked to this module, perhaps in a `ShipAtModule` table.
     // Ammo and fuel are in StationModuleInventoryItem.
 }
