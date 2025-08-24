@@ -57,7 +57,7 @@ pub struct StarSystem {
 
     #[index(btree)]
     #[use_wrapper(path = FactionId)]
-    #[foreign_key(path = crate::types::factions, table = faction_definition, column = id, on_delete = Error)]
+    #[foreign_key(path = crate::types::factions, table = faction, column = id, on_delete = Error)]
     /// FK to Faction, can change
     pub controlling_faction_id: u32,
     //pub discovered_by_faction_id: Option<u32>, // First faction to chart it
@@ -114,7 +114,7 @@ pub struct Sector {
 
     #[index(btree)]
     #[use_wrapper(path = FactionId)]
-    #[foreign_key(path = crate::types::factions, table = faction_definition, column = id, on_delete = Error)]
+    #[foreign_key(path = crate::types::factions, table = faction, column = id, on_delete = Error)]
     /// FK to Faction, can change
     pub controlling_faction_id: u32,
     /// 0 (lawless) to 10 (heavily policed)

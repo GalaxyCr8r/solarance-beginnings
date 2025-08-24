@@ -22,8 +22,8 @@ pub enum FactionTier {
     Squad, // e.g., local corporation, pirate clan
 }
 
-#[dsl(plural_name = faction_definitions)]
-#[table(name = faction_definition, public)]
+#[dsl(plural_name = factions)]
+#[table(name = faction, public)]
 pub struct Faction {
     #[primary_key]
     #[create_wrapper]
@@ -56,13 +56,13 @@ pub struct FactionStanding {
 
     #[index(btree)] // To find all players with standing for a faction
     #[use_wrapper(path = FactionId)]
-    #[foreign_key(path = crate::types::factions, table = faction_definition, column = id, on_delete = Error)]
+    #[foreign_key(path = crate::types::factions, table = faction, column = id, on_delete = Error)]
     /// FK to FactionDefinition
     pub faction_one_id: u32,
 
     #[index(btree)] // To find all players with standing for a faction
     #[use_wrapper(path = FactionId)]
-    #[foreign_key(path = crate::types::factions, table = faction_definition, column = id, on_delete = Error)]
+    #[foreign_key(path = crate::types::factions, table = faction, column = id, on_delete = Error)]
     /// FK to FactionDefinition
     pub faction_two_id: u32,
 
@@ -87,7 +87,7 @@ pub struct PlayerFactionStanding {
 
     #[index(btree)] // To find all players with standing for a faction
     #[use_wrapper(path = FactionId)]
-    #[foreign_key(path = crate::types::factions, table = faction_definition, column = id, on_delete = Error)]
+    #[foreign_key(path = crate::types::factions, table = faction, column = id, on_delete = Error)]
     /// FK to FactionDefinition
     pub faction_id: u32,
 

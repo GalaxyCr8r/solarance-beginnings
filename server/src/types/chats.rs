@@ -75,7 +75,7 @@ pub struct FactionChatMessage {
 
     #[index(btree)]
     #[use_wrapper(path = crate::types::factions::FactionId)]
-    #[foreign_key(path = crate::types::factions, table = faction_definition, column = id, on_delete = Error)]
+    #[foreign_key(path = crate::types::factions, table = faction, column = id, on_delete = Error)]
     /// FK to FactionDefinition
     pub faction_id: u32,
 
