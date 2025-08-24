@@ -4,6 +4,7 @@ use spacetimedsl::dsl;
 
 use crate::types::{
     common::Vec2,
+    factions::definitions::FACTION_LRAK_COMBINE,
     stations::{utility::*, StationSize},
     stellarobjects::{
         utility::create_sobj_internal, StellarObjectKinds, StellarObjectTransformInternal,
@@ -30,13 +31,13 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 //////////////////////////////////////////////////////////////
 
 fn demo_sectors(ctx: &ReducerContext) -> Result<(), String> {
-    let faction_none = FactionId::new(0);
-    let procyon = create_procyon_star_system(ctx, &faction_none)?;
-    let (alpha, beta, gamma) = create_procyon_sectors(ctx, &procyon, &faction_none)?;
+    let faction_lrak = FactionId::new(FACTION_LRAK_COMBINE);
+    let procyon = create_procyon_star_system(ctx, &faction_lrak)?;
+    let (alpha, beta, gamma) = create_procyon_sectors(ctx, &procyon, &faction_lrak)?;
 
     setup_sector_connections(ctx, &alpha, &beta, &gamma)?;
     populate_sectors_with_asteroids(ctx, &alpha, &beta)?;
-    create_sector_stations(ctx, &alpha, &beta, &gamma, &faction_none)?;
+    create_sector_stations(ctx, &alpha, &beta, &gamma, &faction_lrak)?;
 
     Ok(())
 }
@@ -44,7 +45,7 @@ fn demo_sectors(ctx: &ReducerContext) -> Result<(), String> {
 /// Creates the Procyon star system with all its celestial objects
 fn create_procyon_star_system(
     ctx: &ReducerContext,
-    faction_none: &FactionId,
+    faction_id: &FactionId,
 ) -> Result<StarSystem, String> {
     let dsl = dsl(ctx);
 
@@ -53,7 +54,7 @@ fn create_procyon_star_system(
         Vec2::new(13.0, 37.0),
         SpectralKind::G,
         5,
-        faction_none,
+        faction_id,
     )?;
 
     // Create celestial objects in the star system
@@ -102,7 +103,7 @@ fn create_procyon_star_system(
 fn create_procyon_sectors(
     ctx: &ReducerContext,
     procyon: &StarSystem,
-    faction_none: &FactionId,
+    faction_id: &FactionId,
 ) -> Result<(Sector, Sector, Sector), String> {
     let dsl = dsl(ctx);
 
@@ -111,7 +112,7 @@ fn create_procyon_sectors(
         procyon,
         "Alpha Sector",
         None,
-        faction_none,
+        faction_id,
         0,
         0.9,
         0.1,
@@ -127,7 +128,7 @@ fn create_procyon_sectors(
         procyon,
         "Beta Sector",
         None,
-        faction_none,
+        faction_id,
         0,
         0.9,
         0.1,
@@ -143,7 +144,7 @@ fn create_procyon_sectors(
         procyon,
         "Gamma Sector",
         None,
-        faction_none,
+        faction_id,
         0,
         0.9,
         0.1,
@@ -189,11 +190,11 @@ fn create_sector_stations(
     alpha: &Sector,
     beta: &Sector,
     gamma: &Sector,
-    faction_none: &FactionId,
+    faction_id: &FactionId,
 ) -> Result<(), String> {
-    create_beta_trading_station(ctx, beta, faction_none)?;
-    create_alpha_refinery_station(ctx, alpha, faction_none)?;
-    create_gamma_capital_station(ctx, gamma, faction_none)?;
+    create_beta_trading_station(ctx, beta, faction_id)?;
+    create_alpha_refinery_station(ctx, alpha, faction_id)?;
+    create_gamma_capital_station(ctx, gamma, faction_id)?;
     Ok(())
 }
 
@@ -201,7 +202,7 @@ fn create_sector_stations(
 fn create_beta_trading_station(
     ctx: &ReducerContext,
     beta: &Sector,
-    faction_none: &FactionId,
+    faction_id: &FactionId,
 ) -> Result<(), String> {
     let _station = create_station_with_modules(
         ctx,
@@ -213,7 +214,7 @@ fn create_beta_trading_station(
             &beta.get_id(),
             StellarObjectTransformInternal::default().from_xy(613.0, 1337.0),
         )?,
-        faction_none.clone(),
+        faction_id.clone(),
         format!("{} Trading Station", beta.name).as_str(),
         None,
         vec![create_trading_module(), create_metal_plate_module()],
@@ -225,7 +226,7 @@ fn create_beta_trading_station(
 fn create_alpha_refinery_station(
     ctx: &ReducerContext,
     alpha: &Sector,
-    faction_none: &FactionId,
+    faction_id: &FactionId,
 ) -> Result<(), String> {
     let _station = create_station_with_modules(
         ctx,
@@ -237,7 +238,7 @@ fn create_alpha_refinery_station(
             &alpha.get_id(),
             StellarObjectTransformInternal::default(),
         )?,
-        faction_none.clone(),
+        faction_id.clone(),
         "Tarol's Rest & Refinery Stop",
         None,
         vec![
@@ -253,9 +254,9 @@ fn create_alpha_refinery_station(
 fn create_gamma_capital_station(
     ctx: &ReducerContext,
     gamma: &Sector,
-    faction_none: &FactionId,
+    faction_id: &FactionId,
 ) -> Result<(), String> {
-    let _station = create_station_with_modules(
+    let station = create_station_with_modules(
         ctx,
         StationSize::Capital,
         gamma,
@@ -265,10 +266,17 @@ fn create_gamma_capital_station(
             &gamma.get_id(),
             StellarObjectTransformInternal::default().from_xy(455.0, -1337.0),
         )?,
-        faction_none.clone(),
-        "Homeworld Station",
+        faction_id.clone(),
+        "Homeworld City",
         None,
         vec![create_trading_module()], // No modules for this capital station yet
     )?;
+
+    let dsl = dsl(ctx);
+    let mut faction = dsl.get_faction_by_id(faction_id)?;
+    faction.set_capital_station_id(Some(station.get_id().value()));
+
+    dsl.update_faction_by_id(faction)?;
+
     Ok(())
 }

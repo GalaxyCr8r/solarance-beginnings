@@ -12,6 +12,7 @@ use crate::{gameplay::state::GameState, module_bindings::*, stdb::utils::*};
 pub struct State {
     pub text: String,
     pub error: Option<String>,
+    pub selected_faction_id: Option<u32>,
 }
 
 impl State {
@@ -19,6 +20,7 @@ impl State {
         State {
             text: "".to_string(),
             error: None,
+            selected_faction_id: None,
         }
     }
 }
@@ -120,17 +122,61 @@ fn create_player(ctx: &DbConnection, game_state: &mut GameState<'_>, ui: &mut eg
     ui.separator();
     ui.small("This will be seen by every player.");
     ui.separator();
+
     ui.horizontal(|ui| {
         ui.strong("Username:");
-
         ui.text_edit_singleline(&mut game_state.creation_window.text);
-        if ui.button("Create").clicked() || ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-            if !game_state.creation_window.text.is_empty() {
+    });
+
+    ui.separator();
+
+    // Faction selection
+    ui.strong("Select your faction:");
+    ui.small("Choose wisely - this will determine your starting relationships and opportunities.");
+
+    // Get all factions and filter to known joinable ones
+    // TODO: Update this when client bindings include the 'joinable' field
+    let known_joinable_faction_ids = vec![0, 1, 2, 3, 4]; // Factionless, Lrak, IWA, FTU, Rediar
+    let joinable_factions: Vec<_> = ctx
+        .db
+        .faction()
+        .iter()
+        .filter(|faction| known_joinable_faction_ids.contains(&faction.id))
+        .collect();
+
+    if joinable_factions.is_empty() {
+        ui.label("No factions available for selection.");
+    } else {
+        for faction in &joinable_factions {
+            let is_selected = game_state.creation_window.selected_faction_id == Some(faction.id);
+
+            if ui.selectable_label(is_selected, &faction.name).clicked() {
+                game_state.creation_window.selected_faction_id = Some(faction.id);
+            }
+
+            if is_selected {
+                ui.small(&faction.description);
+            }
+        }
+    }
+
+    ui.separator();
+
+    // Button to actually create the player.
+    let can_create = !game_state.creation_window.text.is_empty()
+        && game_state.creation_window.selected_faction_id.is_some();
+
+    ui.add_enabled_ui(can_create, |ui| {
+        if ui.button("Create").clicked()
+            || (can_create && ui.input(|i| i.key_pressed(egui::Key::Enter)))
+        {
+            if let Some(faction_id) = game_state.creation_window.selected_faction_id {
                 // Create Player
-                match ctx
-                    .reducers
-                    .register_playername(ctx.identity(), game_state.creation_window.text.clone())
-                {
+                match ctx.reducers.register_playername(
+                    ctx.identity(),
+                    game_state.creation_window.text.clone(),
+                    faction_id,
+                ) {
                     Ok(_) => {
                         game_state.creation_window.error = None;
                     }
@@ -141,4 +187,12 @@ fn create_player(ctx: &DbConnection, game_state: &mut GameState<'_>, ui: &mut eg
             }
         }
     });
+
+    if !can_create {
+        if game_state.creation_window.text.is_empty() {
+            ui.small("Please enter a username.");
+        } else if game_state.creation_window.selected_faction_id.is_none() {
+            ui.small("Please select a faction.");
+        }
+    }
 }
