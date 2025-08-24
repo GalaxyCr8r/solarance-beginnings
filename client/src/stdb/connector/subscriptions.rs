@@ -134,7 +134,6 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
             server_message_recipient.as_str(),
             "SELECT * FROM faction",
             "SELECT * FROM faction_standing",
-            "SELECT * FROM player_faction_standing",
             "SELECT * FROM item_definition",
             cargo_crate.as_str(),
             jump_gate.as_str(),

@@ -4,6 +4,7 @@ use spacetimedsl::{dsl, Wrapper};
 
 use crate::types::{
     chats::*,
+    factions::{definitions::FACTION_FACTIONLESS, FactionId},
     items::{definitions::*, utility::*, *},
     players::{timers::*, utility::get_username},
     server_messages::utility::send_error_message,
@@ -24,6 +25,7 @@ pub fn register_playername(
     ctx: &ReducerContext,
     identity: Identity,
     username: String,
+    faction_id: u32,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
@@ -49,9 +51,15 @@ pub fn register_playername(
         return Err("Username already taken!".to_string());
     }
 
-    let _player = dsl.create_player(identity, &username, 1000, true, None)?;
+    // TODO: Re-enable faction validation once client bindings are updated
+    // For now, just use the provided faction_id or default to factionless
+    let final_faction_id = if faction_id == 0 { 
+        FACTION_FACTIONLESS 
+    } else { 
+        faction_id 
+    };
 
-    // Select starting faction?
+    let _player = dsl.create_player(identity, &username, 1000, true, Some(FactionId::new(final_faction_id)))?;
 
     Ok(())
 }
@@ -65,16 +73,19 @@ pub fn create_player_controlled_ship(
     username: String, // TODO ReMOVE
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
-    let player = PlayerId::new(identity);
-
-    if dsl.get_player_by_id(&player).is_err() {
-        let error_message = "You must register a username before creating a ship. Please use the registration system first.".to_string();
-
-        // Send server message for error feedback
-        send_error_message(ctx, &player, error_message.clone(), Some("Ship Creation"))?;
-
-        return Err("Client hasn't created a username yet!".to_string());
-    }
+    let player_id = PlayerId::new(identity);
+    let player = match dsl.get_player_by_id(&player_id) {
+        Ok(p) => p,
+        Err(_) => {
+            let error_message = 
+                "You must register a username before creating a ship. Please use the registration system first.".to_string();
+    
+            // Send server message for error feedback
+            send_error_message(ctx, &player_id, error_message.clone(), Some("Ship Creation"))?;
+    
+            return Err("Client hasn't created a username yet!".to_string());
+        },
+    };
 
     if let Ok(sobj) = create_sobj_internal(
         ctx,
@@ -83,10 +94,11 @@ pub fn create_player_controlled_ship(
         StellarObjectTransformInternal::default().from_xy(64.0, 64.0),
     ) {
         let _ = create_sobj_player_window_for(ctx, identity, sobj.get_id())?;
-        initialize_player_controller(ctx, &player, &sobj)?;
+        initialize_player_controller(ctx, &player_id, &sobj)?;
 
         let ship_type = dsl.get_ship_type_definition_by_id(ShipTypeDefinitionId::new(1001))?;
-        let (ship, mut status) = create_ship_from_sobj(ctx, &ship_type, &player, &sobj)?;
+        let faction_id = player.get_faction_id().clone().unwrap_or(FactionId::new(FACTION_FACTIONLESS));
+        let (ship, mut status) = create_ship_from_sobj(ctx, &ship_type, &player_id, &faction_id, &sobj)?;
 
         let _ = attempt_to_load_cargo_into_ship(
             ctx,
@@ -119,7 +131,7 @@ pub fn create_player_controlled_ship(
         let error_message = "Failed to create ship due to a system error. Please try again or contact support if the problem persists.".to_string();
 
         // Send server message for error feedback
-        send_error_message(ctx, &player, error_message.clone(), Some("Ship Creation"))?;
+        send_error_message(ctx, &player_id, error_message.clone(), Some("Ship Creation"))?;
 
         Err("Failed to create ship!".to_string())
     }
