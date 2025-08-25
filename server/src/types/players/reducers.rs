@@ -4,7 +4,7 @@ use spacetimedsl::{dsl, Wrapper};
 
 use crate::types::{
     chats::*,
-    factions::{definitions::FACTION_FACTIONLESS, FactionId, GetFactionDefinitionRowOptionById},
+    factions::{definitions::FACTION_FACTIONLESS, FactionId},
     items::{definitions::*, utility::*, *},
     players::{timers::*, utility::get_username},
     server_messages::utility::send_error_message,
