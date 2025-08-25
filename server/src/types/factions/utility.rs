@@ -132,7 +132,6 @@ pub fn get_faction_controlled_sectors(
 /// Initializes faction timers for all existing factions
 /// Should be called during server startup
 pub fn initialize_faction_timers(ctx: &ReducerContext) -> Result<(), String> {
-    try_server_only(ctx)?;
     let dsl = dsl(ctx);
 
     info!("Initializing faction timers...");
@@ -166,8 +165,6 @@ pub fn handle_faction_ship_destroyed(
     aggressor_faction_id: Option<&FactionId>,
     destruction_sector_id: &SectorId,
 ) -> Result<(), String> {
-    try_server_only(ctx)?;
-
     let faction_id = destroyed_ship.get_faction_id();
 
     // Only react if it's a faction ship (not player-owned)
@@ -199,7 +196,6 @@ pub fn update_faction_standing(
     faction_two_id: &FactionId,
     reputation_change: i32,
 ) -> Result<(), String> {
-    try_server_only(ctx)?;
     let dsl = dsl(ctx);
 
     // Look for existing standing
