@@ -65,7 +65,7 @@ pub fn draw(
                 });
 
             egui::TopBottomPanel::bottom("bottom_chat")
-                .resizable(false)
+                .resizable(true)
                 .min_height(150.0)
                 .max_height(screen_height() / 5.0)
                 .show_inside(ui, |ui| {
@@ -100,8 +100,10 @@ fn show_station_window(
     station: Station,
 ) {
     egui::Window::new(format!(
-        "{} Station - Sector #{} - Docked Ship #{}",
-        station.name, station.sector_id, docked_ship.id
+        "{} Station - {} - Docked Ship #{}",
+        station.name,
+        get_sector_name(ctx, &station.sector_id),
+        docked_ship.id
     ))
     .title_bar(true)
     .resizable(true)
@@ -561,6 +563,7 @@ fn left_panel(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
     // Display the selected ships' details
     if let Some(ship) = game_state.out_of_play_screen.selected_ship.clone() {
         egui::TopBottomPanel::bottom("left_panel_bottom")
+            .resizable(true)
             .min_height(300.0)
             .show_inside(ui, |ui| {
                 ui.heading("Ship Details");

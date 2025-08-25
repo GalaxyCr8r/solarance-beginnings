@@ -105,7 +105,7 @@ pub fn draw(
                                         ui.label("Position: n/a");
                                     }
                                 }
-                                ui.label(format!("- Sector #{}", object.sector_id));
+                                ui.label(format!("- {}", get_sector_name(ctx, &object.sector_id)));
                             });
                         }
                     });
