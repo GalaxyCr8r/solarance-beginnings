@@ -149,6 +149,12 @@ pub async fn gameplay(connection: Option<DbConnection>) {
                     &mut game_state.details_window,
                     &mut game_state.details_window_open,
                 );
+                gui::faction_window::draw(
+                    egui_ctx,
+                    &game_state.ctx,
+                    &mut game_state.faction_window,
+                    &mut game_state.faction_window_open,
+                );
                 gui::map_window::draw(
                     egui_ctx,
                     &ctx,
