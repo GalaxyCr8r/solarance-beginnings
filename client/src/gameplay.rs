@@ -143,6 +143,12 @@ pub async fn gameplay(connection: Option<DbConnection>) {
                 gui::menu_bar_widget::draw(egui_ctx, &ctx, &mut game_state);
 
                 // Windows
+                gui::assets_window::draw(
+                    egui_ctx,
+                    &game_state.ctx,
+                    &mut game_state.assets_window,
+                    &mut game_state.assets_window_open,
+                );
                 gui::ship_details_window::draw(
                     egui_ctx,
                     &game_state.ctx,

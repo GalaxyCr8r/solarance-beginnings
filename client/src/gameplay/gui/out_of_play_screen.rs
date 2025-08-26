@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use egui::{Align, Color32, Context, Frame, Layout, Rangef, RichText, Shadow, Ui};
+use egui::{Color32, Context, Frame, Rangef, RichText, Shadow, Ui};
 use macroquad::prelude::*;
 use spacetimedb_sdk::{DbContext, Table};
 
@@ -8,7 +8,10 @@ pub mod utils;
 
 use crate::{
     gameplay::{
-        gui::{out_of_play_screen::utils::*, ship_details_window::show_docked_ship_details},
+        gui::{
+            asset_utils::display_sectors_with_ships, out_of_play_screen::utils::*,
+            ship_details_window::show_docked_ship_details,
+        },
         state::GameState,
     },
     module_bindings::*,
@@ -40,6 +43,23 @@ impl State {
             selected_ship: None,
             buy_sell_scalars: HashMap::new(),
         }
+    }
+}
+
+impl crate::gameplay::gui::asset_utils::ShipTreeHandler for State {
+    fn is_ship_selected(&self, ship: &DockedShip) -> bool {
+        self.selected_ship
+            .as_ref()
+            .map_or(false, |selected| selected.id == ship.id)
+    }
+
+    fn select_ship(&mut self, ship: &DockedShip) {
+        self.selected_ship = Some(ship.clone());
+    }
+
+    fn deselect_ship(&mut self) {
+        self.selected_ship = None;
+        self.currently_selected_module = None;
     }
 }
 
@@ -602,36 +622,4 @@ fn left_panel(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
             });
         }
     });
-}
-
-fn display_sectors_with_ships(
-    ctx: &DbConnection,
-    sectors_with_ships: &Vec<(Sector, Vec<DockedShip>)>,
-    ui: &mut Ui,
-    state: &mut State,
-) {
-    if sectors_with_ships.is_empty() {
-        ui.label("(No sectors with your docked ships in this system)");
-    } else {
-        for (sector, docked_ships_in_sector) in sectors_with_ships {
-            egui::collapsing_header::CollapsingState::load_with_default_open(
-                ui.ctx(),
-                ui.make_persistent_id(format!("sector_{}", sector.id)),
-                true, // Default open state
-            )
-            .show_header(ui, |ui| {
-                ui.label(format!("  Sector: {} (ID: {})", sector.name, sector.id));
-            })
-            .body(|ui| {
-                if docked_ships_in_sector.is_empty() {
-                    // This case should ideally not happen if collect_docked_ships_per_sector only includes sectors with ships
-                    ui.label("    (No docked ships - unexpected)");
-                } else {
-                    for ship in docked_ships_in_sector {
-                        display_ship_on_tree(ctx, state, ui, ship);
-                    }
-                }
-            });
-        }
-    }
 }

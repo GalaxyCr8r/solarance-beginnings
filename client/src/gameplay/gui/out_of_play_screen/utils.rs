@@ -92,52 +92,6 @@ pub fn module_can_sell_to_player(ctx: &DbConnection, module: &StationModule, ite
     false
 }
 
-pub fn display_ship_on_tree(ctx: &DbConnection, state: &mut State, ui: &mut Ui, ship: &DockedShip) {
-    let ship_type = ctx.db().ship_type_definition().id().find(&ship.shiptype_id);
-
-    let mut select_enabled = true;
-    if state
-        .selected_ship
-        .clone()
-        .is_some_and(|selected| selected.id == ship.id)
-    {
-        select_enabled = false;
-    }
-
-    ui.horizontal(|ui| {
-        // You can make ships collapsible too, or just list them
-        ui.label(format!(
-            "    - Ship: {} (ID: {})",
-            if ship_type.is_some() {
-                ship_type.unwrap().name
-            } else {
-                "Unknown Ship Type".to_string()
-            },
-            ship.id
-        ));
-
-        // Buttons on the right
-        ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-            // Add buttons in reverse order of appearance (rightmost first)
-            if ui.button("Undock").clicked() {
-                println!("Undock clicked for ship ID: {}", ship.id);
-                state.selected_ship = None;
-                state.currently_selected_module = None;
-                let _ = ctx.reducers().undock_ship(ShipGlobalId { value: ship.id });
-                // TODO Add a system message to alert the player if it failed.
-            }
-            if select_enabled && ui.button("Select").clicked() {
-                println!("Select clicked for ship ID: {}", ship.id);
-                // Handle selection, e.g., update some state
-                // *selected_ship_id = Some(ship.id);
-                state.selected_ship = Some(ship.clone());
-            } else if !select_enabled {
-                ui.add_enabled(select_enabled, egui::Button::new("Select"));
-            }
-        });
-    });
-}
-
 pub fn collect_docked_ships_per_sector(ctx: &DbConnection) -> HashMap<u64, Vec<DockedShip>> {
     let mut docked_ships_map: HashMap<u64, Vec<DockedShip>> = HashMap::new();
 
