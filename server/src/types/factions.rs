@@ -37,6 +37,9 @@ pub struct Faction {
     //#[referenced_by(path = crate::types::factions, table = player_faction_standing)]
     id: u32,
 
+    /// The Faction ID of the parent faction, if any.
+    pub parent_id: Option<FactionId>,
+
     pub name: String,
     pub description: String,
 
