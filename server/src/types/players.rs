@@ -23,7 +23,6 @@ pub struct Player {
     #[referenced_by(path = crate::types::chats, table = sector_chat_message)]
     #[referenced_by(path = crate::types::chats, table = faction_chat_message)]
     #[referenced_by(path = crate::types::stellarobjects, table = sobj_player_window)]
-    #[referenced_by(path = crate::types::factions, table = player_faction_standing)]
     #[referenced_by(path = crate::types::server_messages, table = server_message_recipient)]
     id: Identity,
 

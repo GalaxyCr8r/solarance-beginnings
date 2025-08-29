@@ -154,7 +154,7 @@ pub struct Ship {
 
     #[index(btree)]
     #[use_wrapper(path = crate::types::factions::FactionId)]
-    #[foreign_key(path = crate::types::factions, table = faction_definition, column = id, on_delete = Error)]
+    #[foreign_key(path = crate::types::factions, table = faction, column = id, on_delete = Error)]
     /// FK to faction.id
     pub faction_id: u32,
 }

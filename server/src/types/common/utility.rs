@@ -10,7 +10,7 @@ const IS_SERVER_OR_OWNER_ERROR: &str =
 // For helper reducers that utilize several different tables
 //
 
-/// Checks if the context sender is the server
+/// Checks if the context sender is the server. ONLY for spacetimedb reducer functions!
 pub fn try_server_only(ctx: &ReducerContext) -> Result<(), String> {
     if ctx.sender == ctx.identity() {
         //log::info!("I'm a server!");
@@ -25,14 +25,7 @@ pub fn try_server_only(ctx: &ReducerContext) -> Result<(), String> {
     Err(IS_SERVER_ERROR.to_string())
 }
 
-/// Panics if the context sender is the server. To be deprecated. (NOT recommended for learn term usage)
-pub fn server_only(ctx: &ReducerContext) {
-    if let Err(e) = try_server_only(ctx) {
-        panic!("{}", e);
-    }
-}
-
-/// Checks if the context sender is the server or the owner of the given stellar object.
+/// Checks if the context sender is the server or the owner of the given stellar object. ONLY for spacetimedb reducer functions!
 pub fn is_server_or_sobj_owner(
     ctx: &ReducerContext,
     stellar_object_id: Option<StellarObjectId>,

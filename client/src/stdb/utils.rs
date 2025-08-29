@@ -31,6 +31,14 @@ pub fn get_username(ctx: &DbConnection, id: &Identity) -> String {
     }
 }
 
+pub fn get_sector_name(ctx: &DbConnection, id: &u64) -> String {
+    if let Some(sector) = ctx.db().sector().id().find(&id) {
+        sector.name
+    } else {
+        format!("Sector #{}", id)
+    }
+}
+
 pub fn get_current_player(ctx: &DbConnection) -> Option<Player> {
     get_player(&ctx.db, &ctx.identity())
 }

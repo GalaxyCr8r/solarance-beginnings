@@ -1,4 +1,4 @@
-use macroquad::{ camera::Camera2D, prelude::* };
+use macroquad::{camera::Camera2D, prelude::*};
 
 use crate::gameplay::gui::*;
 use crate::module_bindings::*;
@@ -13,9 +13,11 @@ pub struct GameState<'a> {
     pub bg_camera: Camera2D,
 
     // GUI States
+    pub assets_window: assets_window::State,
     pub chat_window: chat_widget::State,
     pub creation_window: creation_window::State,
     pub details_window: ship_details_window::State,
+    pub faction_window: faction_window::State,
     pub map_window: map_window::State,
 
     pub out_of_play_screen: out_of_play_screen::State,
@@ -48,9 +50,11 @@ pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
             h: screen_height(),
         }),
 
+        assets_window: assets_window::State::new(),
         chat_window: chat_widget::State::default(),
         creation_window: creation_window::State::new(),
         details_window: ship_details_window::State::new(),
+        faction_window: faction_window::State::new(),
         map_window: map_window::State::new(),
 
         out_of_play_screen: out_of_play_screen::State::new(),

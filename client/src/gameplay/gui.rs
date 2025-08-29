@@ -1,3 +1,4 @@
+pub mod asset_utils;
 pub mod assets_window;
 pub mod chat_widget;
 pub mod creation_window;

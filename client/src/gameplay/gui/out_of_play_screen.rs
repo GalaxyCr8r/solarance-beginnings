@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use egui::{Align, Color32, Context, Frame, Layout, Rangef, RichText, Shadow, Ui};
+use egui::{Color32, Context, Frame, Rangef, RichText, Shadow, Ui};
 use macroquad::prelude::*;
 use spacetimedb_sdk::{DbContext, Table};
 
@@ -8,7 +8,11 @@ pub mod utils;
 
 use crate::{
     gameplay::{
-        gui::{out_of_play_screen::utils::*, ship_details_window::show_ship_details},
+        gui::{
+            asset_utils::display_sectors_with_ships, out_of_play_screen::utils::*,
+            out_of_play_screen::utils::*, ship_details_window::show_docked_ship_details,
+            ship_details_window::show_ship_details,
+        },
         state::GameState,
     },
     module_bindings::*,
@@ -43,6 +47,23 @@ impl State {
     }
 }
 
+impl crate::gameplay::gui::asset_utils::ShipTreeHandler for State {
+    fn is_ship_selected(&self, ship: &DockedShip) -> bool {
+        self.selected_ship
+            .as_ref()
+            .map_or(false, |selected| selected.id == ship.id)
+    }
+
+    fn select_ship(&mut self, ship: &DockedShip) {
+        self.selected_ship = Some(ship.clone());
+    }
+
+    fn deselect_ship(&mut self) {
+        self.selected_ship = None;
+        self.currently_selected_module = None;
+    }
+}
+
 pub fn draw(
     egui_ctx: &Context,
     ctx: &DbConnection,
@@ -65,7 +86,7 @@ pub fn draw(
                 });
 
             egui::TopBottomPanel::bottom("bottom_chat")
-                .resizable(false)
+                .resizable(true)
                 .min_height(150.0)
                 .max_height(screen_height() / 5.0)
                 .show_inside(ui, |ui| {
@@ -100,8 +121,10 @@ fn show_station_window(
     station: Station,
 ) {
     egui::Window::new(format!(
-        "{} Station - Sector #{} - Docked Ship #{}",
-        station.name, station.sector_id, ship.id
+        "{} Station - {} - Docked Ship #{}",
+        station.name,
+        get_sector_name(ctx, &station.sector_id),
+        ship.id
     ))
     .title_bar(true)
     .resizable(true)
@@ -561,6 +584,7 @@ fn left_panel(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
     // Display the selected ships' details
     if let Some(ship) = game_state.out_of_play_screen.selected_ship.clone() {
         egui::TopBottomPanel::bottom("left_panel_bottom")
+            .resizable(true)
             .min_height(300.0)
             .show_inside(ui, |ui| {
                 ui.heading("Ship Details");
@@ -599,36 +623,4 @@ fn left_panel(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
             });
         }
     });
-}
-
-fn display_sectors_with_ships(
-    ctx: &DbConnection,
-    sectors_with_ships: &Vec<(Sector, Vec<Ship>)>,
-    ui: &mut Ui,
-    state: &mut State,
-) {
-    if sectors_with_ships.is_empty() {
-        ui.label("(No sectors with your docked ships in this system)");
-    } else {
-        for (sector, ships_in_sector) in sectors_with_ships {
-            egui::collapsing_header::CollapsingState::load_with_default_open(
-                ui.ctx(),
-                ui.make_persistent_id(format!("sector_{}", sector.id)),
-                true, // Default open state
-            )
-            .show_header(ui, |ui| {
-                ui.label(format!("  Sector: {} (ID: {})", sector.name, sector.id));
-            })
-            .body(|ui| {
-                if ships_in_sector.is_empty() {
-                    // This case should ideally not happen if collect_ships_per_sector only includes sectors with ships
-                    ui.label("    (No docked ships - unexpected)");
-                } else {
-                    for ship in ships_in_sector {
-                        display_ship_on_tree(ctx, state, ui, ship);
-                    }
-                }
-            });
-        }
-    }
 }
