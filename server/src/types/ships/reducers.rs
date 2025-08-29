@@ -1,6 +1,6 @@
 use crate::types::{
-    common::utility::*, server_messages::utility::send_info_message, ships::utility::*,
-    stellarobjects::*,
+    common::utility::*, players::PlayerId, server_messages::utility::send_info_message,
+    ships::utility::*, stellarobjects::*,
 };
 
 use super::*;
@@ -130,6 +130,17 @@ pub fn teleport_to_sector(
 pub fn undock_ship(ctx: &ReducerContext, docked_ship: ShipGlobalId) -> Result<(), String> {
     is_server_or_ship_owner(ctx, Some(docked_ship.clone()))?;
     let dsl = dsl(ctx);
+
+    // Exit early if the player is already controlling a ship
+    if dsl
+        .get_sobj_player_window_by_id(PlayerId::new(ctx.sender))
+        .is_ok()
+    {
+        return Err(
+            "Player requested to undock another ship, but they are already controlling one!"
+                .to_string(),
+        );
+    }
 
     if let Ok(docked) = dsl.get_docked_ship_by_id(docked_ship) {
         undock_from_station(ctx, docked)?;

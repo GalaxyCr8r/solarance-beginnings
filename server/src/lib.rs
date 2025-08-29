@@ -10,6 +10,7 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 
     asteroids::init(ctx)?;
     items::init(ctx)?;
+    factions::init(ctx)?;
     stations::init(ctx)?;
     sectors::init(ctx)?;
     server_messages::init(ctx)?;

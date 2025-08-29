@@ -35,6 +35,7 @@ pub fn create_ship_from_sobj(
     ctx: &ReducerContext,
     ship_type: &ShipTypeDefinition,
     player_id: &PlayerId,
+    faction_id: &FactionId,
     sobj: &StellarObject,
 ) -> Result<(Ship, ShipStatus), String> {
     let dsl = dsl(ctx);
@@ -47,7 +48,7 @@ pub fn create_ship_from_sobj(
         sobj,
         sobj.get_sector_id(),
         player_id,
-        FactionId::new(0),
+        faction_id,
     ) {
         Ok(ship) => {
             create_status_timer_for_ship(ctx, &ship.get_id(), &ship_type.get_id())?;
@@ -74,7 +75,8 @@ pub fn create_ship_from_sobj(
 pub fn create_ship_docked_at_station(
     ctx: &ReducerContext,
     ship_type: ShipTypeDefinition,
-    player_id: PlayerId,
+    player_id: &PlayerId,
+    faction_id: &FactionId,
     station: Station,
 ) -> Result<(DockedShip, ShipStatus), String> {
     let dsl = dsl(ctx);
@@ -86,8 +88,8 @@ pub fn create_ship_docked_at_station(
         ship_type.get_id(),
         &station,
         station.get_sector_id(),
-        &player_id,
-        FactionId::new(0),
+        player_id,
+        faction_id,
     ) {
         Ok(ship) => {
             create_status_timer_for_ship(ctx, &ship.get_id(), &ship_type.get_id())?;
@@ -99,7 +101,7 @@ pub fn create_ship_docked_at_station(
     let ship_status = dsl.create_ship_status(
         &ship_global,
         station.get_sector_id(),
-        &player_id,
+        player_id,
         ship_type.max_health as f32,
         ship_type.max_shields as f32,
         ship_type.max_energy as f32,
