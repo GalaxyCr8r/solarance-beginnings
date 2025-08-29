@@ -28,10 +28,14 @@ pub enum ShipClass {
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
 pub enum ShipLocation {
-    System,  // Interplanetary travel?
-    Sector,  // Regular flying around
-    Station, // Docked at a station
-    Ship,    // Docked at a ship
+    /// Interplanetary travel?
+    System,
+    /// Regular flying around
+    Sector,
+    /// Docked at a station
+    Station,
+    /// Docked at a ship
+    Ship,
 }
 
 // Enum for different types of equipment slots on a ship
@@ -41,7 +45,8 @@ pub enum EquipmentSlotType {
     Shield,
     Engine,
     MiningLaser,
-    Special, // For things like cloaking devices, tractor beams etc.
+    /// For things like cloaking devices, tractor beams etc.
+    Special,
     CargoExpansion,
 }
 
@@ -126,6 +131,7 @@ pub struct Ship {
     pub shiptype_id: u32,
 
     /// Where is the ship currently located? Is it docked or currently flying?
+    #[index(btree)]
     pub location: ShipLocation,
 
     #[unique]
@@ -136,10 +142,11 @@ pub struct Ship {
 
     #[index(btree)]
     #[use_wrapper(path = StationId)]
-    #[foreign_key(path = crate::types::stations, table = station, column = id, on_delete = Error)]
+    #[foreign_key(path = crate::types::stations, table = station, column = id, on_delete = SetZero)]
     /// FK to Station
-    pub station_id: u64, // TODO - STDSL doesn't allow this to be `pub station_id: Option<u64>,` for some reason.
-
+    pub station_id: u64,
+    // TODO - STDSL doesn't allow this to be `pub station_id: Option<u64>,` due to STDB not allowing optional indexes.
+    // Therefore we'll use 0 as the sentinel value for None.
     #[index(btree)]
     #[use_wrapper(path = crate::types::sectors::SectorId)]
     #[foreign_key(path = crate::types::sectors, table = sector, column = id, on_delete = Error)]

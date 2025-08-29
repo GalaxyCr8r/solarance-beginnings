@@ -492,7 +492,7 @@ pub fn dock_to_station(
     Ok(docked.clone())
 }
 
-pub fn undock_from_station(ctx: &ReducerContext, docked: Ship) -> Result<Ship, String> {
+pub fn undock_from_station(ctx: &ReducerContext, docked: &Ship) -> Result<Ship, String> {
     let dsl = dsl(ctx);
 
     let station = dsl.get_station_by_id(docked.get_station_id())?;

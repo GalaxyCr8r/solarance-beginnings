@@ -10,7 +10,6 @@ use crate::{
     gameplay::{
         gui::{
             asset_utils::display_sectors_with_ships, out_of_play_screen::utils::*,
-            out_of_play_screen::utils::*, ship_details_window::show_docked_ship_details,
             ship_details_window::show_ship_details,
         },
         state::GameState,
@@ -48,13 +47,13 @@ impl State {
 }
 
 impl crate::gameplay::gui::asset_utils::ShipTreeHandler for State {
-    fn is_ship_selected(&self, ship: &DockedShip) -> bool {
+    fn is_ship_selected(&self, ship: &Ship) -> bool {
         self.selected_ship
             .as_ref()
             .map_or(false, |selected| selected.id == ship.id)
     }
 
-    fn select_ship(&mut self, ship: &DockedShip) {
+    fn select_ship(&mut self, ship: &Ship) {
         self.selected_ship = Some(ship.clone());
     }
 

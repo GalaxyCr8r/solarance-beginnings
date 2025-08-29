@@ -129,6 +129,7 @@ pub fn teleport_to_sector(
 #[spacetimedb::reducer]
 pub fn undock_ship(ctx: &ReducerContext, ship: Ship) -> Result<(), String> {
     is_server_or_ship_owner(ctx, Some(ship.get_id().clone()))?;
+    let dsl = dsl(ctx);
 
     // Exit early if the player is already controlling a ship
     if dsl
@@ -142,7 +143,7 @@ pub fn undock_ship(ctx: &ReducerContext, ship: Ship) -> Result<(), String> {
     }
 
     if *ship.get_location() == ShipLocation::Station {
-        undock_from_station(ctx, ship)?;
+        undock_from_station(ctx, &ship)?;
     } else {
         info!(
             "Ship {} attempting to undock is already undocked!",
