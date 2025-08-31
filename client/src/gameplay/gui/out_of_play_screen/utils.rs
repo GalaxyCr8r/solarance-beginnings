@@ -1,3 +1,5 @@
+use egui::{Align, Layout};
+
 use super::*;
 
 /// Check if a module can buy items from the player
@@ -92,33 +94,78 @@ pub fn module_can_sell_to_player(ctx: &DbConnection, module: &StationModule, ite
     false
 }
 
-pub fn collect_docked_ships_per_sector(ctx: &DbConnection) -> HashMap<u64, Vec<DockedShip>> {
-    let mut docked_ships_map: HashMap<u64, Vec<DockedShip>> = HashMap::new();
+pub fn display_ship_on_tree(ctx: &DbConnection, state: &mut State, ui: &mut Ui, ship: &Ship) {
+    let ship_type = ctx.db().ship_type_definition().id().find(&ship.shiptype_id);
 
-    for docked_ship in ctx
+    let mut select_enabled = true;
+    if state
+        .selected_ship
+        .clone()
+        .is_some_and(|selected| selected.id == ship.id)
+    {
+        select_enabled = false;
+    }
+
+    ui.horizontal(|ui| {
+        // You can make ships collapsible too, or just list them
+        ui.label(format!(
+            "    - Ship: {} (ID: {})",
+            if ship_type.is_some() {
+                ship_type.unwrap().name
+            } else {
+                "Unknown Ship Type".to_string()
+            },
+            ship.id
+        ));
+
+        // Buttons on the right
+        ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
+            // Add buttons in reverse order of appearance (rightmost first)
+            if ui.button("Undock").clicked() {
+                println!("Undock clicked for ship ID: {}", ship.id);
+                state.selected_ship = None;
+                state.currently_selected_module = None;
+                let _ = ctx.reducers().undock_ship(ship.clone());
+                // TODO Add a system message to alert the player if it failed.
+            }
+            if select_enabled && ui.button("Select").clicked() {
+                println!("Select clicked for ship ID: {}", ship.id);
+                // Handle selection, e.g., update some state
+                // *selected_ship_id = Some(ship.id);
+                state.selected_ship = Some(ship.clone());
+            } else if !select_enabled {
+                ui.add_enabled(select_enabled, egui::Button::new("Select"));
+            }
+        });
+    });
+}
+
+pub fn collect_ships_per_sector(ctx: &DbConnection) -> HashMap<u64, Vec<Ship>> {
+    let mut ships_map: HashMap<u64, Vec<Ship>> = HashMap::new();
+
+    for ship in ctx
         .db()
-        .docked_ship() // Assuming generated table handle
+        .ship() // Assuming generated table handle
         .iter()
         .filter(|ship| ship.player_id == ctx.identity())
     {
         // sector_id is u64, which is a Copy, so no clone needed for the key.
         // Clone the ship itself to store in the Vec.
-        docked_ships_map
-            .entry(docked_ship.sector_id)
+        ships_map
+            .entry(ship.sector_id)
             .or_default()
-            .push(docked_ship.clone());
+            .push(ship.clone());
     }
-    docked_ships_map
+    ships_map
 }
 
-pub fn prepare_docked_ships_for_system_tree(
+pub fn prepare_ships_for_system_tree(
     ctx: &DbConnection,
-) -> HashMap<u32, (StarSystem, Vec<(Sector, Vec<DockedShip>)>)> {
-    let docked_ships_per_sector = collect_docked_ships_per_sector(ctx);
-    let mut systems_data: HashMap<u32, (StarSystem, Vec<(Sector, Vec<DockedShip>)>)> =
-        HashMap::new();
+) -> HashMap<u32, (StarSystem, Vec<(Sector, Vec<Ship>)>)> {
+    let ships_per_sector = collect_ships_per_sector(ctx);
+    let mut systems_data: HashMap<u32, (StarSystem, Vec<(Sector, Vec<Ship>)>)> = HashMap::new();
 
-    for (sector_id, ships_in_this_sector) in docked_ships_per_sector.iter() {
+    for (sector_id, ships_in_this_sector) in ships_per_sector.iter() {
         // Find the sector object for the current sector_id
         if let Some(sector) = ctx.db().sector().id().find(sector_id) {
             // Assuming PK on Sector is 'id'
@@ -131,7 +178,7 @@ pub fn prepare_docked_ships_for_system_tree(
                     .or_insert_with(|| (star_system.clone(), Vec::new()));
 
                 // Add the current sector and its ships to this system's list
-                // We clone ships_in_this_sector because we are borrowing it from docked_ships_per_sector
+                // We clone ships_in_this_sector because we are borrowing it from ships_per_sector
                 system_entry
                     .1
                     .push((sector.clone(), ships_in_this_sector.clone()));

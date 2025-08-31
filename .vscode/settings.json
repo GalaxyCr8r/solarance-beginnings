@@ -15,6 +15,10 @@
     {
       "folderPath": "solarance-rust-server/server/",
       "badge": "🖥️"
+    },
+    {
+      "folderPath": "solarance-beginnings-game\\client\\src\\module_bindings\\",
+      "badge": "🙈"
     }
   ]
 }

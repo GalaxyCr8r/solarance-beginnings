@@ -97,7 +97,7 @@ pub fn show_ship_details(ctx: &DbConnection, state: &mut State, ui: &mut Ui, pla
                         ctx,
                         state,
                         ship_type,
-                        ShipGlobal { id: player_ship.id },
+                        player_ship.id,
                         player_ship_status,
                     );
                 }
@@ -205,14 +205,14 @@ fn cargo_contents(
     ctx: &DbConnection,
     _state: &mut State,
     _ship_type: ShipTypeDefinition,
-    player_ship: ShipGlobal,
+    player_ship_id: u64,
     player_ship_status: ShipStatus,
 ) {
     ui.heading("Cargo Bay Contents");
     ui.separator();
     let mut total_cargo_usage = 0;
     for cargo in ctx.db().ship_cargo_item().iter() {
-        if cargo.ship_id == player_ship.id {
+        if cargo.ship_id == player_ship_id {
             // TECHNICALLY RLS should do this for us.
             if let Some(item) = ctx.db().item_definition().id().find(&cargo.item_id) {
                 total_cargo_usage += (item.volume_per_unit * cargo.quantity) as i32;
@@ -370,68 +370,4 @@ fn equipment_contents(
     ui.horizontal(|ui| {
         ui.label(format!("Slots: {} / {}", slots, max_slots));
     });
-}
-
-pub fn show_docked_ship_details(
-    ctx: &DbConnection,
-    state: &mut State,
-    ui: &mut Ui,
-    player_ship: DockedShip,
-) {
-    if let Some(player_ship_status) = ctx.db().ship_status().id().find(&player_ship.id) {
-        if let Some(ship_type) = ctx
-            .db()
-            .ship_type_definition()
-            .id()
-            .find(&player_ship.shiptype_id)
-        {
-            ui.horizontal_top(|ui| {
-                ui.selectable_value(
-                    &mut state.current_tab,
-                    CurrentTab::Ship,
-                    RichText::new("Ship").font(FontId::proportional(20.0)),
-                );
-                ui.selectable_value(
-                    &mut state.current_tab,
-                    CurrentTab::Cargo,
-                    RichText::new("Cargo").font(FontId::proportional(20.0)),
-                );
-                ui.selectable_value(
-                    &mut state.current_tab,
-                    CurrentTab::Equipment,
-                    RichText::new("Equipment").font(FontId::proportional(20.0)),
-                );
-            });
-
-            ui.separator();
-
-            egui::ScrollArea::vertical().show(ui, |ui| {
-                match state.current_tab {
-                    CurrentTab::Ship => {
-                        ship_contents(
-                            ui,
-                            ctx,
-                            state,
-                            ship_type,
-                            player_ship.id,
-                            player_ship_status,
-                        );
-                    }
-                    CurrentTab::Cargo => {
-                        cargo_contents(
-                            ui,
-                            ctx,
-                            state,
-                            ship_type,
-                            ShipGlobal { id: player_ship.id },
-                            player_ship_status,
-                        );
-                    }
-                    CurrentTab::Equipment => {
-                        //equipment_contents(ui, ctx, state, ship_type, player_ship);
-                    }
-                }
-            });
-        }
-    }
 }

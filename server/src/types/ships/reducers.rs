@@ -19,7 +19,7 @@ pub fn jettison_cargo_from_ship(
     amount: u16,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
-    let ship = dsl.get_ship_by_id(ShipGlobalId::new(ship_id))?;
+    let ship = dsl.get_ship_by_id(ShipId::new(ship_id))?;
 
     is_server_or_sobj_owner(ctx, Some(ship.get_sobj_id()))?;
 
@@ -58,7 +58,7 @@ pub fn teleport_to_sector_ids(
     ship_id: u64,
     destination_sector_id: u64,
 ) -> Result<(), String> {
-    let s_id = ShipGlobalId::new(ship_id);
+    let s_id = ShipId::new(ship_id);
     try_server_only(ctx)?;
 
     teleport_to_sector(
@@ -113,22 +113,10 @@ pub fn teleport_to_sector(
     Ok(())
 }
 
-// /// Docks the given Ship to the given station it is docking at and returns the new DockedShip row.
-// #[spacetimedb::reducer]
-// pub fn dock_ship(
-//     ctx: &ReducerContext,
-//     docking_ship: ShipGlobalId,
-//     station: StationId,
-// ) -> Result<(), String> {
-//     is_server_or_ship_owner(ctx, Some(docking_ship));
-
-//     todo!() // I don't think this is something a client can directly request? We have `dock` as a flag in the player controller.
-// }
-
-/// Undocks the given DockedShip on top of the station it was docked at and returns the new Ship row.
+/// Undocks the given Ship on top of the station it was docked at and returns the new Ship row.
 #[spacetimedb::reducer]
-pub fn undock_ship(ctx: &ReducerContext, docked_ship: ShipGlobalId) -> Result<(), String> {
-    is_server_or_ship_owner(ctx, Some(docked_ship.clone()))?;
+pub fn undock_ship(ctx: &ReducerContext, ship: Ship) -> Result<(), String> {
+    is_server_or_ship_owner(ctx, Some(ship.get_id().clone()))?;
     let dsl = dsl(ctx);
 
     // Exit early if the player is already controlling a ship
@@ -142,8 +130,13 @@ pub fn undock_ship(ctx: &ReducerContext, docked_ship: ShipGlobalId) -> Result<()
         );
     }
 
-    if let Ok(docked) = dsl.get_docked_ship_by_id(docked_ship) {
-        undock_from_station(ctx, docked)?;
+    if *ship.get_location() == ShipLocation::Station {
+        undock_from_station(ctx, &ship)?;
+    } else {
+        info!(
+            "Ship {} attempting to undock is already undocked!",
+            ship.get_id()
+        );
     }
 
     Ok(())

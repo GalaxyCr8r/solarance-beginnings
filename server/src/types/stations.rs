@@ -211,7 +211,7 @@ pub struct Station {
     #[referenced_by(path = crate::types::stations, table = station_under_construction)]
     #[referenced_by(path = crate::types::stations, table = station_module_under_construction)]
     #[referenced_by(path = crate::types::stations, table = station_status)]
-    #[referenced_by(path = crate::types::ships, table = docked_ship)]
+    #[referenced_by(path = crate::types::ships, table = ship)]
     id: u64,
 
     #[index(btree)]

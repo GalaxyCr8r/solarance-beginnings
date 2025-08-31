@@ -98,15 +98,21 @@ fn ship_status(ui: &mut Ui, ship_type: ShipTypeDefinition, player_ship_status: S
 
 fn ship_function_status(ctx: &DbConnection, ui: &mut Ui) {
     ui.vertical(|ui| {
-        if let Some(controller) = ctx.db().player_ship_controller().id().find(&ctx.identity()) {
+        if let Some(mut controller) = ctx.db().player_ship_controller().id().find(&ctx.identity()) {
             if controller.cargo_bay_open {
-                ui.label(RichText::new("[Z] Cargo Bay: Open").color({
-                    if now() % 1.0 < 0.45 {
-                        Color32::YELLOW
-                    } else {
-                        Color32::BLACK
-                    }
-                }));
+                if ui
+                    .button(RichText::new("[Z] Cargo Bay: Open").color({
+                        if now() % 1.0 < 0.45 {
+                            Color32::YELLOW
+                        } else {
+                            Color32::BLACK
+                        }
+                    }))
+                    .clicked()
+                {
+                    controller.cargo_bay_open = !controller.cargo_bay_open;
+                    // TODO: Fix this
+                }
             } else {
                 ui.label(RichText::new("[Z] Cargo Bay: Closed").color(Color32::DARK_GRAY));
             }

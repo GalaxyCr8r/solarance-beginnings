@@ -21,7 +21,7 @@ pub struct ShipStatusTimer {
     scheduled_at: spacetimedb::ScheduleAt,
 
     #[unique]
-    #[use_wrapper(path = ShipGlobalId)]
+    #[use_wrapper(path = ShipId)]
     /// FK to Ship
     pub ship_id: u64,
 
@@ -62,7 +62,7 @@ pub struct ShipAddCargoTimer {
     scheduled_at: spacetimedb::ScheduleAt,
 
     #[index(btree)]
-    #[use_wrapper(path = ShipGlobalId)]
+    #[use_wrapper(path = ShipId)]
     /// FK to Ship
     pub ship_id: u64,
 
@@ -87,7 +87,7 @@ pub fn init(_ctx: &ReducerContext) -> Result<(), String> {
 
 pub fn create_status_timer_for_ship(
     ctx: &ReducerContext,
-    ship_id: &ShipGlobalId,
+    ship_id: &ShipId,
     type_id: &ShipTypeDefinitionId,
 ) -> Result<ShipStatusTimer, String> {
     let dsl = dsl(ctx);
@@ -132,7 +132,7 @@ pub fn create_mining_timer_for_ship(
 
 pub fn create_timer_to_add_cargo_to_ship(
     ctx: &ReducerContext,
-    ship_id: ShipGlobalId,
+    ship_id: ShipId,
     item_id: ItemDefinitionId,
     amount: u16,
 ) -> Result<ShipAddCargoTimer, String> {

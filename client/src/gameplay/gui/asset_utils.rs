@@ -5,10 +5,10 @@ use egui::{Align, Layout, Ui};
 /// This allows different windows to implement their own ship selection logic
 pub trait ShipTreeHandler {
     /// Check if a ship is currently selected
-    fn is_ship_selected(&self, ship: &DockedShip) -> bool;
+    fn is_ship_selected(&self, ship: &Ship) -> bool;
 
     /// Handle ship selection
-    fn select_ship(&mut self, ship: &DockedShip);
+    fn select_ship(&mut self, ship: &Ship);
 
     /// Handle ship deselection (when undocking or other actions)
     fn deselect_ship(&mut self);
@@ -18,7 +18,7 @@ pub trait ShipTreeHandler {
 /// This function is used by both the out-of-play screen and the assets window
 pub fn display_sectors_with_ships<T: ShipTreeHandler>(
     ctx: &DbConnection,
-    sectors_with_ships: &Vec<(Sector, Vec<DockedShip>)>,
+    sectors_with_ships: &Vec<(Sector, Vec<Ship>)>,
     ui: &mut Ui,
     handler: &mut T,
 ) {
@@ -53,7 +53,7 @@ pub fn display_ship_on_tree<T: ShipTreeHandler>(
     ctx: &DbConnection,
     handler: &mut T,
     ui: &mut Ui,
-    ship: &DockedShip,
+    ship: &Ship,
 ) {
     let ship_type = ctx.db.ship_type_definition().id().find(&ship.shiptype_id);
     let is_selected = handler.is_ship_selected(ship);
@@ -76,7 +76,7 @@ pub fn display_ship_on_tree<T: ShipTreeHandler>(
             if ui.button("Undock").clicked() {
                 println!("Undock clicked for ship ID: {}", ship.id);
                 handler.deselect_ship();
-                let _ = ctx.reducers.undock_ship(ShipGlobalId { value: ship.id });
+                let _ = ctx.reducers.undock_ship(ship.clone());
                 // TODO Add a system message to alert the player if it failed.
             }
 

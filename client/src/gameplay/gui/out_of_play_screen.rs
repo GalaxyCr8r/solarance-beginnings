@@ -10,7 +10,7 @@ use crate::{
     gameplay::{
         gui::{
             asset_utils::display_sectors_with_ships, out_of_play_screen::utils::*,
-            ship_details_window::show_docked_ship_details,
+            ship_details_window::show_ship_details,
         },
         state::GameState,
     },
@@ -30,7 +30,7 @@ pub struct State {
     // current_tab: CurrentTab, // = CurrentTab::Ship
     // current_equipment_tab: EquipmentSlotType,
     currently_selected_module: Option<(u8, StationModule, StationModuleBlueprint)>,
-    selected_ship: Option<DockedShip>,
+    selected_ship: Option<Ship>,
 
     /// A hashmap of station module IDs + item def IDs to the currently selected buy/sell amounts.
     buy_sell_scalars: HashMap<(u64, u32), (u32, u32)>,
@@ -47,13 +47,13 @@ impl State {
 }
 
 impl crate::gameplay::gui::asset_utils::ShipTreeHandler for State {
-    fn is_ship_selected(&self, ship: &DockedShip) -> bool {
+    fn is_ship_selected(&self, ship: &Ship) -> bool {
         self.selected_ship
             .as_ref()
             .map_or(false, |selected| selected.id == ship.id)
     }
 
-    fn select_ship(&mut self, ship: &DockedShip) {
+    fn select_ship(&mut self, ship: &Ship) {
         self.selected_ship = Some(ship.clone());
     }
 
@@ -93,9 +93,9 @@ pub fn draw(
                 });
 
             if game_state.out_of_play_screen.selected_ship.is_some() {
-                if let Some(docked_ship) = game_state.out_of_play_screen.selected_ship.clone() {
-                    if let Some(station) = ctx.db().station().id().find(&docked_ship.station_id) {
-                        show_station_window(egui_ctx, ctx, game_state, docked_ship, station);
+                if let Some(ship) = game_state.out_of_play_screen.selected_ship.clone() {
+                    if let Some(station) = ctx.db().station().id().find(&ship.station_id) {
+                        show_station_window(egui_ctx, ctx, game_state, ship, station);
                     }
                 }
             }
@@ -116,14 +116,14 @@ fn show_station_window(
     egui_ctx: &Context,
     ctx: &DbConnection,
     game_state: &mut GameState<'_>,
-    docked_ship: DockedShip,
+    ship: Ship,
     station: Station,
 ) {
     egui::Window::new(format!(
         "{} Station - {} - Docked Ship #{}",
         station.name,
         get_sector_name(ctx, &station.sector_id),
-        docked_ship.id
+        ship.id
     ))
     .title_bar(true)
     .resizable(true)
@@ -172,7 +172,7 @@ fn show_station_window(
                     show_currently_selected_module(
                         ctx,
                         &mut game_state.out_of_play_screen,
-                        docked_ship,
+                        ship,
                         ui,
                         index,
                         module,
@@ -212,7 +212,7 @@ fn show_station_module(
 fn show_currently_selected_module(
     ctx: &DbConnection,
     state: &mut State,
-    docked_ship: DockedShip,
+    ship: Ship,
     ui: &mut Ui,
     index: u8,
     module: StationModule,
@@ -324,7 +324,7 @@ fn show_currently_selected_module(
                     buy_and_sell_inventory_item(
                         ctx,
                         state,
-                        &docked_ship,
+                        &ship,
                         ui,
                         &module,
                         &trading_port,
@@ -341,7 +341,7 @@ fn show_currently_selected_module(
 fn buy_and_sell_inventory_item(
     ctx: &DbConnection,
     state: &mut State,
-    docked_ship: &DockedShip,
+    ship: &Ship,
     ui: &mut Ui,
     module: &StationModule,
     _trading_port: &Option<TradingPort>,
@@ -386,7 +386,7 @@ fn buy_and_sell_inventory_item(
                     .filter(|sci| {
                         //info!("Found cargo item {} for ship {}", sci.item_id, sci.ship_id);
 
-                        sci.ship_id == docked_ship.id && sci.item_id == inventory.resource_item_id
+                        sci.ship_id == ship.id && sci.item_id == inventory.resource_item_id
                     })
                     .map(|sci| {
                         // info!(
@@ -410,7 +410,7 @@ fn buy_and_sell_inventory_item(
                     egui::Slider::new(&mut sell_scalar, 0..=players_current_amount),
                 );
                 ui.label(format!("{}c", sell_scalar * inventory.cached_price));
-                sell_item_to_station(ctx, sell_scalar, docked_ship, module, inventory, ui);
+                sell_item_to_station(ctx, sell_scalar, ship, module, inventory, ui);
 
                 if players_current_amount == 0 {
                     ui.label("You do not have any of this item.");
@@ -427,7 +427,7 @@ fn buy_and_sell_inventory_item(
             let module_can_sell_to_player =
                 utils::module_can_sell_to_player(ctx, module, inventory.resource_item_id);
             let space_available = {
-                if let Some(status) = ctx.db().ship_status().id().find(&docked_ship.id) {
+                if let Some(status) = ctx.db().ship_status().id().find(&ship.id) {
                     (status.max_cargo_capacity - status.used_cargo_capacity)
                         / item_def.volume_per_unit
                 } else {
@@ -451,7 +451,7 @@ fn buy_and_sell_inventory_item(
                     ),
                 );
                 ui.label(format!("{}c", buy_scalar * inventory.cached_price));
-                buy_item_from_station(ctx, buy_scalar, docked_ship, module, inventory, ui);
+                buy_item_from_station(ctx, buy_scalar, ship, module, inventory, ui);
 
                 if space_available == 0 {
                     ui.label("Your ship has no space for this item.");
@@ -480,7 +480,7 @@ fn buy_and_sell_inventory_item(
 fn buy_item_from_station(
     ctx: &DbConnection,
     quantity: u32,
-    docked_ship: &DockedShip,
+    ship: &Ship,
     module: &StationModule,
     inventory: &StationModuleInventoryItem,
     ui: &mut Ui,
@@ -493,7 +493,7 @@ fn buy_item_from_station(
     if ui.button("BUY").clicked() {
         if let Ok(_) = ctx.reducers.buy_item_from_station_module(
             module.id.into(),
-            docked_ship.id.into(),
+            ship.id.into(),
             inventory.resource_item_id.into(),
             quantity,
         ) {
@@ -513,7 +513,7 @@ fn buy_item_from_station(
 fn sell_item_to_station(
     ctx: &DbConnection,
     quantity: u32,
-    docked_ship: &DockedShip,
+    ship: &Ship,
     module: &StationModule,
     inventory: &StationModuleInventoryItem,
     ui: &mut Ui,
@@ -526,7 +526,7 @@ fn sell_item_to_station(
     if ui.button("SELL").clicked() {
         match ctx.reducers().sell_item_to_station_module(
             module.id.into(),
-            docked_ship.id.into(),
+            ship.id.into(),
             inventory.resource_item_id.into(),
             quantity,
         ) {
@@ -547,9 +547,9 @@ fn sell_item_to_station(
 }
 
 fn left_panel(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
-    let system_to_docked_ships_map = prepare_docked_ships_for_system_tree(ctx);
-    let mut sorted_system_to_docked_ships: Vec<_> = system_to_docked_ships_map.values().collect();
-    sorted_system_to_docked_ships.sort_by_key(|(system, _)| system.name.clone());
+    let system_to_ships_map = prepare_ships_for_system_tree(ctx);
+    let mut sorted_system_to_ships: Vec<_> = system_to_ships_map.values().collect();
+    sorted_system_to_ships.sort_by_key(|(system, _)| system.name.clone());
 
     egui::TopBottomPanel::top("left_panel_top").show_inside(ui, |ui| {
         ui.horizontal(|ui| {
@@ -565,10 +565,10 @@ fn left_panel(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
 
     // If there is no ship selected, simply pick the first one.
     if game_state.out_of_play_screen.selected_ship.is_none() {
-        let players_ships: Vec<DockedShip> = game_state
+        let players_ships: Vec<Ship> = game_state
             .ctx
             .db()
-            .docked_ship()
+            .ship()
             .iter()
             .filter(|ship| ship.player_id == ctx.identity())
             .collect();
@@ -587,7 +587,7 @@ fn left_panel(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
             .min_height(300.0)
             .show_inside(ui, |ui| {
                 ui.heading("Ship Details");
-                show_docked_ship_details(ctx, &mut game_state.details_window, ui, ship);
+                show_ship_details(ctx, &mut game_state.details_window, ui, ship);
             });
     }
 
@@ -600,7 +600,7 @@ fn left_panel(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
     ));
 
     egui::ScrollArea::vertical().show(ui, |ui| {
-        for (star_system, sectors_with_ships) in sorted_system_to_docked_ships {
+        for (star_system, sectors_with_ships) in sorted_system_to_ships {
             egui::collapsing_header::CollapsingState::load_with_default_open(
                 ui.ctx(),
                 ui.make_persistent_id(format!("system_{}", star_system.id)),

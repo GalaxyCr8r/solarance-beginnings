@@ -4,14 +4,14 @@ use spacetimedb_sdk::*;
 use crate::{
     gameplay::gui::{
         asset_utils::{display_sectors_with_ships, ShipTreeHandler},
-        out_of_play_screen::utils::prepare_docked_ships_for_system_tree,
+        out_of_play_screen::utils::prepare_ships_for_system_tree,
     },
     module_bindings::*,
     stdb::utils::*,
 };
 
 pub struct State {
-    selected_ship: Option<DockedShip>,
+    selected_ship: Option<Ship>,
 }
 
 impl State {
@@ -23,13 +23,13 @@ impl State {
 }
 
 impl ShipTreeHandler for State {
-    fn is_ship_selected(&self, ship: &DockedShip) -> bool {
+    fn is_ship_selected(&self, ship: &Ship) -> bool {
         self.selected_ship
             .as_ref()
             .map_or(false, |selected| selected.id == ship.id)
     }
 
-    fn select_ship(&mut self, ship: &DockedShip) {
+    fn select_ship(&mut self, ship: &Ship) {
         self.selected_ship = Some(ship.clone());
     }
 
@@ -67,7 +67,7 @@ pub fn draw(
             ui.heading("Docked Ships");
 
             // Prepare the system tree data
-            let system_to_docked_ships_map = prepare_docked_ships_for_system_tree(ctx);
+            let system_to_docked_ships_map = prepare_ships_for_system_tree(ctx);
             let mut sorted_system_to_docked_ships: Vec<_> =
                 system_to_docked_ships_map.values().collect();
             sorted_system_to_docked_ships.sort_by_key(|(system, _)| system.name.clone());

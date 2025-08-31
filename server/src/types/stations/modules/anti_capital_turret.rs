@@ -13,11 +13,11 @@ pub struct AntiCapitalTurret {
     #[use_wrapper(path = crate::types::items::ItemDefinitionId)]
     pub weapon_core_blueprint_id: u32,
 
-    #[use_wrapper(path = ships::ShipGlobalId)]
+    #[use_wrapper(path = ships::ShipId)]
     pub current_target_ship_id: Option<u64>, // FK to ShipInstance
 
     pub can_launch_fighters: bool,
     pub fighter_capacity: Option<u8>,
-    // Fighters stored here would be ShipInstances linked to this module, perhaps in a `DockedShipAtModule` table.
+    // Fighters stored here would be ShipInstances linked to this module, perhaps in a `ShipAtModule` table.
     // Ammo and fuel are in StationModuleInventoryItem.
 }

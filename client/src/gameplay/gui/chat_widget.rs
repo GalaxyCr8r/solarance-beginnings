@@ -173,7 +173,7 @@ pub fn _draw_widget(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
 }
 
 pub fn draw_panel(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
-    /// Ensure that we only show sector chat if the player is actively piloting a ship in a sector.
+    // Ensure that we only show sector chat if the player is actively piloting a ship in a sector.
     let sector_enabled = ctx
         .db()
         .sobj_player_window()
