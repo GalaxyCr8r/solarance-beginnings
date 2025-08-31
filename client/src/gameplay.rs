@@ -135,7 +135,7 @@ pub async fn gameplay(connection: Option<DbConnection>) {
 
             gui::debug_widget::draw(egui_ctx, &mut game_state);
 
-            if get_player(&ctx.db, &ctx.identity()).is_some() {
+            if player_ship.is_some() {
                 // Widgets
                 gui::minimap_widget::draw(egui_ctx, &mut game_state);
                 gui::chat_widget::draw(egui_ctx, &game_state.ctx, &mut game_state.chat_window);

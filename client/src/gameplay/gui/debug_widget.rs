@@ -45,15 +45,6 @@ pub fn draw(
                         }
                     } else {
                         ui.label("WARNING - The player doesn't have a SObj!");
-
-                        if ui.button("Create Ship").clicked() {
-                            info!("Creating ship");
-                            let _ = ctx.reducers.create_player_controlled_ship(
-                                ctx.identity(),
-                                game_state.chat_window.text.clone(),
-                            );
-                            game_state.chat_window.text.clear();
-                        }
                     }
                 }
                 None => {
@@ -64,17 +55,6 @@ pub fn draw(
                         ui.label("Username: ");
                         ui.text_edit_singleline(&mut game_state.chat_window.text);
                     });
-
-                    if ui.button("Create Player").clicked() && game_state.chat_window.text.len() > 1
-                    {
-                        info!("Creating player");
-                        let _ = ctx.reducers.register_playername(
-                            ctx.identity(),
-                            game_state.chat_window.text.clone(),
-                            0, // Default to factionless
-                        );
-                        //game_state.chat_window.text.clear(); // Replace later maybe?
-                    }
                 }
             }
 

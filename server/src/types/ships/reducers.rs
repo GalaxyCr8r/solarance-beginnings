@@ -113,18 +113,6 @@ pub fn teleport_to_sector(
     Ok(())
 }
 
-// /// Docks the given Ship to the given station it is docking at and returns the new Ship row.
-// #[spacetimedb::reducer]
-// pub fn dock_ship(
-//     ctx: &ReducerContext,
-//     docking_ship: Ship,
-//     station: StationId,
-// ) -> Result<(), String> {
-//     is_server_or_ship_owner(ctx, Some(docking_ship));
-
-//     todo!() // I don't think this is something a client can directly request? We have `dock` as a flag in the player controller.
-// }
-
 /// Undocks the given Ship on top of the station it was docked at and returns the new Ship row.
 #[spacetimedb::reducer]
 pub fn undock_ship(ctx: &ReducerContext, ship: Ship) -> Result<(), String> {

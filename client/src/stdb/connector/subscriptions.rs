@@ -64,11 +64,11 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
         ctx.identity()
     );
     let ship = format!(
-        "SELECT o.* 
-        FROM ship o
-        JOIN ship s ON s.sector_id = o.sector_id
-        WHERE s.player_id = '{}'",
-        ctx.identity()
+        "SELECT * from ship" // "SELECT o.*
+                             // FROM ship o
+                             // JOIN ship s ON s.sector_id = o.sector_id
+                             // WHERE s.player_id = '{}'",
+                             //ctx.identity()
     );
     let asteroid = format!(
         "SELECT a.* 

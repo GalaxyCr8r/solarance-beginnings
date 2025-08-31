@@ -137,32 +137,29 @@ pub struct Ship {
     #[unique]
     #[use_wrapper(path = StellarObjectId)]
     #[foreign_key(path = crate::types::stellarobjects, table = stellar_object, column = id, on_delete = Ignore)]
-    /// FK to StellarObject
     pub sobj_id: u64,
 
     #[index(btree)]
     #[use_wrapper(path = StationId)]
     #[foreign_key(path = crate::types::stations, table = station, column = id, on_delete = SetZero)]
-    /// FK to Station
+    /// TODO - STDSL doesn't allow this to be `pub station_id: Option<u64>,` due to STDB not allowing optional indexes.
+    /// Therefore we'll use 0 as the sentinel value for None.
     pub station_id: u64,
-    // TODO - STDSL doesn't allow this to be `pub station_id: Option<u64>,` due to STDB not allowing optional indexes.
-    // Therefore we'll use 0 as the sentinel value for None.
+
     #[index(btree)]
     #[use_wrapper(path = crate::types::sectors::SectorId)]
     #[foreign_key(path = crate::types::sectors, table = sector, column = id, on_delete = Error)]
-    /// FK to Sector ID - Only because actually referencing the player's stellar object would require three table hits.
+    /// Only because actually referencing the player's stellar object would require three table hits.
     pub sector_id: u64,
 
     #[index(btree)]
     #[use_wrapper(path = crate::players::PlayerId)]
     #[foreign_key(path = crate::players, table = player, column = id, on_delete = Error)]
-    /// FK to player.id
     pub player_id: Identity,
 
     #[index(btree)]
     #[use_wrapper(path = crate::types::factions::FactionId)]
     #[foreign_key(path = crate::types::factions, table = faction, column = id, on_delete = Error)]
-    /// FK to faction.id
     pub faction_id: u32,
 }
 
