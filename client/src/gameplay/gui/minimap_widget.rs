@@ -107,15 +107,47 @@ fn list_sector_objects(
 
                         // Object type
                         let type_str = match sobj.kind {
-                            StellarObjectKinds::Ship => "Ship",
-                            StellarObjectKinds::Asteroid => "Asteroid",
-                            StellarObjectKinds::CargoCrate => "Cargo Crate",
-                            StellarObjectKinds::Station => "Station",
-                            StellarObjectKinds::JumpGate => "Jump Gate",
-                        };
+                            StellarObjectKinds::Ship => {
+                                if let Some(ship) = ctx.db().ship().sobj_id().find(&sobj.id) {
+                                    format!(
+                                        "[{}] {}",
+                                        get_faction_shortname(ctx, &ship.faction_id),
+                                        get_username(ctx, &ship.player_id)
+                                    )
+                                } else {
+                                    "Unknown Ship".to_string()
+                                }
+                            }
+                            StellarObjectKinds::Asteroid => "Asteroid".to_string(),
+                            StellarObjectKinds::CargoCrate => "Cargo Crate".to_string(),
+                            StellarObjectKinds::Station => {
+                                if let Some(station) = ctx.db().station().sobj_id().find(&sobj.id) {
+                                    format!(
+                                        "[{}] {}",
+                                        get_faction_shortname(ctx, &station.owner_faction_id),
+                                        station.name
+                                    )
+                                } else {
+                                    "Unknown Station".to_string()
+                                }
+                            }
+                            StellarObjectKinds::JumpGate => {
+                                if let Some(jump_gate) = ctx.db().jump_gate().id().find(&sobj.id) {
+                                    if let Some(sector) =
+                                        ctx.db().sector().id().find(&jump_gate.target_sector_id)
+                                    {
+                                        format!("Jump Gate to {}", sector.name)
+                                    } else {
+                                        "Unknown Jump Gate".to_string()
+                                    }
+                                } else {
+                                    "Unknown Jump Gate".to_string()
+                                }
+                            }
+                        }
+                        .to_string();
 
-                        let text =
-                            RichText::new(format!("{} #{}: {:.0}m", type_str, sobj.id, distance));
+                        let text = RichText::new(format!("{}: {:.0}m", type_str, distance));
                         ui.label(if selected { text.strong() } else { text });
                     });
                 }

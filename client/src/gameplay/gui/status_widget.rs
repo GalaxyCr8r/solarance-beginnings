@@ -99,47 +99,83 @@ fn ship_status(ui: &mut Ui, ship_type: ShipTypeDefinition, player_ship_status: S
 fn ship_function_status(ctx: &DbConnection, ui: &mut Ui) {
     ui.vertical(|ui| {
         if let Some(mut controller) = ctx.db().player_ship_controller().id().find(&ctx.identity()) {
-            if controller.cargo_bay_open {
-                if ui
-                    .button(RichText::new("[Z] Cargo Bay: Open").color({
-                        if now() % 1.0 < 0.45 {
-                            Color32::YELLOW
-                        } else {
-                            Color32::BLACK
-                        }
-                    }))
-                    .clicked()
-                {
-                    controller.cargo_bay_open = !controller.cargo_bay_open;
-                    // TODO: Fix this
-                }
-            } else {
-                ui.label(RichText::new("[Z] Cargo Bay: Closed").color(Color32::DARK_GRAY));
-            }
-            if controller.mining_laser_on {
-                ui.label(RichText::new("[X] Mining Beam: On").color({
-                    if now() % 1.0 < 0.45 {
-                        Color32::RED
-                    } else {
-                        Color32::BLACK
-                    }
-                }));
-            } else {
-                ui.label(RichText::new("[X] Mining Beam: Off").color(Color32::DARK_GRAY));
-            }
-            if controller.dock {
-                ui.label(RichText::new("[C] Autodocking: On").color({
-                    if now() % 1.0 < 0.45 {
-                        Color32::LIGHT_BLUE
-                    } else {
-                        Color32::BLACK
-                    }
-                }));
-            } else {
-                ui.label(RichText::new("[C] Autodocking: Off").color(Color32::DARK_GRAY));
-            }
+            cargo_bay_button(ui, &mut controller);
+            mining_beam_button(ui, &mut controller);
+            autodocking_button(ui, &mut controller);
+
+            let _ = ctx.reducers.update_player_controller(controller);
         }
     });
+}
+
+fn cargo_bay_button(ui: &mut Ui, controller: &mut PlayerShipController) {
+    if controller.cargo_bay_open {
+        if ui
+            .button(RichText::new("[Z] Cargo Bay: Open").color({
+                if now() % 1.0 < 0.45 {
+                    Color32::YELLOW
+                } else {
+                    Color32::BLACK
+                }
+            }))
+            .clicked()
+        {
+            controller.cargo_bay_open = false;
+        }
+    } else {
+        if ui
+            .button(RichText::new("[Z] Cargo Bay: Closed").color(Color32::LIGHT_GRAY))
+            .clicked()
+        {
+            controller.cargo_bay_open = true;
+        }
+    }
+}
+fn mining_beam_button(ui: &mut Ui, controller: &mut PlayerShipController) {
+    if controller.mining_laser_on {
+        if ui
+            .button(RichText::new("[X] Mining Beam: Open").color({
+                if now() % 1.0 < 0.45 {
+                    Color32::RED
+                } else {
+                    Color32::BLACK
+                }
+            }))
+            .clicked()
+        {
+            controller.mining_laser_on = false;
+        }
+    } else {
+        if ui
+            .button(RichText::new("[X] Mining Beam: Closed").color(Color32::LIGHT_GRAY))
+            .clicked()
+        {
+            controller.mining_laser_on = true;
+        }
+    }
+}
+fn autodocking_button(ui: &mut Ui, controller: &mut PlayerShipController) {
+    if controller.dock {
+        if ui
+            .button(RichText::new("[C] Autodocking: Open").color({
+                if now() % 1.0 < 0.45 {
+                    Color32::LIGHT_BLUE
+                } else {
+                    Color32::BLACK
+                }
+            }))
+            .clicked()
+        {
+            controller.dock = false;
+        }
+    } else {
+        if ui
+            .button(RichText::new("[C] Autodocking: Closed").color(Color32::LIGHT_GRAY))
+            .clicked()
+        {
+            controller.dock = true;
+        }
+    }
 }
 
 fn add_targeted_object_status(
@@ -184,6 +220,10 @@ fn add_targeted_object_status(
         }
         StellarObjectKinds::Ship => {
             if let Some(ship) = ctx.db().ship().sobj_id().find(&target.id) {
+                ui.label(format!(
+                    "Faction: {}",
+                    get_faction_shortname(ctx, &ship.faction_id)
+                ));
                 if let Some(ship_status) = ship.status(ctx) {
                     if let Some(ship_type) =
                         ctx.db.ship_type_definition().id().find(&ship.shiptype_id)
@@ -219,6 +259,10 @@ fn add_targeted_object_status(
         StellarObjectKinds::Station => {
             if let Some(station) = ctx.db().station().sobj_id().find(&target.id) {
                 ui.label(format!("{}", station.name));
+                ui.label(format!(
+                    "Faction: {}",
+                    get_faction_shortname(ctx, &station.owner_faction_id)
+                ));
                 if let Some(status) = ctx.db().station_status().id().find(&station.id) {
                     add_status_bar(
                         ui,

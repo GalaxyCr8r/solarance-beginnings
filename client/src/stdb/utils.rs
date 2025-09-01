@@ -31,6 +31,22 @@ pub fn get_username(ctx: &DbConnection, id: &Identity) -> String {
     }
 }
 
+pub fn get_faction_shortname(ctx: &DbConnection, id: &u32) -> String {
+    if let Some(faction) = ctx.db().faction().id().find(id) {
+        if let Some(p_id) = faction.parent_id {
+            format!(
+                "{}, {}",
+                get_faction_shortname(ctx, &p_id.value),
+                faction.short_name
+            )
+        } else {
+            faction.short_name
+        }
+    } else {
+        "UFX".to_string()
+    }
+}
+
 pub fn get_sector_name(ctx: &DbConnection, id: &u64) -> String {
     if let Some(sector) = ctx.db().sector().id().find(&id) {
         sector.name

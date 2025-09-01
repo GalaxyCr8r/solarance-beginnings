@@ -10,6 +10,8 @@ pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
 #[derive(SpacetimeType, Clone, Debug, PartialEq)]
 pub enum FactionTier {
+    /// A meta-type of faction. Should always be unjoinable. Made up of other factions.
+    Alliance,
     /// The largest type of faction - new players can spawn into it.
     Galactic,
     /// Multi-corporation faction, but still under a galactic faction's aegis
@@ -40,6 +42,7 @@ pub struct Faction {
     pub parent_id: Option<FactionId>,
 
     pub name: String,
+    pub short_name: String,
     pub description: String,
 
     /// The tier/size of this faction.

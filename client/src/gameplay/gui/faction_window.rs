@@ -92,48 +92,131 @@ fn draw_player_tab(ui: &mut egui::Ui, ctx: &DbConnection) {
 }
 
 fn draw_faction_tab(ui: &mut egui::Ui, ctx: &DbConnection) {
-    ui.heading("Faction Details");
+    ui.heading("Faction Hierarchy");
     ui.separator();
 
+    // Show player's current faction first if they have one
     if let Some(player) = ctx.db().player().id().find(&ctx.identity()) {
         if let Some(faction_id) = &player.faction_id {
             if let Some(faction) = ctx.db().faction().id().find(&faction_id.value) {
-                ui.label(RichText::new(&faction.name).size(18.0).strong());
+                ui.label(
+                    RichText::new(format!(
+                        "Your Faction: {} ({})",
+                        faction.name, faction.short_name
+                    ))
+                    .size(16.0)
+                    .strong()
+                    .color(Color32::LIGHT_BLUE),
+                );
                 ui.separator();
-
-                ui.label(format!("Tier: {:?}", faction.tier));
-                ui.label(format!(
-                    "Joinable: {}",
-                    if faction.joinable { "Yes" } else { "No" }
-                ));
-
-                ui.separator();
-                ui.label("Description:");
-                ui.label(&faction.description);
-
-                if let Some(capital_id) = faction.capital_station_id {
-                    ui.separator();
-                    ui.label(format!("Capital Station ID: {}", capital_id));
-                }
-            } else {
-                ui.label("Faction details not available");
             }
         } else {
-            ui.label("You are not a member of any faction");
+            ui.label(
+                RichText::new("You are Factionless")
+                    .size(16.0)
+                    .strong()
+                    .color(Color32::GRAY),
+            );
             ui.separator();
-            ui.label("Available factions to join:");
-
-            for faction in ctx.db().faction().iter() {
-                if faction.joinable && faction.id != 0 {
-                    // Exclude factionless
-                    ui.horizontal(|ui| {
-                        ui.label(&faction.name);
-                        ui.label(format!("({:?})", faction.tier));
-                    });
-                }
-            }
         }
     }
+
+    ui.label("All Factions:");
+    ui.separator();
+
+    // Get all factions and organize them by parent-child relationships
+    let all_factions: Vec<_> = ctx.db().faction().iter().collect();
+
+    // Find root factions (those without parents)
+    let root_factions: Vec<_> = all_factions
+        .iter()
+        .filter(|f| f.parent_id.is_none())
+        .collect();
+
+    // Draw the faction tree
+    for root_faction in root_factions {
+        draw_faction_tree_node(ui, ctx, root_faction, &all_factions, 0);
+    }
+}
+
+fn draw_faction_tree_node(
+    ui: &mut egui::Ui,
+    ctx: &DbConnection,
+    faction: &Faction,
+    all_factions: &[Faction],
+    depth: usize,
+) {
+    let indent = "  ".repeat(depth);
+
+    // Find child factions
+    let children: Vec<_> = all_factions
+        .iter()
+        .filter(|f| f.parent_id.as_ref().map(|p| p.value) == Some(faction.id))
+        .collect();
+
+    // Create collapsing header for factions with children, or simple label for leaf factions
+    if !children.is_empty() {
+        let header_text = format!(
+            "{}{} ({}) - {:?}",
+            indent, faction.name, faction.short_name, faction.tier
+        );
+
+        ui.collapsing(header_text, |ui| {
+            // Show faction details
+            draw_faction_details(ui, ctx, faction);
+
+            ui.separator();
+            ui.label("Sub-factions:");
+
+            // Draw children
+            for child in children {
+                draw_faction_tree_node(ui, ctx, child, all_factions, depth + 1);
+            }
+        });
+    } else {
+        // Leaf faction - show as expandable for details
+        let header_text = format!(
+            "{}{} ({}) - {:?}",
+            indent, faction.name, faction.short_name, faction.tier
+        );
+
+        ui.collapsing(header_text, |ui| {
+            draw_faction_details(ui, ctx, faction);
+        });
+    }
+}
+
+fn draw_faction_details(ui: &mut egui::Ui, ctx: &DbConnection, faction: &Faction) {
+    ui.label(format!("Short Name: {}", faction.short_name));
+    ui.label(format!("Tier: {:?}", faction.tier));
+    ui.label(format!(
+        "Joinable: {}",
+        if faction.joinable { "Yes" } else { "No" }
+    ));
+
+    if let Some(parent_id) = &faction.parent_id {
+        if let Some(parent) = ctx.db().faction().id().find(&parent_id.value) {
+            ui.label(format!("Parent: {} ({})", parent.name, parent.short_name));
+        }
+    }
+
+    if let Some(capital_id) = faction.capital_station_id {
+        ui.label(format!("Capital Station ID: {}", capital_id));
+    }
+
+    ui.separator();
+    ui.label("Description:");
+    ui.label(&faction.description);
+
+    // Show member count
+    let member_count = ctx
+        .db()
+        .player()
+        .iter()
+        .filter(|p| p.faction_id.as_ref().map(|f| f.value) == Some(faction.id))
+        .count();
+
+    ui.label(format!("Members: {}", member_count));
 }
 
 fn draw_members_tab(ui: &mut egui::Ui, ctx: &DbConnection) {

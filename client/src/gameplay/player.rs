@@ -1,5 +1,5 @@
 use macroquad::prelude::*;
-use spacetimedb_sdk::{ DbContext, Table };
+use spacetimedb_sdk::{DbContext, Table};
 
 use crate::module_bindings::*;
 
@@ -13,19 +13,8 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
     }
 
     let id = &ctx.identity();
-    let db = ctx.db();
-    let con_t = db.player_ship_controller();
-    let pid = con_t.id();
-    let con = pid.find(id);
     let mut changed = false; // ONLY request an update if there's actually been a change!
-    if
-        let Some(mut controller) = con
-        // ctx
-        //     .db()
-        //     .player_ship_controller()
-        //     .player_id()
-        //     .find(&ctx.identity())
-    {
+    if let Some(mut controller) = ctx.db().player_ship_controller().id().find(id) {
         // Synchronize the controller with the game state.
         game_state.current_target_sobj = match controller.targetted_sobj_id {
             Some(id) => ctx.db().stellar_object().id().find(&id),
@@ -87,7 +76,9 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
         }
 
         if changed {
-            ctx.reducers.update_player_controller(controller).or_else(|err| Err(err.to_string()))?;
+            ctx.reducers
+                .update_player_controller(controller)
+                .or_else(|err| Err(err.to_string()))?;
         }
     }
 
@@ -96,17 +87,17 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
 
 pub fn target_closest_stellar_object(
     ctx: &DbConnection,
-    game_state: &mut GameState
+    game_state: &mut GameState,
 ) -> Result<StellarObject, String> {
     if game_state.chat_window.has_focus {
         return Err("Chat window has focus. Cannot target objects.".to_string());
     }
 
     //let player_id = ctx.identity();
-    let player_ship_id = get_player_sobj_id(ctx).ok_or(
-        "Player doesn't control a stellar object yet!"
-    )?;
-    let player_sobj = ctx.db
+    let player_ship_id =
+        get_player_sobj_id(ctx).ok_or("Player doesn't control a stellar object yet!")?;
+    let player_sobj = ctx
+        .db
         .stellar_object()
         .id()
         .find(&player_ship_id)
