@@ -587,6 +587,27 @@ fn left_panel(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
             .min_height(300.0)
             .show_inside(ui, |ui| {
                 ui.heading("Ship Details");
+
+                // Add tab selection for the out-of-play screen
+                ui.horizontal(|ui| {
+                    ui.selectable_value(
+                        &mut game_state.details_window.current_tab,
+                        crate::gameplay::gui::ship_details_window::CurrentTab::Ship,
+                        "Ship",
+                    );
+                    ui.selectable_value(
+                        &mut game_state.details_window.current_tab,
+                        crate::gameplay::gui::ship_details_window::CurrentTab::Cargo,
+                        "Cargo",
+                    );
+                    ui.selectable_value(
+                        &mut game_state.details_window.current_tab,
+                        crate::gameplay::gui::ship_details_window::CurrentTab::Equipment,
+                        "Equipment",
+                    );
+                });
+                ui.separator();
+
                 show_ship_details(ctx, &mut game_state.details_window, ui, ship);
             });
     }

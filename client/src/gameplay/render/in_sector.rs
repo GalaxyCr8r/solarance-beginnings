@@ -380,7 +380,7 @@ pub fn draw_station(
             let size = (tex.width() + tex.height()) * 0.33;
             draw_targeting_bracket(
                 position,
-                size * 2.0,
+                size * 1.1,
                 target.kind,
                 Color::from_rgba(255, 255, 255, 200),
             );

@@ -7,7 +7,7 @@ use spacetimedb_sdk::*;
 use crate::{module_bindings::*, stdb::utils::*};
 
 #[derive(PartialEq)]
-enum CurrentTab {
+pub enum CurrentTab {
     Ship,
     Cargo,
     Equipment,
@@ -15,7 +15,7 @@ enum CurrentTab {
 
 //#[derive(Default)]
 pub struct State {
-    current_tab: CurrentTab, // = CurrentTab::Ship
+    pub current_tab: CurrentTab, // = CurrentTab::Ship
     current_equipment_tab: EquipmentSlotType,
 }
 
