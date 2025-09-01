@@ -19,6 +19,7 @@ pub fn register_callbacks(
     ctx: &DbConnection,
     global_chat_channel: Sender<GlobalChatMessage>,
     sector_chat_channel: Sender<SectorChatMessage>,
+    faction_chat_channel: Sender<FactionChatMessage>,
 ) {
     ctx.db().stellar_object().on_insert(|_ec, sobj| {
         info!("Stellar Object Inserted: {:?}", sobj);
@@ -51,6 +52,28 @@ pub fn register_callbacks(
             );
             let _ = sector_chat_channel.send(message.clone());
         });
+
+    // Load faction chat only if the player exists.
+    if let Some(player) = get_current_player(&ctx) {
+        for message in ctx.db().faction_chat_message().iter() {
+            if player.faction_id.value == message.faction_id {
+                let _ = &faction_chat_channel.send(message.clone());
+            }
+        }
+        ctx.db()
+            .faction_chat_message()
+            .on_insert(move |_ec, message| {
+                if player.faction_id.value == message.faction_id {
+                    info!(
+                        "F{}.{}: {}",
+                        message.faction_id,
+                        message.player_id.to_abbreviated_hex().to_string(),
+                        message.message
+                    );
+                    let _ = faction_chat_channel.send(message.clone());
+                }
+            });
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -70,12 +93,18 @@ pub async fn gameplay(connection: Option<DbConnection>) {
 
     let (global_chat_transmitter, global_chat_receiver) = mpsc::channel::<GlobalChatMessage>();
     let (sector_chat_transmitter, sector_chat_receiver) = mpsc::channel::<SectorChatMessage>();
+    let (faction_chat_transmitter, faction_chat_receiver) = mpsc::channel::<FactionChatMessage>();
 
     let mut game_state = state::initialize(&ctx);
     game_state.camera.zoom.y *= -1.0;
     game_state.bg_camera.zoom.y *= -1.0;
 
-    let _receiver = register_callbacks(&ctx, global_chat_transmitter, sector_chat_transmitter);
+    let _receiver = register_callbacks(
+        &ctx,
+        global_chat_transmitter,
+        sector_chat_transmitter,
+        faction_chat_transmitter,
+    );
 
     // Load starfield shader
     info!("Loading shader...");
@@ -239,6 +268,19 @@ pub async fn gameplay(connection: Option<DbConnection>) {
                     .chat_window
                     .sector_chat_channel
                     .sort_by_key(|chat| chat.created_at);
+            }
+        }
+
+        //faction_chat_receiver
+        if let Ok(message) = faction_chat_receiver.try_recv() {
+            if let Some(player) = get_current_player(&ctx) {
+                if message.faction_id == player.faction_id.value {
+                    game_state.chat_window.faction_chat_channel.push(message);
+                    game_state
+                        .chat_window
+                        .faction_chat_channel
+                        .sort_by_key(|chat| chat.created_at);
+                }
             }
         }
 

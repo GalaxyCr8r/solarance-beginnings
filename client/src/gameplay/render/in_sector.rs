@@ -200,10 +200,7 @@ pub fn draw_ship(
     if let Some(player) = get_player(&game_state.ctx.db, &ship.player_id) {
         let string = format!(
             "[{}] {}",
-            get_faction_shortname(
-                game_state.ctx,
-                &player.faction_id.unwrap_or(FactionId::from(0)).value
-            ),
+            get_faction_shortname(game_state.ctx, &player.faction_id.value),
             player.username
         );
         let dimension = measure_text(&string, None, 16, 1.0);

@@ -53,13 +53,14 @@ pub fn register_playername(
 
     // TODO: Re-enable faction validation once client bindings are updated
     // For now, just use the provided faction_id or default to factionless
-    let final_faction_id = if faction_id == 0 { 
+    let final_faction = FactionId::new(if faction_id == 0 { 
         FACTION_FACTIONLESS 
     } else { 
         faction_id 
-    };
+    });
 
-    let _player = dsl.create_player(identity, &username, 1000, true, Some(FactionId::new(final_faction_id)))?;
+    let player = dsl.create_player(identity, &username, 1000, true, final_faction.clone())?;
+    let _ = dsl.create_faction_chat_message(&player, final_faction, "- has joined the faction!");
 
     Ok(())
 }
@@ -97,7 +98,7 @@ pub fn create_player_controlled_ship(
         initialize_player_controller(ctx, &player_id, &sobj)?;
 
         let ship_type = dsl.get_ship_type_definition_by_id(ShipTypeDefinitionId::new(1001))?;
-        let faction_id = player.get_faction_id().clone().unwrap_or(FactionId::new(FACTION_FACTIONLESS));
+        let faction_id = player.get_faction_id().clone();
         let (ship, mut status) = create_ship_from_sobj(ctx, &ship_type, &player_id, &faction_id, &sobj)?;
 
         let _ = attempt_to_load_cargo_into_ship(

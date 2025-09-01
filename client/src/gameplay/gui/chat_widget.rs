@@ -25,6 +25,7 @@ impl Default for GlobalChatMessageType {
 pub struct State {
     pub global_chat_channel: Vec<GlobalChatMessage>,
     pub sector_chat_channel: Vec<SectorChatMessage>,
+    pub faction_chat_channel: Vec<FactionChatMessage>,
     pub text: String,
     pub selected_tab: GlobalChatMessageType,
     pub has_focus: bool,
@@ -66,9 +67,15 @@ fn contents_hidden(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
                 Color32::BLACK
             },
         ));
+        ui.label(RichText::new(" Faction ").color(
+            if chat_window.selected_tab == GlobalChatMessageType::Faction {
+                Color32::DARK_GRAY
+            } else {
+                Color32::BLACK
+            },
+        ));
 
         ui.label(RichText::new(" Alliance ").color(Color32::BLACK));
-        ui.label(RichText::new(" Faction ").color(Color32::BLACK));
     });
 
     ui.separator();
@@ -136,9 +143,13 @@ pub fn _draw_widget(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
             GlobalChatMessageType::Sector,
             "Sector",
         );
+        ui.selectable_value(
+            &mut chat_window.selected_tab,
+            GlobalChatMessageType::Faction,
+            "Faction",
+        );
 
         ui.label(RichText::new(" Alliance ").color(Color32::BLACK));
-        ui.label(RichText::new(" Faction ").color(Color32::BLACK));
     });
     ui.separator();
 
@@ -153,7 +164,9 @@ pub fn _draw_widget(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
             draw_server_messages(ctx, ui);
         }
         GlobalChatMessageType::Alliance => todo!(),
-        GlobalChatMessageType::Faction => todo!(),
+        GlobalChatMessageType::Faction => {
+            draw_faction_chat(ctx, chat_window, ui);
+        }
     }
 
     ui.horizontal(|ui| {
@@ -220,8 +233,13 @@ pub fn draw_panel(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
                     ui.label(RichText::new(" Sector ").color(Color32::BLACK));
                 }
 
+                ui.selectable_value(
+                    &mut chat_window.selected_tab,
+                    GlobalChatMessageType::Faction,
+                    "Faction",
+                );
+
                 ui.label(RichText::new(" Station ").color(Color32::BLACK));
-                ui.label(RichText::new(" Faction ").color(Color32::BLACK));
                 ui.label(RichText::new(" Guild ").color(Color32::BLACK));
             });
         });
@@ -256,7 +274,9 @@ pub fn draw_panel(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
             draw_sector_chat(ctx, chat_window, ui);
         }
         GlobalChatMessageType::Alliance => todo!(),
-        GlobalChatMessageType::Faction => todo!(),
+        GlobalChatMessageType::Faction => {
+            draw_faction_chat(ctx, chat_window, ui);
+        }
     });
 }
 
@@ -318,25 +338,27 @@ fn draw_global_chat(ctx: &DbConnection, chat_window: &mut State, ui: &mut Ui) {
             chat_window.global_chat_channel.len(),
             |ui, row_range| {
                 let mut count = 0;
+                let mut last_timestamp = "".to_string();
                 for message in &chat_window.global_chat_channel {
                     if row_range.contains(&count) {
-                        ui.horizontal(|ui| {
-                            // Timestamp
-                            let timestamp_text =
-                                ServerMessageUtils::format_timestamp_short(&message.created_at);
+                        // Timestamp
+                        let timestamp_text =
+                            ServerMessageUtils::format_timestamp_short(&message.created_at);
+                        if timestamp_text.cmp(&last_timestamp) != Ordering::Equal {
                             ui.label(
                                 RichText::new(format!("[{}]", timestamp_text))
                                     .color(Color32::GRAY)
                                     .size(10.0),
                             );
+                            last_timestamp = timestamp_text;
+                        }
 
-                            // Message
-                            ui.label(format!(
-                                "[{}]: {}",
-                                get_username(ctx, &message.player_id),
-                                message.message
-                            ));
-                        });
+                        // Message
+                        ui.label(format!(
+                            "[{}]: {}",
+                            get_username(ctx, &message.player_id),
+                            message.message
+                        ));
                     }
                     count += 1;
                 }
@@ -358,31 +380,76 @@ fn draw_sector_chat(ctx: &DbConnection, chat_window: &mut State, ui: &mut Ui) {
             chat_window.sector_chat_channel.len(),
             |ui, row_range| {
                 let mut count = 0;
+                let mut last_timestamp = "".to_string();
                 for message in &chat_window.sector_chat_channel {
                     if row_range.contains(&count) {
-                        ui.horizontal(|ui| {
-                            // Timestamp
-                            let timestamp_text =
-                                ServerMessageUtils::format_timestamp_short(&message.created_at);
+                        // Timestamp
+                        let timestamp_text =
+                            ServerMessageUtils::format_timestamp_short(&message.created_at);
+                        if timestamp_text.cmp(&last_timestamp) != Ordering::Equal {
                             ui.label(
                                 RichText::new(format!("[{}]", timestamp_text))
                                     .color(Color32::GRAY)
                                     .size(10.0),
                             );
+                            last_timestamp = timestamp_text;
+                        }
 
-                            // Message
-                            ui.label(format!(
-                                "({}): {}",
-                                get_username(ctx, &message.player_id),
-                                message.message
-                            ));
-                        });
+                        // Message
+                        ui.label(format!(
+                            "({}): {}",
+                            get_username(ctx, &message.player_id),
+                            message.message
+                        ));
                     }
                     count += 1;
                 }
             },
         );
 }
+
+fn draw_faction_chat(ctx: &DbConnection, chat_window: &mut State, ui: &mut Ui) {
+    let text_style = TextStyle::Body;
+    let row_height = ui.text_style_height(&text_style);
+
+    ScrollArea::vertical()
+        .auto_shrink([false, true])
+        .stick_to_bottom(true)
+        //.max_height(screen_height() / 4.0)
+        .show_rows(
+            ui,
+            row_height,
+            chat_window.faction_chat_channel.len(),
+            |ui, row_range| {
+                let mut count = 0;
+                let mut last_timestamp = "".to_string();
+                for message in &chat_window.faction_chat_channel {
+                    if row_range.contains(&count) {
+                        // Timestamp
+                        let timestamp_text =
+                            ServerMessageUtils::format_timestamp_short(&message.created_at);
+                        if timestamp_text.cmp(&last_timestamp) != Ordering::Equal {
+                            ui.label(
+                                RichText::new(format!("[{}]", timestamp_text))
+                                    .color(Color32::GRAY)
+                                    .size(10.0),
+                            );
+                            last_timestamp = timestamp_text;
+                        }
+
+                        // Message
+                        ui.label(format!(
+                            "{}: {}",
+                            get_username(ctx, &message.player_id),
+                            message.message
+                        ));
+                    }
+                    count += 1;
+                }
+            },
+        );
+}
+
 fn draw_server_messages(ctx: &DbConnection, ui: &mut Ui) {
     let text_style = TextStyle::Body;
     let row_height = ui.text_style_height(&text_style) * 1.5; // Slightly taller for better readability

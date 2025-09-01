@@ -1,7 +1,7 @@
 use egui::{Color32, Context, RichText};
 use spacetimedb_sdk::*;
 
-use crate::module_bindings::*;
+use crate::{module_bindings::*, stdb::utils::get_faction_shortname};
 
 #[derive(PartialEq)]
 enum CurrentTab {
@@ -76,15 +76,11 @@ fn draw_player_tab(ui: &mut egui::Ui, ctx: &DbConnection) {
 
         ui.separator();
 
-        if let Some(faction_id) = &player.faction_id {
-            if let Some(faction) = ctx.db().faction().id().find(&faction_id.value) {
-                ui.label(format!("Current Faction: {}", faction.name));
-                ui.label(format!("Faction Tier: {:?}", faction.tier));
-            } else {
-                ui.label("Current Faction: Unknown");
-            }
+        if let Some(faction) = ctx.db().faction().id().find(&player.faction_id.value) {
+            ui.label(format!("Current Faction: {}", faction.name));
+            ui.label(format!("Faction Tier: {:?}", faction.tier));
         } else {
-            ui.label("Current Faction: None (Factionless)");
+            ui.label("Current Faction: Unknown");
         }
     } else {
         ui.label("Player information not available");
@@ -97,25 +93,15 @@ fn draw_faction_tab(ui: &mut egui::Ui, ctx: &DbConnection) {
 
     // Show player's current faction first if they have one
     if let Some(player) = ctx.db().player().id().find(&ctx.identity()) {
-        if let Some(faction_id) = &player.faction_id {
-            if let Some(faction) = ctx.db().faction().id().find(&faction_id.value) {
-                ui.label(
-                    RichText::new(format!(
-                        "Your Faction: {} ({})",
-                        faction.name, faction.short_name
-                    ))
-                    .size(16.0)
-                    .strong()
-                    .color(Color32::LIGHT_BLUE),
-                );
-                ui.separator();
-            }
-        } else {
+        if let Some(faction) = ctx.db().faction().id().find(&player.faction_id.value) {
             ui.label(
-                RichText::new("You are Factionless")
-                    .size(16.0)
-                    .strong()
-                    .color(Color32::GRAY),
+                RichText::new(format!(
+                    "Your Faction: {} ({})",
+                    faction.name, faction.short_name
+                ))
+                .size(16.0)
+                .strong()
+                .color(Color32::LIGHT_BLUE),
             );
             ui.separator();
         }
@@ -213,7 +199,7 @@ fn draw_faction_details(ui: &mut egui::Ui, ctx: &DbConnection, faction: &Faction
         .db()
         .player()
         .iter()
-        .filter(|p| p.faction_id.as_ref().map(|f| f.value) == Some(faction.id))
+        .filter(|p| p.faction_id.value == faction.id)
         .count();
 
     ui.label(format!("Members: {}", member_count));
@@ -224,32 +210,28 @@ fn draw_members_tab(ui: &mut egui::Ui, ctx: &DbConnection) {
     ui.separator();
 
     if let Some(player) = ctx.db().player().id().find(&ctx.identity()) {
-        if let Some(faction_id) = &player.faction_id {
-            let members: Vec<_> = ctx
-                .db()
-                .player()
-                .iter()
-                .filter(|p| p.faction_id.as_ref().map(|f| f.value) == Some(faction_id.value))
-                .collect();
+        let members: Vec<_> = ctx
+            .db()
+            .player()
+            .iter()
+            .filter(|p| p.faction_id.value == player.faction_id.value)
+            .collect();
 
-            ui.label(format!("Total Members: {}", members.len()));
-            ui.separator();
+        ui.label(format!("Total Members: {}", members.len()));
+        ui.separator();
 
-            for member in members {
-                ui.horizontal(|ui| {
-                    let status_color = if member.logged_in {
-                        Color32::GREEN
-                    } else {
-                        Color32::GRAY
-                    };
+        for member in members {
+            ui.horizontal(|ui| {
+                let status_color = if member.logged_in {
+                    Color32::GREEN
+                } else {
+                    Color32::GRAY
+                };
 
-                    ui.colored_label(status_color, "●");
-                    ui.label(&member.username);
-                    ui.label(format!("Credits: {}", member.credits));
-                });
-            }
-        } else {
-            ui.label("You must be in a faction to view members");
+                ui.colored_label(status_color, "●");
+                ui.label(&member.username);
+                ui.label(format!("Credits: {}", member.credits));
+            });
         }
     }
 }
@@ -259,45 +241,29 @@ fn draw_relations_tab(ui: &mut egui::Ui, ctx: &DbConnection) {
     ui.separator();
 
     if let Some(player) = ctx.db().player().id().find(&ctx.identity()) {
-        if let Some(faction_id) = &player.faction_id {
-            ui.label("Relations with other factions:");
-            ui.separator();
+        ui.label(format!(
+            "{}'s relations with other factions:",
+            get_faction_shortname(ctx, &player.faction_id.value)
+        ));
+        ui.separator();
 
-            for faction in ctx.db().faction().iter() {
-                if faction.id != faction_id.value {
-                    ui.horizontal(|ui| {
-                        ui.label(&faction.name);
+        for faction in ctx.db().faction().iter() {
+            if faction.id != player.faction_id.value {
+                ui.horizontal(|ui| {
+                    ui.label(&faction.name);
 
-                        // Find standing between current faction and this faction
-                        if let Some(standing) = ctx.db().faction_standing().iter().find(|s| {
-                            s.faction_one_id == faction_id.value && s.faction_two_id == faction.id
-                        }) {
-                            let (color, status) = get_reputation_display(standing.reputation_score);
-                            ui.colored_label(color, status);
-                            ui.label(format!("({})", standing.reputation_score));
-                        } else {
-                            ui.colored_label(Color32::GRAY, "Unknown");
-                        }
-                    });
-                }
-            }
-        } else {
-            ui.label("You must be in a faction to view relations");
-            ui.separator();
-            ui.label("General faction standings:");
-
-            // Show some general faction relations for factionless players
-            for standing in ctx.db().faction_standing().iter().take(10) {
-                if let (Some(faction_one), Some(faction_two)) = (
-                    ctx.db().faction().id().find(&standing.faction_one_id),
-                    ctx.db().faction().id().find(&standing.faction_two_id),
-                ) {
-                    ui.horizontal(|ui| {
-                        ui.label(format!("{} ↔ {}", faction_one.name, faction_two.name));
+                    // Find standing between current faction and this faction
+                    if let Some(standing) = ctx.db().faction_standing().iter().find(|s| {
+                        s.faction_one_id == player.faction_id.value
+                            && s.faction_two_id == faction.id
+                    }) {
                         let (color, status) = get_reputation_display(standing.reputation_score);
                         ui.colored_label(color, status);
-                    });
-                }
+                        ui.label(format!("({})", standing.reputation_score));
+                    } else {
+                        ui.colored_label(Color32::GRAY, "Unknown");
+                    }
+                });
             }
         }
     }

@@ -31,7 +31,7 @@ pub struct Player {
     pub credits: u64,
 
     pub logged_in: bool,
-    pub faction_id: Option<FactionId>,
+    pub faction_id: FactionId,
 
     created_at: Timestamp,
     modified_at: Timestamp,
