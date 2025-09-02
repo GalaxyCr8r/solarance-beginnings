@@ -112,7 +112,7 @@ The project continues to evolve with **Milestone 3 (v0.3.0)** introducing the fo
   - Station module construction and management
 
 - **Server Messaging & Communication**
-The following are only features of the Server message channel - in general chat there's no way to do these.. yet.
+  The following are only features of the Server message channel - in general chat there's no way to do these.. yet.
 
   - Admin messaging system for server announcements
   - Targeted player messaging with privacy protection
@@ -127,6 +127,14 @@ The following are only features of the Server message channel - in general chat 
   - Station module blueprints and construction system
   - Multi-tier resource processing (raw → refined → manufactured)
   - Station inventory management and storage systems
+
+- **Faction System & Communication**
+
+  - Dedicated faction chat channels for coordinated gameplay
+  - Comprehensive faction management interface with member lists and relations
+  - All players now belong to a faction (defaulting to "Factionless" for new players)
+  - Faction reputation system showing standings between different groups
+  - Real-time faction member status and activity tracking
 
 - **Enhanced User Interface**
 

@@ -33,11 +33,47 @@ struct MenuAssets {
 
 /// Configures the game window properties including title, dimensions, and resizability
 fn window_conf() -> Conf {
+    #[cfg(not(target_os = "macos"))]
+    {
+        dotenv().ok();
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let exe_directory = get_exe_path();
+        if get_exe_path().join("../Resources/.env").exists() {
+            let env_path = get_exe_path().join("../Resources/.env");
+            dotenv::from_path(env_path.clone()).ok();
+            info!("Env Path: {:?}", env_path.clone().to_str().unwrap());
+        } else {
+            info!(
+                "Did not find Resources folder. Falling back to working directory's assets folder."
+            );
+            dotenv().ok();
+        }
+    }
+
+    // Parse window dimensions from environment variables with fallback defaults
+    let window_width = env::var("WINDOW_WIDTH")
+        .unwrap_or_else(|_| "1600".to_string())
+        .parse::<i32>()
+        .unwrap_or(1600);
+
+    let window_height = env::var("WINDOW_HEIGHT")
+        .unwrap_or_else(|_| "900".to_string())
+        .parse::<i32>()
+        .unwrap_or(900);
+
+    let fullscreen = env::var("FULLSCREEN")
+        .unwrap_or_else(|_| "false".to_string())
+        .parse::<bool>()
+        .unwrap_or(false);
+
     Conf {
         window_title: "Solarance:Beginnings".to_owned(),
-        window_width: 1600,
-        window_height: 900,
+        window_width,
+        window_height,
         window_resizable: false,
+        fullscreen,
         ..Default::default()
     }
 }

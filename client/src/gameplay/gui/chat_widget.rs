@@ -321,7 +321,31 @@ fn send_message(ctx: &DbConnection, chat_window: &mut State) {
             chat_window.text.clear();
         }
         GlobalChatMessageType::Alliance => todo!(),
-        GlobalChatMessageType::Faction => todo!(),
+        GlobalChatMessageType::Faction => {
+            let faction_id = {
+                if let Some(player) = get_current_player(ctx) {
+                    player.faction_id
+                } else {
+                    FactionId::from(0)
+                }
+            };
+            if let Err(error) = ctx
+                .reducers
+                .send_faction_chat(chat_window.text.clone(), faction_id.clone())
+            {
+                info!("Failed to send message: {}", error);
+                // TODO Add a message to chat log or do SOMETHING to alert the user it failed.
+                chat_window.faction_chat_channel.push(FactionChatMessage {
+                    player_id: ctx.identity(),
+                    id: 0,
+                    message: format!("Failed to send message: {}", chat_window.text.clone()),
+                    created_at: Timestamp::now(),
+                    faction_id: faction_id.value,
+                });
+            } else {
+                chat_window.text.clear();
+            }
+        }
     }
 }
 

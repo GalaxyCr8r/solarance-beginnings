@@ -3,7 +3,8 @@ use spacetimedb::{table, Identity, ReducerContext, Timestamp};
 use spacetimedsl::*;
 
 use crate::types::{
-    players::{utility::get_username, PlayerId},
+    factions::FactionId,
+    players::{utility::get_username, GetPlayerRowOptionById, PlayerId},
     sectors::SectorId,
     ships::*,
 };
@@ -148,5 +149,43 @@ pub fn send_sector_chat(
     info!("SectorChat #{} [{}]: {}", sector_id, username, chat_message);
 
     dsl.create_sector_chat_message(sender, SectorId::new(sector_id), &chat_message)?;
+    Ok(())
+}
+
+/// Sends a message to the faction chat channel visible to all players of that faction.
+/// Validates the sender and logs the message before storing it in the database.
+#[spacetimedb::reducer]
+pub fn send_faction_chat(
+    ctx: &ReducerContext,
+    chat_message: String,
+    faction_id: FactionId,
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
+    let sender = PlayerId::new(ctx.sender);
+    let username = get_username(ctx, ctx.sender);
+
+    if let Ok(player) = dsl.get_player_by_id(&sender) {
+        if player.get_faction_id().value() != faction_id.value() {
+            return Err(format!(
+                "Player {} does not access to faction id {}",
+                username, faction_id
+            ));
+        }
+    } else {
+        return Err(format!(
+            "Player {} does not access to faction id {}",
+            username, faction_id
+        ));
+    }
+
+    // If ctx.sender is a valid, unbanned, unmuted player
+    info!(
+        "FactionChat #{} [{}]: {}",
+        faction_id.value(),
+        get_username(ctx, ctx.sender),
+        chat_message
+    );
+
+    dsl.create_faction_chat_message(PlayerId::new(ctx.sender), faction_id, &chat_message)?;
     Ok(())
 }
