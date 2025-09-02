@@ -40,7 +40,7 @@ pub fn sector(game_state: &mut GameState) {
 
         // ONLY draw if they have hi-resolution positions.
         if let Some(transform) = db.sobj_hi_res_transform().id().find(&object.id) {
-            if let Some(ship_object) = db.ship().sobj_id().find(&transform.id) {
+            if let Some(ship_object) = db.ship().iter().find(|s| s.sobj_id == transform.id) {
                 if let Some(ship_type) = db
                     .ship_type_definition()
                     .id()

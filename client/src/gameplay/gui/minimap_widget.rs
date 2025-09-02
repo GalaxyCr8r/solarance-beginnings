@@ -108,7 +108,9 @@ fn list_sector_objects(
                         // Object type
                         let type_str = match sobj.kind {
                             StellarObjectKinds::Ship => {
-                                if let Some(ship) = ctx.db().ship().sobj_id().find(&sobj.id) {
+                                if let Some(ship) =
+                                    ctx.db().ship().iter().find(|s| s.sobj_id == sobj.id)
+                                {
                                     format!(
                                         "[{}] {}",
                                         get_faction_shortname(ctx, &ship.faction_id),

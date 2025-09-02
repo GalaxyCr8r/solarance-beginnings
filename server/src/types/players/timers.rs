@@ -117,9 +117,12 @@ pub fn player_ship_controller_update_upkeep(
         }
     };
 
-    let ship_object = match dsl.get_ship_by_sobj_id(controller.get_stellar_object_id()) {
-        Ok(ship) => ship,
-        Err(_) => {
+    let ship_object = match dsl
+        .get_ships_by_sobj_id(controller.get_stellar_object_id())
+        .next()
+    {
+        Some(ship) => ship,
+        None => {
             // Ship might be docked, clean up the timer
             dsl.delete_player_ship_controller_update_timer_by_id(&timer)?;
             info!(
@@ -172,9 +175,12 @@ pub fn player_ship_controller_logic_upkeep(
             return Ok(());
         }
     };
-    let ship_object = match dsl.get_ship_by_sobj_id(controller.get_stellar_object_id()) {
-        Ok(ship) => ship,
-        Err(_) => {
+    let ship_object = match dsl
+        .get_ships_by_sobj_id(controller.get_stellar_object_id())
+        .next()
+    {
+        Some(ship) => ship,
+        None => {
             // Ship might be docked, clean up the timer
             dsl.delete_player_ship_controller_logic_timer_by_id(&timer)?;
             info!(

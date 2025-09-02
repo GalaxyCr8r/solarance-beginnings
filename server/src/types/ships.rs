@@ -134,7 +134,7 @@ pub struct Ship {
     #[index(btree)]
     pub location: ShipLocation,
 
-    #[unique]
+    #[index(btree)] // Can't be unique anymore because docked ships now have a sobj_id of 0
     #[use_wrapper(path = StellarObjectId)]
     #[foreign_key(path = crate::types::stellarobjects, table = stellar_object, column = id, on_delete = Ignore)]
     pub sobj_id: u64,

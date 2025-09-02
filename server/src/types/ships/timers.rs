@@ -195,7 +195,10 @@ pub fn ship_mining_timer_reducer(
     try_server_only(ctx)?;
     let dsl = dsl(ctx);
 
-    let ship_object = dsl.get_ship_by_sobj_id(timer.get_ship_sobj_id())?;
+    let ship_object = dsl
+        .get_ships_by_sobj_id(timer.get_ship_sobj_id())
+        .next()
+        .ok_or("Couldn't find ship.".to_string())?;
     let mut asteroid_object = dsl.get_asteroid_by_id(timer.get_asteroid_sobj_id())?;
 
     if *asteroid_object.get_current_resources() == 0 {

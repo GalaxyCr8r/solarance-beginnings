@@ -1,6 +1,6 @@
 use egui::{Align2, Color32, Context, RichText, Ui, Vec2};
 use macroquad::{miniquad::date::now, prelude::*};
-use spacetimedb_sdk::DbContext;
+use spacetimedb_sdk::{DbContext, Table};
 
 use crate::{gameplay::state::GameState, module_bindings::*, stdb::utils::*};
 
@@ -219,7 +219,7 @@ fn add_targeted_object_status(
             }
         }
         StellarObjectKinds::Ship => {
-            if let Some(ship) = ctx.db().ship().sobj_id().find(&target.id) {
+            if let Some(ship) = ctx.db().ship().iter().find(|s| s.sobj_id == target.id) {
                 ui.label(format!(
                     "Faction: {}",
                     get_faction_shortname(ctx, &ship.faction_id)

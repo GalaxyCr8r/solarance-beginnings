@@ -53,16 +53,20 @@ pub fn register_callbacks(
             let _ = sector_chat_channel.send(message.clone());
         });
 
-    // Load faction chat only if the player exists.
+    // Load existing faction chat messages for current player's faction
     if let Some(player) = get_current_player(&ctx) {
         for message in ctx.db().faction_chat_message().iter() {
             if player.faction_id.value == message.faction_id {
                 let _ = &faction_chat_channel.send(message.clone());
             }
         }
-        ctx.db()
-            .faction_chat_message()
-            .on_insert(move |_ec, message| {
+    }
+
+    // Register faction chat callback that dynamically checks player's current faction
+    ctx.db()
+        .faction_chat_message()
+        .on_insert(move |ec, message| {
+            if let Some(player) = get_player(&ec.db, &ec.identity()) {
                 if player.faction_id.value == message.faction_id {
                     info!(
                         "F{}.{}: {}",
@@ -72,8 +76,8 @@ pub fn register_callbacks(
                     );
                     let _ = faction_chat_channel.send(message.clone());
                 }
-            });
-    }
+            }
+        });
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////

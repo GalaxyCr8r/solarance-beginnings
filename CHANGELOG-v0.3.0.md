@@ -9,7 +9,7 @@ Version 0.3.0 represents a major milestone in Solarance: Beginnings, introducing
 - **Station Economy & Trading** - Functional docking, buy/sell mechanics, and dynamic pricing
 - **Resource Processing Chains** - Multi-tier production from raw ores to manufactured goods
 - **Faction System** - Dedicated chat channels, member management, and reputation tracking
-- **Server Messaging** - Admin announcements, group messaging, and error feedback
+- **Server Messaging** - Admin announcements, group server messaging (NOT group messages… yet), and error feedback
 - **Enhanced Station Modules** - Refineries, manufacturing, solar arrays, farms, and more
 - **Improved User Interface** - Resizable chat, distance-based radar, redesigned cargo panel
 - **Technical Upgrades** - SpacetimeDSL 0.10.0, better database schema, optimized networking

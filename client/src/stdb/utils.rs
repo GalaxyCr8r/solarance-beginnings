@@ -76,7 +76,11 @@ pub fn get_player_sobj_id(ctx: &DbConnection) -> Option<u64> {
 }
 
 pub fn get_player_ship(ctx: &DbConnection) -> Option<Ship> {
-    ctx.db().ship().sobj_id().find(&get_player_sobj_id(ctx)?)
+    if let Some(sobj_id) = get_player_sobj_id(ctx) {
+        ctx.db().ship().iter().find(|s| s.sobj_id == sobj_id)
+    } else {
+        None
+    }
 }
 
 pub fn get_all_equipped_of_type(
