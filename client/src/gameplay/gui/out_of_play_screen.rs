@@ -87,7 +87,7 @@ pub fn draw(
             egui::TopBottomPanel::bottom("bottom_chat")
                 .resizable(true)
                 .min_height(150.0)
-                .max_height(screen_height() / 5.0)
+                .max_height(screen_height() / 3.0)
                 .show_inside(ui, |ui| {
                     super::chat_widget::draw_panel(ui, ctx, &mut game_state.chat_window)
                 });
@@ -99,16 +99,6 @@ pub fn draw(
                     }
                 }
             }
-
-            // egui::TopBottomPanel
-            //     ::bottom("bottom_panel")
-            //     .resizable(false)
-            //     .min_height(0.0)
-            //     .show_inside(ui, |ui| {
-            //         ui.vertical_centered(|ui| {
-            //             ui.heading("Bottom Panel");
-            //         });
-            //     });
         })
 }
 

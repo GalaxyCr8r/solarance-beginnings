@@ -99,16 +99,18 @@ fn ship_status(ui: &mut Ui, ship_type: ShipTypeDefinition, player_ship_status: S
 fn ship_function_status(ctx: &DbConnection, ui: &mut Ui) {
     ui.vertical(|ui| {
         if let Some(mut controller) = ctx.db().player_ship_controller().id().find(&ctx.identity()) {
-            cargo_bay_button(ui, &mut controller);
-            mining_beam_button(ui, &mut controller);
-            autodocking_button(ui, &mut controller);
+            let changed = cargo_bay_button(ui, &mut controller)
+                || mining_beam_button(ui, &mut controller)
+                || autodocking_button(ui, &mut controller);
 
-            let _ = ctx.reducers.update_player_controller(controller);
+            if changed {
+                let _ = ctx.reducers.update_player_controller(controller);
+            }
         }
     });
 }
 
-fn cargo_bay_button(ui: &mut Ui, controller: &mut PlayerShipController) {
+fn cargo_bay_button(ui: &mut Ui, controller: &mut PlayerShipController) -> bool {
     if controller.cargo_bay_open {
         if ui
             .button(RichText::new("[Z] Cargo Bay: Open").color({
@@ -121,6 +123,7 @@ fn cargo_bay_button(ui: &mut Ui, controller: &mut PlayerShipController) {
             .clicked()
         {
             controller.cargo_bay_open = false;
+            return true;
         }
     } else {
         if ui
@@ -128,13 +131,15 @@ fn cargo_bay_button(ui: &mut Ui, controller: &mut PlayerShipController) {
             .clicked()
         {
             controller.cargo_bay_open = true;
+            return true;
         }
     }
+    return false;
 }
-fn mining_beam_button(ui: &mut Ui, controller: &mut PlayerShipController) {
+fn mining_beam_button(ui: &mut Ui, controller: &mut PlayerShipController) -> bool {
     if controller.mining_laser_on {
         if ui
-            .button(RichText::new("[X] Mining Beam: Open").color({
+            .button(RichText::new("[X] Mining Beam: On").color({
                 if now() % 1.0 < 0.45 {
                     Color32::RED
                 } else {
@@ -144,20 +149,23 @@ fn mining_beam_button(ui: &mut Ui, controller: &mut PlayerShipController) {
             .clicked()
         {
             controller.mining_laser_on = false;
+            return true;
         }
     } else {
         if ui
-            .button(RichText::new("[X] Mining Beam: Closed").color(Color32::LIGHT_GRAY))
+            .button(RichText::new("[X] Mining Beam: Off").color(Color32::LIGHT_GRAY))
             .clicked()
         {
             controller.mining_laser_on = true;
+            return true;
         }
     }
+    return false;
 }
-fn autodocking_button(ui: &mut Ui, controller: &mut PlayerShipController) {
+fn autodocking_button(ui: &mut Ui, controller: &mut PlayerShipController) -> bool {
     if controller.dock {
         if ui
-            .button(RichText::new("[C] Autodocking: Open").color({
+            .button(RichText::new("[C] Autodocking: Ready").color({
                 if now() % 1.0 < 0.45 {
                     Color32::LIGHT_BLUE
                 } else {
@@ -167,15 +175,18 @@ fn autodocking_button(ui: &mut Ui, controller: &mut PlayerShipController) {
             .clicked()
         {
             controller.dock = false;
+            return true;
         }
     } else {
         if ui
-            .button(RichText::new("[C] Autodocking: Closed").color(Color32::LIGHT_GRAY))
+            .button(RichText::new("[C] Autodocking: Off").color(Color32::LIGHT_GRAY))
             .clicked()
         {
             controller.dock = true;
+            return true;
         }
     }
+    return false;
 }
 
 fn add_targeted_object_status(

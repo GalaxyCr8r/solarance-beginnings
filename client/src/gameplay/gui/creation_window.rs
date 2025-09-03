@@ -78,28 +78,21 @@ fn create_ship(
     // Create a ship
     ui.heading(format!("Welcome Captain {}!", player.username));
     ui.separator();
-    ui.label(
-        "In the future, the step before this will be selecting your faction which will influence what ship(s) you can pick."
-    );
-    ui.strong("For now, just click the button to enter the Solarance universe.");
-    ui.separator();
     ui.heading("Basic Instructions");
     ui.label(
-        "Currently you can only mine asteroids and travel to different sectors via jump gates. There is no combat or NPC ships yet."
+        "Currently you can only mine asteroids, buy/sell goods at stations, and travel to different sectors via jump gates. There is no combat or NPC ships yet."
     );
-    ui.label(
-        "The next milestone will bring space stations where you'll be able to sell ore at and perhaps other things!"
-    );
+    ui.label("The next milestone will begin NPCs and make the universe feel more alive!");
     ui.strong("Use WASD or the Arrow keys to move. 'Down' or 'S' will slow your ship.");
     ui.label(
-        "To use jump gates, engage auto-docking with its hotkey and get to its exact center. Wait for it to drain all your energy."
+        "To dock with stations or to use jump gates, engage auto-docking, target the station/gate and get to its exact center. Jump gates drain half your energy currently."
     );
     ui.label(
-        "To mine asteroids, target a asteroid with '[E]' or the minimap and use '[X]' mining on it. The hotkeys should be obvious via the GUI."
+        "To mine asteroids, target a asteroid with '[E]' or the minimap and use '[X]' mining on it. Mining takes energy that will slowly refill."
     );
     ui.separator();
     if ui
-        .button(RichText::new("Create Your Ship").strong())
+        .button(RichText::new("> Create a 'Column-class' Mining Corvette < ").strong())
         .clicked()
     {
         match ctx
@@ -132,16 +125,15 @@ fn create_player(ctx: &DbConnection, game_state: &mut GameState<'_>, ui: &mut eg
 
     // Faction selection
     ui.strong("Select your faction:");
-    ui.small("Choose wisely - this will determine your starting relationships and opportunities.");
+    ui.label("Choose wisely - this will determine your starting relationships and opportunities.");
+    ui.small("Eventually your faction will determine your starting/replacement ship.");
 
     // Get all factions and filter to known joinable ones
-    // TODO: Update this when client bindings include the 'joinable' field
-    let known_joinable_faction_ids = vec![0, 1, 2, 3, 4]; // Factionless, Lrak, IWA, FTU, Rediar
     let joinable_factions: Vec<_> = ctx
         .db
         .faction()
         .iter()
-        .filter(|faction| known_joinable_faction_ids.contains(&faction.id))
+        .filter(|faction| faction.joinable)
         .collect();
 
     if joinable_factions.is_empty() {
@@ -167,7 +159,7 @@ fn create_player(ctx: &DbConnection, game_state: &mut GameState<'_>, ui: &mut eg
         && game_state.creation_window.selected_faction_id.is_some();
 
     ui.add_enabled_ui(can_create, |ui| {
-        if ui.button("Create").clicked()
+        if ui.button("Create Player Account").clicked()
             || (can_create && ui.input(|i| i.key_pressed(egui::Key::Enter)))
         {
             if let Some(faction_id) = game_state.creation_window.selected_faction_id {
