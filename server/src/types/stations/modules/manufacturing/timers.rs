@@ -1,3 +1,5 @@
+use log::info;
+
 use super::*;
 
 /// Calculate the manufacturing production for a manufacturing module
@@ -10,6 +12,7 @@ pub fn calculate_manufacturing_production(
 
     // Check if manufacturing is active and has a recipe
     if !manufacturing.is_producing || manufacturing.current_recipe_id.is_none() {
+        info!("Skipping production calculation");
         return Ok(ManufacturingProductionResult {
             items_completed: 0,
             progress_made: 0.0,
@@ -27,14 +30,23 @@ pub fn calculate_manufacturing_production(
     // Calculate production time with speed modifier
     let effective_production_time =
         recipe.base_production_time_seconds as f32 / manufacturing.production_speed_modifier;
+    info!("effective_production_time: {}", effective_production_time);
 
     // Calculate progress made this tick
     let progress_increment = time_elapsed_seconds / effective_production_time;
     let new_progress = manufacturing.current_production_progress_seconds + progress_increment;
+    info!(
+        "progress_increment: {}, new_progress: {}",
+        progress_increment, new_progress
+    );
 
     // Check if we can complete items
     let items_that_can_be_completed = new_progress.floor() as u32;
     let remaining_progress = new_progress.fract();
+    info!(
+        "items_that_can_be_completed: {}, remaining_progress: {}",
+        items_that_can_be_completed, remaining_progress
+    );
 
     // Check if we have enough inputs for the items we want to complete
     let (actual_items_completed, inputs_consumed, was_limited) = check_and_consume_inputs(
@@ -47,11 +59,7 @@ pub fn calculate_manufacturing_production(
 
     Ok(ManufacturingProductionResult {
         items_completed: actual_items_completed,
-        progress_made: if actual_items_completed > 0 {
-            actual_items_completed as f32 + remaining_progress
-        } else {
-            0.0 // Reset progress if we couldn't complete any items
-        },
+        progress_made: actual_items_completed as f32 + remaining_progress,
         inputs_consumed,
         was_limited_by_inputs: was_limited,
     })
@@ -59,7 +67,7 @@ pub fn calculate_manufacturing_production(
 
 /// Check input availability and calculate what can actually be produced
 fn check_and_consume_inputs(
-    ctx: &ReducerContext,
+    _ctx: &ReducerContext,
     dsl: &DSL,
     station_module: &StationModule,
     recipe: &ProductionRecipeDefinition,
@@ -111,7 +119,15 @@ pub fn apply_manufacturing_production(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
+    let mut updated_manufacturing = manufacturing.clone();
+
     if production_result.items_completed == 0 {
+        updated_manufacturing.set_current_production_progress_seconds(
+            manufacturing.get_current_production_progress_seconds()
+                + production_result.progress_made,
+        );
+        dsl.update_manufacturing_module_by_id(updated_manufacturing)?;
+
         return Ok(());
     }
 
@@ -152,7 +168,6 @@ pub fn apply_manufacturing_production(
     }
 
     // Update manufacturing progress
-    let mut updated_manufacturing = manufacturing.clone();
     updated_manufacturing.set_current_production_progress_seconds(
         production_result.progress_made - (production_result.items_completed as f32),
     );

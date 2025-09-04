@@ -29,65 +29,136 @@ the universe all the time.
 
 ## Running the Game
 
-For Macroquad you may have the download additional dependencies: https://github.com/not-fl3/macroquad#linux
+### Prerequisites
 
-Copy the `client/.env.template` file to `client/.env` and select the SpacetimeDB URL you want to use. The maincloud
-instance might not always be available or up to date.
+- **Rust** (latest stable) - Install via [rustup](https://rustup.rs/)
+- **SpacetimeDB CLI** - Install with `curl -sSf https://install.spacetimedb.com | bash`
+- **Platform Dependencies** - For Macroquad graphics: https://github.com/not-fl3/macroquad#linux
+- **Taskfile** (optional) - For convenient build commands: https://taskfile.dev/
 
-If you have Taskfile, Rust, etc. installed you should just be able to run `task client:run-full` in the root directory.
+### Quick Start
+
+1. **Clone and setup environment:**
+
+   ```bash
+   git clone https://github.com/GalaxyCr8r/solarance-beginnings.git
+   cd solarance-beginnings
+   cp client/.env.template client/.env
+   ```
+
+2. **Choose your SpacetimeDB instance** in `client/.env`:
+
+   - `https://maincloud.spacetimedb.com` - Public test instance (may be unstable)
+   - blank or `localhost` - Run your own local server (recommended for development)
+
+3. **Run the game:**
+   - **With Taskfile:**
+     - `task start` Run in a separate terminal (starts SpacetimeDB)
+     - `task server:publish-clear` (builds server, publishes to SpacetimeDB, clears STDB database)
+     - `task client:run-full` (generates client bindings, runs client)
+   - **Manual:** See individual steps below
+
+### Manual Setup
+
+**For local development (recommended):**
+
+1. **Start SpacetimeDB locally:**
+
+   ```bash
+   spacetimedb start
+   ```
+
+2. **Build and publish the server module:**
+
+   ```bash
+   cd server
+   cargo build
+   spacetimedb publish solarance-spacetime-module
+   cd ..
+   ```
+
+3. **Run the client:**
+   ```bash
+   cd client
+   cargo run --release
+   ```
+
+**For testnet (public instance):**
+
+- Set `SPACETIMEDB_URI=testnet` in `client/.env`
+- Run `cargo run --release` in the `client/` directory
+- Note: Testnet may not always be available or up-to-date
+
+### First Time Playing
+
+- Create an account when prompted
+- Choose a username (this will be your in-game identity)
+- Your ship will spawn in a random sector (tbd)
+- Use WASD or arrow keys to move, mouse to target objects
+- Try mining asteroids and using jump gates to explore! (Most hotkeys are noted with perenstheses on the UI!)
 
 ## Current State of the Project
 
-The project has evolved significantly with the **0.2.0 release** marking a major milestone in playable features. The game now offers the beginnings of the core gameplay loop with exploration, mining, and travel mechanics.
+The project continues to evolve with **Milestone 3 (v0.3.0)** introducing the foundation of a player-driven economy and communication systems.
 
-### Version 0.2.0 Key Features
+### Version 0.3.0 Key Features (Current Development)
 
-- **Complete Mining and Cargo System**
+- **Station Economy & Trading System**
 
-  - Functional asteroid mining with resource extraction
-  - Cargo management with jettison capabilities
-  - Multiple cargo crate types that can be picked up from space
-  - Visual cargo bay interface showing capacity and contents
-  - Resource types: Iron, Silicon, Space Fuel, and various ores
+  - Functional station docking and undocking mechanics
+  - Trading port modules with buy/sell functionality
+  - Dynamic pricing system based on station inventory
+  - Resource processing and production chains
+  - Station module construction and management
 
-- **Jump Gate Travel System**
+- **Server Messaging & Communication**
+  The following are only features of the Server message channel - in general chat there's no way to do these.. yet.
 
-  - Inter-sector travel via jump gates
-  - Auto-docking system for gate activation
-  - Energy-based gate usage mechanics
-  - Directional gate graphics (north/south/east/west orientations)
-  - Seamless sector transitions
+  - Admin messaging system for server announcements
+  - Targeted player messaging with privacy protection
+  - Group messaging capabilities for coordinated play
+  - Server error feedback integrated into game actions
+  - Unread message indicators in chat interface
 
-- **Enhanced Player Experience**
+- **Station Production Infrastructure**
 
-  - Account creation flow with username registration
-  - Ship creation and spawn system
-  - Improved ship movement with WASD/arrow key controls
-  - Velocity-based physics with momentum
-  - Target selection system for objects and asteroids
+  - Refinery modules that process raw ores into refined materials
+  - Automated production timers and resource conversion
+  - Station module blueprints and construction system
+  - Multi-tier resource processing (raw → refined → manufactured)
+  - Station inventory management and storage systems
 
-- **Comprehensive UI Overhaul**
+- **Faction System & Communication**
 
-  - Refactored GUI system with consistent widget architecture
-  - Minimap showing current sector information
-  - Galaxy map for sector navigation planning
-  - Enhanced chat system (global and sector channels)
-  - Ship details window with equipment and cargo tabs
-  - Status widgets showing ship health, energy, and cargo
-  - Debug interface with detailed ship and game state information
+  - Dedicated faction chat channels for coordinated gameplay
+  - Comprehensive faction management interface with member lists and relations
+  - All players now belong to a faction (defaulting to "Factionless" for new players)
+  - Faction reputation system showing standings between different groups
+  - Real-time faction member status and activity tracking
 
-- **Technical Improvements**
+- **Enhanced User Interface**
 
-  - Player identity system with proper ship ownership
-  - Real-time multiplayer synchronization
-  - Improved collision detection and physics
-  - Better asset management and texture loading
-  - Enhanced rendering system with proper sprite handling
+  - Resizable chat window with improved message display
+  - Distance-based radar icon scaling for better spatial awareness
+  - Redesigned cargo panel with capacity indicators
+  - Improved station interaction interfaces
+  - Better visual feedback for docking and trading actions
 
-- **macOS Compatibility Improvements**
-  - Fixed asset loading paths for macOS app bundles
-  - Improved cross-platform .env file handling
-  - Better executable path detection for bundled applications
+- **Technical Infrastructure Upgrades**
+
+  - Upgraded to SpacetimeDSL 0.10.0 with improved foreign key relationships
+  - Enhanced database schema with proper referential integrity
+  - Improved subscription system for real-time multiplayer updates
+  - Better error handling and graceful failure recovery
+  - Optimized network synchronization for station interactions
+
+### Version 0.2.0 Foundation Features
+
+- **Core Gameplay Loop**: Mining, cargo management, jump gate travel, and exploration
+- **Player Systems**: Account creation, ship spawning, WASD movement with physics
+- **UI Framework**: Comprehensive GUI system with minimap, galaxy map, and ship details
+- **Multiplayer Infrastructure**: Real-time synchronization and player identity system
+- **Cross-Platform Support**: macOS compatibility and improved asset loading
 
 ### Planned Core Features
 

@@ -1,11 +1,11 @@
 use macroquad::prelude::glam;
-use spacetimedb_sdk::{ DbContext, Identity, Table };
+use spacetimedb_sdk::{DbContext, Identity, Table};
 
 use crate::module_bindings::*;
 
 pub fn get_transform(
     ctx: &DbConnection,
-    sobj_id: u64
+    sobj_id: u64,
 ) -> Result<StellarObjectTransformHiRes, String> {
     if let Some(hr) = ctx.db().sobj_hi_res_transform().id().find(&sobj_id) {
         Ok(hr)
@@ -31,6 +31,30 @@ pub fn get_username(ctx: &DbConnection, id: &Identity) -> String {
     }
 }
 
+pub fn get_faction_shortname(ctx: &DbConnection, id: &u32) -> String {
+    if let Some(faction) = ctx.db().faction().id().find(id) {
+        if let Some(p_id) = faction.parent_id {
+            format!(
+                "{}, {}",
+                get_faction_shortname(ctx, &p_id.value),
+                faction.short_name
+            )
+        } else {
+            faction.short_name
+        }
+    } else {
+        "UFX".to_string()
+    }
+}
+
+pub fn get_sector_name(ctx: &DbConnection, id: &u64) -> String {
+    if let Some(sector) = ctx.db().sector().id().find(&id) {
+        sector.name
+    } else {
+        format!("Sector #{}", id)
+    }
+}
+
 pub fn get_current_player(ctx: &DbConnection) -> Option<Player> {
     get_player(&ctx.db, &ctx.identity())
 }
@@ -52,13 +76,17 @@ pub fn get_player_sobj_id(ctx: &DbConnection) -> Option<u64> {
 }
 
 pub fn get_player_ship(ctx: &DbConnection) -> Option<Ship> {
-    ctx.db().ship().sobj_id().find(&get_player_sobj_id(ctx)?)
+    if let Some(sobj_id) = get_player_sobj_id(ctx) {
+        ctx.db().ship().iter().find(|s| s.sobj_id == sobj_id)
+    } else {
+        None
+    }
 }
 
 pub fn get_all_equipped_of_type(
     ctx: &DbConnection,
     ship_id: u64,
-    slot_type: EquipmentSlotType
+    slot_type: EquipmentSlotType,
 ) -> Vec<ShipEquipmentSlot> {
     let mut equipment = Vec::new();
     for slot in ctx.db().ship_equipment_slot().iter() {
@@ -80,11 +108,19 @@ pub fn get_all_equipped_of_type(
 // }
 
 pub fn get_player_ship_status(ctx: &DbConnection) -> Option<ShipStatus> {
-    if let Some(this) = get_player_ship(ctx) { this.status(ctx) } else { None }
+    if let Some(this) = get_player_ship(ctx) {
+        this.status(ctx)
+    } else {
+        None
+    }
 }
 
 pub fn get_player_transform(ctx: &DbConnection) -> Option<StellarObjectTransformHiRes> {
-    if let Some(this) = get_player_sobj_id(ctx) { get_transform(ctx, this).ok() } else { None }
+    if let Some(this) = get_player_sobj_id(ctx) {
+        get_transform(ctx, this).ok()
+    } else {
+        None
+    }
 }
 
 pub fn get_player_transform_vec2(ctx: &DbConnection, default: glam::Vec2) -> glam::Vec2 {

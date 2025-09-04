@@ -31,11 +31,12 @@ pub fn create_basic_laboratory(
 
     let blueprint =
         dsl.get_station_module_blueprint_by_id(StationModuleBlueprintId::new(blueprint_id))?;
+    let identifier = format!("{:?} Laboratory", lab_type);
 
     let module = dsl.create_station_module(
         station.get_id(),
         blueprint.get_id(),
-        "laboratory",
+        identifier.as_str(),
         true,
         None,
         ctx.timestamp,

@@ -1,26 +1,122 @@
+use egui::{Align, Layout};
+
 use super::*;
 
-pub fn display_ship_on_tree(ctx: &DbConnection, state: &mut State, ui: &mut Ui, ship: &DockedShip) {
+/// Check if a module can buy items from the player
+/// This includes trading ports, refineries (for input resources), and manufacturing modules (for recipe inputs)
+pub fn module_can_buy_from_player(
+    ctx: &DbConnection,
+    module: &StationModule,
+    item_id: u32,
+) -> bool {
+    // Check if it's a trading port
+    if ctx
+        .db()
+        .trading_port_module()
+        .id()
+        .find(&module.id)
+        .is_some()
+    {
+        return true;
+    }
+
+    // Check if it's a refinery that accepts this item as input
+    if let Some(refinery) = ctx.db().refinery_module().id().find(&module.id) {
+        if refinery.input_ore_resource_id == item_id {
+            return true;
+        }
+    }
+
+    // Check if it's a manufacturing module with a recipe that uses this item as input
+    if let Some(manufacturing) = ctx.db().manufacturing_module().id().find(&module.id) {
+        if let Some(recipe_id) = manufacturing.current_recipe_id {
+            if let Some(recipe) = ctx
+                .db()
+                .production_recipe_definition()
+                .id()
+                .find(&recipe_id)
+            {
+                // Check if this item is in the recipe's input resources
+                for input_resource in &recipe.input_resources {
+                    if input_resource.resource_item_id == item_id {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    false
+}
+
+/// Check if a module can sell items to the player
+/// This includes trading ports, refineries (for output/waste resources), and manufacturing modules (for recipe outputs)
+pub fn module_can_sell_to_player(ctx: &DbConnection, module: &StationModule, item_id: u32) -> bool {
+    // Check if it's a trading port
+    if ctx
+        .db()
+        .trading_port_module()
+        .id()
+        .find(&module.id)
+        .is_some()
+    {
+        return true;
+    }
+
+    // Check if it's a refinery that produces this item as output or waste
+    if let Some(refinery) = ctx.db().refinery_module().id().find(&module.id) {
+        if refinery.output_ingot_resource_id == item_id {
+            return true;
+        }
+        if let Some(waste_id) = refinery.waste_resource_id {
+            if waste_id == item_id {
+                return true;
+            }
+        }
+    }
+
+    // Check if it's a manufacturing module with a recipe that produces this item
+    if let Some(manufacturing) = ctx.db().manufacturing_module().id().find(&module.id) {
+        if let Some(recipe_id) = manufacturing.current_recipe_id {
+            if let Some(recipe) = ctx
+                .db()
+                .production_recipe_definition()
+                .id()
+                .find(&recipe_id)
+            {
+                if recipe.output_resource_id == item_id {
+                    return true;
+                }
+            }
+        }
+    }
+
+    false
+}
+
+pub fn display_ship_on_tree(ctx: &DbConnection, state: &mut State, ui: &mut Ui, ship: &Ship) {
     let ship_type = ctx.db().ship_type_definition().id().find(&ship.shiptype_id);
 
     let mut select_enabled = true;
-    if state.selected_ship.clone().is_some_and(|selected| selected.id == ship.id) {
+    if state
+        .selected_ship
+        .clone()
+        .is_some_and(|selected| selected.id == ship.id)
+    {
         select_enabled = false;
     }
 
     ui.horizontal(|ui| {
         // You can make ships collapsible too, or just list them
-        ui.label(
-            format!(
-                "    - Ship: {} (ID: {})",
-                if ship_type.is_some() {
-                    ship_type.unwrap().name
-                } else {
-                    "Unknown Ship Type".to_string()
-                },
-                ship.id
-            )
-        );
+        ui.label(format!(
+            "    - Ship: {} (ID: {})",
+            if ship_type.is_some() {
+                ship_type.unwrap().name
+            } else {
+                "Unknown Ship Type".to_string()
+            },
+            ship.id
+        ));
 
         // Buttons on the right
         ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
@@ -28,7 +124,8 @@ pub fn display_ship_on_tree(ctx: &DbConnection, state: &mut State, ui: &mut Ui, 
             if ui.button("Undock").clicked() {
                 println!("Undock clicked for ship ID: {}", ship.id);
                 state.selected_ship = None;
-                let _ = ctx.reducers().undock_ship(ShipGlobalId { value: ship.id });
+                state.currently_selected_module = None;
+                let _ = ctx.reducers().undock_ship(ship.clone());
                 // TODO Add a system message to alert the player if it failed.
             }
             if select_enabled && ui.button("Select").clicked() {
@@ -43,31 +140,32 @@ pub fn display_ship_on_tree(ctx: &DbConnection, state: &mut State, ui: &mut Ui, 
     });
 }
 
-pub fn collect_docked_ships_per_sector(ctx: &DbConnection) -> HashMap<u64, Vec<DockedShip>> {
-    let mut docked_ships_map: HashMap<u64, Vec<DockedShip>> = HashMap::new();
+pub fn collect_ships_per_sector(ctx: &DbConnection) -> HashMap<u64, Vec<Ship>> {
+    let mut ships_map: HashMap<u64, Vec<Ship>> = HashMap::new();
 
-    for docked_ship in ctx
+    for ship in ctx
         .db()
-        .docked_ship() // Assuming generated table handle
+        .ship() // Assuming generated table handle
         .iter()
-        .filter(|ship| ship.player_id == ctx.identity()) {
+        .filter(|ship| ship.player_id == ctx.identity())
+    {
         // sector_id is u64, which is a Copy, so no clone needed for the key.
         // Clone the ship itself to store in the Vec.
-        docked_ships_map.entry(docked_ship.sector_id).or_default().push(docked_ship.clone());
+        ships_map
+            .entry(ship.sector_id)
+            .or_default()
+            .push(ship.clone());
     }
-    docked_ships_map
+    ships_map
 }
 
-pub fn prepare_docked_ships_for_system_tree(
-    ctx: &DbConnection
-) -> HashMap<u32, (StarSystem, Vec<(Sector, Vec<DockedShip>)>)> {
-    let docked_ships_per_sector = collect_docked_ships_per_sector(ctx);
-    let mut systems_data: HashMap<
-        u32,
-        (StarSystem, Vec<(Sector, Vec<DockedShip>)>)
-    > = HashMap::new();
+pub fn prepare_ships_for_system_tree(
+    ctx: &DbConnection,
+) -> HashMap<u32, (StarSystem, Vec<(Sector, Vec<Ship>)>)> {
+    let ships_per_sector = collect_ships_per_sector(ctx);
+    let mut systems_data: HashMap<u32, (StarSystem, Vec<(Sector, Vec<Ship>)>)> = HashMap::new();
 
-    for (sector_id, ships_in_this_sector) in docked_ships_per_sector.iter() {
+    for (sector_id, ships_in_this_sector) in ships_per_sector.iter() {
         // Find the sector object for the current sector_id
         if let Some(sector) = ctx.db().sector().id().find(sector_id) {
             // Assuming PK on Sector is 'id'
@@ -80,17 +178,21 @@ pub fn prepare_docked_ships_for_system_tree(
                     .or_insert_with(|| (star_system.clone(), Vec::new()));
 
                 // Add the current sector and its ships to this system's list
-                // We clone ships_in_this_sector because we are borrowing it from docked_ships_per_sector
-                system_entry.1.push((sector.clone(), ships_in_this_sector.clone()));
+                // We clone ships_in_this_sector because we are borrowing it from ships_per_sector
+                system_entry
+                    .1
+                    .push((sector.clone(), ships_in_this_sector.clone()));
             } else {
                 info!(
                     "Warning: StarSystem with ID {} not found for sector {}",
-                    sector.system_id,
-                    sector.name
+                    sector.system_id, sector.name
                 );
             }
         } else {
-            info!("Warning: Sector with ID {} not found, but ships are docked there.", sector_id);
+            info!(
+                "Warning: Sector with ID {} not found, but ships are docked there.",
+                sector_id
+            );
         }
     }
 

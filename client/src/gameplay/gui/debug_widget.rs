@@ -1,12 +1,12 @@
-use egui::{ Align2, Context, ScrollArea };
+use egui::{Align2, Context, ScrollArea};
 use macroquad::miniquad::date::now;
 use macroquad::prelude::*;
 
 use crate::module_bindings::*;
-use spacetimedb_sdk::{ DbContext, Table };
+use spacetimedb_sdk::{DbContext, Table};
 
-use crate::stdb::utils::*;
 use crate::gameplay::state::GameState;
+use crate::stdb::utils::*;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -16,12 +16,11 @@ use crate::gameplay::state::GameState;
 
 pub fn draw(
     egui_ctx: &Context,
-    game_state: &mut GameState
+    game_state: &mut GameState,
 ) -> Option<egui::InnerResponse<Option<()>>> {
     let ctx = game_state.ctx;
 
-    egui::Window
-        ::new("Debug")
+    egui::Window::new("Debug")
         .title_bar(true)
         .resizable(false)
         .collapsible(true)
@@ -34,13 +33,11 @@ pub fn draw(
                     if let Some(controlled) = player.get_controlled_stellar_object_id(&ctx) {
                         match get_transform(&ctx, controlled) {
                             Ok(transform) => {
-                                ui.label(
-                                    format!(
-                                        "SObj: {}, {}",
-                                        transform.x.to_string(),
-                                        transform.y.to_string()
-                                    )
-                                );
+                                ui.label(format!(
+                                    "SObj: {}, {}",
+                                    transform.x.to_string(),
+                                    transform.y.to_string()
+                                ));
                             }
                             _ => {
                                 ui.label("SObj: unknown");
@@ -48,15 +45,6 @@ pub fn draw(
                         }
                     } else {
                         ui.label("WARNING - The player doesn't have a SObj!");
-
-                        if ui.button("Create Ship").clicked() {
-                            info!("Creating ship");
-                            let _ = ctx.reducers.create_player_controlled_ship(
-                                ctx.identity(),
-                                game_state.chat_window.text.clone()
-                            );
-                            game_state.chat_window.text.clear();
-                        }
                     }
                 }
                 None => {
@@ -67,18 +55,6 @@ pub fn draw(
                         ui.label("Username: ");
                         ui.text_edit_singleline(&mut game_state.chat_window.text);
                     });
-
-                    if
-                        ui.button("Create Player").clicked() &&
-                        game_state.chat_window.text.len() > 1
-                    {
-                        info!("Creating player");
-                        let _ = ctx.reducers.register_playername(
-                            ctx.identity(),
-                            game_state.chat_window.text.clone()
-                        );
-                        //game_state.chat_window.text.clear(); // Replace later maybe?
-                    }
                 }
             }
 
@@ -109,7 +85,7 @@ pub fn draw(
                                         ui.label("Position: n/a");
                                     }
                                 }
-                                ui.label(format!("- Sector #{}", object.sector_id));
+                                ui.label(format!("- {}", get_sector_name(ctx, &object.sector_id)));
                             });
                         }
                     });
@@ -123,33 +99,24 @@ pub fn draw(
                     .show(ui, |ui| {
                         for player in ctx.db().player().iter() {
                             ui.horizontal(|ui| {
-                                ui.label(
-                                    format!("[{}] Credits: {}", player.username, player.credits)
-                                );
-                                if
-                                    let Some(window) = ctx
-                                        .db()
-                                        .sobj_player_window()
-                                        .id()
-                                        .find(&player.id)
+                                ui.label(format!(
+                                    "[{}] Credits: {}",
+                                    player.username, player.credits
+                                ));
+                                if let Some(window) =
+                                    ctx.db().sobj_player_window().id().find(&player.id)
                                 {
-                                    ui.label(
-                                        format!(
-                                            "- #{}: {}, {}, {}, {}",
-                                            window.window,
-                                            window.tl_x,
-                                            window.tl_y,
-                                            window.br_x,
-                                            window.br_y
-                                        )
-                                    );
+                                    ui.label(format!(
+                                        "- #{}: {}, {}, {}, {}",
+                                        window.window,
+                                        window.tl_x,
+                                        window.tl_y,
+                                        window.br_x,
+                                        window.br_y
+                                    ));
                                 }
-                                if
-                                    let Some(_controller) = ctx
-                                        .db()
-                                        .player_ship_controller()
-                                        .id()
-                                        .find(&player.id)
+                                if let Some(_controller) =
+                                    ctx.db().player_ship_controller().id().find(&player.id)
                                 {
                                     ui.label("Has Controller");
                                 }
@@ -157,15 +124,13 @@ pub fn draw(
                         }
                         for ship_objs in ctx.db().ship().iter() {
                             ui.horizontal(|ui| {
-                                ui.label(
-                                    format!(
-                                        "{}: Sector: {}, Ship: {}, SO: {}",
-                                        ship_objs.player_id.to_abbreviated_hex(),
-                                        ship_objs.sector_id,
-                                        ship_objs.id,
-                                        ship_objs.sobj_id
-                                    )
-                                );
+                                ui.label(format!(
+                                    "{}: Sector: {}, Ship: {}, SO: {}",
+                                    ship_objs.player_id.to_abbreviated_hex(),
+                                    ship_objs.sector_id,
+                                    ship_objs.id,
+                                    ship_objs.sobj_id
+                                ));
                             });
                         }
                     });

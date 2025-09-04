@@ -8,6 +8,7 @@ pub mod impls; // Impls for this file's structs
 pub mod modules; // Station modules
 pub mod reducers; // SpacetimeDB Reducers for this file's structs.
                   // pub mod rls; // Row-level-security rules for this file's structs.
+pub mod tests; // Tests for station functionality
 pub mod timers; // Timers related to this file's structs.
 pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
@@ -85,6 +86,7 @@ pub enum StationModuleSpecificType {
 pub struct StationModuleBlueprint {
     #[primary_key]
     #[create_wrapper]
+    #[referenced_by(path = crate::types::stations, table = station_module)]
     id: u32,
 
     #[unique]
@@ -120,16 +122,19 @@ pub struct StationModule {
     #[primary_key]
     #[auto_inc]
     #[create_wrapper]
+    #[referenced_by(path = crate::types::stations, table = station_module_inventory_item)]
     id: u64,
 
     #[index(btree)]
     #[use_wrapper(path = StationId)]
+    #[foreign_key(path = crate::types::stations, table = station, column = id, on_delete = Delete)]
     /// FK to SpaceStation
     pub station_id: u64,
 
     /// FK to StationModuleBlueprint
     #[index(btree)]
     #[use_wrapper(path = StationModuleBlueprintId)]
+    #[foreign_key(path = crate::types::stations, table = station_module_blueprint, column = id, on_delete = Error)]
     pub blueprint: u32,
 
     pub station_slot_identifier: String, // e.g., "HabitatRing-A-Slot3", "Core-Power-Slot1"
@@ -144,6 +149,7 @@ pub struct StationModule {
 pub struct StationUnderConstruction {
     #[primary_key]
     #[use_wrapper(path = StationId)]
+    #[foreign_key(path = crate::types::stations, table = station, column = id, on_delete = Delete)]
     /// FK to SpaceStation
     id: u64,
 
@@ -156,6 +162,7 @@ pub struct StationUnderConstruction {
 pub struct StationModuleUnderConstruction {
     #[primary_key]
     #[use_wrapper(path = StationId)]
+    #[foreign_key(path = crate::types::stations, table = station, column = id, on_delete = Delete)]
     /// FK to SpaceStation
     id: u64,
 
@@ -174,11 +181,13 @@ pub struct StationModuleInventoryItem {
 
     #[index(btree)]
     #[use_wrapper(path = StationModuleId)]
+    #[foreign_key(path = crate::types::stations, table = station_module, column = id, on_delete = Delete)]
     /// FK to StationModule
     pub module_id: u64,
 
     #[index(btree)]
     #[use_wrapper(path = crate::types::items::ItemDefinitionId)]
+    #[foreign_key(path = crate::types::items, table = item_definition, column = id, on_delete = Error)]
     /// FK to ItemDefinition
     pub resource_item_id: u32,
 
@@ -198,6 +207,11 @@ pub struct Station {
     #[primary_key]
     #[auto_inc]
     #[create_wrapper]
+    #[referenced_by(path = crate::types::stations, table = station_module)]
+    #[referenced_by(path = crate::types::stations, table = station_under_construction)]
+    #[referenced_by(path = crate::types::stations, table = station_module_under_construction)]
+    #[referenced_by(path = crate::types::stations, table = station_status)]
+    #[referenced_by(path = crate::types::ships, table = ship)]
     id: u64,
 
     #[index(btree)]
@@ -205,16 +219,19 @@ pub struct Station {
 
     #[index(btree)]
     #[use_wrapper(path = sectors::SectorId)]
+    #[foreign_key(path = crate::types::sectors, table = sector, column = id, on_delete = Error)]
     /// FK to Sector.id
     pub sector_id: u64,
 
     #[unique]
     #[use_wrapper(path = stellarobjects::StellarObjectId)]
+    #[foreign_key(path = crate::types::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     /// FK to StellarObject
     pub sobj_id: u64,
 
     #[index(btree)]
     #[use_wrapper(path = factions::FactionId)]
+    #[foreign_key(path = crate::types::factions, table = faction, column = id, on_delete = Error)]
     /// FK to FactionDefinition
     pub owner_faction_id: u32,
 
@@ -229,6 +246,7 @@ pub struct Station {
 pub struct StationStatus {
     #[primary_key]
     #[use_wrapper(path = StationId)]
+    #[foreign_key(path = crate::types::stations, table = station, column = id, on_delete = Delete)]
     /// FK to Station
     id: u64,
 

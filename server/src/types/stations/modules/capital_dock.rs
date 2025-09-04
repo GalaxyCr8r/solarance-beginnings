@@ -17,7 +17,7 @@ pub struct CapitalDock {
 #[table(name = docked_capital_ship_at_module, public)]
 pub struct DockedCapitalShipAt {
     #[primary_key]
-    #[use_wrapper(path = ships::ShipGlobalId)]
+    #[use_wrapper(path = ships::ShipId)]
     id: u64, // FK to Ship (must be a capital ship)
 
     #[index(btree)]

@@ -2,14 +2,11 @@ use std::time::Duration;
 
 use log::info;
 use spacetimedb::*;
-use spacetimedsl::{ dsl, Wrapper };
+use spacetimedsl::{dsl, Wrapper};
 
 use crate::types::{
-    asteroids::*,
-    common::utility::try_server_only,
-    items::utility::*,
-    ships::utility::*,
-    stellarobjects::GetStellarObjectRowOptionById,
+    asteroids::*, common::utility::try_server_only, items::utility::*,
+    server_messages::utility::send_info_message, ships::utility::*, stellarobjects::*,
 };
 
 use super::*;
@@ -24,7 +21,7 @@ pub struct ShipStatusTimer {
     scheduled_at: spacetimedb::ScheduleAt,
 
     #[unique]
-    #[use_wrapper(path = ShipGlobalId)]
+    #[use_wrapper(path = ShipId)]
     /// FK to Ship
     pub ship_id: u64,
 
@@ -65,7 +62,7 @@ pub struct ShipAddCargoTimer {
     scheduled_at: spacetimedb::ScheduleAt,
 
     #[index(btree)]
-    #[use_wrapper(path = ShipGlobalId)]
+    #[use_wrapper(path = ShipId)]
     /// FK to Ship
     pub ship_id: u64,
 
@@ -80,7 +77,7 @@ pub struct ShipAddCargoTimer {
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init(ctx: &ReducerContext) -> Result<(), String> {
+pub fn init(_ctx: &ReducerContext) -> Result<(), String> {
     Ok(())
 }
 
@@ -90,15 +87,15 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 
 pub fn create_status_timer_for_ship(
     ctx: &ReducerContext,
-    ship_id: &ShipGlobalId,
-    type_id: &ShipTypeDefinitionId
+    ship_id: &ShipId,
+    type_id: &ShipTypeDefinitionId,
 ) -> Result<ShipStatusTimer, String> {
     let dsl = dsl(ctx);
 
     let timer = dsl.create_ship_status_timer(
         spacetimedb::ScheduleAt::Interval(Duration::from_millis(500).into()),
         ship_id,
-        type_id
+        type_id,
     )?;
 
     Ok(timer)
@@ -107,7 +104,7 @@ pub fn create_status_timer_for_ship(
 pub fn create_mining_timer_for_ship(
     ctx: &ReducerContext,
     ship_sobj_id: &StellarObjectId,
-    asteroid_sobj_id: &StellarObjectId
+    asteroid_sobj_id: &StellarObjectId,
 ) -> Result<ShipMiningTimer, String> {
     let dsl = dsl(ctx);
 
@@ -118,41 +115,35 @@ pub fn create_mining_timer_for_ship(
 
     // Check if the ship and asteroid are in the same sector
     if !same_sector_from_ids(ctx, &ship_sobj_id, &asteroid_sobj_id) {
-        return Err(
-            format!(
-                "What are you trying to mine? {} and {} are in different sectors",
-                ship_sobj_id.clone().value(),
-                asteroid_sobj_id.clone().value()
-            )
-        );
+        return Err(format!(
+            "What are you trying to mine? {} and {} are in different sectors",
+            ship_sobj_id.clone().value(),
+            asteroid_sobj_id.clone().value()
+        ));
     }
 
-    Ok(
-        dsl.create_ship_mining_timer(
-            spacetimedb::ScheduleAt::Interval(Duration::from_secs(3).into()),
-            ship_sobj_id,
-            asteroid_sobj_id,
-            0.0
-        )?
-    )
+    Ok(dsl.create_ship_mining_timer(
+        spacetimedb::ScheduleAt::Interval(Duration::from_secs(3).into()),
+        ship_sobj_id,
+        asteroid_sobj_id,
+        0.0,
+    )?)
 }
 
 pub fn create_timer_to_add_cargo_to_ship(
     ctx: &ReducerContext,
-    ship_id: ShipGlobalId,
+    ship_id: ShipId,
     item_id: ItemDefinitionId,
-    amount: u16
+    amount: u16,
 ) -> Result<ShipAddCargoTimer, String> {
     let dsl = dsl(ctx);
 
-    Ok(
-        dsl.create_ship_add_cargo_timer(
-            spacetimedb::ScheduleAt::Interval(Duration::from_secs(1).into()),
-            ship_id,
-            item_id,
-            amount
-        )?
-    )
+    Ok(dsl.create_ship_add_cargo_timer(
+        spacetimedb::ScheduleAt::Interval(Duration::from_secs(1).into()),
+        ship_id,
+        item_id,
+        amount,
+    )?)
 }
 
 //////////////////////////////////////////////////////////////
@@ -164,7 +155,7 @@ pub fn create_timer_to_add_cargo_to_ship(
 #[spacetimedb::reducer]
 pub fn ship_status_timer_reducer(
     ctx: &ReducerContext,
-    timer: ShipStatusTimer
+    timer: ShipStatusTimer,
 ) -> Result<(), String> {
     try_server_only(ctx)?;
     let dsl = dsl(ctx);
@@ -199,19 +190,28 @@ pub fn ship_status_timer_reducer(
 #[spacetimedb::reducer]
 pub fn ship_mining_timer_reducer(
     ctx: &ReducerContext,
-    mut timer: ShipMiningTimer
+    mut timer: ShipMiningTimer,
 ) -> Result<(), String> {
     try_server_only(ctx)?;
     let dsl = dsl(ctx);
 
-    let ship_object = dsl.get_ship_by_sobj_id(timer.get_ship_sobj_id())?;
+    let ship_object = dsl
+        .get_ships_by_sobj_id(timer.get_ship_sobj_id())
+        .next()
+        .ok_or("Couldn't find ship.".to_string())?;
     let mut asteroid_object = dsl.get_asteroid_by_id(timer.get_asteroid_sobj_id())?;
 
-    if asteroid_object.current_resources == 0 {
+    if *asteroid_object.get_current_resources() == 0 {
         dsl.delete_ship_mining_timer_by_id(timer.get_id())?;
 
-        dsl.get_stellar_object_by_id(asteroid_object.get_id())?.delete(ctx, true)?;
+        let _ = dsl.delete_stellar_object_by_id(&asteroid_object.get_id());
 
+        let _ = send_info_message(
+            ctx,
+            &ship_object.get_player_id(),
+            "Targetted asteroid exhausted!".to_string(),
+            Some("mining"),
+        );
         info!(
             "Asteroid #{:?} exhausted of resources! Timer and Asteroid deleted",
             asteroid_object.get_id()
@@ -220,7 +220,7 @@ pub fn ship_mining_timer_reducer(
     }
 
     // Get the volume of the asteroid's item type
-    let item_def = get_item_definition(ctx, asteroid_object.resource_item_id)?;
+    let item_def = get_item_definition(ctx, asteroid_object.get_resource_item_id().value())?;
 
     // Do the logic to determine speed of mining based on mining equipment, item id, etc.
     let mut energy_consumption = 1.0f32;
@@ -231,40 +231,46 @@ pub fn ship_mining_timer_reducer(
             laser_def
                 .get_metadata()
                 .iter()
-                .for_each(|metadata| {
-                    match metadata {
-                        ItemMetadata::MiningSpeedMultiplier(mul) => {
-                            mining_speed *= mul;
-                        }
-                        ItemMetadata::EnergyConsumption(consumption) => {
-                            energy_consumption += consumption;
-                        }
-                        _ => {}
+                .for_each(|metadata| match metadata {
+                    ItemMetadata::MiningSpeedMultiplier(mul) => {
+                        mining_speed *= mul;
                     }
+                    ItemMetadata::EnergyConsumption(consumption) => {
+                        energy_consumption += consumption;
+                    }
+                    _ => {}
                 });
         }
     }
 
     // Find the ship instance so we can check energy and update mining progress
-    let mut ship_status = dsl.get_ship_status_by_id(ship_object.get_id()).or_else(|_stdsl_error| {
-        dsl.delete_ship_mining_timer_by_id(timer.get_id())?;
-        Err(
-            format!(
-                "Failed to find ship instance object for mining timer: {:?} Removed timer.",
-                ship_object.get_id()
-            )
-        )
-    })?;
+    let mut ship_status =
+        dsl.get_ship_status_by_id(ship_object.get_id())
+            .or_else(|_stdsl_error| {
+                dsl.delete_ship_mining_timer_by_id(timer.get_id())?;
+                Err(format!(
+                    "Failed to find ship instance object for mining timer: {:?} Removed timer.",
+                    ship_object.get_id()
+                ))
+            })?;
 
     if ship_status.get_energy() < &energy_consumption {
-        return Err(
+        let _ = send_info_message(
+            ctx,
+            &ship_object.get_player_id(),
             format!(
-                "Ship {:?} does not have enough energy to mine. Req: {}, Current: {}",
-                ship_object.get_id(),
-                energy_consumption,
-                ship_status.get_energy()
-            )
+                "Your ship does not have enough energy to mine. {} energy / {} required",
+                ship_status.get_energy(),
+                energy_consumption
+            ),
+            Some("mining"),
         );
+        return Err(format!(
+            "Ship {:?} does not have enough energy to mine. Req: {}, Current: {}",
+            ship_object.get_id(),
+            energy_consumption,
+            ship_status.get_energy()
+        ));
     }
 
     ship_status.set_energy(ship_status.get_energy() - energy_consumption);
@@ -274,12 +280,13 @@ pub fn ship_mining_timer_reducer(
     if timer.get_mining_progress() >= get_volume_per_unit {
         let mut diff = timer.get_mining_progress() / get_volume_per_unit;
 
-        if diff > (asteroid_object.current_resources as f32) {
-            diff = asteroid_object.current_resources as f32;
-            asteroid_object.current_resources = 0;
+        if diff > (*asteroid_object.get_current_resources() as f32) {
+            diff = *asteroid_object.get_current_resources() as f32;
+            asteroid_object.set_current_resources(0);
             info!("Asteroid exhausted! Mining timer will be removed next cycle.");
         } else {
-            asteroid_object.current_resources -= diff as u16;
+            asteroid_object
+                .set_current_resources(asteroid_object.get_current_resources() - diff as u16);
         }
 
         let _ = dsl.update_asteroid_by_id(asteroid_object)?; // TODO handle this properly
@@ -287,16 +294,26 @@ pub fn ship_mining_timer_reducer(
             ctx,
             ship_object.get_id(),
             item_def.get_id(),
-            diff.floor() as u16
+            diff.floor() as u16,
         )?;
 
         timer.set_mining_progress(0.0); //timer.get_mining_progress() - diff.floor()); // Just reset it to 0 instead of letting it roll over
 
+        let _ = send_info_message(
+            ctx,
+            &ship_object.get_player_id(),
+            format!(
+                "Your ship has mined {}x of {}. Attempting to load...",
+                diff.floor() as u16,
+                item_def.get_name()
+            ),
+            Some("mining"),
+        );
         info!(
             "Ship #{:?} mined {}x of {}. Current progress to next item: {}",
             ship_object.get_id(),
             diff.floor() as u16,
-            item_def.name,
+            item_def.get_name(),
             timer.get_mining_progress()
         );
     }
@@ -311,7 +328,7 @@ pub fn ship_mining_timer_reducer(
 #[spacetimedb::reducer]
 pub fn ship_add_cargo_timer_reducer(
     ctx: &ReducerContext,
-    timer: ShipAddCargoTimer
+    timer: ShipAddCargoTimer,
 ) -> Result<(), String> {
     try_server_only(ctx)?;
     let dsl = dsl(ctx);
@@ -339,7 +356,7 @@ pub fn ship_add_cargo_timer_reducer(
         &ship_object.get_id(),
         &item_def,
         timer.amount,
-        true
+        true,
     )?;
 
     Ok(())

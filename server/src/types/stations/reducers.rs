@@ -6,6 +6,7 @@ use crate::types::{
     common::utility::*,
     items::{ItemDefinitionId, *},
     players::{GetPlayerRowOptionById, UpdatePlayerRowById},
+    server_messages::utility::{send_error_message, send_info_message},
     ships::{utility::*, *},
     stations::timers::*,
 };
@@ -22,14 +23,35 @@ use super::*;
 pub fn buy_item_from_station_module(
     ctx: &ReducerContext,
     station_module_id: StationModuleId,
-    docked_ship_id: ShipGlobalId,
+    ship_id: ShipId,
     item_id: ItemDefinitionId,
     quantity: u32,
 ) -> Result<(), String> {
-    is_server_or_ship_owner(ctx, Some(docked_ship_id.clone()))?;
+    is_server_or_ship_owner(ctx, Some(ship_id.clone()))?;
     let dsl = dsl(ctx);
 
-    let ship = dsl.get_docked_ship_by_id(&docked_ship_id)?;
+    let ship = dsl.get_ship_by_id(&ship_id)?;
+
+    // Validate that the docked ship is at the same station as the module
+    let station_module = dsl.get_station_module_by_id(&station_module_id)?;
+    if ship.get_station_id() != station_module.get_station_id() {
+        let player_id = ship.get_player_id().clone();
+        let error_message = format!(
+            "Cannot buy from station module: Your ship is docked at station {} but the module is at station {}.",
+            ship.get_station_id(),
+            station_module.get_station_id()
+        );
+
+        // Send server message for error feedback
+        send_error_message(
+            ctx,
+            &player_id,
+            error_message.clone(),
+            Some("Station Trading"),
+        )?;
+
+        return Err(error_message);
+    }
 
     // Get Trading Port Module and it's inventory item that matches the item_id
     //let trading_port_module = dsl.get_trading_port_module_by_id(&station_module_id)?;
@@ -40,13 +62,46 @@ pub fn buy_item_from_station_module(
         .get_station_module_inventory_items_by_module_id(&station_module_id)
         .filter(|item| item.get_resource_item_id() == item_id)
         .next()
-        .ok_or(format!(
-            "Cannot sell #{} to station: No matching inventory item found.",
-            item_id
-        ))?;
+        .ok_or_else(|| {
+            let player_id = ship.get_player_id().clone();
+            let error_message = format!(
+                "Cannot buy item #{}: This item is not available at this station.",
+                item_id
+            );
+
+            // Send server message for error feedback
+            let _ = send_error_message(
+                ctx,
+                &player_id,
+                error_message.clone(),
+                Some("Station Trading"),
+            );
+
+            format!(
+                "Cannot sell #{} to station: No matching inventory item found.",
+                item_id
+            )
+        })?;
     let item_def = dsl.get_item_definition_by_id(item_id)?;
 
     if item_listing.get_quantity() < &quantity {
+        let player_id = ship.get_player_id().clone();
+        let error_message = format!(
+            "Cannot buy {}x {} from station: Not enough items available. Station has {} but you requested {}.",
+            quantity,
+            item_def.get_name(),
+            item_listing.get_quantity(),
+            quantity
+        );
+
+        // Send server message for error feedback
+        send_error_message(
+            ctx,
+            &player_id,
+            error_message.clone(),
+            Some("Station Trading"),
+        )?;
+
         return Err(format!(
             "Cannot buy {}x {} from station: Not enough items.",
             quantity,
@@ -60,6 +115,23 @@ pub fn buy_item_from_station_module(
     // Check if the player has enough credits
     let mut player = dsl.get_player_by_id(ship.get_player_id())?;
     if (total_price as u64) > *player.get_credits() {
+        let player_id = ship.get_player_id().clone();
+        let error_message = format!(
+            "Cannot buy {}x {} from station: Not enough credits. You have {}c but it costs {}c.",
+            quantity,
+            item_def.get_name(),
+            player.get_credits(),
+            total_price
+        );
+
+        // Send server message for error feedback
+        send_error_message(
+            ctx,
+            &player_id,
+            error_message.clone(),
+            Some("Station Trading"),
+        )?;
+
         return Err(format!(
             "Cannot buy {}x {} from station: Not enough credits. You have {}c but it costs {}c.",
             quantity,
@@ -69,14 +141,31 @@ pub fn buy_item_from_station_module(
         ));
     }
 
-    attempt_to_load_cargo_into_ship(
+    if let Err(cargo_err) = attempt_to_load_cargo_into_ship(
         ctx,
-        &mut dsl.get_ship_status_by_id(&docked_ship_id)?,
-        &docked_ship_id,
+        &mut dsl.get_ship_status_by_id(&ship_id)?,
+        &ship_id,
         &item_def,
         quantity as u16,
         false,
-    )?;
+    ) {
+        let error_message = format!(
+            "Cannot buy {}x {} from station: {}",
+            quantity,
+            item_def.get_name(),
+            cargo_err
+        );
+
+        // Send server message for error feedback
+        send_error_message(
+            ctx,
+            &ship.get_player_id(),
+            error_message.clone(),
+            Some("Station Trading"),
+        )?;
+
+        return Err(cargo_err);
+    }
 
     player.set_credits(*player.get_credits() - (total_price as u64));
     // TOOD: Add credits to station
@@ -86,6 +175,20 @@ pub fn buy_item_from_station_module(
     item_listing.set_cached_price(item_listing.calculate_current_price(&item_def));
     dsl.update_station_module_inventory_item_by_id(item_listing)?;
 
+    send_info_message(
+        ctx,
+        &ship.get_player_id(),
+        format!(
+            "Station #{} Module #{}: Bought {}x {} for {}c.",
+            station_module.station_id,
+            station_module_id.value(),
+            quantity,
+            item_def.get_name(),
+            total_price
+        ),
+        Some("station_module"),
+    )?;
+
     Ok(())
 }
 
@@ -94,15 +197,16 @@ pub fn buy_item_from_station_module(
 pub fn sell_item_to_station_module(
     ctx: &ReducerContext,
     station_module_id: StationModuleId,
-    docked_ship_id: ShipGlobalId,
+    ship_id: ShipId,
     item_id: ItemDefinitionId,
     quantity: u32,
 ) -> Result<(), String> {
-    is_server_or_ship_owner(ctx, Some(docked_ship_id.clone()))?;
+    is_server_or_ship_owner(ctx, Some(ship_id.clone()))?;
     let dsl = dsl(ctx);
+    let ship = dsl.get_ship_by_id(&ship_id)?;
+    let station_module = dsl.get_station_module_by_id(&station_module_id)?;
 
-    let ship = dsl.get_docked_ship_by_id(&docked_ship_id)?;
-
+    // Validate that the docked ship is at the same station as the module
     info!(
         "Attempting to sell {}x {} from ship {} to trading port {}",
         quantity,
@@ -110,6 +214,25 @@ pub fn sell_item_to_station_module(
         ship.get_id(),
         station_module_id
     );
+
+    if ship.get_station_id() != station_module.get_station_id() {
+        let player_id = ship.get_player_id().clone();
+        let error_message = format!(
+            "Cannot sell to station module: Your ship is docked at station {} but the module is at station {}.",
+            ship.get_station_id(),
+            station_module.get_station_id()
+        );
+
+        // Send server message for error feedback
+        send_error_message(
+            ctx,
+            &player_id,
+            error_message.clone(),
+            Some("Station Trading"),
+        )?;
+
+        return Err(error_message);
+    }
 
     // Get Trading Port Module and it's inventory item that matches the item_id
     ////let trading_port_module = dsl.get_trading_port_module_by_id(&station_module_id)?;
@@ -120,13 +243,45 @@ pub fn sell_item_to_station_module(
         .get_station_module_inventory_items_by_module_id(&station_module_id)
         .filter(|item| item.get_resource_item_id() == item_id)
         .next()
-        .ok_or(format!(
-            "Cannot sell #{} to station: No matching inventory item found.",
-            item_id
-        ))?;
+        .ok_or_else(|| {
+            let player_id = ship.get_player_id().clone();
+            let error_message = format!(
+                "Cannot sell item #{}: This station does not accept this item type.",
+                item_id
+            );
+
+            // Send server message for error feedback
+            let _ = send_error_message(
+                ctx,
+                &player_id,
+                error_message.clone(),
+                Some("Station Trading"),
+            );
+
+            format!(
+                "Cannot sell #{} to station: No matching inventory item found.",
+                item_id
+            )
+        })?;
     let item_def = dsl.get_item_definition_by_id(item_id)?;
 
     if item_listing.get_quantity() + &quantity > *item_listing.get_max_quantity() {
+        let player_id = ship.get_player_id().clone();
+        let error_message = format!(
+            "Cannot sell {}x {} to station: Not enough space left in module inventory. Station can only accept {} more items.",
+            quantity,
+            item_def.get_name(),
+            item_listing.get_max_quantity() - item_listing.get_quantity()
+        );
+
+        // Send server message for error feedback
+        send_error_message(
+            ctx,
+            &player_id,
+            error_message.clone(),
+            Some("Station Trading"),
+        )?;
+
         return Err(format!(
             "Cannot sell {}x {} to station: Not enough space left in module inventory.",
             quantity,
@@ -139,12 +294,30 @@ pub fn sell_item_to_station_module(
 
     // Check if the station has enough credits
     //if total_price <= *station.get_credits() {
-    remove_cargo_from_ship(
+    if let Err(cargo_err) = remove_cargo_from_ship(
         ctx,
-        &mut dsl.get_ship_status_by_id(&docked_ship_id)?,
+        &mut dsl.get_ship_status_by_id(&ship_id)?,
         &item_def,
         quantity as u16,
-    )?;
+    ) {
+        let player_id = ship.get_player_id().clone();
+        let error_message = format!(
+            "Cannot sell {}x {} to station: {}",
+            quantity,
+            item_def.get_name(),
+            cargo_err
+        );
+
+        // Send server message for error feedback
+        send_error_message(
+            ctx,
+            &player_id,
+            error_message.clone(),
+            Some("Station Trading"),
+        )?;
+
+        return Err(cargo_err);
+    }
 
     let mut player = dsl.get_player_by_id(ship.get_player_id())?;
     player.set_credits(player.get_credits() + &(total_price as u64));
@@ -153,7 +326,20 @@ pub fn sell_item_to_station_module(
     item_listing.set_quantity(item_listing.get_quantity() + quantity);
     item_listing.set_cached_price(item_listing.calculate_current_price(&item_def));
     dsl.update_station_module_inventory_item_by_id(item_listing)?;
-    //}
+
+    send_info_message(
+        ctx,
+        &ship.get_player_id(),
+        format!(
+            "Station #{} Module #{}: Sold {}x {} for {}c.",
+            station_module.station_id,
+            station_module_id.value(),
+            quantity,
+            item_def.get_name(),
+            total_price
+        ),
+        Some("station_module"),
+    )?;
 
     Ok(())
 }

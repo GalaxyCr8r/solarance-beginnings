@@ -19,8 +19,7 @@ impl ShipStatus {
 
         info!(
             "Calculating cargo space usage for ship #{}. (Max cargo {}v)",
-            self.id,
-            self.max_cargo_capacity
+            self.id, self.max_cargo_capacity
         );
 
         // Collect all the ship items and calculate their volume usage
@@ -30,13 +29,16 @@ impl ShipStatus {
                 info!(
                     "     Stack of {}x {}: {} volume used",
                     item.quantity,
-                    item_def.name,
+                    item_def.get_name(),
                     volume_usage
                 );
                 used_cargo_space += volume_usage;
             }
         }
-        info!("Total cargo space usage for ship #{}: {}", self.id, used_cargo_space);
+        info!(
+            "Total cargo space usage for ship #{}: {}",
+            self.id, used_cargo_space
+        );
 
         used_cargo_space
     }

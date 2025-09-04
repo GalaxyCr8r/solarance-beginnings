@@ -9,6 +9,7 @@ use crate::types::{
     factions::FactionId,
     jumpgates::JumpGate,
     players::{timers::initialize_player_controller, PlayerId},
+    server_messages::utility::send_info_message,
     ships::{reducers::teleport_to_sector, timers::*},
     stellarobjects::{reducers::create_sobj_player_window_for, utility::*, *},
 };
@@ -30,23 +31,24 @@ pub fn same_sector_from_ids(
     false
 }
 
+/// Creates a brand new ship instance in a sector with a specific stellar object.
 pub fn create_ship_from_sobj(
     ctx: &ReducerContext,
     ship_type: &ShipTypeDefinition,
     player_id: &PlayerId,
+    faction_id: &FactionId,
     sobj: &StellarObject,
 ) -> Result<(Ship, ShipStatus), String> {
     let dsl = dsl(ctx);
 
-    let ship_global = dsl.create_ship_global()?;
-
     let ship = (match dsl.create_ship(
-        &ship_global,
         ship_type.get_id(),
+        ShipLocation::Sector,
         sobj,
+        StationId::new(0),
         sobj.get_sector_id(),
         player_id,
-        FactionId::new(0),
+        faction_id,
     ) {
         Ok(ship) => {
             create_status_timer_for_ship(ctx, &ship.get_id(), &ship_type.get_id())?;
@@ -56,7 +58,7 @@ pub fn create_ship_from_sobj(
     })?;
 
     let ship_status = dsl.create_ship_status(
-        &ship_global,
+        &ship,
         sobj.get_sector_id(),
         player_id,
         ship_type.max_health as f32,
@@ -70,23 +72,24 @@ pub fn create_ship_from_sobj(
     return Ok((ship, ship_status));
 }
 
+/// Creates a brand new ship instance docked at a station.
 pub fn create_ship_docked_at_station(
     ctx: &ReducerContext,
     ship_type: ShipTypeDefinition,
-    player_id: PlayerId,
+    player_id: &PlayerId,
+    faction_id: &FactionId,
     station: Station,
-) -> Result<(DockedShip, ShipStatus), String> {
+) -> Result<(Ship, ShipStatus), String> {
     let dsl = dsl(ctx);
 
-    let ship_global = dsl.create_ship_global()?;
-
-    let ship = (match dsl.create_docked_ship(
-        &ship_global,
+    let ship = (match dsl.create_ship(
         ship_type.get_id(),
+        ShipLocation::Station,
+        station.get_sobj_id(),
         &station,
         station.get_sector_id(),
-        &player_id,
-        FactionId::new(0),
+        player_id,
+        faction_id,
     ) {
         Ok(ship) => {
             create_status_timer_for_ship(ctx, &ship.get_id(), &ship_type.get_id())?;
@@ -96,9 +99,9 @@ pub fn create_ship_docked_at_station(
     })?;
 
     let ship_status = dsl.create_ship_status(
-        &ship_global,
+        &ship,
         station.get_sector_id(),
-        &player_id,
+        player_id,
         ship_type.max_health as f32,
         ship_type.max_shields as f32,
         ship_type.max_energy as f32,
@@ -123,7 +126,7 @@ pub fn remove_cargo_from_ship(
     if amount == 0 {
         return Err(format!(
             "Tried to remove 0 amount of {} from ship #{:?}",
-            item_def.name,
+            item_def.get_name(),
             ship_status.get_id()
         ));
     }
@@ -132,8 +135,8 @@ pub fn remove_cargo_from_ship(
     info!(
         "Attempting to remove {}x {} ({}v) from ship #{} with remaining cargo space of {}v",
         amount,
-        item_def.name,
-        amount * item_def.volume_per_unit,
+        item_def.get_name(),
+        amount * item_def.get_volume_per_unit(),
         ship_status.id,
         ship_status.get_remaining_cargo_space()
     );
@@ -149,7 +152,7 @@ pub fn remove_cargo_from_ship(
                     remaining_amount,
                     ship_status.get_id(),
                     *cargo_item.get_quantity(),
-                    item_def.name
+                    item_def.get_name()
                 );
 
                 dsl.delete_ship_cargo_item_by_id(&cargo_item.get_id())?;
@@ -158,7 +161,7 @@ pub fn remove_cargo_from_ship(
                 info!(
                     "Found an existing stack of {} {} that has more than the requested quantity, removing {}",
                     cargo_item.get_quantity(),
-                    item_def.name,
+                    item_def.get_name(),
                     remaining_amount
                 );
 
@@ -180,7 +183,9 @@ pub fn remove_cargo_from_ship(
     if remaining_amount > 0 {
         return Err(format!(
             "Ship #{} does not have enough {} to remove: requested {}, available 0",
-            ship_status.id, item_def.name, remaining_amount
+            ship_status.id,
+            item_def.get_name(),
+            remaining_amount
         ));
     }
 
@@ -193,12 +198,12 @@ pub fn remove_cargo_from_ship(
 
 /// Loads cargo into a ship's cargo hold, preferring existing cargo items.
 /// It creates new cargo items if necessary, but if it can't it will create
-/// a cargo crate instead if create_a_crate_if_failed is true and ShipGlobalId
-/// points to a Ship and not a DockedShip row.
+/// a cargo crate instead if create_a_crate_if_failed is true and Ship
+/// points to a Ship and not a Ship row.
 pub fn attempt_to_load_cargo_into_ship(
     ctx: &ReducerContext,
     ship_status: &mut ShipStatus,
-    ship_id: &ShipGlobalId,
+    ship_id: &ShipId,
     item_def: &ItemDefinition,
     amount: u16,
     create_a_crate_if_failed: bool,
@@ -211,7 +216,7 @@ pub fn attempt_to_load_cargo_into_ship(
     if amount == 0 {
         return Err(format!(
             "Tried to load 0 amount of {} into ship #{:?}",
-            item_def.name,
+            item_def.get_name(),
             ship_status.get_id()
         ));
     }
@@ -220,15 +225,15 @@ pub fn attempt_to_load_cargo_into_ship(
     info!(
         "Attempting to load {}x {} ({}v) into ship #{} with remaining cargo space of {}v",
         amount,
-        item_def.name,
-        amount * item_def.volume_per_unit,
+        item_def.get_name(),
+        amount * item_def.get_volume_per_unit(),
         ship_status.id,
         ship_status.get_remaining_cargo_space()
     );
 
     // First check how many items can actually fit inside the cargo hold
     let additional_items_that_can_fit =
-        ship_status.get_remaining_cargo_space() / item_def.volume_per_unit;
+        ship_status.get_remaining_cargo_space() / item_def.get_volume_per_unit();
     if additional_items_that_can_fit < amount {
         overflow_amount = amount - additional_items_that_can_fit;
         remaining_amount = additional_items_that_can_fit;
@@ -241,7 +246,7 @@ pub fn attempt_to_load_cargo_into_ship(
         info!(
             "Expected final used cargo capacity: {} / {}",
             ship_status.get_used_cargo_capacity()
-                + additional_items_that_can_fit * item_def.volume_per_unit,
+                + additional_items_that_can_fit * item_def.get_volume_per_unit(),
             ship_status.max_cargo_capacity
         );
     }
@@ -260,7 +265,7 @@ pub fn attempt_to_load_cargo_into_ship(
                     info!(
                         "Found an existing stack of {} {}, filling to max amount...",
                         cargo_item.get_quantity(),
-                        item_def.name
+                        item_def.get_name()
                     );
                     remaining_amount =
                         cargo_item.get_quantity() + remaining_amount - units_per_stack;
@@ -269,7 +274,7 @@ pub fn attempt_to_load_cargo_into_ship(
                     info!(
                         "Found an existing stack of {} {}, adding {}",
                         cargo_item.get_quantity(),
-                        item_def.name,
+                        item_def.get_name(),
                         remaining_amount
                     );
                     let tmp_amount = remaining_amount;
@@ -283,7 +288,7 @@ pub fn attempt_to_load_cargo_into_ship(
                     "Updating cargo item for ship #{:?}: {}x {}",
                     ship_status.get_id(),
                     new_amount,
-                    item_def.name
+                    item_def.get_name()
                 );
                 let _ = dsl.update_ship_cargo_item_by_id(cargo_item)?;
             }
@@ -295,7 +300,7 @@ pub fn attempt_to_load_cargo_into_ship(
         info!(
             "Remaining amount to load {}x {} into ship #{} with remaining cargo space of {}v",
             remaining_amount,
-            item_def.name,
+            item_def.get_name(),
             ship_status.id,
             ship_status.get_remaining_cargo_space()
         );
@@ -315,7 +320,7 @@ pub fn attempt_to_load_cargo_into_ship(
                 "Creating cargo item for ship #{:?}: {}x {}",
                 ship_status.get_id(),
                 stack_amount,
-                item_def.name
+                item_def.get_name()
             );
             if let Err(e) =
                 dsl.create_ship_cargo_item(ship_status.get_id(), item_def, stack_amount.into())
@@ -341,17 +346,18 @@ pub fn attempt_to_load_cargo_into_ship(
 
         // If not enough space, check if we create a cargo crate instead
         if create_a_crate_if_failed {
-            if let Ok(ship_object) = dsl.get_ship_by_id(ship_id) {
+            let ship_instance = dsl.get_ship_by_id(ship_id)?;
+            if ship_instance.location == ShipLocation::Sector {
+                // Only spawn if the ship is in a sector
                 create_cargo_crate_nearby_ship(
                     ctx,
-                    &ship_object.get_sobj_id(),
+                    &ship_instance.get_sobj_id(),
                     item_def,
                     overflow_amount,
                 )?;
             } else {
-                // It's gotta be a DockedShip, so fail instead.
                 return Err(
-                    "Failed to create cargo crate because the ship_id does not point to a Ship, but a DockedShip.".to_string()
+                    "Failed to create cargo crate because the ship_id does not point to a Ship in a sector.".to_string()
                 );
             }
         } else {
@@ -369,6 +375,14 @@ pub fn attempt_to_load_cargo_into_ship(
         );
     }
     let _ = dsl.update_ship_status_by_id(ship_status.clone())?;
+
+    send_info_message(
+        ctx,
+        &ship_status.get_player_id(),
+        format!("Loaded successfully {}x {}", amount, item_def.get_name(),),
+        Some("status"),
+    )?;
+
     Ok(())
 }
 
@@ -444,34 +458,41 @@ pub fn teleport_via_jumpgate(
     )
 }
 
-/// Creates the DockedShip object plus removes the Ship and StellarObject but keeps the cargo, health, etc.
+/// Creates the Ship object plus removes the Ship and StellarObject but keeps the cargo, health, etc.
 pub fn dock_to_station(
     ctx: &ReducerContext,
     ship: &Ship,
     ship_sobj: &StellarObject,
     station: &Station,
-) -> Result<DockedShip, String> {
+) -> Result<Ship, String> {
     let dsl = dsl(ctx);
 
-    // Remove Ship and StellarObject
-    // ? Do NOT delete the specific ship-related rows, we need those to stick around.
-    ship_sobj.delete(ctx, false)?;
-    dsl.delete_ship_by_id(ship.get_id())?;
+    // Remove the ship's StellarObject
+    let _ = dsl.delete_stellar_object_by_id(ship_sobj);
 
-    // Create DockedShip object
-    let docked = dsl.create_docked_ship(
-        ship.get_id(),
-        ship.get_shiptype_id(),
-        station.get_id(),
-        ship.get_sector_id(),
-        ship.get_player_id(),
-        ship.get_faction_id(),
+    // Create Ship object
+    let docked = &mut ship.clone();
+    docked.set_sobj_id(StellarObjectId::new(0));
+    docked.set_station_id(station.get_id());
+    docked.set_location(ShipLocation::Station);
+    info!("Updating docked ship's station and location");
+    let _ = dsl.update_ship_by_id(docked.clone())?;
+
+    send_info_message(
+        ctx,
+        &ship.get_player_id(),
+        format!(
+            "Docked successfully with Station #{}: {}",
+            station.get_id().value(),
+            station.get_name(),
+        ),
+        Some("status"),
     )?;
 
-    Ok(docked)
+    Ok(docked.clone())
 }
 
-pub fn undock_from_station(ctx: &ReducerContext, docked: DockedShip) -> Result<Ship, String> {
+pub fn undock_from_station(ctx: &ReducerContext, docked: &Ship) -> Result<Ship, String> {
     let dsl = dsl(ctx);
 
     let station = dsl.get_station_by_id(docked.get_station_id())?;
@@ -485,15 +506,14 @@ pub fn undock_from_station(ctx: &ReducerContext, docked: DockedShip) -> Result<S
         station_transform,
     )?;
 
-    let ship = dsl.create_ship(
-        &docked.get_id(),
-        ship_type.get_id(),
-        &sobj,
-        sobj.get_sector_id(),
-        docked.get_player_id(),
-        FactionId::new(0),
-    )?;
+    let ship = &mut docked.clone();
+    ship.set_sobj_id(&sobj);
+    ship.set_sector_id(station.get_sector_id());
+    ship.set_station_id(StationId::new(0));
+    ship.set_location(ShipLocation::Sector);
+    dsl.update_ship_by_id(ship.clone())?;
 
+    // Ensure there's still a ship status timer.
     if dsl
         .get_ship_status_timer_by_ship_id(docked.get_id())
         .is_err()
@@ -505,9 +525,21 @@ pub fn undock_from_station(ctx: &ReducerContext, docked: DockedShip) -> Result<S
         // There is a real player controlling this ship, so create the necessary helpers.
         let _ = create_sobj_player_window_for(ctx, docked.player_id, sobj.get_id())?;
         let _ = initialize_player_controller(ctx, &docked.get_player_id(), &sobj);
+    } else {
+        // There is NOT a real player controllering this ship, so error for now.
+        return Err("Unsupported: There was an attempt to undock an NPC ship!".to_string());
     }
 
-    dsl.delete_docked_ship_by_id(&docked.get_id())?;
+    send_info_message(
+        ctx,
+        &ship.get_player_id(),
+        format!(
+            "Undocked successfully with Station #{}: {}",
+            station.get_id().value(),
+            station.get_name(),
+        ),
+        Some("status"),
+    )?;
 
-    Ok(ship)
+    Ok(ship.clone())
 }

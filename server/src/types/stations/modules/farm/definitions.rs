@@ -23,11 +23,13 @@ pub fn create_basic_food_farm(
 
     let blueprint =
         dsl.get_station_module_blueprint_by_id(StationModuleBlueprintId::new(blueprint_id))?;
+    let output_item_def = dsl.get_item_definition_by_id(ItemDefinitionId::new(output_resource))?;
+    let identifier = format!("{} Farm", output_item_def.get_name());
 
     let module = dsl.create_station_module(
         station.get_id(),
         blueprint.get_id(),
-        "farm",
+        identifier.as_str(),
         true,
         None,
         ctx.timestamp,
@@ -85,11 +87,9 @@ pub fn create_basic_food_farm(
         format!("{};{};output", module.id, farm.id).as_str(),
         0,
     )?;
-    if let Ok(item_def) = dsl.get_item_definition_by_id(ItemDefinitionId::new(output_resource)) {
-        let initial_price = item.calculate_current_price(&item_def);
-        item.set_cached_price(initial_price);
-        dsl.update_station_module_inventory_item_by_id(item)?;
-    }
+    let initial_price = item.calculate_current_price(&output_item_def);
+    item.set_cached_price(initial_price);
+    dsl.update_station_module_inventory_item_by_id(item)?;
 
     Ok(())
 }

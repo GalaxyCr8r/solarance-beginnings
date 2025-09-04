@@ -1,6 +1,7 @@
 use std::f32::consts::PI;
 
 use glam::Vec2;
+use macroquad::{miniquad::date::now, prelude::collections::storage};
 
 use super::*;
 
@@ -17,17 +18,18 @@ pub fn render_star_system(game_state: &mut GameState) {
     for sso in game_state.ctx.db().star_system_object().iter() {
         let (image, secondary) = match sso.kind {
             StarSystemObjectKind::Star => (&resources.sun_textures["star.1"], None),
-            StarSystemObjectKind::Planet =>
-                (
-                    &resources.planet_textures
-                        [sso.gfx_key.clone().unwrap_or("planet.1".to_string()).as_str()],
-                    Some(&resources.planet_textures["planet.shadow.1"]),
-                ),
-            StarSystemObjectKind::Moon =>
-                (
-                    &resources.planet_textures["moon.1"],
-                    Some(&resources.planet_textures["planet.shadow.1"]),
-                ),
+            StarSystemObjectKind::Planet => (
+                &resources.planet_textures[sso
+                    .gfx_key
+                    .clone()
+                    .unwrap_or("planet.1".to_string())
+                    .as_str()],
+                Some(&resources.planet_textures["planet.shadow.1"]),
+            ),
+            StarSystemObjectKind::Moon => (
+                &resources.planet_textures["moon.1"],
+                Some(&resources.planet_textures["planet.shadow.1"]),
+            ),
             StarSystemObjectKind::AsteroidBelt => {
                 continue;
             }
@@ -44,7 +46,7 @@ pub fn render_star_system(game_state: &mut GameState) {
             camera,
             sso,
             image,
-            secondary
+            secondary,
         );
     }
 }
@@ -57,7 +59,7 @@ fn draw_star_system_object(
     camera: Vec2,
     sso: StarSystemObject,
     image: &Texture2D,
-    secondary: Option<&Texture2D>
+    secondary: Option<&Texture2D>,
 ) {
     let mut vec = Vec2::from_angle(sso.rotation_or_width_km) * sso.orbit_au * multiplier;
     let dist = vec.distance_squared(camera);
@@ -87,21 +89,23 @@ fn draw_star_system_object(
         image.width() * -0.5 * scale + vec.x,
         image.height() * -0.5 * scale + vec.y,
         WHITE,
-        params
+        params,
     );
 
     if let Some(shadow) = secondary {
         let sun_angle = vec.to_angle();
-        let scale_adjust = if sso.kind == StarSystemObjectKind::Planet { 0.85 } else { 0.21 };
+        let scale_adjust = if sso.kind == StarSystemObjectKind::Planet {
+            0.85
+        } else {
+            0.21
+        };
 
         let params = DrawTextureParams {
             rotation: sun_angle - PI / 4.0,
-            dest_size: Some(
-                Vec2::new(
-                    shadow.width() * scale * scale_adjust,
-                    shadow.height() * scale * scale_adjust
-                )
-            ),
+            dest_size: Some(Vec2::new(
+                shadow.width() * scale * scale_adjust,
+                shadow.height() * scale * scale_adjust,
+            )),
             ..Default::default()
         };
 
@@ -110,7 +114,7 @@ fn draw_star_system_object(
             shadow.width() * -0.5 * scale * scale_adjust + vec.x,
             shadow.height() * -0.5 * scale * scale_adjust + vec.y,
             WHITE,
-            params
+            params,
         );
         //
     }

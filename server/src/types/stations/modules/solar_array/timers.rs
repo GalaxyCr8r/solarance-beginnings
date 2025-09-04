@@ -67,11 +67,11 @@ pub fn calculate_solar_array_production(
 /// Calculate sunlight efficiency based on sector properties
 fn calculate_sunlight_efficiency(sector: &Sector) -> f32 {
     // Base sunlight efficiency from sector's sunlight field
-    let mut efficiency = sector.sunlight;
+    let mut efficiency = *sector.get_sunlight();
 
     // Reduce efficiency in nebula sectors (dust blocks sunlight)
-    if sector.nebula > 0.5 {
-        efficiency *= 1.0 - (sector.nebula * 0.3); // Up to 30% reduction
+    if *sector.get_nebula() > 0.5 {
+        efficiency *= 1.0 - (sector.get_nebula() * 0.3); // Up to 30% reduction
     }
 
     // Note: asteroid_percentage field doesn't exist in Sector, so we'll skip that check

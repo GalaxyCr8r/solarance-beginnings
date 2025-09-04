@@ -1,4 +1,3 @@
-use log::info;
 
 use crate::types::items::ItemDefinition;
 
@@ -41,7 +40,7 @@ impl StationModuleInventoryItem {
         // Convert to floats
         let max_quantity = self.max_quantity as f32;
         let current_quantity = self.quantity as f32;
-        let value = item_def.base_value as f32;
+        let value = *item_def.get_base_value() as f32;
 
         //info!("Calculating price for {}", item_def.name);
         // Calc the percent and resultant multiplier
@@ -51,7 +50,7 @@ impl StationModuleInventoryItem {
                                                     // info!("    Multipler : {}", multiplier);
 
         // Find the value of the given margin
-        let curr_margin_perc = (item_def.margin_percentage as f32) * 0.01;
+        let curr_margin_perc = (*item_def.get_margin_percentage() as f32) * 0.01;
         let margin_value = value * curr_margin_perc;
         // info!("    Curr Margin Perc : {}", curr_margin_perc);
         // info!("    Base Margin Value : {}c", margin_value);

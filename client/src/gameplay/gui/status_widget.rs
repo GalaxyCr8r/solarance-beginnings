@@ -1,8 +1,8 @@
-use egui::{ Align2, Color32, Context, RichText, Ui, Vec2 };
-use macroquad::{ miniquad::date::now, prelude::* };
-use spacetimedb_sdk::DbContext;
+use egui::{Align2, Color32, Context, RichText, Ui, Vec2};
+use macroquad::{miniquad::date::now, prelude::*};
+use spacetimedb_sdk::{DbContext, Table};
 
-use crate::{ gameplay::state::{ GameState }, module_bindings::*, stdb::utils::* };
+use crate::{gameplay::state::GameState, module_bindings::*, stdb::utils::*};
 
 #[derive(Default)]
 pub struct WindowState {
@@ -12,10 +12,9 @@ pub struct WindowState {
 pub fn window(
     egui_ctx: &Context,
     ctx: &DbConnection,
-    game_state: &mut GameState
+    game_state: &mut GameState,
 ) -> Option<egui::InnerResponse<Option<()>>> {
-    egui::Window
-        ::new("Status Window")
+    egui::Window::new("Status Window")
         .title_bar(false)
         .resizable(false)
         .collapsible(true)
@@ -24,11 +23,11 @@ pub fn window(
         .show(egui_ctx, |ui| {
             ui.horizontal(|ui| {
                 if let Some(player_ship) = get_player_ship(ctx) {
-                    if
-                        let Some(ship_type) = ctx.db
-                            .ship_type_definition()
-                            .id()
-                            .find(&player_ship.shiptype_id)
+                    if let Some(ship_type) = ctx
+                        .db
+                        .ship_type_definition()
+                        .id()
+                        .find(&player_ship.shiptype_id)
                     {
                         ship_function_status(ctx, ui);
 
@@ -49,7 +48,7 @@ pub fn window(
                                 let _ = add_targeted_object_status(
                                     ui,
                                     ctx,
-                                    &game_state.current_target_sobj.clone().unwrap()
+                                    &game_state.current_target_sobj.clone().unwrap(),
                                 );
                             });
                         } else {
@@ -76,7 +75,7 @@ fn ship_status(ui: &mut Ui, ship_type: ShipTypeDefinition, player_ship_status: S
             ship_type.max_health as f32,
             player_ship_status.health,
             Color32::from_rgb(242, 0, 32),
-            true
+            true,
         );
         add_status_bar(
             ui,
@@ -84,7 +83,7 @@ fn ship_status(ui: &mut Ui, ship_type: ShipTypeDefinition, player_ship_status: S
             ship_type.max_shields as f32,
             player_ship_status.shields,
             Color32::from_rgb(0, 64, 192),
-            true
+            true,
         );
         add_status_bar(
             ui,
@@ -92,49 +91,108 @@ fn ship_status(ui: &mut Ui, ship_type: ShipTypeDefinition, player_ship_status: S
             ship_type.max_energy as f32,
             player_ship_status.energy,
             Color32::from_rgb(0, 100, 64),
-            true
+            true,
         );
     });
 }
 
 fn ship_function_status(ctx: &DbConnection, ui: &mut Ui) {
     ui.vertical(|ui| {
-        if let Some(controller) = ctx.db().player_ship_controller().id().find(&ctx.identity()) {
-            if controller.cargo_bay_open {
-                ui.label(
-                    RichText::new("[Z] Cargo Bay: Open").color({
-                        if now() % 1.0 < 0.45 { Color32::YELLOW } else { Color32::BLACK }
-                    })
-                );
-            } else {
-                ui.label(RichText::new("[Z] Cargo Bay: Closed").color(Color32::DARK_GRAY));
-            }
-            if controller.mining_laser_on {
-                ui.label(
-                    RichText::new("[X] Mining Beam: On").color({
-                        if now() % 1.0 < 0.45 { Color32::RED } else { Color32::BLACK }
-                    })
-                );
-            } else {
-                ui.label(RichText::new("[X] Mining Beam: Off").color(Color32::DARK_GRAY));
-            }
-            if controller.dock {
-                ui.label(
-                    RichText::new("[C] Autodocking: On").color({
-                        if now() % 1.0 < 0.45 { Color32::LIGHT_BLUE } else { Color32::BLACK }
-                    })
-                );
-            } else {
-                ui.label(RichText::new("[C] Autodocking: Off").color(Color32::DARK_GRAY));
+        if let Some(mut controller) = ctx.db().player_ship_controller().id().find(&ctx.identity()) {
+            let changed = cargo_bay_button(ui, &mut controller)
+                || mining_beam_button(ui, &mut controller)
+                || autodocking_button(ui, &mut controller);
+
+            if changed {
+                let _ = ctx.reducers.update_player_controller(controller);
             }
         }
     });
 }
 
+fn cargo_bay_button(ui: &mut Ui, controller: &mut PlayerShipController) -> bool {
+    if controller.cargo_bay_open {
+        if ui
+            .button(RichText::new("[Z] Cargo Bay: Open").color({
+                if now() % 1.0 < 0.45 {
+                    Color32::YELLOW
+                } else {
+                    Color32::BLACK
+                }
+            }))
+            .clicked()
+        {
+            controller.cargo_bay_open = false;
+            return true;
+        }
+    } else {
+        if ui
+            .button(RichText::new("[Z] Cargo Bay: Closed").color(Color32::LIGHT_GRAY))
+            .clicked()
+        {
+            controller.cargo_bay_open = true;
+            return true;
+        }
+    }
+    return false;
+}
+fn mining_beam_button(ui: &mut Ui, controller: &mut PlayerShipController) -> bool {
+    if controller.mining_laser_on {
+        if ui
+            .button(RichText::new("[X] Mining Beam: On").color({
+                if now() % 1.0 < 0.45 {
+                    Color32::RED
+                } else {
+                    Color32::BLACK
+                }
+            }))
+            .clicked()
+        {
+            controller.mining_laser_on = false;
+            return true;
+        }
+    } else {
+        if ui
+            .button(RichText::new("[X] Mining Beam: Off").color(Color32::LIGHT_GRAY))
+            .clicked()
+        {
+            controller.mining_laser_on = true;
+            return true;
+        }
+    }
+    return false;
+}
+fn autodocking_button(ui: &mut Ui, controller: &mut PlayerShipController) -> bool {
+    if controller.dock {
+        if ui
+            .button(RichText::new("[C] Autodocking: Ready").color({
+                if now() % 1.0 < 0.45 {
+                    Color32::LIGHT_BLUE
+                } else {
+                    Color32::BLACK
+                }
+            }))
+            .clicked()
+        {
+            controller.dock = false;
+            return true;
+        }
+    } else {
+        if ui
+            .button(RichText::new("[C] Autodocking: Off").color(Color32::LIGHT_GRAY))
+            .clicked()
+        {
+            controller.dock = true;
+            return true;
+        }
+    }
+    return false;
+}
+
 fn add_targeted_object_status(
     ui: &mut Ui,
     ctx: &DbConnection,
-    target: &StellarObject
+    target: &StellarObject,
 ) -> Result<(), String> {
     let mut kind = "Unknown Object".to_string();
     let distance = {
@@ -167,18 +225,19 @@ fn add_targeted_object_status(
                     asteroid.initial_resources as f32,
                     asteroid.current_resources as f32,
                     Color32::from_rgb(96, 82, 128),
-                    false
+                    false,
                 );
             }
         }
         StellarObjectKinds::Ship => {
-            if let Some(ship) = ctx.db().ship().sobj_id().find(&target.id) {
+            if let Some(ship) = ctx.db().ship().iter().find(|s| s.sobj_id == target.id) {
+                ui.label(format!(
+                    "Faction: {}",
+                    get_faction_shortname(ctx, &ship.faction_id)
+                ));
                 if let Some(ship_status) = ship.status(ctx) {
-                    if
-                        let Some(ship_type) = ctx.db
-                            .ship_type_definition()
-                            .id()
-                            .find(&ship.shiptype_id)
+                    if let Some(ship_type) =
+                        ctx.db.ship_type_definition().id().find(&ship.shiptype_id)
                     {
                         add_status_bar(
                             ui,
@@ -186,7 +245,7 @@ fn add_targeted_object_status(
                             ship_type.max_health as f32,
                             ship_status.health,
                             Color32::from_rgb(242, 0, 32),
-                            true
+                            true,
                         );
                         add_status_bar(
                             ui,
@@ -194,7 +253,7 @@ fn add_targeted_object_status(
                             ship_type.max_shields as f32,
                             ship_status.shields,
                             Color32::from_rgb(0, 64, 192),
-                            true
+                            true,
                         );
                         add_status_bar(
                             ui,
@@ -202,7 +261,7 @@ fn add_targeted_object_status(
                             ship_type.max_energy as f32,
                             ship_status.energy,
                             Color32::from_rgb(0, 100, 64),
-                            true
+                            true,
                         );
                     }
                 }
@@ -211,6 +270,10 @@ fn add_targeted_object_status(
         StellarObjectKinds::Station => {
             if let Some(station) = ctx.db().station().sobj_id().find(&target.id) {
                 ui.label(format!("{}", station.name));
+                ui.label(format!(
+                    "Faction: {}",
+                    get_faction_shortname(ctx, &station.owner_faction_id)
+                ));
                 if let Some(status) = ctx.db().station_status().id().find(&station.id) {
                     add_status_bar(
                         ui,
@@ -218,7 +281,7 @@ fn add_targeted_object_status(
                         station.size.base_health() as f32,
                         status.health,
                         Color32::from_rgb(242, 0, 32),
-                        true
+                        true,
                     );
                     add_status_bar(
                         ui,
@@ -226,7 +289,7 @@ fn add_targeted_object_status(
                         station.size.base_shields() as f32,
                         status.shields,
                         Color32::from_rgb(0, 64, 192),
-                        true
+                        true,
                     );
                 }
             }
@@ -234,7 +297,10 @@ fn add_targeted_object_status(
         StellarObjectKinds::CargoCrate => {
             if let Some(cargo_crate) = ctx.db().cargo_crate().sobj_id().find(&target.id) {
                 if let Some(item_def) = ctx.db().item_definition().id().find(&cargo_crate.item_id) {
-                    ui.label(format!("Contains: {}x {}", cargo_crate.quantity, item_def.name));
+                    ui.label(format!(
+                        "Contains: {}x {}",
+                        cargo_crate.quantity, item_def.name
+                    ));
                 }
                 //add_status_bar(ui, "Health", crate_.max_health as f32, crate_.health, Color32::from_rgb(242, 0, 32));
             }
@@ -246,12 +312,11 @@ fn add_targeted_object_status(
                     if let Some(sector) = ctx.db().sector().id().find(&jump_gate.target_sector_id) {
                         ui.label(format!("{}", sector.name));
                     } else {
-                        ui.label(format!("Sector #{}", jump_gate.target_sector_id));
+                        ui.label(get_sector_name(ctx, &jump_gate.target_sector_id));
                     }
                 });
             }
-        }
-        //_ => {}
+        } //_ => {}
     }
     Ok(())
 }
@@ -260,12 +325,13 @@ fn add_status_bar(ui: &mut Ui, name: &str, max: f32, current: f32, color: Color3
     let contents = |ui: &mut Ui| {
         ui.label(name);
 
-        let progress_bar = egui::ProgressBar
-            ::new(current / max)
+        let progress_bar = egui::ProgressBar::new(current / max)
             .show_percentage()
             .fill(color)
             .desired_width(128.0);
-        ui.add(progress_bar).on_hover_text(format!("{}/{}", current, max)).hovered();
+        ui.add(progress_bar)
+            .on_hover_text(format!("{}/{}", current, max))
+            .hovered();
     };
 
     if horiz {
