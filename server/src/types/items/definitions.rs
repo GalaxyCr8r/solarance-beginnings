@@ -1,12 +1,10 @@
 use log::info;
 use spacetimedb::ReducerContext;
-use spacetimedsl::{ dsl, DSL };
+use spacetimedsl::{dsl, DSL};
 
 use super::*;
 
 // # Ship modules
-// ## Ship Weapons
-
 // ## Ship Engines
 
 // ## Ship Shields
@@ -14,6 +12,14 @@ use super::*;
 // ## Mining Lasers
 /// Basic cheap mining laser produced by everyone.
 pub const SMOD_BASIC_MINING_LASER: u32 = 17_000;
+
+// ## Ship Weapons
+/// Basic kinetic weapon firing solid projectiles at high velocity.
+pub const SMOD_AUTOCANNON: u32 = 18_000;
+/// Energy weapon that fires charged ionic particles to disrupt shields.
+pub const SMOD_IONIC_BLASTER: u32 = 18_010;
+/// Advanced energy weapon firing superheated plasma bolts.
+pub const SMOD_PLASMA_CANNON: u32 = 18_020;
 
 // # Technical items
 /// A piece of research data usually collected from a laboratory station module.
@@ -199,7 +205,7 @@ fn energy_definitions(dsl: &DSL) -> Result<(), String> {
         2,
         COMPACT_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     // Jump Drive Fuel
@@ -213,7 +219,7 @@ fn energy_definitions(dsl: &DSL) -> Result<(), String> {
         4,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     Ok(())
@@ -232,7 +238,7 @@ fn ore_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LARGE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -254,7 +260,8 @@ fn ore_definitions(dsl: &DSL) -> Result<(), String> {
         ITEM_SILICON_ORE,
         "Silicon Ore",
         Some(
-            "Silicon ore to be processed. Used to create microchips and other advanced goods.".into()
+            "Silicon ore to be processed. Used to create microchips and other advanced goods."
+                .into(),
         ),
         current_category.clone(),
         100,
@@ -262,14 +269,14 @@ fn ore_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LARGE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
         ITEM_CARBON_ORE,
         "Carbon Ore",
         Some(
-            "Raw carbon ore from asteroid mining. Essential for many industrial processes.".into()
+            "Raw carbon ore from asteroid mining. Essential for many industrial processes.".into(),
         ),
         current_category.clone(),
         80,
@@ -277,14 +284,15 @@ fn ore_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LARGE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
         ITEM_URANIUM_ORE,
         "Uranium Ore",
         Some(
-            "Radioactive uranium ore. Handle with care. Used for energy production and weapons.".into()
+            "Radioactive uranium ore. Handle with care. Used for energy production and weapons."
+                .into(),
         ),
         current_category.clone(),
         350,
@@ -292,7 +300,7 @@ fn ore_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LARGE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -314,7 +322,8 @@ fn ore_definitions(dsl: &DSL) -> Result<(), String> {
         ITEM_TITANIUM_ORE,
         "Titanium Ore",
         Some(
-            "Strong and lightweight titanium ore. Preferred for high-performance ship components.".into()
+            "Strong and lightweight titanium ore. Preferred for high-performance ship components."
+                .into(),
         ),
         current_category.clone(),
         250,
@@ -322,7 +331,7 @@ fn ore_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LARGE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -335,7 +344,7 @@ fn ore_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LARGE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     Ok(())
@@ -354,7 +363,7 @@ fn ingot_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -367,7 +376,7 @@ fn ingot_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -380,7 +389,7 @@ fn ingot_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -393,7 +402,7 @@ fn ingot_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -406,7 +415,7 @@ fn ingot_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -419,7 +428,7 @@ fn ingot_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -432,7 +441,7 @@ fn ingot_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -445,14 +454,15 @@ fn ingot_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
         ITEM_VIVEIUM_CRYSTAL,
         "Viveium Crystal",
         Some(
-            "Rare crystal byproduct of viveium refinement. Used in advanced research devices.".into()
+            "Rare crystal byproduct of viveium refinement. Used in advanced research devices."
+                .into(),
         ),
         ItemCategory::Resource(ResourceCategory::ExoticMatter),
         2500,
@@ -460,7 +470,7 @@ fn ingot_definitions(dsl: &DSL) -> Result<(), String> {
         4,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     Ok(())
@@ -479,7 +489,7 @@ fn biomatter_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -492,7 +502,7 @@ fn biomatter_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -520,7 +530,7 @@ fn biomatter_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -533,7 +543,7 @@ fn biomatter_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -546,14 +556,15 @@ fn biomatter_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
         ITEM_BIOMATTER_MALIGNANT,
         "Malignant Biomatter",
         Some(
-            "Alien biological matter of unknown origin. Requires extreme caution when handling.".into()
+            "Alien biological matter of unknown origin. Requires extreme caution when handling."
+                .into(),
         ),
         current_category.clone(),
         200,
@@ -561,7 +572,7 @@ fn biomatter_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     // Gas items
@@ -575,7 +586,7 @@ fn biomatter_definitions(dsl: &DSL) -> Result<(), String> {
         4,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -588,7 +599,7 @@ fn biomatter_definitions(dsl: &DSL) -> Result<(), String> {
         4,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     Ok(())
@@ -602,7 +613,8 @@ fn food_definitions(dsl: &DSL) -> Result<(), String> {
         ITEM_FOOD_RATIONS,
         "Food Rations",
         Some(
-            "A basic food ration. Contains all the nutrients needed to survive for a few days.".into()
+            "A basic food ration. Contains all the nutrients needed to survive for a few days."
+                .into(),
         ),
         current_category.clone(),
         100,
@@ -610,14 +622,15 @@ fn food_definitions(dsl: &DSL) -> Result<(), String> {
         1,
         COMPACT_STACK_SIZE,
         vec![], //vec![FoodQuality(0)],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
         ITEM_FOOD_AVERAGE,
         "Average Food",
         Some(
-            "Everyday foodstuffs. Contains all the nutrients needed to survive for a few days.".into()
+            "Everyday foodstuffs. Contains all the nutrients needed to survive for a few days."
+                .into(),
         ),
         current_category.clone(),
         250,
@@ -625,7 +638,7 @@ fn food_definitions(dsl: &DSL) -> Result<(), String> {
         1,
         COMPACT_STACK_SIZE,
         vec![], //vec![FoodQuality(0)],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -638,7 +651,7 @@ fn food_definitions(dsl: &DSL) -> Result<(), String> {
         1,
         COMPACT_STACK_SIZE,
         vec![], //vec![FoodQuality(0)],
-        None
+        None,
     )?;
 
     ///////////////////////////////////////////////////////////////////////////////////////
@@ -677,7 +690,47 @@ fn ship_module_definitions(dsl: &DSL) -> Result<(), String> {
         4,
         LARGE_STACK_SIZE,
         vec![MiningSpeedMultiplier(1.0), EnergyConsumption(1.75)],
-        None
+        None,
+    )?;
+
+    // Ship Weapons
+    dsl.create_item_definition(
+        SMOD_AUTOCANNON,
+        "Autocannon",
+        Some("A reliable kinetic weapon that fires solid projectiles at high velocity. Effective against armor but less so against shields.".into()),
+        ItemCategory::ShipModule(ShipModuleType::WeaponKinetic),
+        750,
+        42,
+        4,
+        LARGE_STACK_SIZE,
+        vec![BaseKineticDamage(1.0), EnergyConsumption(0.5)],
+        None,
+    )?;
+
+    dsl.create_item_definition(
+        SMOD_IONIC_BLASTER,
+        "Ionic Blaster",
+        Some("An energy weapon that fires charged ionic particles. Highly effective against shields but reduced damage to armor.".into()),
+        ItemCategory::ShipModule(ShipModuleType::WeaponEnergy),
+        900,
+        35,
+        4,
+        LARGE_STACK_SIZE,
+        vec![BaseKineticDamage(0.25), BaseShieldDamage(0.8), EnergyConsumption(2.0)],
+        None,
+    )?;
+
+    dsl.create_item_definition(
+        SMOD_PLASMA_CANNON,
+        "Plasma Cannon",
+        Some("An advanced energy weapon that fires superheated plasma bolts. Balanced damage against both shields and armor but high energy consumption.".into()),
+        ItemCategory::ShipModule(ShipModuleType::WeaponEnergy),
+        1200,
+        28,
+        4,
+        LARGE_STACK_SIZE,
+        vec![BaseKineticDamage(2.3), BaseShieldDamage(0.8), EnergyConsumption(3.0)],
+        None,
     )?;
 
     // Research Items
@@ -691,7 +744,7 @@ fn ship_module_definitions(dsl: &DSL) -> Result<(), String> {
         1,
         COMPACT_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -765,7 +818,7 @@ fn ship_module_definitions(dsl: &DSL) -> Result<(), String> {
         4,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -778,7 +831,7 @@ fn ship_module_definitions(dsl: &DSL) -> Result<(), String> {
         4,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -791,7 +844,7 @@ fn ship_module_definitions(dsl: &DSL) -> Result<(), String> {
         4,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -804,7 +857,7 @@ fn ship_module_definitions(dsl: &DSL) -> Result<(), String> {
         4,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     // Metal Components
@@ -842,7 +895,7 @@ fn ship_module_definitions(dsl: &DSL) -> Result<(), String> {
         ITEM_METAL_ARMOR_PLATES,
         "Metal Armor Plates",
         Some(
-            "Metal plates made specifically for armoring ships and the outside of stations.".into()
+            "Metal plates made specifically for armoring ships and the outside of stations.".into(),
         ),
         ItemCategory::Resource(ResourceCategory::ManufacturedComponentBasic),
         500,
@@ -850,7 +903,7 @@ fn ship_module_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -863,7 +916,7 @@ fn ship_module_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -922,7 +975,7 @@ fn ship_module_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -935,7 +988,7 @@ fn ship_module_definitions(dsl: &DSL) -> Result<(), String> {
         16,
         MASSIVE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -948,7 +1001,7 @@ fn ship_module_definitions(dsl: &DSL) -> Result<(), String> {
         16,
         MASSIVE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     // Specialized Components
@@ -962,7 +1015,7 @@ fn ship_module_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -975,7 +1028,7 @@ fn ship_module_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -988,7 +1041,7 @@ fn ship_module_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     dsl.create_item_definition(
@@ -1001,7 +1054,7 @@ fn ship_module_definitions(dsl: &DSL) -> Result<(), String> {
         8,
         LOOSE_STACK_SIZE,
         vec![],
-        None
+        None,
     )?;
 
     Ok(())

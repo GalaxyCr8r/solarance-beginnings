@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 
 use log::info;
 use spacetimedb::ReducerContext;
-use spacetimedsl::{ dsl, DSL };
+use spacetimedsl::{dsl, DSL};
 
 use crate::types::ships::*;
 
@@ -17,7 +17,10 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 
     fighters(&dsl)?;
 
-    info!("Ship Defs Loaded: {}", dsl.count_of_all_ship_type_definitions());
+    info!(
+        "Ship Defs Loaded: {}",
+        dsl.count_of_all_ship_type_definitions()
+    );
     Ok(())
 }
 
@@ -46,7 +49,7 @@ fn fighters(dsl: &DSL) -> Result<(), String> {
         1,
         0,
         1,
-        Some("lc.phalanx".into())
+        Some("lc.phalanx".into()),
     )?;
     dsl.create_ship_type_definition(
         1001,
@@ -92,7 +95,7 @@ fn fighters(dsl: &DSL) -> Result<(), String> {
         1,
         0,
         0,
-        Some("rf.javelin".into())
+        Some("rf.javelin".into()),
     )?;
 
     Ok(())

@@ -66,6 +66,10 @@ pub enum ItemCategory {
 /// Enum for different effects for items/modules
 #[derive(SpacetimeType, Clone, Debug, PartialEq)]
 pub enum ItemMetadata {
+    /// Base damage damage others modify
+    BaseKineticDamage(f32),
+    /// Base shield damage others modify
+    BaseShieldDamage(f32),
     /// Effects damage output
     DamageBoost(f32),
     /// Effects shield output

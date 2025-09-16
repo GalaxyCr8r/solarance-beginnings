@@ -1,0 +1,135 @@
+# Ship Manifest for Solarance: Beginnings
+# Maps ship asset files to their corresponding ShipClass types
+# Based on server/src/types/ships.rs ShipClass enum
+
+ships:
+  # FTU (Free Trade Union) Ships
+  ftu:
+    - file: "ftu/Derelict.PNG"
+      ship_class: "Cruiser"
+      description: "Salvaged from abandoned vessels"
+    
+    - file: "ftu/Mauarder.PNG"
+      ship_class: "Fighter"
+      description: "Aggressive combat vessel, a bit more robust than the Renegade. Its weapons are mounted on wing pods to allow for better internal systems than its cousin."
+    
+    - file: "ftu/Renegade.png"
+      ship_class: "Fighter"
+      description: "An high-skill combat craft, very light weight, used by mostly unhinged pirates."
+    
+    - file: "ftu/Vandal.PNG"
+      ship_class: "Corvette"
+      description: "Fast raiding vessel, salvaged from Phalanxes and other craft."
+
+  # IWA (Independent Worlds Alliance) Ships
+  iwa:
+    - file: "iwa/dragonfly.png"
+      ship_class: "Scout"
+      description: "Light reconnaissance craft, originally a raceship. When properly outfitted it can stand toe-to-toe with any other space superiority fighter."
+    
+    - file: "iwa/enforcer.png"
+      ship_class: "Fighter"
+      description: "A robust design seen throughtout the known galaxy. It's commonly seen as a Law enforcement vessel"
+
+  # LC (Lrak Combine) Ships
+  lc:
+    - file: "lc/centurion.png"
+      ship_class: "Fighter"
+      description: "Medium fighter. It's easily outclassed in speed and manueverability but makes up for it with its low cost and standard parts."
+    
+    - file: "lc/Column.png"
+      ship_class: "Shuttle"
+      description: "Workhorse corvette (matches definition)"
+    
+    - file: "lc/Gladius.PNG"
+      ship_class: "Fighter"
+      description: "Short-ranged fighter. It can match some corvettes in firepower, but not much else. Usually used to defend installations/stations."
+    
+    - file: "lc/Mule.PNG"
+      ship_class: "Freighter"
+      description: "Seen throughout the known galaxy. This is a common cargo transport vessel"
+    
+    - file: "lc/phalanx.png"
+      ship_class: "Fighter"
+      description: "Frontline fighter (matches definition)"
+    
+    - file: "lc/phoenix.png"
+      ship_class: "BattleCruiser"
+      description: "Heavy assault vessel"
+    
+    - file: "lc/Prometheus.png"
+      ship_class: "Carrier"
+      description: "Fleet support vessel"
+
+  # RF (Rediar Federation) Ships
+  rf:
+    - file: "rf/Glaive.png"
+      ship_class: "Fighter"
+      description: "Blade-class fighter"
+    
+    - file: "rf/halberd_1.png"
+      ship_class: "Cruiser"
+      description: "Polearm-class cruiser variant"
+    
+    - file: "rf/halberd.png"
+      ship_class: "Cruiser"
+      description: "Polearm-class cruiser"
+    
+    - file: "rf/javelin.png"
+      ship_class: "Fighter"
+      description: "Frontline fighter (matches definition)"
+    
+    - file: "rf/oxen.png"
+      ship_class: "Freighter"
+      description: "Heavy cargo hauler"
+    
+    - file: "rf/spear.png"
+      ship_class: "Scout"
+      description: "Fast attack scout"
+
+  # VCL (Vanguard Colonial League) Ships
+  vcl:
+    - file: "vcl/Beetle.PNG"
+      ship_class: "Miner"
+      description: "Industrial mining vessel"
+    
+    - file: "vcl/flea.PNG"
+      ship_class: "Scout"
+      description: "Tiny reconnaissance craft"
+    
+    - file: "vcl/GOLIATH.png"
+      ship_class: "BattleCruiser"
+      description: "Massive assault vessel"
+    
+    - file: "vcl/Hornet.PNG"
+      ship_class: "Fighter"
+      description: "Agile combat fighter"
+    
+    - file: "vcl/Locust.png"
+      ship_class: "Scout"
+      description: "Swarm reconnaissance craft"
+    
+    - file: "vcl/tick.png"
+      ship_class: "Miner"
+      description: "Small mining drone"
+    
+    - file: "vcl/Wasp.png"
+      ship_class: "Fighter"
+      description: "Fast attack fighter"
+
+# Available ShipClass types from server/src/types/ships.rs:
+# - Miner
+# - Shuttle  
+# - Freighter
+# - Fighter
+# - Scout
+# - Cruiser
+# - BattleCruiser
+# - Carrier
+
+# Note: Some files excluded as they appear to be effects or non-ship assets:
+# - lc/Column.aseprite (source file)
+# - vcl/EngineFlare02.png (effect)
+# - vcl/engineflare03.png (effect)
+# - vcl/goliath_flare.png (effect)
+# - iwa/iwa_generic_station.PNG (station asset in wrong folder)
