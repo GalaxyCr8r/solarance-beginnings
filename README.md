@@ -99,9 +99,33 @@ the universe all the time.
 
 ## Current State of the Project
 
-The project continues to evolve with **Milestone 3 (v0.3.0)** introducing the foundation of a player-driven economy and communication systems.
+The project continues to evolve with **Milestone 4** introducing faction warfare, NPC autonomy, and basic combat systems building upon the economic foundation established in v0.3.0.
 
-### Version 0.3.0 Key Features (Current Development)
+### Milestone 4 Key Features (Current Development)
+
+- **Faction Warfare & Combat System**
+
+  - Players can create new factions or join existing ones
+  - Basic combat mechanics with ship-to-ship engagement
+  - Faction-based conflict resolution and territorial disputes
+  - Combat damage system affecting ship functionality
+
+- **Autonomous NPC Ecosystem**
+
+  - Faction NPCs spawn proportionally to active player count
+  - NPCs engage in autonomous trading between stations
+  - NPC raiding parties target rival faction assets
+  - Guardian NPCs patrol and defend faction territories
+  - Simple behavior trees drive NPC decision-making
+
+- **Living Universe Simulation**
+
+  - NPCs visible and interactive in the game world
+  - Autonomous NPC task queues for complex behaviors
+  - Dynamic faction influence based on NPC and player activity
+  - Real-time faction warfare with NPC participation
+
+### Version 0.3.0 Foundation Features (Completed)
 
 - **Station Economy & Trading System**
 
