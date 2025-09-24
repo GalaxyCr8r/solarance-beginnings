@@ -7,7 +7,7 @@ ships:
   ftu:
     - file: "ftu/Derelict.PNG"
       ship_class: "Cruiser"
-      description: "Salvaged from abandoned vessels"
+      description: "Salvaged from abandoned vessels. Large cargo capacity to hold loot and replacement parts."
     
     - file: "ftu/Mauarder.PNG"
       ship_class: "Fighter"
@@ -23,6 +23,10 @@ ships:
 
   # IWA (Independent Worlds Alliance) Ships
   iwa:
+    - file: "iwa/ark.png"
+      ship_class: "Freighter"
+      description: "A common freighter found in IWA space."
+
     - file: "iwa/dragonfly.png"
       ship_class: "Scout"
       description: "Light reconnaissance craft, originally a raceship. When properly outfitted it can stand toe-to-toe with any other space superiority fighter."
@@ -30,6 +34,11 @@ ships:
     - file: "iwa/enforcer.png"
       ship_class: "Fighter"
       description: "A robust design seen throughtout the known galaxy. It's commonly seen as a Law enforcement vessel"
+    
+    - file: "iwa/hermes_ii.png"
+      ship_class: "Shuttle"
+      description: "The IWA refit of the Lrak Hermes."
+    
 
   # LC (Lrak Combine) Ships
   lc:
@@ -51,47 +60,47 @@ ships:
     
     - file: "lc/phalanx.png"
       ship_class: "Fighter"
-      description: "Frontline fighter (matches definition)"
+      description: "Frontline fighter"
     
     - file: "lc/phoenix.png"
-      ship_class: "BattleCruiser"
-      description: "Heavy assault vessel"
+      ship_class: "Cruiser"
+      description: "Light Cruiser"
     
     - file: "lc/Prometheus.png"
-      ship_class: "Carrier"
-      description: "Fleet support vessel"
+      ship_class: "BattleCruiser"
+      description: "A massive dreadnaught used sparingly."
 
   # RF (Rediar Federation) Ships
   rf:
     - file: "rf/Glaive.png"
-      ship_class: "Fighter"
-      description: "Blade-class fighter"
+      ship_class: "BattleCruiser"
+      description: "A heavily-armored dreadnaught meant to stand up to a Prometheus-class BattleCruiser."
     
-    - file: "rf/halberd_1.png"
+    - file: "rf/guandao.png"
       ship_class: "Cruiser"
-      description: "Polearm-class cruiser variant"
+      description: "Light patrol cruiser"
     
     - file: "rf/halberd.png"
       ship_class: "Cruiser"
-      description: "Polearm-class cruiser"
+      description: "Ship-of-the-line cruiser"
     
     - file: "rf/javelin.png"
       ship_class: "Fighter"
-      description: "Frontline fighter (matches definition)"
+      description: "Frontline fighter"
     
     - file: "rf/oxen.png"
       ship_class: "Freighter"
-      description: "Heavy cargo hauler"
+      description: "Workhorse cargo hauler"
     
     - file: "rf/spear.png"
       ship_class: "Scout"
       description: "Fast attack scout"
 
-  # VCL (Vanguard Colonial League) Ships
+  # VCL (Vancellan) Ships
   vcl:
     - file: "vcl/Beetle.PNG"
-      ship_class: "Miner"
-      description: "Industrial mining vessel"
+      ship_class: "Freighter"
+      description: "Cargo hauler/mining vessel"
     
     - file: "vcl/flea.PNG"
       ship_class: "Scout"
@@ -99,33 +108,33 @@ ships:
     
     - file: "vcl/GOLIATH.png"
       ship_class: "BattleCruiser"
-      description: "Massive assault vessel"
+      description: "Large assault vessel. Usually seen escorting colony ships."
     
     - file: "vcl/Hornet.PNG"
-      ship_class: "Fighter"
-      description: "Agile combat fighter"
+      ship_class: "Corvette"
+      description: "Agile combat corvette. Almost like a heavy-fighter."
     
     - file: "vcl/Locust.png"
-      ship_class: "Scout"
-      description: "Swarm reconnaissance craft"
+      ship_class: "Shuttle"
+      description: "Multi-purpose infestation craft"
     
     - file: "vcl/tick.png"
-      ship_class: "Miner"
-      description: "Small mining drone"
+      ship_class: "Fighter"
+      description: "Swarm frontline fighter"
     
     - file: "vcl/Wasp.png"
-      ship_class: "Fighter"
-      description: "Fast attack fighter"
+      ship_class: "Cruiser"
+      description: "Adaptible cruiser - can act as a light carrier or heavy corvette."
 
 # Available ShipClass types from server/src/types/ships.rs:
 # - Miner
 # - Shuttle  
 # - Freighter
-# - Fighter
 # - Scout
+# - Fighter
+# - Corvette
 # - Cruiser
 # - BattleCruiser
-# - Carrier
 
 # Note: Some files excluded as they appear to be effects or non-ship assets:
 # - lc/Column.aseprite (source file)
