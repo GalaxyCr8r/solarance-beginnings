@@ -703,7 +703,7 @@ fn ship_module_definitions(dsl: &DSL) -> Result<(), String> {
         42,
         4,
         LARGE_STACK_SIZE,
-        vec![BaseKineticDamage(1.0), EnergyConsumption(0.5)],
+        vec![BaseDamage(1.0), ShieldDamageMod(0.4), EnergyConsumption(0.5)],
         None,
     )?;
 
@@ -716,7 +716,7 @@ fn ship_module_definitions(dsl: &DSL) -> Result<(), String> {
         35,
         4,
         LARGE_STACK_SIZE,
-        vec![BaseKineticDamage(0.25), BaseShieldDamage(0.8), EnergyConsumption(2.0)],
+        vec![BaseDamage(0.8), KineticDamageMod(0.5), EnergyConsumption(2.0)],
         None,
     )?;
 
@@ -725,11 +725,11 @@ fn ship_module_definitions(dsl: &DSL) -> Result<(), String> {
         "Plasma Cannon",
         Some("An advanced energy weapon that fires superheated plasma bolts. Balanced damage against both shields and armor but high energy consumption.".into()),
         ItemCategory::ShipModule(ShipModuleType::WeaponEnergy),
-        1200,
+        1900,
         28,
         4,
         LARGE_STACK_SIZE,
-        vec![BaseKineticDamage(2.3), BaseShieldDamage(0.8), EnergyConsumption(3.0)],
+        vec![BaseDamage(2.3), ShieldDamageMod(0.9), EnergyConsumption(3.0)],
         None,
     )?;
 

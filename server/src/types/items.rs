@@ -67,12 +67,14 @@ pub enum ItemCategory {
 #[derive(SpacetimeType, Clone, Debug, PartialEq)]
 pub enum ItemMetadata {
     /// Base damage damage others modify
-    BaseKineticDamage(f32),
-    /// Base shield damage others modify
-    BaseShieldDamage(f32),
-    /// Effects damage output
-    DamageBoost(f32),
-    /// Effects shield output
+    BaseDamage(f32),
+    /// The multipler modifier for damage done to hull
+    KineticDamageMod(f32),
+    /// The multipler modifier for damage done to shields
+    ShieldDamageMod(f32),
+    /// A flat boost to BaseDamage
+    BaseDamageBoost(f32),
+    /// A flat boost to the ship's shield output
     ShieldBoost(f32),
     /// Adds additional cargo capacity
     CargoCapacityBoost(u16),
