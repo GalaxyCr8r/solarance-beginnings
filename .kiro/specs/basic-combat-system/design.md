@@ -300,6 +300,7 @@ pub enum CombatError {
 ### Logging and Debugging
 
 - Use `spacetimedb::log::info!()` for combat events
+- Send a `ServerMessage` to player(s) the `CombatError` affects.
 - Log damage calculations for balancing
 - Track energy consumption patterns
 - Monitor visual effect cleanup performance
@@ -309,7 +310,7 @@ pub enum CombatError {
 ### SpacetimeDB Patterns
 
 - Use `try_server_only(ctx)?` for server-only combat processing
-- Implement proper foreign key relationships for data integrity
+- Implement proper foreign key relationships for data integrity via SpacetimeDSL wrapper patterns
 - Use scheduled reducers for timed cleanup operations
 - Follow existing DSL wrapper patterns for type safety
 
@@ -318,7 +319,7 @@ pub enum CombatError {
 - Batch visual effect cleanup operations
 - Use indexed queries for target validation
 - Minimize database writes during combat
-- Optimize damage calculation algorithms
+- Optimize damage calculation algorithms (i.e. bail immediately if the ship is pointing in the wrong direction when they fire weapons, etc.)
 
 ### Future Extensibility
 
@@ -331,7 +332,7 @@ pub enum CombatError {
 
 - Server-side validation of all combat actions
 - Energy consumption enforcement
-- Target validation prevents invalid attacks
+- Target validation prevents invalid attacks (but shouldn't stop the client from showing weapons or dumbfire missiles firing)
 - Rate limiting for rapid-fire prevention
 
 This design provides a solid foundation for the basic combat system while maintaining compatibility with the existing SpacetimeDB architecture and preparing for future enhancements like NPC combat and diverse weapon types.
