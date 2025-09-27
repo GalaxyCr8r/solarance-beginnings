@@ -2,6 +2,7 @@
 
 pub mod asteroids;
 pub mod chats;
+pub mod combat;
 pub mod common;
 pub mod economy;
 pub mod factions;

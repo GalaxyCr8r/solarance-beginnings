@@ -18,7 +18,12 @@ pub struct NpcBehaviorSchedule {
 #[spacetimedb::reducer]
 pub fn process_npc_behavior_tick(
     _ctx: &ReducerContext,
-    _timer: NpcBehaviorSchedule
+    _timer: NpcBehaviorSchedule,
 ) -> Result<(), String> {
     Err("Not implemented".to_string())
+}
+
+pub fn init(_ctx: &ReducerContext) -> Result<(), String> {
+    // NPC timer initialization will go here
+    Ok(())
 }

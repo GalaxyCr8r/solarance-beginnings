@@ -2,7 +2,7 @@
 
 ## Combat System Core Infrastructure
 
-- [ ] 1. Create combat module structure
+- [x] 1. Create combat module structure
 
   - Create `server/src/types/combat.rs` module file
   - Create `server/src/types/combat/` directory with standard submodules (types.rs, reducers.rs, utility.rs, timers.rs, impls.rs)
