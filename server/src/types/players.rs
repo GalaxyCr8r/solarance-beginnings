@@ -70,7 +70,7 @@ pub struct PlayerShipController {
     pub undock: bool,
     pub shield_boost: bool,
     pub fire_weapons: bool,
-    pub fire_missle: bool,
+    pub fire_missles: bool,
 
     // Misc
     /// FK to StellarObject

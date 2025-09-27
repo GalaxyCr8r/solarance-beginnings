@@ -233,7 +233,7 @@ The existing `control_player_ship` function will be extended to handle:
 The existing `PlayerShipController` already contains the necessary fields:
 
 - `fire_weapons: bool`
-- `fire_missiles: bool` (note: currently `fire_missle` - will need correction)
+- `fire_missiles: bool`
 - `targetted_sobj_id: Option<u64>`
 
 #### ShipStatus
@@ -243,6 +243,11 @@ The existing `ShipStatus` contains health, shields, and energy fields that will 
 - `health: f32`
 - `shields: f32`
 - `energy: f32`
+
+New fields will need to be needed based to introduce cooldown:
+
+- `weapon_cooldown_ms: u32`
+- `missile_cooldown_ms: u32`
 
 #### Ship Equipment
 

@@ -75,6 +75,9 @@ pub enum ItemMetadata {
     /// A flat boost to BaseDamage
     BaseDamageBoost(f32),
 
+    /// Cooldown for weapon/missile launchers in milliseconds
+    Cooldown(u32),
+
     /// How big of an effect does this item have
     AreaOfEffect(f32),
     /// Fall off of effects, lower is smaller. e.g. 0.5=linear, 0.25=cubic, etc.
