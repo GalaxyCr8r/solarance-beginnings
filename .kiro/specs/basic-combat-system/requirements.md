@@ -12,7 +12,7 @@ The basic combat system enables players to engage in real-time combat using thei
 
 #### Acceptance Criteria
 
-1. WHEN a player sets `PlayerShipController.fire_weapons` to true AND `targetted_sobj_id` is a valid `Ship` or `Station` class THEN the system SHALL trigger an instant hitscan attack
+1. WHEN a player sets `PlayerShipController.fire_weapons` to true AND `targetted_sobj_id` is a valid `Ship` or `Station` class THEN the system SHALL trigger an instant hitscan attack and reset `fire_weapons` to `false`
 2. WHEN a hitscan attack is triggered THEN the system SHALL calculate damage based on the ship's weapon configuration
 3. WHEN damage is calculated THEN the system SHALL apply damage to the target's shields first, then hull health
 4. WHEN weapons are fired THEN the system SHALL consume energy from the ship's power systems
@@ -26,10 +26,9 @@ The basic combat system enables players to engage in real-time combat using thei
 #### Acceptance Criteria
 
 1. WHEN weapons are fired THEN the system SHALL create a `VisualEffect` entry in the database
-2. WHEN a `VisualEffect` is created THEN all connected clients SHALL receive the visual effect data
-3. WHEN a `VisualEffect` is created THEN the system SHALL schedule its automatic deletion after 10 milliseconds
-4. WHEN the scheduled deletion timer triggers THEN the system SHALL remove the `VisualEffect` from the database
-5. WHEN a `VisualEffect` is removed THEN clients SHALL stop rendering the effect
+2. WHEN a `VisualEffect` is created THEN the system SHALL schedule its automatic deletion after 10 milliseconds
+3. WHEN the scheduled deletion timer triggers THEN the system SHALL remove the `VisualEffect` from the database
+4. WHEN a `VisualEffect` is created THEN the client SHALL begin a firing effect for a configurable duration
 
 ### Requirement 3
 
@@ -59,10 +58,10 @@ The basic combat system enables players to engage in real-time combat using thei
 
 #### Acceptance Criteria
 
-1. WHEN `PlayerShipController.fire_missiles` is set THEN the system SHALL recognize this as a different weapon type
+1. WHEN `PlayerShipController.fire_missiles` is set THEN the system SHALL recognize this as a different weapon type and reset `fire_missiles` to `false`
 2. WHEN missile firing is triggered THEN the system SHALL prepare for future stellar object creation (not implemented in this phase)
 3. WHEN regular weapons are fired THEN the system SHALL NOT create stellar objects
-4. WHEN the combat system is designed THEN it SHALL accommodate both hitscan and projectile weapon types
+4. WHEN the combat system is designed THEN it SHALL accommodate, hitscan, projectile, and area-of-effect weapon types
 
 ### Requirement 6
 
@@ -75,3 +74,14 @@ The basic combat system enables players to engage in real-time combat using thei
 3. IF insufficient energy is available THEN the system SHALL prevent weapon firing and provide feedback
 4. WHEN energy is consumed THEN the updated energy levels SHALL be synchronized to all clients
 5. WHEN energy reaches zero THEN the system SHALL disable all energy-dependent systems including weapons
+
+### Requirement 7
+
+**User Story:** As a player, I want to switch between combat and utility modes. You shouldn't be able to fire when attempting to dock or opening your cargo bay.
+
+#### Acceptance Criteria
+
+1. WHEN the player presses "Q" THEN the UI state SHALL flip between combat/utility modes
+2. WHEN in combat mode THEN pressing spacebar SHALL set `PlayerShipController.fire_weapons` to `true`
+3. WHEN in combat mode THEN pressing Left Control SHALL set `PlayerShipController.fire_missiles` to `true`
+4. WHEN in utility mode THEN the client UI SHALL allow the docking/mining/cargo bay should become operable

@@ -74,13 +74,20 @@ pub enum ItemMetadata {
     ShieldDamageMod(f32),
     /// A flat boost to BaseDamage
     BaseDamageBoost(f32),
+
+    /// How big of an effect does this item have
+    AreaOfEffect(f32),
+    /// Fall off of effects, lower is smaller. e.g. 0.5=linear, 0.25=cubic, etc.
+    FallOff(f32),
+
     /// A flat boost to the ship's shield output
     ShieldBoost(f32),
     /// Adds additional cargo capacity
     CargoCapacityBoost(u16),
     /// From 0.001 to 10.0
     MiningSpeedMultiplier(f32),
-    /// How much energy this item consumes per second.
+
+    /// How much energy this item consumes per second or usage.
     EnergyConsumption(f32),
     /// Some other special effect
     SpecialEffect(String),
