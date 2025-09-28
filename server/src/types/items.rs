@@ -1,7 +1,10 @@
 use spacetimedb::{table, ReducerContext, SpacetimeType, Timestamp};
 use spacetimedsl::dsl;
 
-use crate::types::ships::*;
+use crate::types::{
+    combat::{MissileType, WeaponType},
+    ships::*,
+};
 
 pub mod definitions; // Definitions for initial ingested data.
 pub mod impls; // Impls for this file's structs
@@ -66,6 +69,12 @@ pub enum ItemCategory {
 /// Enum for different effects for items/modules
 #[derive(SpacetimeType, Clone, Debug, PartialEq)]
 pub enum ItemMetadata {
+    // Weapon Module Types
+    /// This item is a type of weapon
+    Weapon(WeaponType),
+    /// This item is a type of missile launcher
+    MissileLauncher(MissileType),
+
     /// Base damage damage others modify
     BaseDamage(f32),
     /// The multipler modifier for damage done to hull
@@ -75,8 +84,13 @@ pub enum ItemMetadata {
     /// A flat boost to BaseDamage
     BaseDamageBoost(f32),
 
-    /// Cooldown for weapon/missile launchers in milliseconds
-    Cooldown(u32),
+    /// How far is the maximum range for this weapon/missile launcher
+    MaximumRange(f32),
+    /// How long between firing for weapon/missile launchers/special ship module types in milliseconds
+    CooldownMs(u32),
+    /// Is the half-angle that determines if your ship is pointing close enough to the target.
+    /// Relevant for Weapons, Missiles, and Mining Beams
+    LockOnAngleBoundRads(f32),
 
     /// How big of an effect does this item have
     AreaOfEffect(f32),

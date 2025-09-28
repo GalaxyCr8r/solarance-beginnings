@@ -61,6 +61,14 @@ Solarance: Beginnings is a 2D top-down space MMO built with Rust, using Spacetim
 
 ## Development Guidelines
 
+### Build Commands
+
+**CRITICAL**: For SpacetimeDB server modules, NEVER use `cargo build` or `cargo check` for final builds due to linking errors with SpacetimeDB runtime symbols. Always use:
+
+- **Server Module**: Use `spacetime build` in the `server/` directory for building SpacetimeDB modules
+- **Client**: Use `cargo build` in the `client/` directory for regular Rust applications
+- **Development**: `cargo check` can be used for syntax checking during development, but final builds must use `spacetime build`
+
 ### File Organization
 
 - Keep domain logic separated into distinct modules
@@ -143,3 +151,29 @@ pub struct EntityTimer {
 - Implement debug UI panels for development
 - Test with multiple clients for multiplayer scenarios
 - Use Taskfile.yml for build automation
+
+## Build and Deployment Commands
+
+### Server Module Commands
+
+```bash
+# In server/ directory
+spacetime build                    # Build the SpacetimeDB module
+spacetime publish <module-name>    # Publish module to SpacetimeDB
+spacetime logs <module-name>       # View module logs
+```
+
+### Client Commands
+
+```bash
+# In client/ directory
+cargo build                        # Build the client application
+cargo run                          # Run the client application
+```
+
+### Development Workflow
+
+1. Make changes to server code in `server/src/`
+2. Use `cargo check` for quick syntax validation (development only)
+3. Use `spacetime build` to build the module properly
+4. Test with `spacetime publish` and client connection

@@ -9,14 +9,15 @@
   - Add combat module to `server/src/types/mod.rs`
   - _Requirements: 1.1, 2.1, 3.1, 4.1_
 
-- [ ] 2. Implement VisualEffect database tables
+- [x] 2. Implement VisualEffect database tables
 
   - Create `VisualEffect` table with id, source, target, effect_type, created_at fields
   - Create `VisualEffectType` enum with WeaponFire, MissileFire, Explosion variants
   - Create `VisualEffectTimer` scheduled table for cleanup
   - _Requirements: 2.1, 2.2, 2.3_
 
-- [ ] 3. Implement weapon and missile type enums
+- [x] 3. Implement weapon and missile type enums
+
   - Create `WeaponType` enum with Hitscan, Projectile, AreaOfEffect variants
   - Create `MissileType` enum with Dumbfire, Heatseeking variants
   - Add these to combat types module
@@ -24,21 +25,22 @@
 
 ## Combat Processing Functions
 
-- [ ] 4. Implement core combat utility functions
+- [x] 4. Implement core combat utility functions
 
   - Create `process_weapon_fire` function that handles hitscan damage calculation
   - Create `process_missile_fire` function as placeholder for future missile system
   - Implement damage calculation logic using ItemMetadata from weapon definitions
   - _Requirements: 1.1, 1.2, 1.3, 5.1, 5.2_
 
-- [ ] 5. Implement damage calculation system
+- [x] 5. Implement damage calculation system
 
   - Create damage calculation function that extracts BaseDamage, ShieldDamageMod, KineticDamageMod from weapon ItemMetadata
   - Apply damage to target shields first, then hull health
   - Handle target destruction when hull health reaches zero
   - _Requirements: 1.2, 1.3, 1.6_
 
-- [ ] 6. Implement energy consumption system
+- [x] 6. Implement energy consumption system
+
   - Extract EnergyConsumption from weapon ItemMetadata
   - Validate sufficient energy before allowing weapon fire
   - Deduct energy from ship's current energy reserves

@@ -49,6 +49,8 @@ fn fighters(dsl: &DSL) -> Result<(), String> {
         1,
         0,
         1,
+        41, // sprite_width
+        51, // sprite_height
         Some("lc.phalanx".into()),
     )?;
     dsl.create_ship_type_definition(
@@ -73,6 +75,8 @@ fn fighters(dsl: &DSL) -> Result<(), String> {
         2,
         1,
         3,
+        64,  // sprite_width
+        64,  // sprite_height
         Some("lc.column".into())
     )?;
     dsl.create_ship_type_definition(
@@ -95,6 +99,8 @@ fn fighters(dsl: &DSL) -> Result<(), String> {
         1,
         0,
         0,
+        46, // sprite_width
+        29, // sprite_height
         Some("rf.javelin".into()),
     )?;
 

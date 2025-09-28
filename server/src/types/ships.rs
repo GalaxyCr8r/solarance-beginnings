@@ -83,6 +83,9 @@ pub struct ShipTypeDefinition {
     pub num_mining_laser_slots: u8,
     pub num_special_slots: u8,
 
+    pub sprite_width: u16,  // Width of the ship sprite in pixels
+    pub sprite_height: u16, // Height of the ship sprite in pixels
+
     pub gfx_key: Option<String>, // Key for client to look up 2D sprite/model
 }
 
