@@ -2,7 +2,6 @@ use spacetimedb::{ReducerContext, Timestamp};
 use spacetimedsl::{dsl, Wrapper};
 
 use crate::types::{
-    common::Vec2,
     items::{ItemDefinition, ItemMetadata},
     ships::*,
     stellarobjects::*,
@@ -90,7 +89,7 @@ pub fn process_weapon_fire(
     ctx: &ReducerContext,
     source_sobj_id: u64,
     target_sobj_id: u64,
-    actual_location: Vec2, // Where exactly did the projectile explode, used for AoE weapons
+    actual_location: glam::Vec2, // Where exactly did the projectile explode, used for AoE weapons
     _weapon_type: WeaponType,
     weapon_item_def: ItemDefinition, // To get specific combat-related metadata
 ) -> Result<(), String> {
@@ -125,21 +124,14 @@ pub fn process_weapon_fire(
             )
         })?;
 
-    let mut source_ship_status =
-        dsl.get_ship_status_by_id(ShipId::new(source_ship.get_id().value()))?;
+    let mut source_ship_status = dsl.get_ship_status_by_id(&source_ship)?;
 
     // Get source and target positions and facing angles
     let source_transform = dsl.get_sobj_internal_transform_by_id(source_sobj.get_id())?;
     let target_transform = dsl.get_sobj_internal_transform_by_id(target_sobj.get_id())?;
 
-    let source_pos = Vec2 {
-        x: *source_transform.get_x(),
-        y: *source_transform.get_y(),
-    };
-    let target_pos = Vec2 {
-        x: *target_transform.get_x(),
-        y: *target_transform.get_y(),
-    };
+    let source_pos = source_transform.to_vec2();
+    let target_pos = target_transform.to_vec2();
     let ship_facing_angle = *source_transform.get_rotation_radians();
 
     // Extract lock-on angle bound from weapon metadata
@@ -149,6 +141,11 @@ pub fn process_weapon_fire(
             lock_on_angle_bound = *angle;
             break;
         }
+    }
+
+    // Check if target is within weapon range
+    if !is_target_in_range(&source_pos, &target_pos, weapon_item_def.get_metadata()) {
+        return Err("Target is out of weapon range".to_string());
     }
 
     // Get target ship dimensions for accurate collision detection
@@ -176,7 +173,7 @@ pub fn process_weapon_fire(
         };
 
     // Check if target is within lock-on angle using actual target dimensions
-    if !is_within_lock_on_angle_with_target_size(
+    if !is_within_lock_on_angle(
         &source_pos,
         &target_pos,
         ship_facing_angle,
@@ -188,18 +185,9 @@ pub fn process_weapon_fire(
         return Err("Target is outside weapon lock-on angle".to_string());
     }
 
-    // Check if target is within weapon range
-    if !is_target_in_range(&source_pos, &target_pos, weapon_item_def.get_metadata()) {
-        return Err("Target is out of weapon range".to_string());
-    }
-
     // For hitscan weapons, check line of sight and intersection
     if let WeaponType::Hitscan = _weapon_type {
-        if !has_line_of_sight_with_ship_size(
-            &source_pos,
-            &target_pos,
-            target_width.max(target_height),
-        ) {
+        if !has_line_of_sight(&source_pos, &target_pos, target_width.max(target_height)) {
             return Err("No line of sight to target".to_string());
         }
 
@@ -260,7 +248,7 @@ pub fn process_weapon_fire(
     create_visual_effect(
         ctx,
         source_pos,
-        actual_location,
+        actual_location.into(),
         VisualEffectType::WeaponFire,
     )?;
 
@@ -281,7 +269,7 @@ pub fn process_missile_fire(
     ctx: &ReducerContext,
     source_sobj_id: u64,
     target_sobj_id: u64,
-    actual_location: Vec2, // Where exactly did the missile explode, used for AoE missiles
+    actual_location: glam::Vec2, // Where exactly did the missile explode, used for AoE missiles
     missile_type: MissileType,
     missile_item_def: ItemDefinition, // To get specific combat-related metadata
 ) -> Result<(), String> {
@@ -327,10 +315,7 @@ pub fn process_missile_fire(
 
     // Create visual effect for missile fire
     let source_transform = dsl.get_sobj_internal_transform_by_id(source_sobj.get_id())?;
-    let source_pos = Vec2 {
-        x: *source_transform.get_x(),
-        y: *source_transform.get_y(),
-    };
+    let source_pos = source_transform.to_vec2();
     create_visual_effect(
         ctx,
         source_pos,
@@ -451,9 +436,9 @@ pub fn calculate_damage_effectiveness(
 
 /// Check if a hitscan weapon has line-of-sight to the target
 /// Uses actual ship dimensions for collision detection
-pub fn has_line_of_sight_with_ship_size(
-    source_pos: &Vec2,
-    target_pos: &Vec2,
+pub fn has_line_of_sight(
+    source_pos: &glam::Vec2,
+    target_pos: &glam::Vec2,
     target_max_dimension: f32,
 ) -> bool {
     // For now, we assume clear line of sight since we don't have obstacles
@@ -469,8 +454,8 @@ pub fn has_line_of_sight_with_ship_size(
 
 /// Check if target intersects with hitscan line using actual ship dimensions and orientation
 pub fn hitscan_intersects_target_with_size(
-    source_pos: &Vec2,
-    target_pos: &Vec2,
+    source_pos: &glam::Vec2,
+    target_pos: &glam::Vec2,
     ship_facing_angle: f32,
     target_width: f32,
     target_height: f32,
@@ -544,30 +529,10 @@ pub fn hitscan_intersects_target_with_size(
     t_enter <= t_exit && t_exit >= 0.0 && t_enter >= 0.0
 }
 
-/// Check if the target is within the weapon's lock-on angle using bounding box intersection
-/// This is a simplified version that uses default 32px target size for backward compatibility
-pub fn is_within_lock_on_angle(
-    source_pos: &Vec2,
-    target_pos: &Vec2,
-    ship_facing_angle: f32,
-    lock_on_angle_bound_rads: f32,
-) -> bool {
-    // Use the enhanced version with default target size for backward compatibility
-    is_within_lock_on_angle_with_target_size(
-        source_pos,
-        target_pos,
-        ship_facing_angle,
-        lock_on_angle_bound_rads,
-        32.0, // Default target width
-        32.0, // Default target height
-        0.0,  // Default target orientation
-    )
-}
-
 /// Enhanced version that takes target dimensions and orientation into account
-pub fn is_within_lock_on_angle_with_target_size(
-    source_pos: &Vec2,
-    target_pos: &Vec2,
+pub fn is_within_lock_on_angle(
+    source_pos: &glam::Vec2,
+    target_pos: &glam::Vec2,
     ship_facing_angle: f32,
     lock_on_angle_bound_rads: f32,
     target_width: f32,
@@ -579,7 +544,7 @@ pub fn is_within_lock_on_angle_with_target_size(
         return true;
     }
 
-    let your_forward_vec = Vec2::new(ship_facing_angle.cos(), ship_facing_angle.sin());
+    let your_forward_vec = glam::Vec2::new(ship_facing_angle.cos(), ship_facing_angle.sin());
 
     // Calculate target corners based on actual dimensions and orientation
     let target_corners =
@@ -589,13 +554,17 @@ pub fn is_within_lock_on_angle_with_target_size(
     let mut max_angle_to_target_extremity = f32::MIN;
 
     for corner in &target_corners {
-        let vec_to_corner = corner.sub(source_pos);
+        let vec_to_corner = corner - source_pos;
         if vec_to_corner.length() == 0.0 {
             // Your ship is exactly on a corner of the target, definitely pointing.
             return true;
         }
 
-        let angle = your_forward_vec.signed_angle_to(&vec_to_corner);
+        // Calculate signed angle using cross product and dot product
+        let cross = your_forward_vec.x * vec_to_corner.y - your_forward_vec.y * vec_to_corner.x;
+        let dot = your_forward_vec.dot(vec_to_corner);
+        let angle = cross.atan2(dot);
+
         min_angle_to_target_extremity = min_angle_to_target_extremity.min(angle);
         max_angle_to_target_extremity = max_angle_to_target_extremity.max(angle);
     }
@@ -615,7 +584,12 @@ pub fn is_within_lock_on_angle_with_target_size(
 }
 
 /// Helper function to calculate target corners based on position, dimensions, and orientation
-fn get_target_corners(position: &Vec2, width: f32, height: f32, orientation: f32) -> [Vec2; 4] {
+fn get_target_corners(
+    position: &glam::Vec2,
+    width: f32,
+    height: f32,
+    orientation: f32,
+) -> [glam::Vec2; 4] {
     let half_width = width / 2.0;
     let half_height = height / 2.0;
 
@@ -634,19 +608,14 @@ fn get_target_corners(position: &Vec2, width: f32, height: f32, orientation: f32
     corners_local.map(|(x, y)| {
         let rotated_x = x * cos_angle - y * sin_angle;
         let rotated_y = x * sin_angle + y * cos_angle;
-        Vec2::new(position.x + rotated_x, position.y + rotated_y)
+        glam::Vec2::new(position.x + rotated_x, position.y + rotated_y)
     })
-}
-
-/// Backward compatibility function for has_line_of_sight
-pub fn has_line_of_sight(source_pos: &Vec2, target_pos: &Vec2) -> bool {
-    has_line_of_sight_with_ship_size(source_pos, target_pos, 32.0)
 }
 
 /// Backward compatibility function for hitscan_intersects_target
 pub fn hitscan_intersects_target(
-    source_pos: &Vec2,
-    target_pos: &Vec2,
+    source_pos: &glam::Vec2,
+    target_pos: &glam::Vec2,
     ship_facing_angle: f32,
     target_half_size: f32,
 ) -> bool {
@@ -663,8 +632,8 @@ pub fn hitscan_intersects_target(
 
 /// Validate if a target is within weapon range
 pub fn is_target_in_range(
-    source_pos: &Vec2,
-    target_pos: &Vec2,
+    source_pos: &glam::Vec2,
+    target_pos: &glam::Vec2,
     weapon_metadata: &[ItemMetadata],
 ) -> bool {
     let mut max_range = f32::INFINITY; // Default to infinite range if not specified
@@ -687,14 +656,15 @@ pub fn is_target_in_range(
 /// Create a visual effect and schedule its cleanup
 fn create_visual_effect(
     ctx: &ReducerContext,
-    source_pos: Vec2,
-    target_pos: Vec2,
+    source_pos: glam::Vec2,
+    target_pos: glam::Vec2,
     effect_type: VisualEffectType,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
     // Create visual effect
-    let visual_effect = dsl.create_visual_effect(source_pos, target_pos, effect_type)?;
+    let visual_effect =
+        dsl.create_visual_effect(source_pos.into(), target_pos.into(), effect_type)?;
 
     // Schedule cleanup after 10 milliseconds
     let cleanup_time = spacetimedb::ScheduleAt::Time(Timestamp::from_micros_since_unix_epoch(

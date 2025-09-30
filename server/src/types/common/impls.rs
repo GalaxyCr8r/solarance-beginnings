@@ -23,3 +23,18 @@ impl Vec2 {
         cross.atan2(dot)
     }
 }
+
+impl From<glam::Vec2> for Vec2 {
+    fn from(glam_vec: glam::Vec2) -> Self {
+        Vec2 {
+            x: glam_vec.x,
+            y: glam_vec.y,
+        }
+    }
+}
+
+impl From<Vec2> for glam::Vec2 {
+    fn from(vec: Vec2) -> Self {
+        glam::Vec2 { x: vec.x, y: vec.y }
+    }
+}
