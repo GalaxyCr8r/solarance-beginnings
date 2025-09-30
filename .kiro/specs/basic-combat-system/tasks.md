@@ -48,7 +48,8 @@
 
 ## Visual Effects System
 
-- [ ] 7. Implement visual effect creation and cleanup
+- [x] 7. Implement visual effect creation and cleanup
+
   - Create visual effects when weapons are fired with source and target positions
   - Schedule automatic cleanup after 10 milliseconds using VisualEffectTimer
   - Implement `cleanup_visual_effect` scheduled reducer
@@ -56,7 +57,7 @@
 
 ## Combat Reducers Integration
 
-- [ ] 8. Create combat processing reducer
+- [x] 8. Create combat processing reducer
 
   - Implement reducer that processes PlayerShipController fire_weapons and fire_missiles flags
   - Reset fire_weapons and fire_missiles to false after processing

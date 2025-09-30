@@ -16,6 +16,7 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     server_messages::init(ctx)?;
     stellarobjects::init(ctx)?;
     ships::init(ctx)?;
+    combat::init(ctx)?;
 
     // Create a Global Config row, or reinitalize the one if it exists.
     if dsl.count_of_all_global_configurations() == 0 {
