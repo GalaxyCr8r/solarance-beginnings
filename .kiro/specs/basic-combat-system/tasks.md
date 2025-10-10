@@ -64,7 +64,7 @@
   - Validate target is valid Ship or Station class before firing
   - _Requirements: 1.1, 5.1_
 
-- [ ] 9. Integrate combat with player ship controller updates
+- [x] 9. Integrate combat with player ship controller updates
   - Modify existing `update_player_controller` reducer to call combat processing
   - Ensure combat actions are processed when fire_weapons or fire_missiles are set
   - Add server-side validation for combat actions
