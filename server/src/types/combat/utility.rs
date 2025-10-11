@@ -206,6 +206,14 @@ pub fn process_weapon_fire(
     // Calculate damage using weapon metadata
     let damage_calc = DamageCalculation::calculate(weapon_item_def.get_metadata());
 
+    // Check weapon cooldown
+    if *source_ship_status.get_weapon_cooldown_ms() > 0 {
+        return Err(format!(
+            "Weapons on cooldown for {} ms",
+            source_ship_status.get_weapon_cooldown_ms()
+        ));
+    }
+
     // Check if ship has sufficient energy
     if *source_ship_status.get_energy() < damage_calc.energy_cost {
         return Err("Insufficient energy to fire weapon".to_string());
@@ -213,6 +221,16 @@ pub fn process_weapon_fire(
 
     // Consume energy
     source_ship_status.set_energy(*source_ship_status.get_energy() - damage_calc.energy_cost);
+
+    // Set weapon cooldown (extract from weapon metadata or use default)
+    let mut weapon_cooldown_ms = 1000; // Default 1 second cooldown
+    for metadata in weapon_item_def.get_metadata() {
+        if let ItemMetadata::CooldownMs(cooldown) = metadata {
+            weapon_cooldown_ms = *cooldown;
+            break;
+        }
+    }
+    source_ship_status.set_weapon_cooldown_ms(weapon_cooldown_ms);
 
     // Apply damage to target if it's a ship
     if target_sobj.get_kind() == &StellarObjectKinds::Ship {
@@ -295,6 +313,14 @@ pub fn process_missile_fire(
     let mut source_ship_status =
         dsl.get_ship_status_by_id(ShipId::new(source_ship.get_id().value()))?;
 
+    // Check missile cooldown
+    if *source_ship_status.get_missile_cooldown_ms() > 0 {
+        return Err(format!(
+            "Missiles on cooldown for {} ms",
+            source_ship_status.get_missile_cooldown_ms()
+        ));
+    }
+
     // Calculate energy cost from missile metadata
     let mut energy_cost = 0.0;
     for metadata in missile_item_def.get_metadata() {
@@ -311,6 +337,17 @@ pub fn process_missile_fire(
 
     // Consume energy
     source_ship_status.set_energy(*source_ship_status.get_energy() - energy_cost);
+
+    // Set missile cooldown (extract from missile metadata or use default)
+    let mut missile_cooldown_ms = 2000; // Default 2 second cooldown for missiles
+    for metadata in missile_item_def.get_metadata() {
+        if let ItemMetadata::CooldownMs(cooldown) = metadata {
+            missile_cooldown_ms = *cooldown;
+            break;
+        }
+    }
+    source_ship_status.set_missile_cooldown_ms(missile_cooldown_ms);
+
     dsl.update_ship_status_by_id(source_ship_status)?;
 
     // Create visual effect for missile fire

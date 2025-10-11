@@ -72,7 +72,8 @@
 
 ## Ship Status Extensions
 
-- [ ] 10. Add weapon cooldown fields to ShipStatus
+- [x] 10. Add weapon cooldown fields to ShipStatus
+
   - Add `weapon_cooldown_ms: u32` field to ShipStatus table
   - Add `missile_cooldown_ms: u32` field to ShipStatus table
   - Implement cooldown checking in combat processing

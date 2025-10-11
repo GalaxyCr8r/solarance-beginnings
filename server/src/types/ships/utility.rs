@@ -64,7 +64,9 @@ pub fn create_ship_from_sobj(
         ship_type.max_health as f32,
         ship_type.max_shields as f32,
         ship_type.max_energy as f32,
-        0,
+        0, // weapon_cooldown_ms
+        0, // missile_cooldown_ms
+        0, // used_cargo_capacity
         ship_type.cargo_capacity,
         None,
     )?;
@@ -105,7 +107,9 @@ pub fn create_ship_docked_at_station(
         ship_type.max_health as f32,
         ship_type.max_shields as f32,
         ship_type.max_energy as f32,
-        0,
+        0, // weapon_cooldown_ms
+        0, // missile_cooldown_ms
+        0, // used_cargo_capacity
         ship_type.cargo_capacity,
         None,
     )?;

@@ -8,7 +8,7 @@ pub mod reducers; // SpacetimeDB Reducers for this file's structs.
 pub mod timers; // Timers related to this file's structs.
 pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
-use timers::cleanup_visual_effect;
+use timers::{cleanup_visual_effect, update_combat_cooldowns};
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
 pub enum VisualEffectType {
@@ -63,6 +63,17 @@ pub struct VisualEffectTimer {
     #[use_wrapper(path = VisualEffectId)]
     #[foreign_key(path = crate::types::combat, table = visual_effect, column = id, on_delete = Delete)]
     pub effect_id: u64,
+
+    pub scheduled_at: ScheduleAt,
+}
+
+#[dsl(plural_name = combat_cooldown_timers)]
+#[spacetimedb::table(name = combat_cooldown_timer, scheduled(update_combat_cooldowns))]
+pub struct CombatCooldownTimer {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]
+    id: u64,
 
     pub scheduled_at: ScheduleAt,
 }

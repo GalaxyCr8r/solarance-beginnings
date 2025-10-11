@@ -111,6 +111,9 @@ pub struct ShipStatus {
     pub shields: f32,
     pub energy: f32,
 
+    pub weapon_cooldown_ms: u32, // Milliseconds remaining until weapons can fire again
+    pub missile_cooldown_ms: u32, // Milliseconds remaining until missiles can fire again
+
     pub used_cargo_capacity: u16, // Needs to be manually maintained via ShipCargoItem
     pub max_cargo_capacity: u16,  // Needs to be manually maintained via ShipCargoItem
 
