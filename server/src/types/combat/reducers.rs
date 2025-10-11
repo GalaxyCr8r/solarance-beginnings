@@ -5,8 +5,11 @@ use crate::types::{
     items::utility::get_item_definition, npcs::*, players::*, ships::*, stellarobjects::*,
 };
 
-use super::utility::{process_missile_fire, process_weapon_fire};
-use super::{MissileType, ShipController, WeaponType};
+use super::utility::{
+    get_equipped_weapons, log_combat_error, process_missile_fire, process_weapon_fire,
+    test_combat_validation, validate_combat_action,
+};
+use super::{CombatError, MissileType, ShipController, WeaponType};
 
 /// Process combat actions from both PlayerShipController and NpcShipController
 /// This reducer handles weapon and missile firing when the respective flags are set
@@ -53,17 +56,15 @@ pub fn process_combat_actions(ctx: &ReducerContext) -> Result<(), String> {
                         );
                     }
                     Err(e) => {
-                        spacetimedb::log::info!(
-                            "Weapon fire failed for ship {}: {}",
-                            source_sobj_id,
-                            e
-                        );
+                        log_combat_error(source_sobj_id, Some(target_sobj_id), &e, "weapon fire");
                     }
                 }
             } else {
-                spacetimedb::log::info!(
-                    "Ship {} attempted to fire weapons without a target",
-                    source_sobj_id
+                log_combat_error(
+                    source_sobj_id,
+                    None,
+                    &CombatError::InvalidTarget,
+                    "weapon fire",
                 );
             }
 
@@ -83,17 +84,15 @@ pub fn process_combat_actions(ctx: &ReducerContext) -> Result<(), String> {
                         );
                     }
                     Err(e) => {
-                        spacetimedb::log::info!(
-                            "Missile fire failed for ship {}: {}",
-                            source_sobj_id,
-                            e
-                        );
+                        log_combat_error(source_sobj_id, Some(target_sobj_id), &e, "missile fire");
                     }
                 }
             } else {
-                spacetimedb::log::info!(
-                    "Ship {} attempted to fire missiles without a target",
-                    source_sobj_id
+                log_combat_error(
+                    source_sobj_id,
+                    None,
+                    &CombatError::InvalidTarget,
+                    "missile fire",
                 );
             }
 
@@ -120,51 +119,36 @@ fn process_weapon_combat_action(
     ctx: &ReducerContext,
     source_sobj_id: u64,
     target_sobj_id: u64,
-) -> Result<(), String> {
+) -> Result<(), CombatError> {
+    // Perform comprehensive server-side validation
+    validate_combat_action(ctx, source_sobj_id, target_sobj_id, false)?;
+
     let dsl = dsl(ctx);
 
-    // Validate target is valid Ship or Station class
-    let target_sobj = dsl.get_stellar_object_by_id(StellarObjectId::new(target_sobj_id))?;
-    match target_sobj.get_kind() {
-        StellarObjectKinds::Ship | StellarObjectKinds::Station => {
-            // Valid target
-        }
-        _ => {
-            return Err(format!(
-                "Invalid target class: {:?}. Only Ship and Station can be targeted.",
-                target_sobj.get_kind()
-            ));
-        }
-    }
+    // Get validated target (we know it exists from validation)
+    let target_sobj = dsl
+        .get_stellar_object_by_id(StellarObjectId::new(target_sobj_id))
+        .map_err(|_| CombatError::InvalidTarget)?;
 
     // Get source ship to find equipped weapons
     let source_ship = dsl
         .get_ships_by_sobj_id(StellarObjectId::new(source_sobj_id))
         .next()
-        .ok_or_else(|| {
-            format!(
-                "Source ship not found for stellar object {}",
-                source_sobj_id
-            )
-        })?;
+        .ok_or(CombatError::InvalidTarget)?;
 
-    // Find equipped weapons in weapon slots
-    let weapon_slots: Vec<ShipEquipmentSlot> = dsl
-        .get_ship_equipment_slots_by_ship_id(source_ship.get_id())
-        .filter(|slot| slot.get_slot_type() == &EquipmentSlotType::Weapon)
-        .collect();
-
-    if weapon_slots.is_empty() {
-        return Err("No weapons equipped".to_string());
-    }
+    // Find equipped weapons using helper function
+    let weapon_slots = get_equipped_weapons(ctx, source_ship.get_id())?;
 
     // Get target position for actual_location parameter
-    let target_transform = dsl.get_sobj_internal_transform_by_id(target_sobj.get_id())?;
+    let target_transform = dsl
+        .get_sobj_internal_transform_by_id(target_sobj.get_id())
+        .map_err(|_| CombatError::InvalidTarget)?;
     let target_pos = target_transform.to_vec2();
 
     // Fire each equipped weapon
     for weapon_slot in weapon_slots {
-        let weapon_def = get_item_definition(ctx, weapon_slot.get_item_id().value())?;
+        let weapon_def = get_item_definition(ctx, weapon_slot.get_item_id().value())
+            .map_err(|_| CombatError::WeaponNotEquipped)?;
 
         // For now, assume all weapons are hitscan type
         // TODO: Determine weapon type from item metadata in future tasks
@@ -190,7 +174,7 @@ fn process_weapon_combat_action(
                     "Weapon {} failed to fire from ship {}: {}",
                     weapon_slot.get_item_id().value(),
                     source_sobj_id,
-                    e
+                    e.to_message()
                 );
                 // Continue with other weapons even if one fails
             }
@@ -205,33 +189,22 @@ fn process_missile_combat_action(
     ctx: &ReducerContext,
     source_sobj_id: u64,
     target_sobj_id: u64,
-) -> Result<(), String> {
+) -> Result<(), CombatError> {
+    // Perform comprehensive server-side validation
+    validate_combat_action(ctx, source_sobj_id, target_sobj_id, true)?;
+
     let dsl = dsl(ctx);
 
-    // Validate target is valid Ship or Station class
-    let target_sobj = dsl.get_stellar_object_by_id(StellarObjectId::new(target_sobj_id))?;
-    match target_sobj.get_kind() {
-        StellarObjectKinds::Ship | StellarObjectKinds::Station => {
-            // Valid target
-        }
-        _ => {
-            return Err(format!(
-                "Invalid target class: {:?}. Only Ship and Station can be targeted.",
-                target_sobj.get_kind()
-            ));
-        }
-    }
+    // Get validated target (we know it exists from validation)
+    let target_sobj = dsl
+        .get_stellar_object_by_id(StellarObjectId::new(target_sobj_id))
+        .map_err(|_| CombatError::InvalidTarget)?;
 
     // Get source ship to find equipped missiles
     let source_ship = dsl
         .get_ships_by_sobj_id(StellarObjectId::new(source_sobj_id))
         .next()
-        .ok_or_else(|| {
-            format!(
-                "Source ship not found for stellar object {}",
-                source_sobj_id
-            )
-        })?;
+        .ok_or(CombatError::InvalidTarget)?;
 
     // TODO: Implement missile slot type in future tasks
     // For now, missiles will be handled as special equipment or weapons
@@ -251,12 +224,15 @@ fn process_missile_combat_action(
     }
 
     // Get target position for actual_location parameter
-    let target_transform = dsl.get_sobj_internal_transform_by_id(target_sobj.get_id())?;
+    let target_transform = dsl
+        .get_sobj_internal_transform_by_id(target_sobj.get_id())
+        .map_err(|_| CombatError::InvalidTarget)?;
     let target_pos = target_transform.to_vec2();
 
     // Fire each equipped missile
     for missile_slot in missile_slots {
-        let missile_def = get_item_definition(ctx, missile_slot.get_item_id().value())?;
+        let missile_def = get_item_definition(ctx, missile_slot.get_item_id().value())
+            .map_err(|_| CombatError::WeaponNotEquipped)?;
 
         // For now, assume all missiles are dumbfire type
         // TODO: Determine missile type from item metadata in future tasks
@@ -282,7 +258,7 @@ fn process_missile_combat_action(
                     "Missile {} failed to fire from ship {}: {}",
                     missile_slot.get_item_id().value(),
                     source_sobj_id,
-                    e
+                    e.to_message()
                 );
                 // Continue with other missiles even if one fails
             }
@@ -290,4 +266,25 @@ fn process_missile_combat_action(
     }
 
     Ok(())
+}
+
+/// Test reducer for combat error handling validation
+/// This reducer can be used to test different combat error conditions
+#[spacetimedb::reducer]
+pub fn test_combat_error_handling(
+    ctx: &ReducerContext,
+    source_sobj_id: u64,
+    target_sobj_id: u64,
+    is_missile: bool,
+) -> Result<(), String> {
+    match test_combat_validation(ctx, source_sobj_id, target_sobj_id, is_missile) {
+        Ok(message) => {
+            spacetimedb::log::info!("Combat validation test passed: {}", message);
+            Ok(())
+        }
+        Err(error) => {
+            spacetimedb::log::info!("Combat validation test failed: {}", error.to_message());
+            Err(error.to_message())
+        }
+    }
 }

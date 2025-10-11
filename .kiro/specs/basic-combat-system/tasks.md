@@ -107,7 +107,7 @@
 
 ## Error Handling and Validation
 
-- [-] 14. Implement combat error handling
+- [x] 14. Implement combat error handling
 
   - Create `CombatError` enum with InsufficientEnergy, InvalidTarget, WeaponNotEquipped, OutOfRange variants
   - Add proper error messages for combat failures

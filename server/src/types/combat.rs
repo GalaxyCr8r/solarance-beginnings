@@ -37,6 +37,39 @@ pub enum MissileType {
     Heatseeking,
 }
 
+#[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
+pub enum CombatError {
+    InsufficientEnergy,
+    InvalidTarget,
+    WeaponNotEquipped,
+    OutOfRange,
+}
+
+impl CombatError {
+    pub fn to_message(&self) -> String {
+        match self {
+            CombatError::InsufficientEnergy => "Insufficient energy to fire weapon".to_string(),
+            CombatError::InvalidTarget => {
+                "Invalid target - only ships and stations can be targeted".to_string()
+            }
+            CombatError::WeaponNotEquipped => "No weapons equipped".to_string(),
+            CombatError::OutOfRange => "Target is out of weapon range".to_string(),
+        }
+    }
+}
+
+impl std::fmt::Display for CombatError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_message())
+    }
+}
+
+impl From<spacetimedsl::SpacetimeDSLError> for CombatError {
+    fn from(_: spacetimedsl::SpacetimeDSLError) -> Self {
+        CombatError::InvalidTarget
+    }
+}
+
 /// Represents either a player or NPC ship controller for combat operations
 #[derive(Debug, Clone)]
 pub enum ShipController {

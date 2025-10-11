@@ -8,8 +8,204 @@ use crate::types::{
 };
 
 use super::{
-    CreateVisualEffectRow, CreateVisualEffectTimerRow, MissileType, VisualEffectType, WeaponType,
+    CombatError, CreateVisualEffectRow, CreateVisualEffectTimerRow, MissileType, VisualEffectType,
+    WeaponType,
 };
+
+/// Comprehensive server-side validation for combat actions
+/// This function performs all necessary checks before allowing combat
+pub fn validate_combat_action(
+    ctx: &ReducerContext,
+    source_sobj_id: u64,
+    target_sobj_id: u64,
+    is_missile: bool,
+) -> Result<(), CombatError> {
+    let dsl = dsl(ctx);
+
+    // Validate source exists and is a ship
+    let source_sobj = dsl
+        .get_stellar_object_by_id(StellarObjectId::new(source_sobj_id))
+        .map_err(|_| CombatError::InvalidTarget)?;
+
+    if source_sobj.get_kind() != &StellarObjectKinds::Ship {
+        return Err(CombatError::InvalidTarget);
+    }
+
+    // Validate target exists and is a valid combat target
+    let target_sobj = dsl
+        .get_stellar_object_by_id(StellarObjectId::new(target_sobj_id))
+        .map_err(|_| CombatError::InvalidTarget)?;
+
+    match target_sobj.get_kind() {
+        StellarObjectKinds::Ship | StellarObjectKinds::Station => {
+            // Valid target
+        }
+        _ => {
+            return Err(CombatError::InvalidTarget);
+        }
+    }
+
+    // Validate source ship exists
+    let source_ship = dsl
+        .get_ships_by_sobj_id(StellarObjectId::new(source_sobj_id))
+        .next()
+        .ok_or(CombatError::InvalidTarget)?;
+
+    // Check if appropriate weapons/missiles are equipped
+    let equipment_slots: Vec<ShipEquipmentSlot> = dsl
+        .get_ship_equipment_slots_by_ship_id(source_ship.get_id())
+        .filter(|slot| {
+            if is_missile {
+                slot.get_slot_type() == &EquipmentSlotType::Special
+            } else {
+                slot.get_slot_type() == &EquipmentSlotType::Weapon
+            }
+        })
+        .collect();
+
+    if equipment_slots.is_empty() {
+        return Err(CombatError::WeaponNotEquipped);
+    }
+
+    // Validate ship status and energy
+    let ship_status = dsl
+        .get_ship_status_by_id(source_ship.get_id())
+        .map_err(|_| CombatError::InvalidTarget)?;
+
+    // Check cooldowns
+    if is_missile {
+        if *ship_status.get_missile_cooldown_ms() > 0 {
+            return Err(CombatError::InsufficientEnergy);
+        }
+    } else {
+        if *ship_status.get_weapon_cooldown_ms() > 0 {
+            return Err(CombatError::InsufficientEnergy);
+        }
+    }
+
+    // Basic energy check (detailed energy check happens in weapon/missile processing)
+    if *ship_status.get_energy() <= 0.0 {
+        return Err(CombatError::InsufficientEnergy);
+    }
+
+    Ok(())
+}
+
+/// Validate if a target is a valid combat target
+pub fn is_valid_combat_target(target_kind: &StellarObjectKinds) -> bool {
+    matches!(
+        target_kind,
+        StellarObjectKinds::Ship | StellarObjectKinds::Station
+    )
+}
+
+/// Validate if a ship has sufficient energy for combat action
+pub fn has_sufficient_energy_for_action(
+    ship_status: &ShipStatus,
+    required_energy: f32,
+    is_missile: bool,
+) -> Result<(), CombatError> {
+    // Check cooldowns first
+    if is_missile {
+        if *ship_status.get_missile_cooldown_ms() > 0 {
+            return Err(CombatError::InsufficientEnergy);
+        }
+    } else {
+        if *ship_status.get_weapon_cooldown_ms() > 0 {
+            return Err(CombatError::InsufficientEnergy);
+        }
+    }
+
+    // Check energy
+    if *ship_status.get_energy() < required_energy {
+        return Err(CombatError::InsufficientEnergy);
+    }
+
+    Ok(())
+}
+
+/// Validate weapon equipment and return equipped weapons
+pub fn get_equipped_weapons(
+    ctx: &ReducerContext,
+    ship_id: ShipId,
+) -> Result<Vec<ShipEquipmentSlot>, CombatError> {
+    let dsl = dsl(ctx);
+
+    let weapon_slots: Vec<ShipEquipmentSlot> = dsl
+        .get_ship_equipment_slots_by_ship_id(ship_id)
+        .filter(|slot| slot.get_slot_type() == &EquipmentSlotType::Weapon)
+        .collect();
+
+    if weapon_slots.is_empty() {
+        return Err(CombatError::WeaponNotEquipped);
+    }
+
+    Ok(weapon_slots)
+}
+
+/// Validate missile equipment and return equipped missiles
+pub fn get_equipped_missiles(
+    ctx: &ReducerContext,
+    ship_id: ShipId,
+) -> Result<Vec<ShipEquipmentSlot>, CombatError> {
+    let dsl = dsl(ctx);
+
+    let missile_slots: Vec<ShipEquipmentSlot> = dsl
+        .get_ship_equipment_slots_by_ship_id(ship_id)
+        .filter(|slot| slot.get_slot_type() == &EquipmentSlotType::Special)
+        .collect();
+
+    // For missiles, we don't error if none are equipped since it's placeholder functionality
+    Ok(missile_slots)
+}
+
+/// Enhanced error logging for combat failures
+pub fn log_combat_error(
+    source_sobj_id: u64,
+    target_sobj_id: Option<u64>,
+    error: &CombatError,
+    action_type: &str,
+) {
+    match target_sobj_id {
+        Some(target_id) => {
+            spacetimedb::log::info!(
+                "Combat {} failed: {} -> {} - {}",
+                action_type,
+                source_sobj_id,
+                target_id,
+                error.to_message()
+            );
+        }
+        None => {
+            spacetimedb::log::info!(
+                "Combat {} failed: {} - {}",
+                action_type,
+                source_sobj_id,
+                error.to_message()
+            );
+        }
+    }
+}
+
+/// Test function to validate combat error handling
+/// This function can be used to test different error conditions
+pub fn test_combat_validation(
+    ctx: &ReducerContext,
+    source_sobj_id: u64,
+    target_sobj_id: u64,
+    is_missile: bool,
+) -> Result<String, CombatError> {
+    // Test the validation function
+    validate_combat_action(ctx, source_sobj_id, target_sobj_id, is_missile)?;
+
+    // If validation passes, return success message
+    Ok(format!(
+        "Combat validation passed for {} {} -> {}",
+        if is_missile { "missile" } else { "weapon" },
+        source_sobj_id,
+        target_sobj_id
+    ))
+}
 
 /// Represents the result of damage calculation
 #[derive(Debug, Clone)]
@@ -92,7 +288,7 @@ pub fn process_weapon_fire(
     actual_location: glam::Vec2, // Where exactly did the projectile explode, used for AoE weapons
     _weapon_type: WeaponType,
     weapon_item_def: ItemDefinition, // To get specific combat-related metadata
-) -> Result<(), String> {
+) -> Result<(), CombatError> {
     let dsl = dsl(ctx);
 
     // Get source and target stellar objects
@@ -106,10 +302,7 @@ pub fn process_weapon_fire(
             // Valid target
         }
         _ => {
-            return Err(format!(
-                "Invalid target class: {:?}. Only Ship and Station can be targeted.",
-                target_sobj.get_kind()
-            ));
+            return Err(CombatError::InvalidTarget);
         }
     }
 
@@ -117,12 +310,7 @@ pub fn process_weapon_fire(
     let source_ship = dsl
         .get_ships_by_sobj_id(StellarObjectId::new(source_sobj_id))
         .next()
-        .ok_or_else(|| {
-            format!(
-                "Source ship not found for stellar object {}",
-                source_sobj_id
-            )
-        })?;
+        .ok_or(CombatError::InvalidTarget)?;
 
     let mut source_ship_status = dsl.get_ship_status_by_id(&source_ship)?;
 
@@ -145,7 +333,7 @@ pub fn process_weapon_fire(
 
     // Check if target is within weapon range
     if !is_target_in_range(&source_pos, &target_pos, weapon_item_def.get_metadata()) {
-        return Err("Target is out of weapon range".to_string());
+        return Err(CombatError::OutOfRange);
     }
 
     // Get target ship dimensions for accurate collision detection
@@ -182,13 +370,13 @@ pub fn process_weapon_fire(
         target_height,
         target_orientation,
     ) {
-        return Err("Target is outside weapon lock-on angle".to_string());
+        return Err(CombatError::OutOfRange);
     }
 
     // For hitscan weapons, check line of sight and intersection
     if let WeaponType::Hitscan = _weapon_type {
         if !has_line_of_sight(&source_pos, &target_pos, target_width.max(target_height)) {
-            return Err("No line of sight to target".to_string());
+            return Err(CombatError::OutOfRange);
         }
 
         if !hitscan_intersects_target_with_size(
@@ -199,7 +387,7 @@ pub fn process_weapon_fire(
             target_height,
             target_orientation,
         ) {
-            return Err("Hitscan shot misses target".to_string());
+            return Err(CombatError::OutOfRange);
         }
     }
 
@@ -208,15 +396,12 @@ pub fn process_weapon_fire(
 
     // Check weapon cooldown
     if *source_ship_status.get_weapon_cooldown_ms() > 0 {
-        return Err(format!(
-            "Weapons on cooldown for {} ms",
-            source_ship_status.get_weapon_cooldown_ms()
-        ));
+        return Err(CombatError::InsufficientEnergy); // Cooldown is treated as energy-related constraint
     }
 
     // Check if ship has sufficient energy
     if *source_ship_status.get_energy() < damage_calc.energy_cost {
-        return Err("Insufficient energy to fire weapon".to_string());
+        return Err(CombatError::InsufficientEnergy);
     }
 
     // Consume energy
@@ -290,7 +475,7 @@ pub fn process_missile_fire(
     actual_location: glam::Vec2, // Where exactly did the missile explode, used for AoE missiles
     missile_type: MissileType,
     missile_item_def: ItemDefinition, // To get specific combat-related metadata
-) -> Result<(), String> {
+) -> Result<(), CombatError> {
     let dsl = dsl(ctx);
 
     // Get source stellar object for position
@@ -303,22 +488,14 @@ pub fn process_missile_fire(
     let source_ship = dsl
         .get_ships_by_sobj_id(StellarObjectId::new(source_sobj_id))
         .next()
-        .ok_or_else(|| {
-            format!(
-                "Source ship not found for stellar object {}",
-                source_sobj_id
-            )
-        })?;
+        .ok_or(CombatError::InvalidTarget)?;
 
     let mut source_ship_status =
         dsl.get_ship_status_by_id(ShipId::new(source_ship.get_id().value()))?;
 
     // Check missile cooldown
     if *source_ship_status.get_missile_cooldown_ms() > 0 {
-        return Err(format!(
-            "Missiles on cooldown for {} ms",
-            source_ship_status.get_missile_cooldown_ms()
-        ));
+        return Err(CombatError::InsufficientEnergy); // Cooldown is treated as energy-related constraint
     }
 
     // Calculate energy cost from missile metadata
@@ -332,7 +509,7 @@ pub fn process_missile_fire(
 
     // Check if ship has sufficient energy
     if *source_ship_status.get_energy() < energy_cost {
-        return Err("Insufficient energy to fire missile".to_string());
+        return Err(CombatError::InsufficientEnergy);
     }
 
     // Consume energy
@@ -380,7 +557,7 @@ pub fn apply_damage_to_ship(
     ctx: &ReducerContext,
     target_ship_status: &mut ShipStatus,
     damage_calc: &DamageCalculation,
-) -> Result<bool, String> {
+) -> Result<bool, CombatError> {
     let current_shields = *target_ship_status.get_shields();
     let current_hull = *target_ship_status.get_health();
 
@@ -416,7 +593,10 @@ pub fn apply_damage_to_ship(
 }
 
 /// Handle ship destruction when hull health reaches zero
-fn handle_ship_destruction(_ctx: &ReducerContext, ship_status: &ShipStatus) -> Result<(), String> {
+fn handle_ship_destruction(
+    _ctx: &ReducerContext,
+    ship_status: &ShipStatus,
+) -> Result<(), CombatError> {
     spacetimedb::log::info!("Ship {} destroyed in combat", ship_status.get_id().value());
 
     // TODO: Implement full ship destruction logic in future tasks:
@@ -696,7 +876,7 @@ fn create_visual_effect(
     source_pos: glam::Vec2,
     target_pos: glam::Vec2,
     effect_type: VisualEffectType,
-) -> Result<(), String> {
+) -> Result<(), CombatError> {
     let dsl = dsl(ctx);
 
     // Create visual effect
