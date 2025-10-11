@@ -30,6 +30,7 @@ pub struct GameState<'a> {
 
     // Gameplay States
     pub current_target_sobj: Option<StellarObject>,
+    pub combat_mode: bool,
 }
 
 pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
@@ -65,5 +66,6 @@ pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
         map_window_open: false,
 
         current_target_sobj: None,
+        combat_mode: false,
     }
 }

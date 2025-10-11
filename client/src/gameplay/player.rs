@@ -62,17 +62,37 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
             }
         }
 
-        if is_key_pressed(KeyCode::Z) {
-            controller.cargo_bay_open = !controller.cargo_bay_open;
-            changed = true;
+        // Combat mode toggle
+        if is_key_pressed(KeyCode::Q) {
+            game_state.combat_mode = !game_state.combat_mode;
         }
-        if is_key_pressed(KeyCode::X) {
-            controller.mining_laser_on = !controller.mining_laser_on;
-            changed = true;
+
+        // Combat mode controls - only allow weapon firing in combat mode
+        if game_state.combat_mode {
+            if is_key_pressed(KeyCode::Space) {
+                controller.fire_weapons = true;
+                changed = true;
+            }
+            if is_key_pressed(KeyCode::LeftControl) {
+                controller.fire_missle = true;
+                changed = true;
+            }
         }
-        if is_key_pressed(KeyCode::C) {
-            controller.dock = !controller.dock;
-            changed = true;
+
+        // Utility mode controls - only allow utility actions when NOT in combat mode
+        if !game_state.combat_mode {
+            if is_key_pressed(KeyCode::Z) {
+                controller.cargo_bay_open = !controller.cargo_bay_open;
+                changed = true;
+            }
+            if is_key_pressed(KeyCode::X) {
+                controller.mining_laser_on = !controller.mining_laser_on;
+                changed = true;
+            }
+            if is_key_pressed(KeyCode::C) {
+                controller.dock = !controller.dock;
+                changed = true;
+            }
         }
 
         if changed {

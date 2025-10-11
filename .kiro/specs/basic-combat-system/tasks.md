@@ -90,7 +90,7 @@
 
 ## Client-Side Combat Mode
 
-- [ ] 12. Implement client-side combat mode state
+- [x] 12. Implement client-side combat mode state
 
   - Create combat mode toggle functionality for Q key
   - Implement spacebar for fire_weapons in combat mode only
