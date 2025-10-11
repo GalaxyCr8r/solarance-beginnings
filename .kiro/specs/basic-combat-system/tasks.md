@@ -116,9 +116,9 @@
 
 ## Testing and Integration
 
-- [ ] 15. Create weapon item definitions for testing
+- [x] 15. Create weapon item definitions for testing
 
-  - Add sample weapon ItemDefinitions with combat-related ItemMetadata
+  - Add more sample weapon ItemDefinitions with combat-related ItemMetadata (use Autocannon, Ionic Blaster, and Plasma Cannon as examples)
   - Include BaseDamage, ShieldDamageMod, KineticDamageMod, EnergyConsumption metadata
   - Ensure weapons can be equipped in ship weapon slots
   - _Requirements: 1.2, 6.1_

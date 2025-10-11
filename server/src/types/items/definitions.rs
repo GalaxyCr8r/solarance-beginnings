@@ -705,7 +705,7 @@ fn ship_module_definitions(dsl: &DSL) -> Result<(), String> {
         42,
         4,
         LARGE_STACK_SIZE,
-        vec![Weapon(WeaponType::Hitscan), BaseDamage(1.0), ShieldDamageMod(0.4), EnergyConsumption(0.5), LockOnAngleBoundRads(PI/48.0), CooldownMs(500)],
+        vec![Weapon(WeaponType::Hitscan), BaseDamage(1.0), ShieldDamageMod(0.4), KineticDamageMod(1.2), EnergyConsumption(0.5), LockOnAngleBoundRads(PI/48.0), CooldownMs(500)],
         None,
     )?;
 
@@ -718,7 +718,7 @@ fn ship_module_definitions(dsl: &DSL) -> Result<(), String> {
         35,
         4,
         LARGE_STACK_SIZE,
-        vec![Weapon(WeaponType::Hitscan), BaseDamage(0.8), KineticDamageMod(0.5), EnergyConsumption(2.0), LockOnAngleBoundRads(PI/32.0), CooldownMs(250)],
+        vec![Weapon(WeaponType::Hitscan), BaseDamage(0.8), ShieldDamageMod(1.5), KineticDamageMod(0.5), EnergyConsumption(2.0), LockOnAngleBoundRads(PI/32.0), CooldownMs(250)],
         None,
     )?;
 
@@ -731,7 +731,7 @@ fn ship_module_definitions(dsl: &DSL) -> Result<(), String> {
         28,
         4,
         LARGE_STACK_SIZE,
-        vec![Weapon(WeaponType::Hitscan), BaseDamage(2.3), ShieldDamageMod(0.9), EnergyConsumption(3.0), LockOnAngleBoundRads(PI/42.0), CooldownMs(750)],
+        vec![Weapon(WeaponType::Hitscan), BaseDamage(2.3), ShieldDamageMod(0.9), KineticDamageMod(1.0), EnergyConsumption(3.0), LockOnAngleBoundRads(PI/42.0), CooldownMs(750)],
         None,
     )?;
 

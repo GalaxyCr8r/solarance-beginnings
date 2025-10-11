@@ -127,6 +127,13 @@ pub fn create_player_controlled_ship(
             ItemDefinitionId::new(SMOD_BASIC_MINING_LASER),
         )?;
 
+        dsl.create_ship_equipment_slot(
+            &ship.get_id(),
+            EquipmentSlotType::Weapon,
+            0,
+            ItemDefinitionId::new(SMOD_IONIC_BLASTER),
+        )?;
+
         info!("Successfully created ship!");
         send_global_chat(ctx, format!("{} has created a ship!", username))?;
         Ok(())
