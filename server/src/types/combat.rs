@@ -1,7 +1,9 @@
 use spacetimedb::{table, ReducerContext, ScheduleAt, SpacetimeType, Timestamp};
-use spacetimedsl::dsl;
+use spacetimedsl::{dsl, Wrapper};
 
 use crate::types::common::Vec2;
+use crate::types::npcs::NpcShipController;
+use crate::types::players::PlayerShipController;
 
 pub mod impls; // Impls for this file's structs
 pub mod reducers; // SpacetimeDB Reducers for this file's structs.
@@ -33,6 +35,71 @@ pub enum MissileType {
     Dumbfire,
     /// Follows a stellar object
     Heatseeking,
+}
+
+/// Represents either a player or NPC ship controller for combat operations
+#[derive(Debug, Clone)]
+pub enum ShipController {
+    Player(PlayerShipController),
+    Npc(NpcShipController),
+}
+
+impl ShipController {
+    /// Get the stellar object ID for this controller
+    pub fn get_stellar_object_id(&self) -> u64 {
+        match self {
+            ShipController::Player(controller) => controller.get_stellar_object_id().value(),
+            ShipController::Npc(controller) => controller.get_stellar_object_id().value(),
+        }
+    }
+
+    /// Check if weapons should be fired
+    pub fn should_fire_weapons(&self) -> bool {
+        match self {
+            ShipController::Player(controller) => *controller.get_fire_weapons(),
+            ShipController::Npc(controller) => *controller.get_fire_weapons(),
+        }
+    }
+
+    /// Check if missiles should be fired
+    pub fn should_fire_missiles(&self) -> bool {
+        match self {
+            ShipController::Player(controller) => *controller.get_fire_missles(),
+            ShipController::Npc(controller) => *controller.get_fire_missiles(),
+        }
+    }
+
+    /// Get the targeted stellar object ID
+    pub fn get_targeted_sobj_id(&self) -> Option<u64> {
+        match self {
+            ShipController::Player(controller) => *controller.get_targetted_sobj_id(),
+            ShipController::Npc(controller) => *controller.get_targetted_sobj_id(),
+        }
+    }
+
+    /// Reset the fire weapons flag
+    pub fn reset_fire_weapons(&mut self) {
+        match self {
+            ShipController::Player(controller) => {
+                controller.set_fire_weapons(false);
+            }
+            ShipController::Npc(controller) => {
+                controller.set_fire_weapons(false);
+            }
+        }
+    }
+
+    /// Reset the fire missiles flag
+    pub fn reset_fire_missiles(&mut self) {
+        match self {
+            ShipController::Player(controller) => {
+                controller.set_fire_missles(false);
+            }
+            ShipController::Npc(controller) => {
+                controller.set_fire_missiles(false);
+            }
+        }
+    }
 }
 
 #[dsl(plural_name = visual_effects)]

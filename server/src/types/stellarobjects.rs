@@ -40,6 +40,7 @@ pub struct StellarObject {
     #[referenced_by(path = crate::types::jumpgates, table = jump_gate)]
     #[referenced_by(path = crate::types::items, table = cargo_crate)]
     #[referenced_by(path = crate::types::players, table = player_ship_controller)]
+    #[referenced_by(path = crate::types::npcs, table = npc_ship_controller)]
     id: u64,
 
     #[index(btree)]

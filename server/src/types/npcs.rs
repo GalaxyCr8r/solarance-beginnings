@@ -2,6 +2,7 @@ use spacetimedb::*;
 use spacetimedsl::*;
 
 use crate::types::items::*;
+use crate::types::stellarobjects::StellarObjectId;
 
 // pub mod definitions; // Definitions for initial ingested data.
 pub mod impls; // Impls for this file's structs
@@ -27,9 +28,6 @@ pub enum OrderType {
     DefendSector(u64),   // sector_id
 }
 
-// NpcShipController will be implemented in a later task
-// This requires adding a referenced_by attribute to stellar_object table
-/*
 #[dsl(plural_name = npc_ship_controllers)]
 #[table(name = npc_ship_controller, public)]
 pub struct NpcShipController {
@@ -51,7 +49,6 @@ pub struct NpcShipController {
     // AI state
     pub ai_behavior: NpcBehavior,
 }
-*/
 
 //////////////////////////////////////////////////////////////
 // Init

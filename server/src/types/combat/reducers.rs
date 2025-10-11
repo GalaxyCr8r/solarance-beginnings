@@ -1,30 +1,50 @@
 use spacetimedb::ReducerContext;
 use spacetimedsl::{dsl, Wrapper};
 
-use crate::types::{items::utility::get_item_definition, players::*, ships::*, stellarobjects::*};
+use crate::types::{
+    items::utility::get_item_definition, npcs::*, players::*, ships::*, stellarobjects::*,
+};
 
 use super::utility::{process_missile_fire, process_weapon_fire};
-use super::{MissileType, WeaponType};
+use super::{MissileType, ShipController, WeaponType};
 
-/// Process combat actions from PlayerShipController
+/// Process combat actions from both PlayerShipController and NpcShipController
 /// This reducer handles weapon and missile firing when the respective flags are set
 #[spacetimedb::reducer]
 pub fn process_combat_actions(ctx: &ReducerContext) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    // Get all player ship controllers that have combat actions pending
-    let controllers: Vec<PlayerShipController> = dsl
+    // Collect all controllers (both player and NPC) that have combat actions pending
+    let mut controllers: Vec<ShipController> = Vec::new();
+
+    // Add player controllers
+    let player_controllers: Vec<PlayerShipController> = dsl
         .get_all_player_ship_controllers()
         .filter(|controller| *controller.get_fire_weapons() || *controller.get_fire_missles())
         .collect();
 
+    for controller in player_controllers {
+        controllers.push(ShipController::Player(controller));
+    }
+
+    // Add NPC controllers
+    let npc_controllers: Vec<NpcShipController> = dsl
+        .get_all_npc_ship_controllers()
+        .filter(|controller| *controller.get_fire_weapons() || *controller.get_fire_missiles())
+        .collect();
+
+    for controller in npc_controllers {
+        controllers.push(ShipController::Npc(controller));
+    }
+
+    // Process combat actions for all controllers
     for mut controller in controllers {
-        let source_sobj_id = controller.get_stellar_object_id().value();
+        let source_sobj_id = controller.get_stellar_object_id();
 
         // Process weapon firing
-        if *controller.get_fire_weapons() {
-            if let Some(target_sobj_id) = controller.get_targetted_sobj_id() {
-                match process_weapon_combat_action(ctx, source_sobj_id, *target_sobj_id) {
+        if controller.should_fire_weapons() {
+            if let Some(target_sobj_id) = controller.get_targeted_sobj_id() {
+                match process_weapon_combat_action(ctx, source_sobj_id, target_sobj_id) {
                     Ok(_) => {
                         spacetimedb::log::info!(
                             "Weapon fired successfully: {} -> {}",
@@ -48,13 +68,13 @@ pub fn process_combat_actions(ctx: &ReducerContext) -> Result<(), String> {
             }
 
             // Reset fire_weapons flag
-            controller.set_fire_weapons(false);
+            controller.reset_fire_weapons();
         }
 
         // Process missile firing
-        if *controller.get_fire_missles() {
-            if let Some(target_sobj_id) = controller.get_targetted_sobj_id() {
-                match process_missile_combat_action(ctx, source_sobj_id, *target_sobj_id) {
+        if controller.should_fire_missiles() {
+            if let Some(target_sobj_id) = controller.get_targeted_sobj_id() {
+                match process_missile_combat_action(ctx, source_sobj_id, target_sobj_id) {
                     Ok(_) => {
                         spacetimedb::log::info!(
                             "Missile fired successfully: {} -> {}",
@@ -77,12 +97,19 @@ pub fn process_combat_actions(ctx: &ReducerContext) -> Result<(), String> {
                 );
             }
 
-            // Reset fire_missles flag
-            controller.set_fire_missles(false);
+            // Reset fire_missiles flag
+            controller.reset_fire_missiles();
         }
 
         // Update the controller with reset flags
-        dsl.update_player_ship_controller_by_id(controller)?;
+        match controller {
+            ShipController::Player(player_controller) => {
+                dsl.update_player_ship_controller_by_id(player_controller)?;
+            }
+            ShipController::Npc(npc_controller) => {
+                dsl.update_npc_ship_controller_by_id(npc_controller)?;
+            }
+        }
     }
 
     Ok(())

@@ -81,7 +81,8 @@
 
 ## NPC Combat Preparation
 
-- [ ] 11. Create NpcShipController placeholder structure
+- [x] 11. Create NpcShipController placeholder structure
+
   - Create `NpcShipController` table with same combat fields as PlayerShipController
   - Create `NpcBehavior` enum with Idle, Patrol, Attack, Flee variants
   - Ensure combat functions accept both player and NPC controllers
