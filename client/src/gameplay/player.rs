@@ -74,7 +74,7 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
                 changed = true;
             }
             if is_key_pressed(KeyCode::LeftControl) {
-                controller.fire_missle = true;
+                controller.fire_missles = true;
                 changed = true;
             }
         }

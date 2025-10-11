@@ -1,7 +1,17 @@
 use macroquad::{camera::Camera2D, prelude::*};
+use std::collections::HashMap;
 
 use crate::gameplay::gui::*;
-use crate::module_bindings::*;
+use crate::module_bindings::{self, DbConnection, StellarObject, VisualEffectType};
+
+#[derive(Debug, Clone)]
+pub struct FiringEffect {
+    pub start_time: f64,
+    pub duration: f64,
+    pub source_pos: module_bindings::Vec2,
+    pub target_pos: module_bindings::Vec2,
+    pub effect_type: VisualEffectType,
+}
 
 pub struct GameState<'a> {
     // Game-Wide States
@@ -31,6 +41,9 @@ pub struct GameState<'a> {
     // Gameplay States
     pub current_target_sobj: Option<StellarObject>,
     pub combat_mode: bool,
+
+    // Visual Effects
+    pub firing_effects: HashMap<u64, FiringEffect>,
 }
 
 pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
@@ -67,5 +80,7 @@ pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
 
         current_target_sobj: None,
         combat_mode: false,
+
+        firing_effects: HashMap::new(),
     }
 }

@@ -98,7 +98,8 @@
   - Prevent weapon firing in utility mode
   - _Requirements: 7.1, 7.2, 7.3, 7.4_
 
-- [ ] 13. Add client-side visual effect handling
+- [x] 13. Add client-side visual effect handling
+
   - Create firing effect rendering system for visual feedback
   - Handle VisualEffect database entries to trigger client-side effects
   - Implement configurable effect duration on client
@@ -106,7 +107,8 @@
 
 ## Error Handling and Validation
 
-- [ ] 14. Implement combat error handling
+- [-] 14. Implement combat error handling
+
   - Create `CombatError` enum with InsufficientEnergy, InvalidTarget, WeaponNotEquipped, OutOfRange variants
   - Add proper error messages for combat failures
   - Implement server-side validation for all combat actions

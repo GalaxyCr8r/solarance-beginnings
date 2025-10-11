@@ -13,6 +13,7 @@ pub mod render;
 pub mod resources;
 pub mod server_messages;
 pub mod state;
+pub mod visual_effects;
 
 /// Register all the callbacks our app will use to respond to database events.
 pub fn register_callbacks(
@@ -149,7 +150,13 @@ pub async fn gameplay(connection: Option<DbConnection>) {
             game_state.camera.target * 0.000_01337,
         );
 
+        // Update and render visual effects
+        visual_effects::update_visual_effects(&mut game_state);
+
         render::sector(&mut game_state);
+
+        // Render visual effects on top of everything else
+        visual_effects::render_visual_effects(&game_state);
 
         egui_macroquad::ui(|egui_ctx| {
             if player_ship.is_none() {
