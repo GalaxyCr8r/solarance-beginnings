@@ -144,6 +144,11 @@ pub struct VisualEffect {
     #[referenced_by(path = crate::types::combat, table = visual_effect_timer)]
     id: u64,
 
+    #[index(btree)]
+    #[use_wrapper(path = crate::types::sectors::SectorId)]
+    #[foreign_key(path = crate::types::sectors, table = sector, column = id, on_delete = Delete)]
+    pub sector_id: u64,
+
     pub source: Vec2,
     pub target: Vec2,
 

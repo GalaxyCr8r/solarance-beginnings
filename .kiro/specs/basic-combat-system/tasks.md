@@ -123,7 +123,13 @@
   - Ensure weapons can be equipped in ship weapon slots
   - _Requirements: 1.2, 6.1_
 
-- [ ] 16. Test combat system integration
+- [x] 16. Finish implementing visual effects
+
+- Add a `on_insert` callback in `gameplay()` to create client-side visual effects whenever a row in the visual_effect table gets created.
+- Make sure visual_effect table is in the subscriptions.rs default subscription list
+- On the server side, even if the weapons fire would miss or if the ship isn't targetting anything, make a new visual_effect.
+
+- [ ] 20. Test combat system integration
   - Verify weapon firing consumes energy and applies damage
   - Test visual effects creation and cleanup
   - Validate combat mode switching prevents firing in utility mode

@@ -104,7 +104,9 @@ fn ship_function_status(ctx: &DbConnection, ui: &mut Ui, game_state: &GameState)
         if let Some(mut controller) = ctx.db().player_ship_controller().id().find(&ctx.identity()) {
             let changed = cargo_bay_button(ui, &mut controller, game_state)
                 || mining_beam_button(ui, &mut controller, game_state)
-                || autodocking_button(ui, &mut controller, game_state);
+                || autodocking_button(ui, &mut controller, game_state)
+                || fire_weapons_button(ui, &mut controller, game_state)
+                || fire_missiles_button(ui, &mut controller, game_state);
 
             if changed {
                 let _ = ctx.reducers.update_player_controller(controller);
@@ -122,8 +124,6 @@ fn combat_mode_indicator(ui: &mut Ui, game_state: &GameState) {
                 Color32::DARK_RED
             }
         }));
-        ui.label(RichText::new("[Space] Fire Weapons").color(Color32::LIGHT_GRAY));
-        ui.label(RichText::new("[LCtrl] Fire Missiles").color(Color32::LIGHT_GRAY));
     } else {
         let _ = ui.button(RichText::new("[Q] Mode: Utility").color(Color32::LIGHT_BLUE));
     }
@@ -136,9 +136,6 @@ fn cargo_bay_button(
 ) -> bool {
     // Only allow cargo bay operations in utility mode
     if game_state.combat_mode {
-        ui.add_enabled_ui(false, |ui| {
-            let _ = ui.button(RichText::new("[Z] Cargo Bay: Disabled").color(Color32::DARK_GRAY));
-        });
         return false;
     }
 
@@ -174,9 +171,6 @@ fn mining_beam_button(
 ) -> bool {
     // Only allow mining beam operations in utility mode
     if game_state.combat_mode {
-        ui.add_enabled_ui(false, |ui| {
-            let _ = ui.button(RichText::new("[X] Mining Beam: Disabled").color(Color32::DARK_GRAY));
-        });
         return false;
     }
 
@@ -212,9 +206,6 @@ fn autodocking_button(
 ) -> bool {
     // Only allow autodocking operations in utility mode
     if game_state.combat_mode {
-        ui.add_enabled_ui(false, |ui| {
-            let _ = ui.button(RichText::new("[C] Autodocking: Disabled").color(Color32::DARK_GRAY));
-        });
         return false;
     }
 
@@ -394,4 +385,64 @@ fn add_status_bar(ui: &mut Ui, name: &str, max: f32, current: f32, color: Color3
     } else {
         ui.vertical(contents);
     }
+}
+
+fn fire_weapons_button(
+    ui: &mut Ui,
+    controller: &mut PlayerShipController,
+    game_state: &GameState,
+) -> bool {
+    // Only allow weapon firing in combat mode
+    if !game_state.combat_mode {
+        return false;
+    }
+
+    if ui
+        .button(RichText::new("[Space] Fire Weapons").color({
+            if controller.fire_weapons {
+                if now() % 1.0 < 0.45 {
+                    Color32::RED
+                } else {
+                    Color32::DARK_RED
+                }
+            } else {
+                Color32::LIGHT_GRAY
+            }
+        }))
+        .clicked()
+    {
+        controller.fire_weapons = true;
+        return true;
+    }
+    false
+}
+
+fn fire_missiles_button(
+    ui: &mut Ui,
+    controller: &mut PlayerShipController,
+    game_state: &GameState,
+) -> bool {
+    // Only allow missile firing in combat mode
+    if !game_state.combat_mode {
+        return false;
+    }
+
+    if ui
+        .button(RichText::new("[LCtrl] Fire Missiles").color({
+            if controller.fire_missles {
+                if now() % 1.0 < 0.45 {
+                    Color32::YELLOW
+                } else {
+                    Color32::DARK_GRAY
+                }
+            } else {
+                Color32::LIGHT_GRAY
+            }
+        }))
+        .clicked()
+    {
+        controller.fire_missles = true;
+        return true;
+    }
+    false
 }

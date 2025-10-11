@@ -98,6 +98,7 @@ pub struct Sector {
     #[referenced_by(path = crate::types::ships, table = ship)]
     #[referenced_by(path = crate::types::stations, table = station)]
     #[referenced_by(path = crate::types::jumpgates, table = jump_gate)]
+    #[referenced_by(path = crate::types::combat, table = visual_effect)]
     #[referenced_by(path = crate::types::chats, table = sector_chat_message)]
     #[referenced_by(path = crate::types::items, table = cargo_crate)]
     id: u64,

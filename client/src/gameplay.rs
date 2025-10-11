@@ -79,6 +79,20 @@ pub fn register_callbacks(
                 }
             }
         });
+
+    // Register visual effect callback for client-side visual effects
+    ctx.db().visual_effect().on_insert(|_ec, visual_effect| {
+        info!(
+            "Visual effect created: {:?} from ({}, {}) to ({}, {})",
+            visual_effect.effect_type,
+            visual_effect.source.x,
+            visual_effect.source.y,
+            visual_effect.target.x,
+            visual_effect.target.y
+        );
+        // The visual effect will be handled by the visual_effects::update_visual_effects function
+        // in the main game loop, which checks the database for new effects
+    });
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////

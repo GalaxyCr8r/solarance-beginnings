@@ -121,6 +121,13 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
         WHERE r.player_id = '{}'",
         ctx.identity()
     );
+    let visual_effect = format!(
+        "SELECT v.* 
+        FROM visual_effect v 
+        JOIN ship s ON s.sector_id = v.sector_id 
+        WHERE s.player_id = '{}'",
+        ctx.identity()
+    );
 
     ctx.subscription_builder()
         .on_applied(on_sub_applied)
@@ -178,6 +185,7 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
             sobj_hi_res_transform.as_str(),
             sobj_low_res_transform.as_str(),
             sobj_player_window.as_str(),
+            visual_effect.as_str(),
         ]);
 }
 

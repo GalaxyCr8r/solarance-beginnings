@@ -3,6 +3,7 @@ use spacetimedsl::{dsl, Wrapper};
 
 use crate::types::{
     items::{ItemDefinition, ItemMetadata},
+    sectors::SectorId,
     ships::*,
     stellarobjects::*,
 };
@@ -447,12 +448,16 @@ pub fn process_weapon_fire(
     // Update source ship status (energy consumption)
     dsl.update_ship_status_by_id(source_ship_status)?;
 
+    // Get sector_id from source ship
+    let source_sector_id = source_ship.get_sector_id().value();
+
     // Create visual effect
     create_visual_effect(
         ctx,
         source_pos,
         actual_location.into(),
         VisualEffectType::WeaponFire,
+        source_sector_id,
     )?;
 
     spacetimedb::log::info!(
@@ -530,11 +535,13 @@ pub fn process_missile_fire(
     // Create visual effect for missile fire
     let source_transform = dsl.get_sobj_internal_transform_by_id(source_sobj.get_id())?;
     let source_pos = source_transform.to_vec2();
+    let source_sector_id = source_ship.get_sector_id().value();
     create_visual_effect(
         ctx,
         source_pos,
         actual_location,
         VisualEffectType::MissileFire,
+        source_sector_id,
     )?;
 
     spacetimedb::log::info!(
@@ -876,12 +883,17 @@ fn create_visual_effect(
     source_pos: glam::Vec2,
     target_pos: glam::Vec2,
     effect_type: VisualEffectType,
+    sector_id: u64,
 ) -> Result<(), CombatError> {
     let dsl = dsl(ctx);
 
     // Create visual effect
-    let visual_effect =
-        dsl.create_visual_effect(source_pos.into(), target_pos.into(), effect_type)?;
+    let visual_effect = dsl.create_visual_effect(
+        SectorId::new(sector_id),
+        source_pos.into(),
+        target_pos.into(),
+        effect_type,
+    )?;
 
     // Schedule cleanup after 10 milliseconds
     let cleanup_time = spacetimedb::ScheduleAt::Time(Timestamp::from_micros_since_unix_epoch(
