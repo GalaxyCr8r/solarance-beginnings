@@ -204,11 +204,11 @@ pub fn player_ship_controller_logic_upkeep(
         // These "Do things if nearby target" should be in their own timer. As-is things will ONLY happen if you are updating your controller when nearby!!!
         Ok(target_sobj) => {
             match target_sobj.get_kind() {
-                // StellarObjectKinds::Ship => {
-                //     // Nothing to do.. yet
+                StellarObjectKinds::Ship => {
+                    // Nothing to do.. yet
 
-                // TODO: Maybe implement ship scanning? Combat?
-                // }
+                    // TODO: Maybe implement ship scanning? Combat?
+                }
                 StellarObjectKinds::Asteroid => {
                     try_mining_asteroid(
                         ctx,

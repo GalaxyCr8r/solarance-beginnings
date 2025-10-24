@@ -7,10 +7,10 @@ use spacetimedsl::dsl;
 
 // pub mod definitions; // Definitions for initial ingested data.
 pub mod impls; // Impls for this file's structs
-               // pub mod reducers; // SpacetimeDB Reducers for this file's structs.
-               // pub mod rls; // Row-level-security rules for this file's structs.
-               // pub mod timers; // Timers related to this file's structs.
-pub mod utility; // Utility functions (NOT reducers) for this file's structs.
+// pub mod reducers; // SpacetimeDB Reducers for this file's structs.
+// pub mod rls; // Row-level-security rules for this file's structs.
+// pub mod timers; // Timers related to this file's structs.
+//pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
 #[derive(SpacetimeType, Clone, Debug)]
 pub struct Vec2 {
@@ -43,15 +43,15 @@ pub struct GlobalConfig {
 pub enum CurrentAction {
     Idle,
     Patrolling(Vec<Vec2>),
-    MiningAsteroid(u64),  // target asteroid_id
+    MiningAsteroid(u64), // target asteroid_id
     AttackingTarget(u64), // target sobj_id
     MovingToPosition(Vec2),
-    JumpingWithGate(u64),       // target gate_id
+    JumpingWithGate(u64), // target gate_id
     JumpingWithHyperdrive(u64), // target gate_id
-    Docking(u64),               // target station_id
-    Undocking(u64),             // target station_id
-    Fleeing(u64),               // target sobj_id
-    Trading(u64),               // target station_id
+    Docking(u64), // target station_id
+    Undocking(u64), // target station_id
+    Fleeing(u64), // target sobj_id
+    Trading(u64), // target station_id
 }
 
 ///////////////////////////////////////////////////////////
@@ -98,7 +98,7 @@ impl Vec2 {
 // Utility
 ///////////////////////////////////////////////////////////
 
-pub fn are_there_active_players(ctx: &ReducerContext) -> bool {
+pub fn global_config_any_active_players(ctx: &ReducerContext) -> bool {
     if let Some(config) = ctx.db().global_config().id().find(0) {
         if config.active_players == 0 {
             return false;

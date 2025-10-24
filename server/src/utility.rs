@@ -1,7 +1,7 @@
 use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 
-use crate::{ships::*, stellarobjects::*};
+use crate::{ ships::*, stellarobjects::* };
 
 const IS_SERVER_ERROR: &str = "This reducer can only be called by SpacetimeDB!";
 const IS_SERVER_OR_OWNER_ERROR: &str =
@@ -28,7 +28,7 @@ pub fn try_server_only(ctx: &ReducerContext) -> Result<(), String> {
 /// Checks if the context sender is the server or the owner of the given stellar object. ONLY for spacetimedb reducer functions!
 pub fn is_server_or_sobj_owner(
     ctx: &ReducerContext,
-    stellar_object_id: Option<StellarObjectId>,
+    stellar_object_id: Option<StellarObjectId>
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
@@ -51,7 +51,7 @@ pub fn is_server_or_sobj_owner(
 /// Checks if the context sender is the server or the owner of the given Ship.
 pub fn is_server_or_ship_owner(
     ctx: &ReducerContext,
-    ship_id: Option<ShipId>,
+    ship_id: Option<ShipId>
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 

@@ -1,6 +1,9 @@
+use crate::utility::*;
 use crate::types::{
-    common::utility::*, players::PlayerId, server_messages::utility::send_info_message,
-    ships::utility::*, stellarobjects::*,
+    players::PlayerId,
+    server_messages::utility::send_info_message,
+    ships::utility::*,
+    stellarobjects::*,
 };
 
 use super::*;
@@ -16,7 +19,7 @@ pub fn jettison_cargo_from_ship(
     ctx: &ReducerContext,
     ship_id: u64,
     ship_cargo_id: u64,
-    amount: u16,
+    amount: u16
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
     let ship = dsl.get_ship_by_id(ShipId::new(ship_id))?;
@@ -28,9 +31,11 @@ pub fn jettison_cargo_from_ship(
 
     // Does the ship actually have that amount of item?
     if ship_cargo.get_quantity() < &amount {
-        return Err(format!(
-            "Failed to verify that the cargo item actually had the amount requested to yeet."
-        ));
+        return Err(
+            format!(
+                "Failed to verify that the cargo item actually had the amount requested to yeet."
+            )
+        );
     } else if ship_cargo.get_quantity() == &amount {
         dsl.delete_ship_cargo_item_by_id(&ship_cargo)?;
     } else {
@@ -43,8 +48,8 @@ pub fn jettison_cargo_from_ship(
     send_info_message(
         ctx,
         &ship.get_player_id(),
-        format!("Jettioned successfully {}x {}", amount, item_def.get_name(),),
-        Some("status"),
+        format!("Jettioned successfully {}x {}", amount, item_def.get_name()),
+        Some("status")
     )?;
 
     Ok(())
@@ -56,7 +61,7 @@ pub fn jettison_cargo_from_ship(
 pub fn teleport_to_sector_ids(
     ctx: &ReducerContext,
     ship_id: u64,
-    destination_sector_id: u64,
+    destination_sector_id: u64
 ) -> Result<(), String> {
     let s_id = ShipId::new(ship_id);
     try_server_only(ctx)?;
@@ -66,7 +71,7 @@ pub fn teleport_to_sector_ids(
         dsl(ctx).get_ship_by_id(s_id)?,
         Sector::get(ctx, &SectorId::new(destination_sector_id))?,
         0.0,
-        0.0,
+        0.0
     )
 }
 
@@ -77,7 +82,7 @@ pub fn teleport_to_sector(
     mut ship: Ship,
     destination_sector: Sector,
     x: f32,
-    y: f32,
+    y: f32
 ) -> Result<(), String> {
     try_server_only(ctx)?;
     let dsl = dsl(ctx);
@@ -103,9 +108,9 @@ pub fn teleport_to_sector(
         format!(
             "Jumped successfully via jumpgate to sector #{}: {}",
             destination_sector.get_id().value(),
-            destination_sector.get_name(),
+            destination_sector.get_name()
         ),
-        Some("status"),
+        Some("status")
     )?;
 
     dsl.update_ship_by_id(ship)?;
@@ -120,23 +125,16 @@ pub fn undock_ship(ctx: &ReducerContext, ship: Ship) -> Result<(), String> {
     let dsl = dsl(ctx);
 
     // Exit early if the player is already controlling a ship
-    if dsl
-        .get_sobj_player_window_by_id(PlayerId::new(ctx.sender))
-        .is_ok()
-    {
+    if dsl.get_sobj_player_window_by_id(PlayerId::new(ctx.sender)).is_ok() {
         return Err(
-            "Player requested to undock another ship, but they are already controlling one!"
-                .to_string(),
+            "Player requested to undock another ship, but they are already controlling one!".to_string()
         );
     }
 
     if *ship.get_location() == ShipLocation::Station {
         undock_from_station(ctx, &ship)?;
     } else {
-        info!(
-            "Ship {} attempting to undock is already undocked!",
-            ship.get_id()
-        );
+        info!("Ship {} attempting to undock is already undocked!", ship.get_id());
     }
 
     Ok(())

@@ -2,12 +2,12 @@ use log::info;
 use spacetimedb::ScheduleAt;
 use std::time::Duration;
 
+use crate::utility::*;
 use crate::types::{
-    common::utility::*,
-    items::{ItemDefinitionId, *},
-    players::{GetPlayerRowOptionById, UpdatePlayerRowById},
-    server_messages::utility::{send_error_message, send_info_message},
-    ships::{utility::*, *},
+    items::{ ItemDefinitionId, * },
+    players::{ GetPlayerRowOptionById, UpdatePlayerRowById },
+    server_messages::utility::{ send_error_message, send_info_message },
+    ships::{ utility::*, * },
     stations::timers::*,
 };
 
@@ -25,7 +25,7 @@ pub fn buy_item_from_station_module(
     station_module_id: StationModuleId,
     ship_id: ShipId,
     item_id: ItemDefinitionId,
-    quantity: u32,
+    quantity: u32
 ) -> Result<(), String> {
     is_server_or_ship_owner(ctx, Some(ship_id.clone()))?;
     let dsl = dsl(ctx);
@@ -43,12 +43,7 @@ pub fn buy_item_from_station_module(
         );
 
         // Send server message for error feedback
-        send_error_message(
-            ctx,
-            &player_id,
-            error_message.clone(),
-            Some("Station Trading"),
-        )?;
+        send_error_message(ctx, &player_id, error_message.clone(), Some("Station Trading"))?;
 
         return Err(error_message);
     }
@@ -64,23 +59,18 @@ pub fn buy_item_from_station_module(
         .next()
         .ok_or_else(|| {
             let player_id = ship.get_player_id().clone();
-            let error_message = format!(
-                "Cannot buy item #{}: This item is not available at this station.",
-                item_id
-            );
+            let error_message =
+                format!("Cannot buy item #{}: This item is not available at this station.", item_id);
 
             // Send server message for error feedback
             let _ = send_error_message(
                 ctx,
                 &player_id,
                 error_message.clone(),
-                Some("Station Trading"),
+                Some("Station Trading")
             );
 
-            format!(
-                "Cannot sell #{} to station: No matching inventory item found.",
-                item_id
-            )
+            format!("Cannot sell #{} to station: No matching inventory item found.", item_id)
         })?;
     let item_def = dsl.get_item_definition_by_id(item_id)?;
 
@@ -95,18 +85,15 @@ pub fn buy_item_from_station_module(
         );
 
         // Send server message for error feedback
-        send_error_message(
-            ctx,
-            &player_id,
-            error_message.clone(),
-            Some("Station Trading"),
-        )?;
+        send_error_message(ctx, &player_id, error_message.clone(), Some("Station Trading"))?;
 
-        return Err(format!(
-            "Cannot buy {}x {} from station: Not enough items.",
-            quantity,
-            item_def.get_name()
-        ));
+        return Err(
+            format!(
+                "Cannot buy {}x {} from station: Not enough items.",
+                quantity,
+                item_def.get_name()
+            )
+        );
     }
 
     // Use cached current price for performance
@@ -125,30 +112,29 @@ pub fn buy_item_from_station_module(
         );
 
         // Send server message for error feedback
-        send_error_message(
-            ctx,
-            &player_id,
-            error_message.clone(),
-            Some("Station Trading"),
-        )?;
+        send_error_message(ctx, &player_id, error_message.clone(), Some("Station Trading"))?;
 
-        return Err(format!(
-            "Cannot buy {}x {} from station: Not enough credits. You have {}c but it costs {}c.",
-            quantity,
-            item_def.get_name(),
-            player.get_credits(),
-            total_price
-        ));
+        return Err(
+            format!(
+                "Cannot buy {}x {} from station: Not enough credits. You have {}c but it costs {}c.",
+                quantity,
+                item_def.get_name(),
+                player.get_credits(),
+                total_price
+            )
+        );
     }
 
-    if let Err(cargo_err) = attempt_to_load_cargo_into_ship(
-        ctx,
-        &mut dsl.get_ship_status_by_id(&ship_id)?,
-        &ship_id,
-        &item_def,
-        quantity as u16,
-        false,
-    ) {
+    if
+        let Err(cargo_err) = attempt_to_load_cargo_into_ship(
+            ctx,
+            &mut dsl.get_ship_status_by_id(&ship_id)?,
+            &ship_id,
+            &item_def,
+            quantity as u16,
+            false
+        )
+    {
         let error_message = format!(
             "Cannot buy {}x {} from station: {}",
             quantity,
@@ -161,7 +147,7 @@ pub fn buy_item_from_station_module(
             ctx,
             &ship.get_player_id(),
             error_message.clone(),
-            Some("Station Trading"),
+            Some("Station Trading")
         )?;
 
         return Err(cargo_err);
@@ -186,7 +172,7 @@ pub fn buy_item_from_station_module(
             item_def.get_name(),
             total_price
         ),
-        Some("station_module"),
+        Some("station_module")
     )?;
 
     Ok(())
@@ -199,7 +185,7 @@ pub fn sell_item_to_station_module(
     station_module_id: StationModuleId,
     ship_id: ShipId,
     item_id: ItemDefinitionId,
-    quantity: u32,
+    quantity: u32
 ) -> Result<(), String> {
     is_server_or_ship_owner(ctx, Some(ship_id.clone()))?;
     let dsl = dsl(ctx);
@@ -224,12 +210,7 @@ pub fn sell_item_to_station_module(
         );
 
         // Send server message for error feedback
-        send_error_message(
-            ctx,
-            &player_id,
-            error_message.clone(),
-            Some("Station Trading"),
-        )?;
+        send_error_message(ctx, &player_id, error_message.clone(), Some("Station Trading"))?;
 
         return Err(error_message);
     }
@@ -245,23 +226,18 @@ pub fn sell_item_to_station_module(
         .next()
         .ok_or_else(|| {
             let player_id = ship.get_player_id().clone();
-            let error_message = format!(
-                "Cannot sell item #{}: This station does not accept this item type.",
-                item_id
-            );
+            let error_message =
+                format!("Cannot sell item #{}: This station does not accept this item type.", item_id);
 
             // Send server message for error feedback
             let _ = send_error_message(
                 ctx,
                 &player_id,
                 error_message.clone(),
-                Some("Station Trading"),
+                Some("Station Trading")
             );
 
-            format!(
-                "Cannot sell #{} to station: No matching inventory item found.",
-                item_id
-            )
+            format!("Cannot sell #{} to station: No matching inventory item found.", item_id)
         })?;
     let item_def = dsl.get_item_definition_by_id(item_id)?;
 
@@ -275,18 +251,15 @@ pub fn sell_item_to_station_module(
         );
 
         // Send server message for error feedback
-        send_error_message(
-            ctx,
-            &player_id,
-            error_message.clone(),
-            Some("Station Trading"),
-        )?;
+        send_error_message(ctx, &player_id, error_message.clone(), Some("Station Trading"))?;
 
-        return Err(format!(
-            "Cannot sell {}x {} to station: Not enough space left in module inventory.",
-            quantity,
-            item_def.get_name()
-        ));
+        return Err(
+            format!(
+                "Cannot sell {}x {} to station: Not enough space left in module inventory.",
+                quantity,
+                item_def.get_name()
+            )
+        );
     }
 
     // Use cached current price for performance
@@ -294,12 +267,14 @@ pub fn sell_item_to_station_module(
 
     // Check if the station has enough credits
     //if total_price <= *station.get_credits() {
-    if let Err(cargo_err) = remove_cargo_from_ship(
-        ctx,
-        &mut dsl.get_ship_status_by_id(&ship_id)?,
-        &item_def,
-        quantity as u16,
-    ) {
+    if
+        let Err(cargo_err) = remove_cargo_from_ship(
+            ctx,
+            &mut dsl.get_ship_status_by_id(&ship_id)?,
+            &item_def,
+            quantity as u16
+        )
+    {
         let player_id = ship.get_player_id().clone();
         let error_message = format!(
             "Cannot sell {}x {} to station: {}",
@@ -309,12 +284,7 @@ pub fn sell_item_to_station_module(
         );
 
         // Send server message for error feedback
-        send_error_message(
-            ctx,
-            &player_id,
-            error_message.clone(),
-            Some("Station Trading"),
-        )?;
+        send_error_message(ctx, &player_id, error_message.clone(), Some("Station Trading"))?;
 
         return Err(cargo_err);
     }
@@ -338,7 +308,7 @@ pub fn sell_item_to_station_module(
             item_def.get_name(),
             total_price
         ),
-        Some("station_module"),
+        Some("station_module")
     )?;
 
     Ok(())
@@ -356,35 +326,26 @@ pub fn add_station_timers(ctx: &ReducerContext, station_id: u64) -> Result<(), S
     let _station = dsl.get_station_by_id(&station_id)?;
 
     // Check if production schedule already exists
-    if dsl
-        .get_station_production_schedule_by_id(&station_id)
-        .is_ok()
-    {
-        info!(
-            "Station production schedule already exists for station {}",
-            station_id
-        );
+    if dsl.get_station_production_schedule_by_id(&station_id).is_ok() {
+        info!("Station production schedule already exists for station {}", station_id);
     } else {
         // Set up station production schedule (every 30 seconds)
         dsl.create_station_production_schedule(
             &station_id,
             ScheduleAt::Interval(Duration::from_secs(30).into()), // TODO: Make this dependant on a GlobalConfig value
-            ctx.timestamp,
+            ctx.timestamp
         )?;
     }
 
     // Check if status schedule already exists
     if dsl.get_station_status_schedule_by_id(&station_id).is_ok() {
-        info!(
-            "Station status schedule already exists for station {}",
-            station_id
-        );
+        info!("Station status schedule already exists for station {}", station_id);
     } else {
         // Set up station status schedule (every 10 seconds)
         dsl.create_station_status_schedule(
             &station_id,
             ScheduleAt::Interval(Duration::from_secs(10).into()), // TODO: Make this dependant on a GlobalConfig value
-            ctx.timestamp,
+            ctx.timestamp
         )?;
     }
 

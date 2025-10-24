@@ -1,8 +1,10 @@
 use spacetimedb::ReducerContext;
 use spacetimedsl::dsl;
-use types::{common::*, *};
+use types::{ common::*, * };
 
+pub mod logic;
 pub mod types;
+pub mod utility;
 
 #[spacetimedb::reducer(init)]
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
