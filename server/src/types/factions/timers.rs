@@ -2,15 +2,18 @@ use std::time::Duration;
 
 use log::info;
 use spacetimedb::*;
-use spacetimedsl::{dsl, Wrapper};
+use spacetimedsl::{ dsl, Wrapper };
 
-use crate::types::{common::utility::try_server_only, sectors::SectorId, ships::*, stations::*};
+use crate::{ types::{ sectors::SectorId, ships::*, stations::* }, utility::try_server_only };
 
 use super::*;
 
 /// Timer for periodic faction station checks - runs every 4 hours
 #[dsl(plural_name = faction_station_check_timers)]
-#[spacetimedb::table(name = faction_station_check_timer, scheduled(faction_station_check_timer_reducer))]
+#[spacetimedb::table(
+    name = faction_station_check_timer,
+    scheduled(faction_station_check_timer_reducer)
+)]
 pub struct FactionStationCheckTimer {
     #[primary_key]
     #[auto_inc]
@@ -43,7 +46,10 @@ pub struct FactionManagementTimer {
 
 /// Timer for faction ship destruction reactions - runs after a delay when ships are destroyed
 #[dsl(plural_name = faction_ship_reaction_timers)]
-#[spacetimedb::table(name = faction_ship_reaction_timer, scheduled(faction_ship_reaction_timer_reducer))]
+#[spacetimedb::table(
+    name = faction_ship_reaction_timer,
+    scheduled(faction_ship_reaction_timer_reducer)
+)]
 pub struct FactionShipReactionTimer {
     #[primary_key]
     #[auto_inc]
@@ -93,7 +99,7 @@ pub fn create_faction_management_timer_if_needed(ctx: &ReducerContext) -> Result
     if dsl.get_all_faction_management_timers().next().is_none() {
         let timer = dsl.create_faction_management_timer(
             spacetimedb::ScheduleAt::Interval(Duration::from_secs(12 * 60 * 60).into()), // 12 hours
-            ctx.timestamp,
+            ctx.timestamp
         )?;
 
         info!(
@@ -108,20 +114,17 @@ pub fn create_faction_management_timer_if_needed(ctx: &ReducerContext) -> Result
 /// Creates a station check timer for a faction - runs every 4 hours
 pub fn create_station_check_timer_for_faction(
     ctx: &ReducerContext,
-    faction_id: &FactionId,
+    faction_id: &FactionId
 ) -> Result<FactionStationCheckTimer, String> {
     let dsl = dsl(ctx);
 
     let timer = dsl.create_faction_station_check_timer(
         spacetimedb::ScheduleAt::Interval(Duration::from_secs(4 * 60 * 60).into()), // 4 hours
         faction_id,
-        ctx.timestamp,
+        ctx.timestamp
     )?;
 
-    info!(
-        "Created station check timer for faction #{}",
-        faction_id.value()
-    );
+    info!("Created station check timer for faction #{}", faction_id.value());
     Ok(timer)
 }
 
@@ -131,7 +134,7 @@ pub fn create_ship_reaction_timer_for_faction(
     faction_id: &FactionId,
     aggressor_faction_id: Option<&FactionId>,
     destroyed_ship_type_id: &ShipTypeDefinitionId,
-    destruction_sector_id: &SectorId,
+    destruction_sector_id: &SectorId
 ) -> Result<FactionShipReactionTimer, String> {
     let dsl = dsl(ctx);
 
@@ -141,7 +144,7 @@ pub fn create_ship_reaction_timer_for_faction(
         aggressor_faction_id.cloned(),
         destroyed_ship_type_id,
         destruction_sector_id,
-        ctx.timestamp,
+        ctx.timestamp
     )?;
 
     info!(
@@ -162,7 +165,7 @@ pub fn create_ship_reaction_timer_for_faction(
 #[spacetimedb::reducer]
 pub fn faction_station_check_timer_reducer(
     ctx: &ReducerContext,
-    mut timer: FactionStationCheckTimer,
+    mut timer: FactionStationCheckTimer
 ) -> Result<(), String> {
     try_server_only(ctx)?;
     let dsl = dsl(ctx);
@@ -175,11 +178,7 @@ pub fn faction_station_check_timer_reducer(
         .filter(|station| station.get_owner_faction_id().value() == timer.faction_id)
         .collect();
 
-    info!(
-        "Faction #{} has {} stations to check",
-        timer.faction_id,
-        faction_stations.len()
-    );
+    info!("Faction #{} has {} stations to check", timer.faction_id, faction_stations.len());
 
     // TODO: Implement station checking logic
     // - Check station health/integrity
@@ -216,7 +215,7 @@ pub fn faction_station_check_timer_reducer(
 #[spacetimedb::reducer]
 pub fn faction_ship_reaction_timer_reducer(
     ctx: &ReducerContext,
-    timer: FactionShipReactionTimer,
+    timer: FactionShipReactionTimer
 ) -> Result<(), String> {
     try_server_only(ctx)?;
     let dsl = dsl(ctx);
@@ -241,7 +240,8 @@ pub fn faction_ship_reaction_timer_reducer(
     if let Some(aggressor_id) = timer.aggressor_faction_id {
         info!(
             "Faction #{} will remember that faction #{} destroyed their ship",
-            timer.faction_id, aggressor_id
+            timer.faction_id,
+            aggressor_id
         );
 
         // Placeholder for diplomatic consequences
@@ -271,7 +271,7 @@ pub fn faction_ship_reaction_timer_reducer(
 #[spacetimedb::reducer]
 pub fn faction_management_timer_reducer(
     ctx: &ReducerContext,
-    mut timer: FactionManagementTimer,
+    mut timer: FactionManagementTimer
 ) -> Result<(), String> {
     try_server_only(ctx)?;
     let dsl = dsl(ctx);
@@ -280,8 +280,10 @@ pub fn faction_management_timer_reducer(
 
     // Get all existing factions
     let all_factions: Vec<Faction> = dsl.get_all_factions().collect();
-    let faction_ids: std::collections::HashSet<u32> =
-        all_factions.iter().map(|f| f.get_id().value()).collect();
+    let faction_ids: std::collections::HashSet<u32> = all_factions
+        .iter()
+        .map(|f| f.get_id().value())
+        .collect();
 
     info!("Found {} active factions", all_factions.len());
 
@@ -289,15 +291,9 @@ pub fn faction_management_timer_reducer(
     for faction in &all_factions {
         if *faction.get_tier() == FactionTier::Galactic {
             // Check if station check timer exists for this faction
-            if dsl
-                .get_faction_station_check_timer_by_faction_id(faction.get_id())
-                .is_err()
-            {
+            if dsl.get_faction_station_check_timer_by_faction_id(faction.get_id()).is_err() {
                 create_station_check_timer_for_faction(ctx, &faction.get_id())?;
-                info!(
-                    "Created missing station check timer for faction: {}",
-                    faction.get_name()
-                );
+                info!("Created missing station check timer for faction: {}", faction.get_name());
             }
         }
     }

@@ -1,9 +1,28 @@
 use super::*;
 use crate::types::ships::*;
 use spacetimedb::TimeDuration;
-use spacetimedsl::{dsl, Wrapper};
+use spacetimedsl::{ dsl, Wrapper };
 
-// Timers related to combat structs will go here
+#[dsl(plural_name = visual_effect_timers)]
+#[spacetimedb::table(name = visual_effect_timer, scheduled(cleanup_visual_effect))]
+pub struct VisualEffectTimer {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]
+    id: u64,
+
+    #[index(btree)]
+    #[use_wrapper(path = VisualEffectId)]
+    #[foreign_key(
+        path = crate::types::combat,
+        table = visual_effect,
+        column = id,
+        on_delete = Delete
+    )]
+    pub effect_id: u64,
+
+    pub scheduled_at: ScheduleAt,
+}
 
 #[spacetimedb::reducer]
 pub fn cleanup_visual_effect(ctx: &ReducerContext, timer: VisualEffectTimer) -> Result<(), String> {
@@ -25,12 +44,23 @@ pub fn cleanup_visual_effect(ctx: &ReducerContext, timer: VisualEffectTimer) -> 
     Ok(())
 }
 
+#[dsl(plural_name = combat_cooldown_timers)]
+#[spacetimedb::table(name = combat_cooldown_timer, scheduled(update_combat_cooldowns))]
+pub struct CombatCooldownTimer {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]
+    id: u64,
+
+    pub scheduled_at: ScheduleAt,
+}
+
 /// Scheduled reducer to update weapon and missile cooldowns for all ships
 /// This runs every 100ms to provide smooth cooldown updates
 #[spacetimedb::reducer]
 pub fn update_combat_cooldowns(
     ctx: &ReducerContext,
-    _timer: CombatCooldownTimer,
+    _timer: CombatCooldownTimer
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
@@ -72,9 +102,11 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     let dsl = dsl(ctx);
 
     // Schedule the cooldown update timer to run every 100ms
-    let cooldown_timer = dsl.create_combat_cooldown_timer(spacetimedb::ScheduleAt::Interval(
-        TimeDuration::from_micros(100_000), // 100ms = 100,000 microseconds
-    ))?;
+    let cooldown_timer = dsl.create_combat_cooldown_timer(
+        spacetimedb::ScheduleAt::Interval(
+            TimeDuration::from_micros(100_000) // 100ms = 100,000 microseconds
+        )
+    )?;
 
     spacetimedb::log::info!(
         "Combat cooldown timer initialized with ID {}",

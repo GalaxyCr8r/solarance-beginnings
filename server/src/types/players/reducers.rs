@@ -1,20 +1,21 @@
 use log::info;
-use spacetimedb::{Identity, ReducerContext};
-use spacetimedsl::{dsl, Wrapper};
+use spacetimedb::{ Identity, ReducerContext };
+use spacetimedsl::{ dsl, Wrapper };
 
-use crate::types::{
-    chats::*,
-    combat::utility::{process_missile_fire, process_weapon_fire},
-    combat::{MissileType, WeaponType},
-    factions::{definitions::FACTION_FACTIONLESS, FactionId},
-    items::{definitions::*, utility::*, *},
-    players::{timers::*, utility::get_username},
-    server_messages::utility::send_error_message,
-    ships::{timers::*, utility::*},
+use crate::{
+    logic::combat::actions::{ process_missile_combat_action, process_weapon_combat_action },
+    types::{
+        chats::*,
+        factions::{ definitions::FACTION_FACTIONLESS, FactionId },
+        items::{ definitions::*, utility::*, * },
+        players::{ timers::*, utility::get_username },
+        server_messages::utility::send_error_message,
+        ships::{ timers::*, utility::* },
+    },
 };
 
-use crate::stellarobjects::{reducers::*, utility::*};
-use crate::{players::*, sectors::*};
+use crate::stellarobjects::{ reducers::*, utility::* };
+use crate::{ players::*, sectors::* };
 
 //////////////////////////////////////////////////////////////
 // Reducers ///
@@ -27,7 +28,7 @@ pub fn register_playername(
     ctx: &ReducerContext,
     identity: Identity,
     username: String,
-    faction_id: u32,
+    faction_id: u32
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
@@ -37,29 +38,24 @@ pub fn register_playername(
 
     if dsl.get_player_by_username(&username).is_ok() {
         let player_id = PlayerId::new(identity);
-        let error_message = format!(
-            "Username '{}' is already taken. Please choose a different username.",
-            username
-        );
+        let error_message =
+            format!("Username '{}' is already taken. Please choose a different username.", username);
 
         // Send server message for error feedback
-        send_error_message(
-            ctx,
-            &player_id,
-            error_message.clone(),
-            Some("Player Registration"),
-        )?;
+        send_error_message(ctx, &player_id, error_message.clone(), Some("Player Registration"))?;
 
         return Err("Username already taken!".to_string());
     }
 
     // TODO: Re-enable faction validation once client bindings are updated
     // For now, just use the provided faction_id or default to factionless
-    let final_faction = FactionId::new(if faction_id == 0 { 
-        FACTION_FACTIONLESS 
-    } else { 
-        faction_id 
-    });
+    let final_faction = FactionId::new(
+        if faction_id == 0 {
+            FACTION_FACTIONLESS
+        } else {
+            faction_id
+        }
+    );
 
     let player = dsl.create_player(identity, &username, 1000, true, final_faction.clone())?;
     let _ = dsl.create_faction_chat_message(&player, final_faction, "- has joined the faction!");
@@ -73,35 +69,43 @@ pub fn register_playername(
 pub fn create_player_controlled_ship(
     ctx: &ReducerContext,
     identity: Identity,
-    username: String, // TODO ReMOVE
+    username: String // TODO ReMOVE
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
     let player_id = PlayerId::new(identity);
     let player = match dsl.get_player_by_id(&player_id) {
         Ok(p) => p,
         Err(_) => {
-            let error_message = 
+            let error_message =
                 "You must register a username before creating a ship. Please use the registration system first.".to_string();
-    
+
             // Send server message for error feedback
             send_error_message(ctx, &player_id, error_message.clone(), Some("Ship Creation"))?;
-    
+
             return Err("Client hasn't created a username yet!".to_string());
-        },
+        }
     };
 
-    if let Ok(sobj) = create_sobj_internal(
-        ctx,
-        StellarObjectKinds::Ship,
-        &SectorId::new(0), // TODO: Make this the proper sector id!
-        StellarObjectTransformInternal::default().from_xy(64.0, 64.0),
-    ) {
+    if
+        let Ok(sobj) = create_sobj_internal(
+            ctx,
+            StellarObjectKinds::Ship,
+            &SectorId::new(0), // TODO: Make this the proper sector id!
+            StellarObjectTransformInternal::default().from_xy(64.0, 64.0)
+        )
+    {
         let _ = create_sobj_player_window_for(ctx, identity, sobj.get_id())?;
         initialize_player_controller(ctx, &player_id, &sobj)?;
 
         let ship_type = dsl.get_ship_type_definition_by_id(ShipTypeDefinitionId::new(1001))?;
         let faction_id = player.get_faction_id().clone();
-        let (ship, mut status) = create_ship_from_sobj(ctx, &ship_type, &player_id, &faction_id, &sobj)?;
+        let (ship, mut status) = create_ship_from_sobj(
+            ctx,
+            &ship_type,
+            &player_id,
+            &faction_id,
+            &sobj
+        )?;
 
         let _ = attempt_to_load_cargo_into_ship(
             ctx,
@@ -109,7 +113,7 @@ pub fn create_player_controlled_ship(
             &ship.get_id(),
             &get_item_definition(ctx, ITEM_FOOD_RATIONS)?,
             3,
-            false,
+            false
         )?;
         let _ = attempt_to_load_cargo_into_ship(
             ctx,
@@ -117,28 +121,29 @@ pub fn create_player_controlled_ship(
             &ship.get_id(),
             &get_item_definition(ctx, ITEM_ENERGY_CELL)?,
             5,
-            false,
+            false
         )?;
 
         dsl.create_ship_equipment_slot(
             &ship.get_id(),
             EquipmentSlotType::MiningLaser,
             0,
-            ItemDefinitionId::new(SMOD_BASIC_MINING_LASER),
+            ItemDefinitionId::new(SMOD_BASIC_MINING_LASER)
         )?;
 
         dsl.create_ship_equipment_slot(
             &ship.get_id(),
             EquipmentSlotType::Weapon,
             0,
-            ItemDefinitionId::new(SMOD_IONIC_BLASTER),
+            ItemDefinitionId::new(SMOD_IONIC_BLASTER)
         )?;
 
         info!("Successfully created ship!");
         send_global_chat(ctx, format!("{} has created a ship!", username))?;
         Ok(())
     } else {
-        let error_message = "Failed to create ship due to a system error. Please try again or contact support if the problem persists.".to_string();
+        let error_message =
+            "Failed to create ship due to a system error. Please try again or contact support if the problem persists.".to_string();
 
         // Send server message for error feedback
         send_error_message(ctx, &player_id, error_message.clone(), Some("Ship Creation"))?;
@@ -151,7 +156,7 @@ pub fn create_player_controlled_ship(
 #[spacetimedb::reducer]
 pub fn update_player_controller(
     ctx: &ReducerContext,
-    controller: PlayerShipController,
+    controller: PlayerShipController
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
@@ -174,9 +179,9 @@ pub fn update_player_controller(
             "Player {} no longer mining, removing mining timers.",
             get_username(ctx, controller.id)
         );
-        for mining_timer in
-            dsl.get_ship_mining_timers_by_ship_sobj_id(previous_controller.get_stellar_object_id())
-        {
+        for mining_timer in dsl.get_ship_mining_timers_by_ship_sobj_id(
+            previous_controller.get_stellar_object_id()
+        ) {
             dsl.delete_ship_mining_timer_by_id(&mining_timer)?;
         }
     }
@@ -250,183 +255,6 @@ pub fn update_player_controller(
     }
 
     dsl.update_player_ship_controller_by_id(controller_updated)?;
-
-    Ok(())
-}
-
-/// Process weapon firing for a specific ship and target
-fn process_weapon_combat_action(
-    ctx: &ReducerContext,
-    source_sobj_id: u64,
-    target_sobj_id: u64,
-) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
-    // Validate target is valid Ship or Station class
-    let target_sobj = dsl.get_stellar_object_by_id(StellarObjectId::new(target_sobj_id))?;
-    match target_sobj.get_kind() {
-        StellarObjectKinds::Ship | StellarObjectKinds::Station => {
-            // Valid target
-        }
-        _ => {
-            return Err(format!(
-                "Invalid target class: {:?}. Only Ship and Station can be targeted.",
-                target_sobj.get_kind()
-            ));
-        }
-    }
-
-    // Get source ship to find equipped weapons
-    let source_ship = dsl
-        .get_ships_by_sobj_id(StellarObjectId::new(source_sobj_id))
-        .next()
-        .ok_or_else(|| {
-            format!(
-                "Source ship not found for stellar object {}",
-                source_sobj_id
-            )
-        })?;
-
-    // Find equipped weapons in weapon slots
-    let weapon_slots: Vec<ShipEquipmentSlot> = dsl
-        .get_ship_equipment_slots_by_ship_id(source_ship.get_id())
-        .filter(|slot| slot.get_slot_type() == &EquipmentSlotType::Weapon)
-        .collect();
-
-    if weapon_slots.is_empty() {
-        return Err("No weapons equipped".to_string());
-    }
-
-    // Get target position for actual_location parameter
-    let target_transform = dsl.get_sobj_internal_transform_by_id(target_sobj.get_id())?;
-    let target_pos = target_transform.to_vec2();
-
-    // Fire each equipped weapon
-    for weapon_slot in weapon_slots {
-        let weapon_def = get_item_definition(ctx, weapon_slot.get_item_id().value())?;
-
-        // For now, assume all weapons are hitscan type
-        // TODO: Determine weapon type from item metadata in future tasks
-        let weapon_type = WeaponType::Hitscan;
-
-        match process_weapon_fire(
-            ctx,
-            source_sobj_id,
-            target_sobj_id,
-            target_pos,
-            weapon_type,
-            weapon_def,
-        ) {
-            Ok(_) => {
-                info!(
-                    "Weapon {} fired successfully from ship {}",
-                    weapon_slot.get_item_id().value(),
-                    source_sobj_id
-                );
-            }
-            Err(e) => {
-                info!(
-                    "Weapon {} failed to fire from ship {}: {}",
-                    weapon_slot.get_item_id().value(),
-                    source_sobj_id,
-                    e
-                );
-                // Continue with other weapons even if one fails
-            }
-        }
-    }
-
-    Ok(())
-}
-
-/// Process missile firing for a specific ship and target
-fn process_missile_combat_action(
-    ctx: &ReducerContext,
-    source_sobj_id: u64,
-    target_sobj_id: u64,
-) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
-    // Validate target is valid Ship or Station class
-    let target_sobj = dsl.get_stellar_object_by_id(StellarObjectId::new(target_sobj_id))?;
-    match target_sobj.get_kind() {
-        StellarObjectKinds::Ship | StellarObjectKinds::Station => {
-            // Valid target
-        }
-        _ => {
-            return Err(format!(
-                "Invalid target class: {:?}. Only Ship and Station can be targeted.",
-                target_sobj.get_kind()
-            ));
-        }
-    }
-
-    // Get source ship to find equipped missiles
-    let source_ship = dsl
-        .get_ships_by_sobj_id(StellarObjectId::new(source_sobj_id))
-        .next()
-        .ok_or_else(|| {
-            format!(
-                "Source ship not found for stellar object {}",
-                source_sobj_id
-            )
-        })?;
-
-    // TODO: Implement missile slot type in future tasks
-    // For now, missiles will be handled as special equipment or weapons
-    // This is a placeholder implementation as per the design document
-    let missile_slots: Vec<ShipEquipmentSlot> = dsl
-        .get_ship_equipment_slots_by_ship_id(source_ship.get_id())
-        .filter(|slot| slot.get_slot_type() == &EquipmentSlotType::Special)
-        .collect();
-
-    if missile_slots.is_empty() {
-        // Don't error for missing missiles since this is placeholder functionality
-        info!(
-            "No missile equipment found for ship {} (placeholder implementation)",
-            source_sobj_id
-        );
-        return Ok(());
-    }
-
-    // Get target position for actual_location parameter
-    let target_transform = dsl.get_sobj_internal_transform_by_id(target_sobj.get_id())?;
-    let target_pos = target_transform.to_vec2();
-
-    // Fire each equipped missile
-    for missile_slot in missile_slots {
-        let missile_def = get_item_definition(ctx, missile_slot.get_item_id().value())?;
-
-        // For now, assume all missiles are dumbfire type
-        // TODO: Determine missile type from item metadata in future tasks
-        let missile_type = MissileType::Dumbfire;
-
-        match process_missile_fire(
-            ctx,
-            source_sobj_id,
-            target_sobj_id,
-            target_pos,
-            missile_type,
-            missile_def,
-        ) {
-            Ok(_) => {
-                info!(
-                    "Missile {} fired successfully from ship {}",
-                    missile_slot.get_item_id().value(),
-                    source_sobj_id
-                );
-            }
-            Err(e) => {
-                info!(
-                    "Missile {} failed to fire from ship {}: {}",
-                    missile_slot.get_item_id().value(),
-                    source_sobj_id,
-                    e
-                );
-                // Continue with other missiles even if one fails
-            }
-        }
-    }
 
     Ok(())
 }

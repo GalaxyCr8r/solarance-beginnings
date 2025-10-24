@@ -1,13 +1,13 @@
-use spacetimedb::{Identity, ReducerContext};
+use spacetimedb::{ Identity, ReducerContext };
 
 use super::*;
-use crate::types::{common::utility::try_server_only, players::PlayerId};
+use crate::{ types::players::PlayerId, utility::try_server_only };
 
 /// Mark a server message as read by the calling player
 #[spacetimedb::reducer]
 pub fn mark_server_message_as_read(
     ctx: &ReducerContext,
-    server_message_id: u64,
+    server_message_id: u64
 ) -> Result<(), String> {
     let player_id = PlayerId::new(ctx.sender);
 
@@ -26,7 +26,7 @@ pub fn get_unread_message_count_for_player(ctx: &ReducerContext, player_id: &Pla
 /// that can be called from other reducers or accessed via table queries
 pub fn get_unread_messages_for_player_reducer(
     ctx: &ReducerContext,
-    player_id: &PlayerId,
+    player_id: &PlayerId
 ) -> Result<Vec<(ServerMessage, ServerMessageRecipient)>, String> {
     super::utility::get_unread_messages_for_player(ctx, player_id)
 }
@@ -39,7 +39,7 @@ pub fn send_admin_message(
     target_player_ids: Vec<Identity>,
     message: String,
     message_type: ServerMessageType,
-    group_name: Option<String>,
+    group_name: Option<String>
 ) -> Result<(), String> {
     // Authorization check - only server can send admin messages
     try_server_only(ctx)?;
@@ -63,7 +63,7 @@ pub fn send_admin_message(
         message,
         message_type,
         group_name,
-        Some("Admin".to_string()),
+        Some("Admin".to_string())
     )
 }
 
@@ -74,7 +74,7 @@ pub fn send_admin_message_to_player(
     ctx: &ReducerContext,
     target_player_id: Identity,
     message: String,
-    message_type: ServerMessageType,
+    message_type: ServerMessageType
 ) -> Result<(), String> {
     // Authorization check - only server can send admin messages
     try_server_only(ctx)?;
@@ -92,6 +92,6 @@ pub fn send_admin_message_to_player(
         &player_id,
         message,
         message_type,
-        Some("Admin".to_string()),
+        Some("Admin".to_string())
     )
 }

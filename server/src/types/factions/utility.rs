@@ -2,9 +2,9 @@ use log::info;
 use spacetimedb::*;
 use spacetimedsl::*;
 
-use crate::types::{common::utility::try_server_only, sectors::*, ships::*, stations::*};
+use crate::types::{ sectors::*, ships::*, stations::* };
 
-use super::{timers::*, *};
+use super::{ timers::*, * };
 
 /// Gets the faction name for display purposes, with fallback for unknown factions
 pub fn get_faction_name(ctx: &ReducerContext, faction_id: &FactionId) -> String {
@@ -44,14 +44,15 @@ pub fn get_faction_tier(ctx: &ReducerContext, faction_id: &FactionId) -> Option<
 pub fn get_faction_reputation(
     ctx: &ReducerContext,
     faction_one_id: &FactionId,
-    faction_two_id: &FactionId,
+    faction_two_id: &FactionId
 ) -> i32 {
     let dsl = dsl(ctx);
 
     // Look for existing standing between the factions
     for standing in dsl.get_all_faction_standings() {
-        if standing.get_faction_one_id().value() == faction_one_id.value()
-            && standing.get_faction_two_id().value() == faction_two_id.value()
+        if
+            standing.get_faction_one_id().value() == faction_one_id.value() &&
+            standing.get_faction_two_id().value() == faction_two_id.value()
         {
             return *standing.get_reputation_score();
         }
@@ -65,7 +66,7 @@ pub fn get_faction_reputation(
 pub fn are_factions_hostile(
     ctx: &ReducerContext,
     faction_one_id: &FactionId,
-    faction_two_id: &FactionId,
+    faction_two_id: &FactionId
 ) -> bool {
     get_faction_reputation(ctx, faction_one_id, faction_two_id) < -50
 }
@@ -74,7 +75,7 @@ pub fn are_factions_hostile(
 pub fn are_factions_allied(
     ctx: &ReducerContext,
     faction_one_id: &FactionId,
-    faction_two_id: &FactionId,
+    faction_two_id: &FactionId
 ) -> bool {
     get_faction_reputation(ctx, faction_one_id, faction_two_id) > 50
 }
@@ -110,7 +111,7 @@ pub fn count_faction_ships(ctx: &ReducerContext, faction_id: &FactionId) -> usiz
 /// Gets all sectors where a faction has presence (stations or significant ship activity)
 pub fn get_faction_controlled_sectors(
     ctx: &ReducerContext,
-    faction_id: &FactionId,
+    faction_id: &FactionId
 ) -> Vec<SectorId> {
     let dsl = dsl(ctx);
     let mut controlled_sectors = Vec::new();
@@ -141,15 +142,9 @@ pub fn initialize_faction_timers(ctx: &ReducerContext) -> Result<(), String> {
         // Factionless is excluded as it's a player-only neutral faction
         if *faction.get_tier() == FactionTier::Galactic {
             // Check if timer already exists
-            if dsl
-                .get_faction_station_check_timer_by_faction_id(faction.get_id())
-                .is_err()
-            {
+            if dsl.get_faction_station_check_timer_by_faction_id(faction.get_id()).is_err() {
                 create_station_check_timer_for_faction(ctx, &faction.get_id())?;
-                info!(
-                    "Created station check timer for faction: {}",
-                    faction.get_name()
-                );
+                info!("Created station check timer for faction: {}", faction.get_name());
             }
         }
     }
@@ -163,7 +158,7 @@ pub fn handle_faction_ship_destroyed(
     ctx: &ReducerContext,
     destroyed_ship: &Ship,
     aggressor_faction_id: Option<&FactionId>,
-    destruction_sector_id: &SectorId,
+    destruction_sector_id: &SectorId
 ) -> Result<(), String> {
     let faction_id = destroyed_ship.get_faction_id();
 
@@ -174,7 +169,7 @@ pub fn handle_faction_ship_destroyed(
             &faction_id,
             aggressor_faction_id,
             &destroyed_ship.get_shiptype_id(),
-            destruction_sector_id,
+            destruction_sector_id
         )?;
 
         info!(
@@ -194,14 +189,15 @@ pub fn update_faction_standing(
     ctx: &ReducerContext,
     faction_one_id: &FactionId,
     faction_two_id: &FactionId,
-    reputation_change: i32,
+    reputation_change: i32
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
     // Look for existing standing
     for mut standing in dsl.get_all_faction_standings() {
-        if standing.get_faction_one_id().value() == faction_one_id.value()
-            && standing.get_faction_two_id().value() == faction_two_id.value()
+        if
+            standing.get_faction_one_id().value() == faction_one_id.value() &&
+            standing.get_faction_two_id().value() == faction_two_id.value()
         {
             let new_reputation = standing.get_reputation_score() + reputation_change;
             // Clamp reputation between -100 and 100
@@ -247,7 +243,7 @@ pub fn get_joinable_factions(ctx: &ReducerContext) -> Vec<Faction> {
 /// Gets faction capital station if it exists
 pub fn get_faction_capital_station(
     ctx: &ReducerContext,
-    faction_id: &FactionId,
+    faction_id: &FactionId
 ) -> Option<Station> {
     let dsl = dsl(ctx);
 

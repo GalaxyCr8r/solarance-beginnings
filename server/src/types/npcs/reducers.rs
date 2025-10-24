@@ -1,11 +1,13 @@
 use spacetimedb::ReducerContext;
-use spacetimedsl::{dsl, Wrapper};
+use spacetimedsl::{ dsl, Wrapper };
 
-use crate::types::common::utility::try_server_only;
+use crate::utility::try_server_only;
 
-use super::utility::{create_npc_ship_controller, set_npc_behavior, set_npc_target};
+use super::utility::{ create_npc_ship_controller, set_npc_behavior, set_npc_target };
 use super::{
-    DeleteNpcShipControllerRowById, GetNpcShipControllerRowOptionById, NpcBehavior,
+    DeleteNpcShipControllerRowById,
+    GetNpcShipControllerRowOptionById,
+    NpcBehavior,
     NpcShipControllerId,
 };
 
@@ -15,7 +17,7 @@ use super::{
 pub fn create_npc_controller(
     ctx: &ReducerContext,
     stellar_object_id: u64,
-    initial_behavior: NpcBehavior,
+    initial_behavior: NpcBehavior
 ) -> Result<(), String> {
     try_server_only(ctx)?;
 
@@ -30,7 +32,7 @@ pub fn create_npc_controller(
 pub fn update_npc_behavior(
     ctx: &ReducerContext,
     npc_controller_id: u64,
-    new_behavior: NpcBehavior,
+    new_behavior: NpcBehavior
 ) -> Result<(), String> {
     try_server_only(ctx)?;
 
@@ -45,7 +47,7 @@ pub fn update_npc_behavior(
 pub fn set_npc_controller_target(
     ctx: &ReducerContext,
     npc_controller_id: u64,
-    target_sobj_id: Option<u64>,
+    target_sobj_id: Option<u64>
 ) -> Result<(), String> {
     try_server_only(ctx)?;
 
@@ -61,8 +63,9 @@ pub fn remove_npc_controller(ctx: &ReducerContext, npc_controller_id: u64) -> Re
     try_server_only(ctx)?;
 
     let dsl = dsl(ctx);
-    let npc_controller =
-        dsl.get_npc_ship_controller_by_id(NpcShipControllerId::new(npc_controller_id))?;
+    let npc_controller = dsl.get_npc_ship_controller_by_id(
+        NpcShipControllerId::new(npc_controller_id)
+    )?;
 
     spacetimedb::log::info!(
         "Removing NPC controller {} for stellar object {}",

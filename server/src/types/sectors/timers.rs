@@ -3,7 +3,7 @@ use std::time::Duration;
 use spacetimedb::*;
 use spacetimedsl::dsl;
 
-use crate::types::{ asteroids::timers::*, common::utility::try_server_only };
+use crate::{ types::asteroids::timers::*, utility::try_server_only };
 
 use super::GetAllAsteroidSectorRows;
 
