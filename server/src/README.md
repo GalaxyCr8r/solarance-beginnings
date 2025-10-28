@@ -2,64 +2,61 @@
 
 Here be dragons.
 
+## Core Loops
+
+- Station Module Loop
+- Stellar Object Transform Loop
+-
+
 ```mermaid
 ---
-title: Ideal Flow of Control
+title: Flow of Control
 ---
-flowchart TD
+flowchart LR
 %% Relationships
 %% >Sources
-    players==>reducers
-    admins==>reducers
+    players==>player_actions
+    admins==>admin_actions
     spacetimedb==>timers
     spacetimedb==>init
 
 %% >Internal
-    init-->definitions
+    init(initialization)
+    init==>definitions
 
-    definitions-.->types
+    definitions-.->tables
     definitions-->utilities
-
-    timers-->reducers
 
     reducers-->logic
     reducers-->utilities
-    reducers-.->types
+    reducers-.->tables
+    reducers-.->impls
 
     logic-->utilities
-    logic-.->types
+    logic-.->tables
 
-    impls-.-> types
+    utilities-.->tables
+
+    impls-.->tables
 
 %% Topology
-    subgraph "Agents"
+    subgraph agents
         players
         admins
         spacetimedb
     end
 
-    subgraph "src/"
-        utilities
-        definitions
+    subgraph reducers
+        player_actions
+        admin_actions
+        timers
         init
+    end
 
-        subgraph "definitions/"
-            definitions
-        end
-
-        subgraph "types/"
-            types
-            timers
-            impls
-        end
-
-        subgraph "reducers/"
-            reducers
-        end
-
-        subgraph "logic/"
-            logic
-        end
+    subgraph game_specific
+        definitions
+        logic
+        utilities
     end
 
 ```
