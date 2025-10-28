@@ -1,9 +1,9 @@
 use spacetimedb::ReducerContext;
 use spacetimedsl::dsl;
-use types::{ common::*, * };
+use tables::{ common::*, * };
 
 pub mod logic;
-pub mod types;
+pub mod tables;
 pub mod utility;
 
 #[spacetimedb::reducer(init)]

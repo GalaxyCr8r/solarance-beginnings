@@ -1,14 +1,14 @@
 use spacetimedb::{ ReducerContext, Timestamp };
 use spacetimedsl::{ dsl, Wrapper };
 
-use crate::types::{
+use crate::tables::{
     items::{ ItemDefinition, ItemMetadata },
     sectors::SectorId,
     ships::*,
     stellarobjects::*,
 };
 
-use crate::types::combat::{
+use crate::tables::combat::{
     CombatError,
     CreateVisualEffectRow,
     MissileType,

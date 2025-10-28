@@ -4,7 +4,7 @@ use spacetimedsl::{ dsl, Wrapper };
 
 use crate::{
     logic::combat::visual_effects::{ process_missile_fire, process_weapon_fire },
-    types::{ combat::{ MissileType, WeaponType }, items::utility::*, ships::*, stellarobjects::* },
+    tables::{ combat::{ MissileType, WeaponType }, items::utility::*, ships::*, stellarobjects::* },
 };
 
 /// Process weapon firing for a specific ship and target

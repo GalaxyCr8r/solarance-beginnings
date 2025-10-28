@@ -4,8 +4,8 @@ Here be dragons.
 
 ## Core Loops
 
-- Station Module Loop
-- Stellar Object Transform Loop
+- `Station` Module Loop
+- `StellarObject` Transform Loop
 -
 
 ```mermaid
