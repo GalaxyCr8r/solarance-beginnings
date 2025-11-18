@@ -5,6 +5,9 @@ use crate::tables::factions::FactionId;
 
 use super::{common::CurrentAction, ships::*, stellarobjects::*};
 
+// Re-export PlayerShipController for referenced_by attributes
+pub use crate::logic::ships::player_controller::PlayerShipController;
+
 //pub mod definitions; // Definitions for initial ingested data.
 pub mod impls; // Impls for this file's structs
 pub mod reducers; // SpacetimeDB Reducers for this file's structs.
@@ -17,7 +20,7 @@ pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 pub struct Player {
     #[primary_key]
     #[create_wrapper]
-    #[referenced_by(path = crate::tables::players, table = player_ship_controller)]
+    #[referenced_by(path = crate::logic::ships::player_controller, table = player_ship_controller)]
     #[referenced_by(path = crate::tables::ships, table = ship)]
     #[referenced_by(path = crate::tables::chats, table = global_chat_message)]
     #[referenced_by(path = crate::tables::chats, table = sector_chat_message)]
@@ -35,46 +38,6 @@ pub struct Player {
 
     created_at: Timestamp,
     modified_at: Timestamp,
-}
-
-#[dsl(plural_name = player_ship_controllers)]
-#[table(name = player_ship_controller, public)]
-pub struct PlayerShipController {
-    #[primary_key]
-    #[use_wrapper(path = PlayerId)]
-    #[foreign_key(path = crate::tables::players, table = player, column = id, on_delete = Delete)]
-    id: Identity,
-
-    #[index(btree)]
-    #[use_wrapper(path = StellarObjectId)]
-    #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
-    pub stellar_object_id: u64,
-
-    // Movement
-    pub up: bool,
-    pub down: bool,
-    pub left: bool,
-    pub right: bool,
-
-    /// Currently selected Autopilot Action
-    pub current_action: CurrentAction,
-
-    // Equipment
-    pub activate_jump_drive: bool,
-    pub tractor_beam_on: bool,
-    pub mining_laser_on: bool,
-    pub cargo_bay_open: bool,
-
-    // Actions
-    pub dock: bool,
-    pub undock: bool,
-    pub shield_boost: bool,
-    pub fire_weapons: bool,
-    pub fire_missles: bool,
-
-    // Misc
-    /// FK to StellarObject
-    pub targetted_sobj_id: Option<u64>,
 }
 
 //////////////////////////////////////////////////////////////

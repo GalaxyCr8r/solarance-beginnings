@@ -39,7 +39,7 @@ pub struct StellarObject {
     #[referenced_by(path = crate::tables::stations, table = station)]
     #[referenced_by(path = crate::tables::jumpgates, table = jump_gate)]
     #[referenced_by(path = crate::tables::items, table = cargo_crate)]
-    #[referenced_by(path = crate::tables::players, table = player_ship_controller)]
+    #[referenced_by(path = crate::logic::ships::player_controller, table = player_ship_controller)]
     #[referenced_by(path = crate::tables::npcs, table = npc_ship_controller)]
     id: u64,
 
@@ -160,4 +160,21 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     timers::init(ctx)?;
 
     Ok(())
+}
+
+//// OTHER
+
+pub fn same_sector_from_ids(
+    ctx: &ReducerContext,
+    id1: &StellarObjectId,
+    id2: &StellarObjectId,
+) -> bool {
+    let dsl = dsl(ctx);
+
+    if let Ok(sobj1) = dsl.get_stellar_object_by_id(id1) {
+        if let Ok(sobj2) = dsl.get_stellar_object_by_id(id2) {
+            return sobj1.get_sector_id() == sobj2.get_sector_id();
+        }
+    }
+    false
 }
