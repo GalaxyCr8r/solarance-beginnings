@@ -1,5 +1,8 @@
 use super::*;
-use crate::tables::items::{definitions::*, GetItemDefinitionRowOptionById, ItemDefinitionId};
+use crate::{
+    definitions::{item_types::*, station_module_types::*},
+    tables::items::*,
+};
 
 pub fn create_basic_laboratory(
     ctx: &ReducerContext,

@@ -6,8 +6,6 @@ use spacetimedsl::{dsl, DSL};
 
 use crate::tables::ships::*;
 
-use super::CreateShipTypeDefinitionRow;
-
 //////////////////////////////////////////////////////////////
 // Init
 //////////////////////////////////////////////////////////////
@@ -33,7 +31,7 @@ fn fighters(dsl: &DSL) -> Result<(), String> {
         1000,
         "Phalanx",
         Some("The frontline fightercraft for the Lrak Combine.".into()),
-        super::ShipClass::Fighter,
+        ShipClass::Fighter,
         100,
         100,
         100,
@@ -59,7 +57,7 @@ fn fighters(dsl: &DSL) -> Result<(), String> {
         Some(
             "A workhorse corvette. This chunky design has been in use for hundreds of years by all factions.".into()
         ),
-        super::ShipClass::Shuttle,
+        ShipClass::Shuttle,
         500,
         300,
         200,
@@ -83,7 +81,7 @@ fn fighters(dsl: &DSL) -> Result<(), String> {
         1011,
         "Javelin",
         Some("The frontline fightercraft for the Rediar Federation.".into()),
-        super::ShipClass::Fighter,
+        ShipClass::Fighter,
         150,
         50,
         125,

@@ -4,18 +4,12 @@ use glam::Vec2;
 use spacetimedb::{rand::Rng, *};
 use spacetimedsl::*;
 
-use crate::tables::{
-    items::{
-        definitions::{
-            ITEM_GOLD_ORE, ITEM_ICE_ORE, ITEM_IRON_ORE, ITEM_SILICON_ORE, ITEM_URANIUM_ORE,
-            ITEM_VIVEIUM_ORE,
-        },
-        ItemDefinitionId,
-    },
-    sectors::GetAsteroidSectorRowOptionById,
+use crate::{
+    definitions::item_types::*,
+    tables::{items::*, sectors::*},
 };
 
-use super::{utility::create_asteroid, GetAsteroidRowsByCurrentSectorId};
+use super::{utility::create_asteroid, *};
 
 #[dsl(plural_name = asteroid_sector_upkeep_timers)]
 #[spacetimedb::table(name = asteroid_sector_upkeep_timer, scheduled(asteroid_sector_upkeep))]

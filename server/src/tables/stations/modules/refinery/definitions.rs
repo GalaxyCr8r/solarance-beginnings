@@ -1,7 +1,7 @@
 use super::*;
-use crate::tables::{
-    items::{GetItemDefinitionRowOptionById, ItemDefinitionId},
-    stations::definitions::MODULE_REFINERY_MINOR,
+use crate::{
+    definitions::{item_types::*, station_module_types::*},
+    tables::items::*,
 };
 
 pub fn create_basic_refinery_module(

@@ -1,24 +1,27 @@
 use super::*;
-use crate::tables::{
-    factions::FactionId,
-    items::{definitions::*, *},
-    sectors::Sector,
-    stations::{
-        modules::{
-            farm::{self, *},
-            laboratory::{self, *},
-            manufacturing::{
-                self,
-                timers::{apply_manufacturing_production, calculate_manufacturing_production},
-                *,
+use crate::{
+    definitions::item_types::*,
+    tables::{
+        factions::FactionId,
+        items::*,
+        sectors::Sector,
+        stations::{
+            modules::{
+                farm::{self, *},
+                laboratory::{self, *},
+                manufacturing::{
+                    self,
+                    timers::{apply_manufacturing_production, calculate_manufacturing_production},
+                    *,
+                },
+                refinery::{self, *},
+                solar_array::{self, *},
+                trading_port,
             },
-            refinery::{self, *},
-            solar_array::{self, *},
-            trading_port,
+            timers::{CreateStationProductionScheduleRow, CreateStationStatusScheduleRow},
         },
-        timers::{CreateStationProductionScheduleRow, CreateStationStatusScheduleRow},
+        stellarobjects::StellarObject,
     },
-    stellarobjects::StellarObject,
 };
 
 use log::info;

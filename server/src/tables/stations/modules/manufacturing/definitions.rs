@@ -1,5 +1,5 @@
 use super::*;
-use crate::tables::items::{definitions::*, GetItemDefinitionRowOptionById, ItemDefinitionId};
+use crate::{definitions::item_types::*, tables::items::*};
 
 #[derive(Clone, Debug)]
 pub enum ManufacturingType {

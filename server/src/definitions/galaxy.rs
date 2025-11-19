@@ -1,17 +1,17 @@
 use log::info;
 use spacetimedb::ReducerContext;
-use spacetimedsl::dsl;
+use spacetimedsl::{dsl, Wrapper};
 
-use crate::tables::{
-    common::Vec2,
-    factions::definitions::FACTION_LRAK_COMBINE,
-    stations::{utility::*, StationSize},
-    stellarobjects::{
-        utility::create_sobj_internal, StellarObjectKinds, StellarObjectTransformInternal,
+use crate::{
+    definitions::factions::FACTION_LRAK_COMBINE,
+    tables::{
+        common::Vec2,
+        factions::*,
+        sectors::*,
+        stations::{utility::*, StationSize},
+        stellarobjects::{utility::*, *},
     },
 };
-
-use super::*;
 
 //////////////////////////////////////////////////////////////
 // Init
@@ -215,7 +215,7 @@ fn create_beta_trading_station(
             StellarObjectTransformInternal::default().from_xy(613.0, 1337.0),
         )?,
         faction_id.clone(),
-        format!("{} Trading Station", beta.name).as_str(),
+        format!("{} Trading Station", beta.get_name()).as_str(),
         None,
         vec![create_trading_module(), create_metal_plate_module()],
     )?;

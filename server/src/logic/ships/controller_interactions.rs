@@ -2,14 +2,17 @@ use log::info;
 use spacetimedb::*;
 use spacetimedsl::*;
 
-use crate::tables::{
-    jumpgates::*,
-    players::{utility::*, *},
-    sectors::GetSectorRowOptionById,
-    server_messages::utility::send_info_message,
-    ships::{timers::*, utility::dock_to_station, *},
-    stations::*,
-    stellarobjects::*,
+use crate::{
+    logic::ships::station_interactions::dock_to_station,
+    tables::{
+        jumpgates::*,
+        players::{utility::*, *},
+        sectors::GetSectorRowOptionById,
+        server_messages::utility::send_info_message,
+        ships::{timers::*, *},
+        stations::*,
+        stellarobjects::*,
+    },
 };
 
 /////////////////////////////////////////

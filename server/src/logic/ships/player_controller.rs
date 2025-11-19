@@ -7,7 +7,10 @@ use spacetimedb::*;
 use spacetimedsl::*;
 
 use crate::{
-    logic::{combat::actions::*, ships::controller_interactions::*},
+    logic::{
+        cargo_crates::attempt_to_pickup_cargo_crate, combat::actions::*,
+        ships::controller_interactions::*,
+    },
     tables::{
         common::CurrentAction,
         jumpgates::*,

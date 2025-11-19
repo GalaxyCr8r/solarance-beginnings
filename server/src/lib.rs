@@ -1,7 +1,8 @@
 use spacetimedb::ReducerContext;
 use spacetimedsl::dsl;
-use tables::{ common::*, * };
+use tables::{common::*, *};
 
+pub mod definitions;
 pub mod logic;
 pub mod tables;
 pub mod utility;
@@ -11,14 +12,15 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     let dsl = dsl(ctx);
 
     asteroids::init(ctx)?;
-    items::init(ctx)?;
     factions::init(ctx)?;
     stations::init(ctx)?;
     sectors::init(ctx)?;
     server_messages::init(ctx)?;
     stellarobjects::init(ctx)?;
-    ships::init(ctx)?;
+    //ships::init(ctx)?;
     combat::init(ctx)?;
+
+    definitions::init(ctx)?;
 
     // Create a Global Config row, or reinitalize the one if it exists.
     if dsl.count_of_all_global_configurations() == 0 {

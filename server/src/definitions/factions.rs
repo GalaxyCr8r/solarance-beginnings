@@ -2,7 +2,7 @@ use log::info;
 use spacetimedb::ReducerContext;
 use spacetimedsl::{dsl, Wrapper, DSL};
 
-use super::*;
+use crate::tables::factions::*;
 
 // Faction IDs
 pub const FACTION_FACTIONLESS: u32 = 0;
@@ -242,15 +242,15 @@ fn create_mutual_standing(
 ) -> Result<(), String> {
     // Create standing from faction_one to faction_two
     dsl.create_faction_standing(
-        FactionId { value: faction_one },
-        FactionId { value: faction_two },
+        FactionId::new(faction_one),
+        FactionId::new(faction_two),
         reputation,
     )?;
 
     // Create standing from faction_two to faction_one (mutual)
     dsl.create_faction_standing(
-        FactionId { value: faction_two },
-        FactionId { value: faction_one },
+        FactionId::new(faction_two),
+        FactionId::new(faction_one),
         reputation,
     )?;
 

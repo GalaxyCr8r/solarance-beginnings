@@ -1,9 +1,9 @@
 use spacetimedb::{table, ReducerContext, SpacetimeType};
-use spacetimedsl::{dsl, Wrapper};
+use spacetimedsl::dsl;
 
 use crate::tables::{common, factions::*, jumpgates::reducers::*};
 
-pub mod definitions; // Definitions for initial ingested data.
+//pub mod definitions; // Definitions for initial ingested data.
 pub mod impls; // Impls for this file's structs
 pub mod reducers; // SpacetimeDB Reducers for this file's structs.
                   //pub mod rls; // Row-level-security rules for this file's structs.
@@ -176,7 +176,6 @@ impl Sector {
 
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     timers::init(ctx)?;
-    definitions::init(ctx)?;
 
     Ok(())
 }
@@ -186,7 +185,7 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
 //////////////////////////////////////////////////////////////
 
 /// Creates a jumpgate in each sector, using the direction of the each other sector's position
-fn connect_sectors_with_warpgates(
+pub fn connect_sectors_with_warpgates(
     ctx: &ReducerContext,
     a: &Sector,
     b: &Sector,

@@ -4,11 +4,10 @@ use log::info;
 use spacetimedb::*;
 use spacetimedsl::dsl;
 
-use crate::tables::items::definitions::{
-    ITEM_ENERGY_CELL, ITEM_FOOD_RATIONS, ITEM_METAL_HULL_STRUCTURE, ITEM_METAL_PLATES,
+use crate::{
+    definitions::item_types::*,
+    tables::{economy::ResourceAmount, stations::*},
 };
-
-use super::*;
 
 // Trading Modules
 pub const MODULE_TRADING_BAZAAR: u32 = 1_000;

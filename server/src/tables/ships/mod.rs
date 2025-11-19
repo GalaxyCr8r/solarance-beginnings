@@ -7,12 +7,9 @@ use crate::tables::{
     stellarobjects::StellarObjectId,
 };
 
-pub mod definitions; // Definitions for initial ingested data.
 pub mod impls; // Impls for this file's structs
-pub mod reducers; // SpacetimeDB Reducers for this file's structs.
 pub mod rls; // Row-level-security rules for this file's structs.
 pub mod timers; // Timers related to this file's structs.
-pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
 pub enum ShipClass {
@@ -221,9 +218,8 @@ pub struct ShipEquipmentSlot {
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init(ctx: &ReducerContext) -> Result<(), String> {
-    definitions::init(ctx)?;
-    timers::init(ctx)?;
+// pub fn init(ctx: &ReducerContext) -> Result<(), String> {
+//     timers::init(ctx)?;
 
-    Ok(())
-}
+//     Ok(())
+// }

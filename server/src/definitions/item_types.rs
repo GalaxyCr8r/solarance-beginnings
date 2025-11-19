@@ -4,7 +4,7 @@ use log::info;
 use spacetimedb::ReducerContext;
 use spacetimedsl::{dsl, DSL};
 
-use super::*;
+use crate::tables::{combat::WeaponType, items::*};
 
 // # Ship modules
 // ## Ship Engines

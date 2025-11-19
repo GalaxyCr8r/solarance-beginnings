@@ -1,5 +1,8 @@
 use super::*;
-use crate::tables::items::{definitions::*, GetItemDefinitionRowOptionById, ItemDefinitionId};
+use crate::{
+    definitions::{item_types::*, station_module_types::*},
+    tables::items::*,
+};
 
 #[dsl(plural_name = trading_port_modules)]
 #[table(name = trading_port_module, public)]
@@ -157,7 +160,7 @@ pub fn create_basic_bazaar(
         ctx,
         station,
         "bazaar",
-        definitions::MODULE_TRADING_BAZAAR,
+        MODULE_TRADING_BAZAAR,
         &items,
         under_construction,
     )
@@ -211,7 +214,7 @@ pub fn create_rich_speciality(
         ctx,
         station,
         "speciality",
-        definitions::MODULE_TRADING_MARKET,
+        MODULE_TRADING_MARKET,
         &items,
         under_construction,
     )

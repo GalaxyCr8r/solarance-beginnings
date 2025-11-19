@@ -1,4 +1,5 @@
 use super::*;
+use crate::definitions::item_types::*;
 
 /// Calculate the research production for a laboratory module
 pub fn calculate_laboratory_production(
@@ -154,8 +155,6 @@ pub fn apply_laboratory_production(
 
 /// Determine the type of research fragment produced based on laboratory inputs
 fn determine_output_fragment_type(laboratory: &Laboratory) -> u32 {
-    use crate::tables::items::definitions::*;
-
     // Basic logic: if using exotic materials, produce exotic fragments
     if laboratory.primary_input_resource_id == ITEM_RESEARCH_FRAGMENT_EXOTIC {
         ITEM_RESEARCH_FRAGMENT_EXOTIC

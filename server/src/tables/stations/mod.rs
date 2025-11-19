@@ -3,7 +3,7 @@ use spacetimedsl::*;
 
 use crate::{tables::economy::ResourceAmount, *};
 
-pub mod definitions; // Definitions for initial ingested data.
+//pub mod definitions; // Definitions for initial ingested data.
 pub mod impls; // Impls for this file's structs
 pub mod modules; // Station modules
 pub mod reducers; // SpacetimeDB Reducers for this file's structs.
