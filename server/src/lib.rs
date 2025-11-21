@@ -2,6 +2,7 @@ use spacetimedb::ReducerContext;
 use spacetimedsl::dsl;
 use tables::{common::*, *};
 
+pub mod admin;
 pub mod definitions;
 pub mod logic;
 pub mod tables;
