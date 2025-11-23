@@ -9,12 +9,12 @@ use crate::tables::{
     ships::*,
 };
 
-//pub mod definitions; // Definitions for initial ingested data.
-pub mod impls; // Impls for this file's structs
-pub mod reducers; // SpacetimeDB Reducers for this file's structs.
-pub mod rls; // Row-level-security rules for this file's structs.
-pub mod timers; // Timers related to this file's structs.
-pub mod utility; // Utility functions (NOT reducers) for this file's structs.
+// //pub mod definitions; // Definitions for initial ingested data.
+// pub mod impls; // Impls for this file's structs
+// pub mod reducers; // SpacetimeDB Reducers for this file's structs.
+// pub mod rls; // Row-level-security rules for this file's structs.
+// pub mod timers; // Timers related to this file's structs.
+// pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
 #[dsl(plural_name = global_chat_messages)]
 #[table(name = global_chat_message, public)]

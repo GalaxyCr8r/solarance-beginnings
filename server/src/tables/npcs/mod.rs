@@ -11,6 +11,22 @@ pub mod reducers; // SpacetimeDB Reducers for this file's structs.
 pub mod timers; // Timers related to this file's structs.
 pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
+#[derive(SpacetimeType, Clone, Debug, PartialEq)]
+pub enum NpcArchetype {
+    // Broader than NpcType, defines their role
+    Trader,
+    Miner,
+    PirateRaider,
+    PirateSmuggler,
+    FactionMilitaryPatrol,
+    FactionMilitaryEliteGuard,
+    CivilianTransportFreighter,
+    ExplorerScientist,
+    QuestGiverStationBound,
+    QuestGiverFieldOperative,
+    BountyHunter,
+}
+
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
 pub enum NpcBehavior {
     Idle,

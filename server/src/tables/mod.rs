@@ -13,5 +13,6 @@ pub mod players;
 pub mod sectors;
 pub mod server_messages;
 pub mod ships;
+pub mod star_system;
 pub mod stations;
 pub mod stellarobjects;

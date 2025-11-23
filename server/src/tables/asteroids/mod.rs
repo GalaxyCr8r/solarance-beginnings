@@ -1,14 +1,8 @@
-use spacetimedb::{table, ReducerContext};
+use log::info;
+use spacetimedb::{rand::Rng, table, ReducerContext};
 use spacetimedsl::dsl;
 
 use crate::tables::stellarobjects::StellarObjectId;
-
-//pub mod definitions; // Definitions for initial ingested data.
-pub mod impls; // Impls for this file's structs
-pub mod reducers; // SpacetimeDB Reducers for this file's structs.
-pub mod rls; // Row-level-security rules for this file's structs.
-pub mod timers; // Timers related to this file's structs.
-pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
 #[dsl(plural_name = asteroids)]
 #[table(name = asteroid, public)]
@@ -39,12 +33,47 @@ pub struct Asteroid {
     pub gfx_key: Option<String>, // For client side
 }
 
-//////////////////////////////////////////////////////////////
-// Init
-//////////////////////////////////////////////////////////////
+/////////////////////////////////////////
+/// Utility
 
-pub fn init(ctx: &ReducerContext) -> Result<(), String> {
-    timers::init(ctx)?;
+pub fn create_asteroid(
+    ctx: &ReducerContext,
+    position: Vec2,
+    sector: SectorId,
+    item: ItemDefinitionId,
+    resource_amount: u16,
+) -> Option<Asteroid> {
+    let dsl = dsl(ctx);
 
-    Ok(())
+    let gfx_key = format!("asteroid.{}", ctx.rng().gen_range(1..=5)).to_string();
+
+    let sobj = create_sobj_internal(
+        ctx,
+        StellarObjectKinds::Asteroid,
+        &sector,
+        StellarObjectTransformInternal::default().from_vec2(position),
+    );
+    if sobj.is_err() {
+        info!(
+            "ERROR: Couldn't create stellar object for asteroid: {}",
+            sobj.unwrap_err()
+        );
+        return None;
+    }
+
+    match dsl.create_asteroid(
+        &sobj.unwrap(),
+        sector,
+        16.0,
+        item,
+        resource_amount,
+        resource_amount,
+        Some(gfx_key),
+    ) {
+        Ok(ast) => Some(ast),
+        Err(e) => {
+            info!("ERROR: Failed to create asteroid: {}", e);
+            None
+        }
+    }
 }

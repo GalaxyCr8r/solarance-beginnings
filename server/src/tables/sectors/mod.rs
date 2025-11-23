@@ -1,91 +1,7 @@
-use spacetimedb::{table, ReducerContext, SpacetimeType};
+use spacetimedb::*;
 use spacetimedsl::dsl;
 
-use crate::tables::{common, factions::*, jumpgates::reducers::*};
-
-//pub mod definitions; // Definitions for initial ingested data.
-pub mod impls; // Impls for this file's structs
-pub mod reducers; // SpacetimeDB Reducers for this file's structs.
-                  //pub mod rls; // Row-level-security rules for this file's structs.
-pub mod timers; // Timers related to this file's structs.
-pub mod utility; // Utility functions (NOT reducers) for this file's structs.
-
-#[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
-pub enum SpectralKind {
-    /// Hottest, brightest, and bluest stars.
-    O,
-    /// Blue-white Stars
-    B,
-    /// White Stars
-    A,
-    /// Yellow-white Stars
-    F,
-    /// Yellow Stars (Sol)
-    G,
-    /// Orange Stars
-    K,
-    /// Coolest, dimmest, and reddest stars.
-    M,
-}
-
-#[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
-pub enum StarSystemObjectKind {
-    Star,
-    Planet,
-    Moon,
-    AsteroidBelt,
-    NebulaBelt,
-}
-
-#[dsl(plural_name = star_systems)]
-#[table(name = star_system, public)]
-pub struct StarSystem {
-    #[primary_key]
-    #[auto_inc]
-    #[create_wrapper]
-    #[referenced_by(path = crate::tables::sectors, table = star_system_object)]
-    #[referenced_by(path = crate::tables::sectors, table = sector)]
-    id: u32,
-
-    #[unique]
-    pub name: String, // e.g., "Sol", "Alpha Centauri"
-
-    pub map_coordinates: common::Vec2, // Coordinates on the galactic map
-    pub spectral: SpectralKind,
-    /// 0, Hypergiants ... 5, Main sequence (Sol) ... 7, White dwarfs
-    pub luminosity: u8,
-
-    #[index(btree)]
-    #[use_wrapper(path = FactionId)]
-    #[foreign_key(path = crate::tables::factions, table = faction, column = id, on_delete = Error)]
-    /// FK to Faction, can change
-    pub controlling_faction_id: u32,
-    //pub discovered_by_faction_id: Option<u32>, // First faction to chart it
-}
-
-#[dsl(plural_name = star_system_objects)]
-#[table(name = star_system_object, public)]
-pub struct StarSystemObject {
-    #[primary_key]
-    #[auto_inc]
-    #[create_wrapper]
-    id: u32,
-
-    #[index(btree)]
-    #[use_wrapper(path = StarSystemId)]
-    #[foreign_key(path = crate::tables::sectors, table = star_system, column = id, on_delete = Delete)]
-    /// FK to StarSystem
-    pub system_id: u32,
-
-    pub kind: StarSystemObjectKind,
-
-    /// Object's star system position
-    pub orbit_au: f32,
-    /// Either the rotation in the orbit in radians, or the kilometers wide for asteroid/nebula belts.
-    pub rotation_or_width_km: f32,
-
-    pub gfx_key: Option<String>, // Key for client to look up image
-}
+use crate::tables::{factions::*, jumpgates::reducers::*};
 
 #[dsl(plural_name = sectors)]
 #[table(name = sector, public)]
@@ -105,7 +21,7 @@ pub struct Sector {
 
     #[index(btree)]
     #[use_wrapper(path = StarSystemId)]
-    #[foreign_key(path = crate::tables::sectors, table = star_system, column = id, on_delete = Error)]
+    #[foreign_key(path = crate::tables::star_system, table = star_system, column = id, on_delete = Error)]
     /// FK to StarSystem
     pub system_id: u32,
 
@@ -160,6 +76,21 @@ pub struct AsteroidSector {
     pub cluster_extent: f32,        // How far from 0,0 can asteroids spawn
     pub cluster_inner: Option<f32>, // How far from 0,0 can asteroids NOT spawn
 }
+
+/////////////////////////////////////////////////////////////
+/// Timers
+///
+
+#[dsl(plural_name = sector_upkeep_timers)]
+#[spacetimedb::table(name = sector_upkeep_timer, scheduled(sector_upkeep))]
+pub struct SectorUpkeepTimer {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]
+    id: u64,
+    scheduled_at: spacetimedb::ScheduleAt,
+}
+
 //////////////////////////////////////////////////////////////
 // Impls
 //////////////////////////////////////////////////////////////
@@ -171,18 +102,7 @@ impl Sector {
 }
 
 //////////////////////////////////////////////////////////////
-// Init
-//////////////////////////////////////////////////////////////
-
-pub fn init(ctx: &ReducerContext) -> Result<(), String> {
-    timers::init(ctx)?;
-
-    Ok(())
-}
-
-//////////////////////////////////////////////////////////////
 // Utilities
-//////////////////////////////////////////////////////////////
 
 /// Creates a jumpgate in each sector, using the direction of the each other sector's position
 pub fn connect_sectors_with_warpgates(
