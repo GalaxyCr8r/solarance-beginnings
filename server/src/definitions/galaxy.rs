@@ -8,6 +8,7 @@ use crate::{
         common::Vec2,
         factions::*,
         sectors::*,
+        star_system::*,
         stations::{utility::*, StationSize},
         stellarobjects::{utility::*, *},
     },

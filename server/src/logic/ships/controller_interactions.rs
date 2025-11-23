@@ -8,7 +8,7 @@ use crate::{
         jumpgates::*,
         players::{utility::*, *},
         sectors::GetSectorRowOptionById,
-        server_messages::utility::send_info_message,
+        server_messages::send_info_message,
         ships::{timers::*, *},
         stations::*,
         stellarobjects::*,

@@ -3,7 +3,7 @@ use spacetimedsl::{dsl, Wrapper};
 
 use crate::tables::factions::FactionId;
 
-use super::{common::CurrentAction, ships::*, stellarobjects::*};
+use super::{ships::*, stellarobjects::*};
 
 // Re-export PlayerShipController for referenced_by attributes
 pub use crate::logic::ships::player_controller::PlayerShipController;

@@ -13,13 +13,6 @@ pub mod utility;
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    asteroids::init(ctx)?;
-    factions::init(ctx)?;
-    stations::init(ctx)?;
-    sectors::init(ctx)?;
-    server_messages::init(ctx)?;
-    stellarobjects::init(ctx)?;
-    //ships::init(ctx)?;
     combat::init(ctx)?;
 
     definitions::init(ctx)?;

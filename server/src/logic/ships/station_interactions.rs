@@ -5,9 +5,8 @@ use spacetimedsl::*;
 use crate::{
     logic::ships::player_controller::initialize_player_controller,
     tables::{
-        factions::FactionId,
         players::PlayerId,
-        server_messages::utility::send_info_message,
+        server_messages::send_info_message,
         ships::{timers::*, *},
         stations::*,
         stellarobjects::{reducers::create_sobj_player_window_for, utility::*, *},

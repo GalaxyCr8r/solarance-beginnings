@@ -9,12 +9,10 @@ use spacetimedsl::dsl;
 use spacetimedsl::Wrapper;
 
 use crate::tables::items::*;
+use crate::tables::server_messages::*;
 use crate::tables::ships::*;
 use crate::tables::stellarobjects::utility::create_sobj_with_random_velocity;
-use crate::tables::{
-    items::*, players::PlayerId, server_messages::utility::send_info_message, ships::*,
-    stellarobjects::*, *,
-};
+use crate::tables::stellarobjects::*;
 use crate::utility::*;
 
 ///////////////////////////////////////////////////////////

@@ -1,8 +1,13 @@
+use glam::Vec2;
 use log::info;
 use spacetimedb::{rand::Rng, table, ReducerContext};
 use spacetimedsl::dsl;
 
-use crate::tables::stellarobjects::StellarObjectId;
+use crate::tables::{
+    items::ItemDefinitionId,
+    sectors::SectorId,
+    stellarobjects::{utility::*, *},
+};
 
 #[dsl(plural_name = asteroids)]
 #[table(name = asteroid, public)]

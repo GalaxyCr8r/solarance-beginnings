@@ -254,13 +254,3 @@ pub struct StationStatus {
     pub shields: f32,
     pub energy: f32,
 }
-
-//////////////////////////////////////////////////////////////
-// Init
-//////////////////////////////////////////////////////////////
-
-pub fn init(ctx: &ReducerContext) -> Result<(), String> {
-    definitions::init(ctx)?;
-
-    Ok(())
-}

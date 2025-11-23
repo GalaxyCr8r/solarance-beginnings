@@ -1,15 +1,19 @@
+use std::f32::consts::PI;
+
+use glam::Vec2;
 use spacetimedb::{rand::Rng, *};
-use spacetimedsl::dsl;
+use spacetimedsl::*;
 
 use crate::{
-    tables::{asteroids::*, sectors::*},
+    definitions::item_types::*,
+    tables::{asteroids::*, items::*, sectors::*},
     utility::try_server_only,
 };
 
 /// Function that maintains asteroid populations in sectors.
 /// Creates new asteroids when the count falls below the sector's sparseness threshold.
-pub fn asteroid_sector_upkeep(sector_id: SectorId) -> Result<(), String> {
-    let dsl = dsl(ctx);
+pub fn asteroid_sector_upkeep(dsl: &DSL, sector_id: &SectorId) -> Result<(), String> {
+    let ctx = dsl.ctx();
     try_server_only(ctx)?;
 
     let asteroid_sector = dsl.get_asteroid_sector_by_id(sector_id)?;
@@ -48,7 +52,7 @@ pub fn asteroid_sector_upkeep(sector_id: SectorId) -> Result<(), String> {
 
         let amount = ctx.rng().gen_range(500..2000);
 
-        create_asteroid(ctx, pos, sector_id, item, amount);
+        create_asteroid(ctx, pos, sector_id.into(), item, amount);
     }
 
     Ok(())

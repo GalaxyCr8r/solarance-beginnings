@@ -6,7 +6,7 @@ use crate::logic::ships::cargo::{attempt_to_load_cargo_into_ship, remove_cargo_f
 use crate::tables::{
     items::{ItemDefinitionId, *},
     players::{GetPlayerRowOptionById, UpdatePlayerRowById},
-    server_messages::utility::{send_error_message, send_info_message},
+    server_messages::{send_error_message, send_info_message},
     ships::*,
     stations::timers::*,
 };

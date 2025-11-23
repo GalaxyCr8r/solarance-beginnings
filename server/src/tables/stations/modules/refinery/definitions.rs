@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-    definitions::{item_types::*, station_module_types::*},
+    definitions::station_module_types::*,
     tables::items::*,
 };
 

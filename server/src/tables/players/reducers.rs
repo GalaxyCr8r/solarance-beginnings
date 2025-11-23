@@ -2,7 +2,7 @@ use spacetimedb::{Identity, ReducerContext};
 use spacetimedsl::{dsl, Wrapper};
 
 use crate::definitions::factions::FACTION_FACTIONLESS;
-use crate::tables::{chats::*, factions::FactionId, server_messages::utility::send_error_message};
+use crate::tables::{chats::*, factions::FactionId, server_messages::send_error_message};
 
 use crate::players::*;
 

@@ -1,6 +1,8 @@
 use spacetimedb::{table, Identity, ReducerContext, SpacetimeType, Timestamp};
 use spacetimedsl::*;
 
+use crate::tables::players::PlayerId;
+
 #[derive(SpacetimeType, Clone, Debug, PartialEq)]
 pub enum ServerMessageType {
     Error,   // Action failures, validation errors

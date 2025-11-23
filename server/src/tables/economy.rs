@@ -1,4 +1,4 @@
-use spacetimedb::{ReducerContext, SpacetimeType};
+use spacetimedb::SpacetimeType;
 
 #[derive(SpacetimeType, Debug, Clone)]
 pub struct ResourceAmount {

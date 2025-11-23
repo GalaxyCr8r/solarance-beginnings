@@ -153,16 +153,7 @@ pub struct StellarObjectPlayerWindow {
 }
 
 //////////////////////////////////////////////////////////////
-// Init
-//////////////////////////////////////////////////////////////
-
-pub fn init(ctx: &ReducerContext) -> Result<(), String> {
-    timers::init(ctx)?;
-
-    Ok(())
-}
-
-//// OTHER
+// Utilities
 
 pub fn same_sector_from_ids(
     ctx: &ReducerContext,

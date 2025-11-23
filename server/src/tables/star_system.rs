@@ -1,6 +1,8 @@
 use spacetimedb::*;
 use spacetimedsl::*;
 
+use crate::tables::{common, factions::*};
+
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
 pub enum SpectralKind {
     /// Hottest, brightest, and bluest stars.

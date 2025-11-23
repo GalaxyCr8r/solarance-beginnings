@@ -7,7 +7,7 @@ use spacetimedsl::{dsl, Wrapper};
 use crate::{
     logic::ships::cargo::attempt_to_load_cargo_into_ship,
     tables::{
-        asteroids::*, items::utility::*, server_messages::utility::send_info_message,
+        asteroids::*, items::utility::*, server_messages::send_info_message,
         stellarobjects::*,
     },
     utility::try_server_only,

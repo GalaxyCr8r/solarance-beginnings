@@ -1,7 +1,7 @@
 use spacetimedb::*;
 use spacetimedsl::dsl;
 
-use crate::tables::{factions::*, jumpgates::reducers::*};
+use crate::tables::{factions::*, jumpgates::reducers::*, star_system::*};
 
 #[dsl(plural_name = sectors)]
 #[table(name = sector, public)]
@@ -75,20 +75,6 @@ pub struct AsteroidSector {
     pub rarity: u8,                 // Skews the amount of spawned asteroids with high rarity ores
     pub cluster_extent: f32,        // How far from 0,0 can asteroids spawn
     pub cluster_inner: Option<f32>, // How far from 0,0 can asteroids NOT spawn
-}
-
-/////////////////////////////////////////////////////////////
-/// Timers
-///
-
-#[dsl(plural_name = sector_upkeep_timers)]
-#[spacetimedb::table(name = sector_upkeep_timer, scheduled(sector_upkeep))]
-pub struct SectorUpkeepTimer {
-    #[primary_key]
-    #[auto_inc]
-    #[create_wrapper]
-    id: u64,
-    scheduled_at: spacetimedb::ScheduleAt,
 }
 
 //////////////////////////////////////////////////////////////
