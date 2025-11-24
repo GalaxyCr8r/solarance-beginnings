@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 
 use log::info;
 use spacetimedb::ReducerContext;
-use spacetimedsl::{dsl, DSL};
+use spacetimedsl::*;
 
 use crate::tables::ships::*;
 
@@ -10,10 +10,8 @@ use crate::tables::ships::*;
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init(ctx: &ReducerContext) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
-    fighters(&dsl)?;
+pub fn init(dsl: &DSL) -> Result<(), String> {
+    fighters(dsl)?;
 
     info!(
         "Ship Defs Loaded: {}",

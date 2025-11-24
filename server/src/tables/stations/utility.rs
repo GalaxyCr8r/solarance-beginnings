@@ -29,18 +29,18 @@ use spacetimedb::ScheduleAt;
 use std::time::Duration;
 
 /// Type alias for module creation functions
-pub type ModuleCreationFn = Box<dyn Fn(&ReducerContext, &Station) -> Result<(), String>>;
+pub type ModuleCreationFn = Box<dyn Fn(&DSL, &Station) -> Result<(), String>>;
 
 /// Helper function to create a basic trading module
 pub fn create_trading_module() -> ModuleCreationFn {
-    Box::new(|ctx, station| trading_port::create_basic_bazaar(ctx, station, false))
+    Box::new(|dsl, station| trading_port::create_basic_bazaar(dsl, station, false))
 }
 
 /// Helper function to create a basic refinery module for iron ore
 pub fn create_iron_refinery_module() -> ModuleCreationFn {
-    Box::new(|ctx, station| {
+    Box::new(|dsl, station| {
         refinery::definitions::create_basic_refinery_module(
-            ctx,
+            dsl,
             station,
             false,
             ItemDefinitionId::new(ITEM_IRON_ORE),
@@ -52,9 +52,9 @@ pub fn create_iron_refinery_module() -> ModuleCreationFn {
 
 /// Helper function to create a basic refinery module for ice ore
 pub fn create_ice_refinery_module() -> ModuleCreationFn {
-    Box::new(|ctx, station| {
+    Box::new(|dsl, station| {
         refinery::definitions::create_basic_refinery_module(
-            ctx,
+            dsl,
             station,
             false,
             ItemDefinitionId::new(ITEM_ICE_ORE),
@@ -66,9 +66,9 @@ pub fn create_ice_refinery_module() -> ModuleCreationFn {
 
 /// Helper function to create a basic refinery module for silicon ore
 pub fn create_silicon_refinery_module() -> ModuleCreationFn {
-    Box::new(|ctx, station| {
+    Box::new(|dsl, station| {
         refinery::definitions::create_basic_refinery_module(
-            ctx,
+            dsl,
             station,
             false,
             ItemDefinitionId::new(ITEM_SILICON_ORE),
@@ -80,7 +80,7 @@ pub fn create_silicon_refinery_module() -> ModuleCreationFn {
 
 /// Helper function to create a station with modules and automatically set up schedules
 pub fn create_station_with_modules(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     size: StationSize,
     sector: &Sector,
     sobj: &StellarObject,
@@ -89,41 +89,37 @@ pub fn create_station_with_modules(
     description: Option<String>,
     module_creators: Vec<ModuleCreationFn>,
 ) -> Result<Station, String> {
-    let dsl = dsl(ctx);
-
     // Create the station
     let station = dsl.create_station(size, sector, sobj, owner_faction_id, name, description)?;
 
     // Create all modules
     for module_creator in module_creators {
-        module_creator(ctx, &station)?;
+        module_creator(dsl, &station)?;
     }
 
     // Set up station production schedule (every 30 seconds) TODO Tie this to GlobalConfig
     dsl.create_station_production_schedule(
         station.get_id(),
         ScheduleAt::Interval(Duration::from_secs(30).into()),
-        ctx.timestamp,
+        dsl.ctx().timestamp,
     )?;
 
     // Set up station status schedule (every 60 seconds) TODO Tie this to GlobalConfig
     dsl.create_station_status_schedule(
         station.get_id(),
         ScheduleAt::Interval(Duration::from_secs(10).into()),
-        ctx.timestamp,
+        dsl.ctx().timestamp,
     )?;
 
     // Verify station invariants
-    verify(ctx, station.clone())?;
+    verify(dsl, station.clone())?;
 
     Ok(station)
 }
 
 /// Verify the invariants of this class that Rust cannot guarantee due to the database limitations.
 /// Should be called after modifying a station.
-pub fn verify(ctx: &ReducerContext, station: Station) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
+pub fn verify(dsl: &DSL, station: Station) -> Result<(), String> {
     // Verify the station does not have more modules than it should.
     let current_module_count = dsl
         .get_station_modules_by_station_id(station.get_id())
@@ -144,12 +140,11 @@ pub fn verify(ctx: &ReducerContext, station: Station) -> Result<(), String> {
 
 /// LogisticsAndStorage,
 pub fn update_logistics_and_storage(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     _station: &Station,
     module: &StationModule,
     _blueprint: &StationModuleBlueprint,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
 
     // Update cached prices for all inventory items in this module
     for mut inventory_item in dsl.get_station_module_inventory_items_by_module_id(module.get_id()) {
@@ -166,12 +161,11 @@ pub fn update_logistics_and_storage(
 
 /// ResourceProductionAndRefining,
 pub fn update_resource_production_and_refining(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     _station: &Station,
     module: &StationModule,
     blueprint: &StationModuleBlueprint,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
 
     // Calculate time elapsed since last update (assuming 30 second intervals)
     let time_elapsed_hours = 30.0 / 3600.0; // 30 seconds in hours
@@ -181,12 +175,12 @@ pub fn update_resource_production_and_refining(
             // Handle refinery modules
             if let Ok(refinery) = dsl.get_refinery_module_by_id(module.get_id()) {
                 let production_result = refinery::timers::calculate_refinery_production(
-                    ctx,
+                    dsl,
                     &refinery,
                     time_elapsed_hours,
                 )?;
 
-                refinery::timers::apply_refinery_production(ctx, &refinery, &production_result)?;
+                refinery::timers::apply_refinery_production(dsl, &refinery, &production_result)?;
 
                 spacetimedb::log::info!(
                     "Refinery module {} produced {:.2} ingots, consumed {:.2} ore",
@@ -200,9 +194,9 @@ pub fn update_resource_production_and_refining(
             // Handle farm modules
             if let Ok(farm) = dsl.get_farm_module_by_id(module.get_id()) {
                 let production_result =
-                    farm::timers::calculate_farm_production(ctx, &farm, time_elapsed_hours)?;
+                    farm::timers::calculate_farm_production(dsl, &farm, time_elapsed_hours)?;
 
-                farm::timers::apply_farm_production(ctx, &farm, &production_result)?;
+                farm::timers::apply_farm_production(dsl, &farm, &production_result)?;
 
                 spacetimedb::log::info!(
                     "Farm module {} produced {:.2} food units",
@@ -215,13 +209,13 @@ pub fn update_resource_production_and_refining(
             // Handle solar array modules
             if let Ok(solar_array) = dsl.get_solar_array_module_by_id(module.get_id()) {
                 let production_result = solar_array::timers::calculate_solar_array_production(
-                    ctx,
+                    dsl,
                     &solar_array,
                     time_elapsed_hours,
                 )?;
 
                 solar_array::timers::apply_solar_array_production(
-                    ctx,
+                    dsl,
                     &solar_array,
                     &production_result,
                 )?;
@@ -240,14 +234,14 @@ pub fn update_resource_production_and_refining(
 
     Ok(())
 }
+
 /// ManufacturingAndAssembly,
 pub fn update_manufacturing_and_assembly(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     _station: &Station,
     module: &StationModule,
     blueprint: &StationModuleBlueprint,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
 
     // Calculate time elapsed since last update (assuming 30 second intervals)
     let time_elapsed_seconds = 30.0; // 30 seconds
@@ -265,12 +259,11 @@ pub fn update_manufacturing_and_assembly(
         | StationModuleSpecificType::FactoryAdvancedComponents => {
             // Handle manufacturing modules
             let production_result =
-                calculate_manufacturing_production(ctx, &manufacturing, time_elapsed_seconds)?;
+                calculate_manufacturing_production(dsl, &manufacturing, time_elapsed_seconds)?;
 
             info!("Production Result: {:?}", production_result);
 
-            apply_manufacturing_production(ctx, &manufacturing, &production_result)?;
-
+            apply_manufacturing_production(dsl, &manufacturing, &production_result)?;
             if production_result.items_completed > 0 {
                 spacetimedb::log::info!(
                     "Manufacturing module {} completed {} items, progress: {:.2}",
@@ -291,13 +284,11 @@ pub fn update_manufacturing_and_assembly(
 
 /// ResearchAndDevelopment,
 pub fn update_research_and_development(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     _station: &Station,
     module: &StationModule,
     blueprint: &StationModuleBlueprint,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     // Calculate time elapsed since last update (assuming 30 second intervals)
     let time_elapsed_hours = 30.0 / 3600.0; // 30 seconds in hours
 
@@ -306,13 +297,13 @@ pub fn update_research_and_development(
             // Handle laboratory modules
             if let Ok(laboratory) = dsl.get_laboratory_module_by_id(module.get_id()) {
                 let production_result = laboratory::timers::calculate_laboratory_production(
-                    ctx,
+                    dsl,
                     &laboratory,
                     time_elapsed_hours,
                 )?;
 
                 laboratory::timers::apply_laboratory_production(
-                    ctx,
+                    dsl,
                     &laboratory,
                     &production_result,
                 )?;
@@ -337,7 +328,7 @@ pub fn update_research_and_development(
 
 /// CivilianAndSupportServices,
 pub fn update_civilian_and_support_services(
-    _ctx: &ReducerContext,
+    _dsl: &DSL,
     _station: &Station,
     _module: &StationModule,
     _blueprint: &StationModuleBlueprint,
@@ -348,7 +339,7 @@ pub fn update_civilian_and_support_services(
 
 /// DiplomacyAndFaction,
 pub fn update_diplomacy_and_faction(
-    _ctx: &ReducerContext,
+    _dsl: &DSL,
     _station: &Station,
     _module: &StationModule,
     _blueprint: &StationModuleBlueprint,
@@ -359,7 +350,7 @@ pub fn update_diplomacy_and_faction(
 
 /// DefenseAndMilitary,
 pub fn update_defense_and_military(
-    _ctx: &ReducerContext,
+    _dsl: &DSL,
     _station: &Station,
     _module: &StationModule,
     _blueprint: &StationModuleBlueprint,
@@ -369,9 +360,9 @@ pub fn update_defense_and_military(
 }
 /// Helper function to create a basic food farm module
 pub fn create_basic_farm_module() -> ModuleCreationFn {
-    Box::new(|ctx, station| {
+    Box::new(|dsl, station| {
         farm::definitions::create_basic_food_farm(
-            ctx,
+            dsl,
             station,
             false,
             farm::FarmOutputQuality::Average,
@@ -381,9 +372,9 @@ pub fn create_basic_farm_module() -> ModuleCreationFn {
 
 /// Helper function to create a luxury food farm module
 pub fn create_luxury_farm_module() -> ModuleCreationFn {
-    Box::new(|ctx, station| {
+    Box::new(|dsl, station| {
         farm::definitions::create_basic_food_farm(
-            ctx,
+            dsl,
             station,
             false,
             farm::FarmOutputQuality::Luxury,
@@ -393,9 +384,9 @@ pub fn create_luxury_farm_module() -> ModuleCreationFn {
 
 /// Helper function to create a basic laboratory module
 pub fn create_basic_laboratory_module() -> ModuleCreationFn {
-    Box::new(|ctx, station| {
+    Box::new(|dsl, station| {
         laboratory::definitions::create_basic_laboratory(
-            ctx,
+            dsl,
             station,
             false,
             laboratory::definitions::LaboratoryType::Basic,
@@ -405,9 +396,9 @@ pub fn create_basic_laboratory_module() -> ModuleCreationFn {
 
 /// Helper function to create an advanced laboratory module
 pub fn create_advanced_laboratory_module() -> ModuleCreationFn {
-    Box::new(|ctx, station| {
+    Box::new(|dsl, station| {
         laboratory::definitions::create_basic_laboratory(
-            ctx,
+            dsl,
             station,
             false,
             laboratory::definitions::LaboratoryType::Advanced,
@@ -417,9 +408,9 @@ pub fn create_advanced_laboratory_module() -> ModuleCreationFn {
 
 /// Helper function to create a basic manufacturing module
 pub fn create_basic_manufacturing_module() -> ModuleCreationFn {
-    Box::new(|ctx, station| {
+    Box::new(|dsl, station| {
         manufacturing::definitions::create_basic_manufacturing_module(
-            ctx,
+            dsl,
             station,
             false,
             manufacturing::definitions::ManufacturingType::BasicFactory,
@@ -429,9 +420,9 @@ pub fn create_basic_manufacturing_module() -> ModuleCreationFn {
 
 /// Helper function to create an advanced manufacturing module
 pub fn create_advanced_manufacturing_module() -> ModuleCreationFn {
-    Box::new(|ctx, station| {
+    Box::new(|dsl, station| {
         manufacturing::definitions::create_basic_manufacturing_module(
-            ctx,
+            dsl,
             station,
             false,
             manufacturing::definitions::ManufacturingType::AdvancedFactory,
@@ -441,9 +432,9 @@ pub fn create_advanced_manufacturing_module() -> ModuleCreationFn {
 
 /// Helper function to create a small solar array module
 pub fn create_small_solar_array_module() -> ModuleCreationFn {
-    Box::new(|ctx, station| {
+    Box::new(|dsl, station| {
         solar_array::definitions::create_basic_solar_array(
-            ctx,
+            dsl,
             station,
             false,
             solar_array::definitions::SolarArraySize::Small,
@@ -453,9 +444,9 @@ pub fn create_small_solar_array_module() -> ModuleCreationFn {
 
 /// Helper function to create a large solar array module
 pub fn create_large_solar_array_module() -> ModuleCreationFn {
-    Box::new(|ctx, station| {
+    Box::new(|dsl, station| {
         solar_array::definitions::create_basic_solar_array(
-            ctx,
+            dsl,
             station,
             false,
             solar_array::definitions::SolarArraySize::Large,
@@ -465,7 +456,7 @@ pub fn create_large_solar_array_module() -> ModuleCreationFn {
 
 /// Helper function to create a metal plate manufacturing module
 pub fn create_metal_plate_module() -> ModuleCreationFn {
-    Box::new(|ctx, station| {
-        manufacturing::definitions::create_metal_plate_module(ctx, station, false)
+    Box::new(|dsl, station| {
+        manufacturing::definitions::create_metal_plate_module(dsl, station, false)
     })
 }

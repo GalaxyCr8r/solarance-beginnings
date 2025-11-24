@@ -1,5 +1,5 @@
 use spacetimedb::{Identity, ReducerContext};
-use spacetimedsl::{dsl, Wrapper};
+use spacetimedsl::*;
 
 use crate::{
     tables::{players::PlayerId, server_messages::*},
@@ -12,9 +12,9 @@ pub fn mark_server_message_as_read(
     ctx: &ReducerContext,
     server_message_id: u64,
 ) -> Result<(), String> {
-    let player_id = PlayerId::new(ctx.sender);
-
     let dsl = dsl(ctx);
+
+    let player_id = PlayerId::new(dsl.ctx().sender);
 
     // Find the recipient record
     let recipient_opt = dsl
@@ -22,7 +22,7 @@ pub fn mark_server_message_as_read(
         .find(|r| r.get_server_message_id().value() == server_message_id);
 
     if let Some(mut recipient) = recipient_opt {
-        recipient.set_read_at(Some(ctx.timestamp));
+        recipient.set_read_at(Some(dsl.ctx().timestamp));
         dsl.update_server_message_recipient_by_id(recipient)?;
         Ok(())
     } else {
@@ -40,8 +40,9 @@ pub fn send_admin_message(
     message_type: ServerMessageType,
     group_name: Option<String>,
 ) -> Result<(), String> {
+    let dsl = dsl(ctx);
     // Authorization check - only server can send admin messages
-    try_server_only(ctx)?;
+    try_server_only(&dsl)?;
 
     // Validate input parameters
     if target_player_ids.is_empty() {
@@ -57,7 +58,7 @@ pub fn send_admin_message(
 
     // Send message using utility function
     send_server_message_to_group(
-        ctx,
+        &dsl,
         player_ids,
         message,
         message_type,
@@ -75,8 +76,9 @@ pub fn send_admin_message_to_player(
     message: String,
     message_type: ServerMessageType,
 ) -> Result<(), String> {
+    let dsl = dsl(ctx);
     // Authorization check - only server can send admin messages
-    try_server_only(ctx)?;
+    try_server_only(&dsl)?;
 
     // Validate input parameters
     if message.trim().is_empty() {
@@ -87,7 +89,7 @@ pub fn send_admin_message_to_player(
 
     // Send message using utility function
     send_server_message_to_player(
-        ctx,
+        &dsl,
         &player_id,
         message,
         message_type,

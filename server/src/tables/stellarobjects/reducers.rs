@@ -1,4 +1,5 @@
 use crate::tables::players::PlayerId;
+use spacetimedsl::*;
 
 use super::{ utility::*, * };
 
@@ -62,9 +63,11 @@ pub fn create_stellar_object(
     sector_id: SectorId,
     transform: StellarObjectTransformInternal
 ) -> Result<(), String> {
-    //server_only(ctx);
+    let dsl = dsl(ctx);
 
-    match create_sobj_internal(ctx, kind, &sector_id, transform) {
+    //server_only(&dsl);
+
+    match create_sobj_internal(&dsl, kind, &sector_id, transform) {
         Ok(_) => Ok(()),
         Err(e) => Err(e),
     }
@@ -74,10 +77,12 @@ pub fn create_stellar_object(
 /// Generates random position and rotation within predefined bounds.
 #[spacetimedb::reducer]
 pub fn create_sobj_random(ctx: &ReducerContext, sector_id: u64) -> Result<(), String> {
-    //server_only(ctx);
+    let dsl = dsl(ctx);
+
+    //server_only(&dsl);
 
     create_stellar_object(
-        ctx,
+        &dsl,
         StellarObjectKinds::Ship,
         SectorId::new(sector_id),
         StellarObjectTransformInternal {
@@ -97,7 +102,7 @@ pub fn create_sobj_random(ctx: &ReducerContext, sector_id: u64) -> Result<(), St
 // ) -> Result<(), String> {
 //     let dsl = dsl(ctx);
 
-//     is_server_or_owner(ctx, velocity.get_id())?;
+//     is_server_or_owner(&dsl, velocity.get_id())?;
 
 //     let mut update_velocity = velocity.clone();
 //     //let ship_def = dsl.get_ship_type_definition_by_id(dsl.get_ship_instance_by_id())

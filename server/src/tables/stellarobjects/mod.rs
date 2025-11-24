@@ -156,12 +156,10 @@ pub struct StellarObjectPlayerWindow {
 // Utilities
 
 pub fn same_sector_from_ids(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     id1: &StellarObjectId,
     id2: &StellarObjectId,
 ) -> bool {
-    let dsl = dsl(ctx);
-
     if let Ok(sobj1) = dsl.get_stellar_object_by_id(id1) {
         if let Ok(sobj2) = dsl.get_stellar_object_by_id(id2) {
             return sobj1.get_sector_id() == sobj2.get_sector_id();

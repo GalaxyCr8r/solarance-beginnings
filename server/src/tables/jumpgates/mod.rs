@@ -1,5 +1,5 @@
 use spacetimedb::{table, ReducerContext};
-use spacetimedsl::dsl;
+use spacetimedsl::*;
 
 use super::common::Vec2;
 
@@ -43,6 +43,6 @@ pub struct JumpGate {
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init(_ctx: &ReducerContext) -> Result<(), String> {
+pub fn init(_dsl: &DSL) -> Result<(), String> {
     Ok(())
 }

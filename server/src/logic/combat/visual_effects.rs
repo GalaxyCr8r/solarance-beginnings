@@ -1,5 +1,5 @@
 use spacetimedb::{ ReducerContext, Timestamp };
-use spacetimedsl::{ dsl, Wrapper };
+use spacetimedsl::*;
 
 use crate::tables::{
     items::{ ItemDefinition, ItemMetadata },
@@ -20,13 +20,11 @@ use crate::tables::combat::{
 /// Comprehensive server-side validation for combat actions
 /// This function performs all necessary checks before allowing combat
 pub fn validate_combat_action(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     source_sobj_id: u64,
     target_sobj_id: u64,
     is_missile: bool
 ) -> Result<(), CombatError> {
-    let dsl = dsl(ctx);
-
     // Validate source exists and is a ship
     let source_sobj = dsl
         .get_stellar_object_by_id(StellarObjectId::new(source_sobj_id))
@@ -128,11 +126,9 @@ pub fn has_sufficient_energy_for_action(
 
 /// Validate weapon equipment and return equipped weapons
 pub fn get_equipped_weapons(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     ship_id: ShipId
 ) -> Result<Vec<ShipEquipmentSlot>, CombatError> {
-    let dsl = dsl(ctx);
-
     let weapon_slots: Vec<ShipEquipmentSlot> = dsl
         .get_ship_equipment_slots_by_ship_id(ship_id)
         .filter(|slot| slot.get_slot_type() == &EquipmentSlotType::Weapon)
@@ -147,11 +143,9 @@ pub fn get_equipped_weapons(
 
 /// Validate missile equipment and return equipped missiles
 pub fn get_equipped_missiles(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     ship_id: ShipId
 ) -> Result<Vec<ShipEquipmentSlot>, CombatError> {
-    let dsl = dsl(ctx);
-
     let missile_slots: Vec<ShipEquipmentSlot> = dsl
         .get_ship_equipment_slots_by_ship_id(ship_id)
         .filter(|slot| slot.get_slot_type() == &EquipmentSlotType::Special)
@@ -192,13 +186,13 @@ pub fn log_combat_error(
 /// Test function to validate combat error handling
 /// This function can be used to test different error conditions
 pub fn test_combat_validation(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     source_sobj_id: u64,
     target_sobj_id: u64,
     is_missile: bool
 ) -> Result<String, CombatError> {
     // Test the validation function
-    validate_combat_action(ctx, source_sobj_id, target_sobj_id, is_missile)?;
+    validate_combat_action(dsl, source_sobj_id, target_sobj_id, is_missile)?;
 
     // If validation passes, return success message
     Ok(
@@ -300,15 +294,13 @@ impl DamageCalculation {
 /// Process weapon fire with hitscan damage calculation
 /// This function handles instant damage application for hitscan weapons
 pub fn process_weapon_fire(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     source_sobj_id: u64,
     target_sobj_id: u64,
     actual_location: glam::Vec2, // Where exactly did the projectile explode, used for AoE weapons
     _weapon_type: WeaponType,
     weapon_item_def: ItemDefinition // To get specific combat-related metadata
 ) -> Result<(), CombatError> {
-    let dsl = dsl(ctx);
-
     // Get source and target stellar objects
     let source_sobj = dsl.get_stellar_object_by_id(StellarObjectId::new(source_sobj_id))?;
 
@@ -455,7 +447,7 @@ pub fn process_weapon_fire(
 
             // Apply damage using the enhanced damage calculation system
             let target_destroyed = apply_damage_to_ship(
-                ctx,
+                dsl,
                 &mut target_ship_status,
                 &damage_calc
             )?;
@@ -482,7 +474,7 @@ pub fn process_weapon_fire(
 
     // Create visual effect
     create_visual_effect(
-        ctx,
+        dsl,
         source_pos,
         actual_location.into(),
         VisualEffectType::WeaponFire,
@@ -503,15 +495,13 @@ pub fn process_weapon_fire(
 /// Process missile fire as placeholder for future missile system
 /// This function will be expanded when the missile system is implemented
 pub fn process_missile_fire(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     source_sobj_id: u64,
     target_sobj_id: u64,
     actual_location: glam::Vec2, // Where exactly did the missile explode, used for AoE missiles
     missile_type: MissileType,
     missile_item_def: ItemDefinition // To get specific combat-related metadata
 ) -> Result<(), CombatError> {
-    let dsl = dsl(ctx);
-
     // Get source stellar object for position
     let source_sobj = dsl.get_stellar_object_by_id(StellarObjectId::new(source_sobj_id))?;
 
@@ -567,7 +557,7 @@ pub fn process_missile_fire(
     let source_pos = source_transform.to_vec2();
     let source_sector_id = source_ship.get_sector_id().value();
     create_visual_effect(
-        ctx,
+        dsl,
         source_pos,
         actual_location,
         VisualEffectType::MissileFire,
@@ -591,7 +581,7 @@ pub fn process_missile_fire(
 /// Apply calculated damage to a ship and handle destruction
 /// Returns true if the target was destroyed
 pub fn apply_damage_to_ship(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     target_ship_status: &mut ShipStatus,
     damage_calc: &DamageCalculation
 ) -> Result<bool, CombatError> {
@@ -623,7 +613,7 @@ pub fn apply_damage_to_ship(
 
     // Handle target destruction
     if target_destroyed {
-        handle_ship_destruction(ctx, target_ship_status)?;
+        handle_ship_destruction(dsl, target_ship_status)?;
     }
 
     Ok(target_destroyed)
@@ -631,7 +621,7 @@ pub fn apply_damage_to_ship(
 
 /// Handle ship destruction when hull health reaches zero
 fn handle_ship_destruction(
-    _ctx: &ReducerContext,
+    _dsl: &DSL,
     ship_status: &ShipStatus
 ) -> Result<(), CombatError> {
     spacetimedb::log::info!("Ship {} destroyed in combat", ship_status.get_id().value());
@@ -919,14 +909,12 @@ pub fn is_target_in_range(
 
 /// Create a visual effect and schedule its cleanup
 fn create_visual_effect(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     source_pos: glam::Vec2,
     target_pos: glam::Vec2,
     effect_type: VisualEffectType,
     sector_id: u64
 ) -> Result<(), CombatError> {
-    let dsl = dsl(ctx);
-
     // Create visual effect
     let visual_effect = dsl.create_visual_effect(
         SectorId::new(sector_id),
@@ -937,7 +925,7 @@ fn create_visual_effect(
 
     // Schedule cleanup after 10 milliseconds
     let cleanup_time = spacetimedb::ScheduleAt::Time(
-        Timestamp::from_micros_since_unix_epoch(ctx.timestamp.to_micros_since_unix_epoch() + 10_000)
+        Timestamp::from_micros_since_unix_epoch(dsl.ctx().timestamp.to_micros_since_unix_epoch() + 10_000)
     );
 
     dsl.create_visual_effect_timer(visual_effect.get_id(), cleanup_time)?;

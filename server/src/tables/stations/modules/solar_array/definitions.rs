@@ -2,13 +2,11 @@ use super::*;
 use crate::{definitions::item_types::*, tables::items::*};
 
 pub fn create_basic_solar_array(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     station: &Station,
     under_construction: bool,
     array_size: SolarArraySize,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     if under_construction {
         return Err("Not yet implemented".to_string());
     }
@@ -30,7 +28,7 @@ pub fn create_basic_solar_array(
         identifier.as_str(),
         true,
         None,
-        ctx.timestamp,
+        dsl.ctx().timestamp,
     )?;
 
     // Create solar array submodule

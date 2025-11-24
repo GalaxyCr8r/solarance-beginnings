@@ -1,6 +1,6 @@
 use log::info;
 use spacetimedb::{table, Identity, ReducerContext, SpacetimeType};
-use spacetimedsl::{dsl, Wrapper};
+use spacetimedsl::*;
 
 use crate::tables::{
     common::*, items::utility::*, items::*, sectors::*, stations::*,
@@ -218,8 +218,8 @@ pub struct ShipEquipmentSlot {
 // Init
 //////////////////////////////////////////////////////////////
 
-// pub fn init(ctx: &ReducerContext) -> Result<(), String> {
-//     timers::init(ctx)?;
+// pub fn init(dsl: &DSL) -> Result<(), String> {
+//     timers::init(dsl)?;
 
 //     Ok(())
 // }

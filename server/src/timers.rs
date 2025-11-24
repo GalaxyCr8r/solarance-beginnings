@@ -29,9 +29,7 @@ use crate::{
     },
 };
 
-pub fn initialize_timers(ctx: &ReducerContext) -> Result<(), String> {
-    let dsl = dsl(ctx); // Waiting for DSL implementation of timers
-
+pub fn initialize_timers(dsl: &DSL) -> Result<(), String> {
     // Stellar Objects
     dsl.create_all_transforms_timer(
         spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 20).into()),
@@ -56,7 +54,7 @@ pub fn initialize_timers(ctx: &ReducerContext) -> Result<(), String> {
                 .get_faction_station_check_timer_by_faction_id(faction.get_id())
                 .is_err()
             {
-                create_station_check_timer_for_faction(ctx, &faction.get_id())?;
+                create_station_check_timer_for_faction(dsl, &faction.get_id())?;
                 info!(
                     "Created station check timer for faction: {}",
                     faction.get_name()
@@ -67,7 +65,7 @@ pub fn initialize_timers(ctx: &ReducerContext) -> Result<(), String> {
 
     let timer = dsl.create_faction_management_timer(
         spacetimedb::ScheduleAt::Interval(Duration::from_secs(12 * 60 * 60).into()), // 12 hours
-        ctx.timestamp,
+        dsl.ctx().timestamp,
     )?;
 
     Ok(())

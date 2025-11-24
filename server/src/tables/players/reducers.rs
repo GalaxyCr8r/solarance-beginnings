@@ -1,5 +1,5 @@
 use spacetimedb::{Identity, ReducerContext};
-use spacetimedsl::{dsl, Wrapper};
+use spacetimedsl::*;
 
 use crate::definitions::factions::FACTION_FACTIONLESS;
 use crate::tables::{chats::*, factions::FactionId, server_messages::send_error_message};
@@ -40,7 +40,7 @@ pub fn register_playername(
 
         // Send server message for error feedback
         send_error_message(
-            ctx,
+            &dsl,
             &player_id,
             error_message.clone(),
             Some("Player Registration"),

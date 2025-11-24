@@ -26,8 +26,8 @@ pub struct SectorUpkeepTimer {
 /// Runs every 60 seconds to ensure asteroid sectors have proper upkeep timers.
 #[spacetimedb::reducer]
 pub fn sector_upkeep(ctx: &ReducerContext, _timer: SectorUpkeepTimer) -> Result<(), String> {
-    try_server_only(ctx)?;
     let dsl = dsl(ctx);
+    try_server_only(&dsl)?;
 
     // If a sector has an asteroid_sector entry associated with it, then update it
     for sector in dsl.get_all_asteroid_sectors() {

@@ -45,13 +45,13 @@ pub fn recalculate_sobj_transforms(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    try_server_only(ctx)?;
+    try_server_only(&dsl)?;
 
     // We're using this value to determine whether or not to update the lower resolution table.
     let mut update = timer;
     let low_resolution = update.current_update == 0;
 
-    move_stellar_objects(ctx)?;
+    move_stellar_objects(&dsl)?;
 
     // Update the value in the config table
     update.current_update = (update.current_update + 1) % 5; // TODO: Make this configurable
@@ -82,9 +82,7 @@ pub fn recalculate_sobj_transforms(
     Ok(())
 }
 
-pub fn __move_stellar_object(ctx: &ReducerContext, sobj: StellarObject) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
+pub fn __move_stellar_object(dsl: &DSL, sobj: StellarObject) -> Result<(), String> {
     let mut transform = dsl.get_sobj_internal_transform_by_id(&sobj)?;
     let mut velocity = dsl.get_sobj_velocity_by_id(&sobj)?;
 
@@ -112,7 +110,7 @@ pub fn __move_stellar_object(ctx: &ReducerContext, sobj: StellarObject) -> Resul
     if sobj.kind == StellarObjectKinds::CargoCrate {
         let cargo_crate = dsl.get_cargo_crate_by_sobj_id(sobj.get_id())?;
         if let Some(despawn_ts) = cargo_crate.get_despawn_ts() {
-            if *despawn_ts < ctx.timestamp {
+            if *despawn_ts < dsl.ctx().timestamp {
                 info!(
                     "Cargo Crate outlived its despawn timestamp. Deleting #{}!",
                     sobj.id
@@ -129,13 +127,13 @@ pub fn __move_stellar_object(ctx: &ReducerContext, sobj: StellarObject) -> Resul
 /// Updates position, rotation, and velocity for each object based on their current state.
 #[spacetimedb::reducer]
 pub fn move_stellar_objects(ctx: &ReducerContext) -> Result<(), String> {
-    try_server_only(ctx)?;
     let dsl = dsl(ctx);
+    try_server_only(dsl)?;
 
     // TODO Cache which sectors have players in them and only do fine updates in those.
 
     for object in dsl.get_all_stellar_objects() {
-        __move_stellar_object(ctx, object)?;
+        __move_stellar_object(&dsl, object)?;
     }
     Ok(())
 }
@@ -151,7 +149,7 @@ pub fn recalculate_player_windows(
     let dsl = dsl(ctx);
 
     // Bail out ASAP if there's no players connected.
-    if !global_config_any_active_players(ctx) {
+    if !global_config_any_active_players(dsl) {
         return Ok(());
     }
 

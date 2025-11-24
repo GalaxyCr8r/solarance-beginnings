@@ -23,7 +23,7 @@ pub fn process_npc_behavior_tick(
     Err("Not implemented".to_string())
 }
 
-pub fn init(_ctx: &ReducerContext) -> Result<(), String> {
+pub fn init(_dsl: &DSL) -> Result<(), String> {
     // NPC timer initialization will go here
     Ok(())
 }

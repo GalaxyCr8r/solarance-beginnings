@@ -70,8 +70,8 @@ pub struct NpcShipController {
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init(ctx: &ReducerContext) -> Result<(), String> {
-    timers::init(ctx)?;
+pub fn init(dsl: &DSL) -> Result<(), String> {
+    timers::init(dsl)?;
 
     Ok(())
 }

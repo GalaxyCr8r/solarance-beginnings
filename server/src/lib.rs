@@ -1,5 +1,5 @@
 use spacetimedb::ReducerContext;
-use spacetimedsl::dsl;
+use spacetimedsl::*;
 use tables::{common::*, *};
 
 pub mod admin;
@@ -13,9 +13,9 @@ pub mod utility;
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    combat::init(ctx)?;
+    combat::init(dsl)?;
 
-    definitions::init(ctx)?;
+    definitions::init(dsl)?;
 
     // Create a Global Config row, or reinitalize the one if it exists.
     if dsl.count_of_all_global_configurations() == 0 {

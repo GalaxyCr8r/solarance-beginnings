@@ -1,5 +1,5 @@
 use spacetimedb::*;
-use spacetimedsl::dsl;
+use spacetimedsl::*;
 
 use crate::tables::{factions::*, jumpgates::reducers::*, star_system::*};
 
@@ -82,8 +82,8 @@ pub struct AsteroidSector {
 //////////////////////////////////////////////////////////////
 
 impl Sector {
-    pub fn get(ctx: &ReducerContext, id: &SectorId) -> Result<Sector, String> {
-        Ok(dsl(ctx).get_sector_by_id(id)?)
+    pub fn get(dsl: &DSL, id: &SectorId) -> Result<Sector, String> {
+        Ok(dsl.get_sector_by_id(id)?)
     }
 }
 
@@ -92,7 +92,7 @@ impl Sector {
 
 /// Creates a jumpgate in each sector, using the direction of the each other sector's position
 pub fn connect_sectors_with_warpgates(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     a: &Sector,
     b: &Sector,
 ) -> Result<(), String> {
@@ -109,10 +109,10 @@ pub fn connect_sectors_with_warpgates(
     //info!("Sector WP Pos: A{} B{}", a_wp_pos, b_wp_pos);
 
     create_jumpgate_in_sector(
-        ctx, a.id, a_wp_pos.x, a_wp_pos.y, b.id, b_wp_pos.x, b_wp_pos.y,
+        dsl, a.id, a_wp_pos.x, a_wp_pos.y, b.id, b_wp_pos.x, b_wp_pos.y,
     )?;
     create_jumpgate_in_sector(
-        ctx, b.id, b_wp_pos.x, b_wp_pos.y, a.id, a_wp_pos.x, a_wp_pos.y,
+        dsl, b.id, b_wp_pos.x, b_wp_pos.y, a.id, a_wp_pos.x, a_wp_pos.y,
     )?;
 
     Ok(())

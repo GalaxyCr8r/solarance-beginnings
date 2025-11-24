@@ -16,13 +16,11 @@ pub const MODULE_MANUFACTURING_ASSEMBLER: u32 = 6_002;
 pub const MODULE_MANUFACTURING_SHIPYARD: u32 = 6_003;
 
 pub fn create_basic_manufacturing_module(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     station: &Station,
     under_construction: bool,
     manufacturing_type: ManufacturingType,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     if under_construction {
         return Err("Not yet implemented".to_string());
     }
@@ -43,7 +41,7 @@ pub fn create_basic_manufacturing_module(
         "Manufacturing",
         true,
         None,
-        ctx.timestamp,
+        dsl.ctx().timestamp,
     )?;
 
     // Create manufacturing submodule
@@ -58,7 +56,6 @@ pub fn create_basic_manufacturing_module(
 
     // Create basic inventory slots for common materials
     create_manufacturing_inventory_slot(
-        ctx,
         &dsl,
         &module,
         &blueprint,
@@ -66,7 +63,6 @@ pub fn create_basic_manufacturing_module(
         "iron_ingot",
     )?;
     create_manufacturing_inventory_slot(
-        ctx,
         &dsl,
         &module,
         &blueprint,
@@ -74,7 +70,6 @@ pub fn create_basic_manufacturing_module(
         "silicon_raw",
     )?;
     create_manufacturing_inventory_slot(
-        ctx,
         &dsl,
         &module,
         &blueprint,
@@ -84,7 +79,6 @@ pub fn create_basic_manufacturing_module(
 
     // Create slots for manufactured components
     create_manufacturing_inventory_slot(
-        ctx,
         &dsl,
         &module,
         &blueprint,
@@ -92,7 +86,6 @@ pub fn create_basic_manufacturing_module(
         "metal_plates",
     )?;
     create_manufacturing_inventory_slot(
-        ctx,
         &dsl,
         &module,
         &blueprint,
@@ -100,7 +93,6 @@ pub fn create_basic_manufacturing_module(
         "metal_linkages",
     )?;
     create_manufacturing_inventory_slot(
-        ctx,
         &dsl,
         &module,
         &blueprint,
@@ -114,7 +106,6 @@ pub fn create_basic_manufacturing_module(
         ManufacturingType::AdvancedFactory | ManufacturingType::ComponentAssembler
     ) {
         create_manufacturing_inventory_slot(
-            ctx,
             &dsl,
             &module,
             &blueprint,
@@ -122,7 +113,6 @@ pub fn create_basic_manufacturing_module(
             "computer_wafers",
         )?;
         create_manufacturing_inventory_slot(
-            ctx,
             &dsl,
             &module,
             &blueprint,
@@ -130,7 +120,6 @@ pub fn create_basic_manufacturing_module(
             "computer_chips",
         )?;
         create_manufacturing_inventory_slot(
-            ctx,
             &dsl,
             &module,
             &blueprint,
@@ -138,7 +127,6 @@ pub fn create_basic_manufacturing_module(
             "computer_board",
         )?;
         create_manufacturing_inventory_slot(
-            ctx,
             &dsl,
             &module,
             &blueprint,
@@ -150,7 +138,6 @@ pub fn create_basic_manufacturing_module(
     // Shipyard gets ship-specific components
     if matches!(manufacturing_type, ManufacturingType::ShipyardFabrication) {
         create_manufacturing_inventory_slot(
-            ctx,
             &dsl,
             &module,
             &blueprint,
@@ -158,7 +145,6 @@ pub fn create_basic_manufacturing_module(
             "hull_structure",
         )?;
         create_manufacturing_inventory_slot(
-            ctx,
             &dsl,
             &module,
             &blueprint,
@@ -166,7 +152,6 @@ pub fn create_basic_manufacturing_module(
             "ship_components",
         )?;
         create_manufacturing_inventory_slot(
-            ctx,
             &dsl,
             &module,
             &blueprint,
@@ -180,7 +165,7 @@ pub fn create_basic_manufacturing_module(
 
 /// Generic function to create a manufacturing module with a specific recipe
 pub fn create_manufacturing_module_and_recipe(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     station: &Station,
     module_name: &str,
     recipe_name: &str,
@@ -190,8 +175,6 @@ pub fn create_manufacturing_module_and_recipe(
     production_time_seconds: u32,
     under_construction: bool,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     if under_construction {
         return Err("Not yet implemented".to_string());
     }
@@ -206,7 +189,7 @@ pub fn create_manufacturing_module_and_recipe(
         module_name,
         true,
         None,
-        ctx.timestamp,
+        dsl.ctx().timestamp,
     )?;
 
     // Create the recipe
@@ -221,7 +204,7 @@ pub fn create_manufacturing_module_and_recipe(
     )?;
 
     // Create manufacturing submodule with the recipe
-    let _manufacturing = dsl.create_manufacturing_module(
+    dsl.create_manufacturing_module(
         module.get_id(),
         Some(recipe.get_id()), // Set the recipe
         true,                  // Start producing
@@ -233,7 +216,6 @@ pub fn create_manufacturing_module_and_recipe(
     // Create inventory slots for all input resources
     for input_resource in &input_resources {
         create_manufacturing_inventory_slot(
-            ctx,
             &dsl,
             &module,
             &blueprint,
@@ -244,7 +226,6 @@ pub fn create_manufacturing_module_and_recipe(
 
     // Create inventory slot for output resource
     create_manufacturing_inventory_slot(
-        ctx,
         &dsl,
         &module,
         &blueprint,
@@ -257,7 +238,7 @@ pub fn create_manufacturing_module_and_recipe(
 
 /// Create a basic manufacturing module that turns iron ingots and energy cells into metal plates
 pub fn create_metal_plate_module(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     station: &Station,
     under_construction: bool,
 ) -> Result<(), String> {
@@ -267,7 +248,7 @@ pub fn create_metal_plate_module(
     ];
 
     create_manufacturing_module_and_recipe(
-        ctx,
+        dsl,
         station,
         "metal_plate_factory",
         "Basic Metal Plate Production",
@@ -280,7 +261,6 @@ pub fn create_metal_plate_module(
 }
 
 fn create_manufacturing_inventory_slot(
-    _ctx: &ReducerContext,
     dsl: &DSL,
     module: &StationModule,
     blueprint: &StationModuleBlueprint,

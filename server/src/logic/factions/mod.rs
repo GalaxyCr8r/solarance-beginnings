@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use log::info;
 use spacetimedb::*;
-use spacetimedsl::{dsl, Wrapper};
+use spacetimedsl::*;
 
 use crate::{
     tables::{factions::*, sectors::*, ships::*, stations::*},
@@ -92,8 +92,8 @@ pub fn faction_station_check_timer_reducer(
     ctx: &ReducerContext,
     mut timer: FactionStationCheckTimer,
 ) -> Result<(), String> {
-    try_server_only(ctx)?;
     let dsl = dsl(ctx);
+    try_server_only(&dsl)?;
 
     info!(
         "Running station check for faction #{}",
@@ -136,7 +136,7 @@ pub fn faction_station_check_timer_reducer(
     }
 
     // Update the last check timestamp
-    timer.set_last_check_timestamp(ctx.timestamp);
+    timer.set_last_check_timestamp(dsl.ctx().timestamp);
     dsl.update_faction_station_check_timer_by_id(timer)?;
 
     Ok(())
@@ -149,8 +149,8 @@ pub fn faction_ship_reaction_timer_reducer(
     ctx: &ReducerContext,
     timer: FactionShipReactionTimer,
 ) -> Result<(), String> {
-    try_server_only(ctx)?;
     let dsl = dsl(ctx);
+    try_server_only(&dsl)?;
 
     // Remove the timer as it's a one-time reaction
     dsl.delete_faction_ship_reaction_timer_by_id(&timer)?;
@@ -205,8 +205,8 @@ pub fn faction_management_timer_reducer(
     ctx: &ReducerContext,
     mut timer: FactionManagementTimer,
 ) -> Result<(), String> {
-    try_server_only(ctx)?;
     let dsl = dsl(ctx);
+    try_server_only(&dsl)?;
 
     info!("Running faction management timer - checking all faction timers");
 
@@ -249,7 +249,7 @@ pub fn faction_management_timer_reducer(
     }
 
     // Update the last management timestamp
-    timer.set_last_management_timestamp(ctx.timestamp);
+    timer.set_last_management_timestamp(dsl.ctx().timestamp);
     dsl.update_faction_management_timer_by_id(timer)?;
 
     info!("Faction management timer completed successfully");
@@ -260,14 +260,12 @@ pub fn faction_management_timer_reducer(
 /// Logic utilities
 
 /// Creates the faction management timer if it doesn't already exist
-pub fn create_faction_management_timer_if_needed(ctx: &ReducerContext) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
+pub fn create_faction_management_timer_if_needed(dsl: &DSL) -> Result<(), String> {
     // Check if management timer already exists
     if dsl.get_all_faction_management_timers().next().is_none() {
         let timer = dsl.create_faction_management_timer(
             spacetimedb::ScheduleAt::Interval(Duration::from_secs(12 * 60 * 60).into()), // 12 hours
-            ctx.timestamp,
+            dsl.ctx().timestamp,
         )?;
 
         info!(
@@ -281,15 +279,13 @@ pub fn create_faction_management_timer_if_needed(ctx: &ReducerContext) -> Result
 
 /// Creates a station check timer for a faction - runs every 4 hours
 pub fn create_station_check_timer_for_faction(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     faction_id: &FactionId,
 ) -> Result<FactionStationCheckTimer, String> {
-    let dsl = dsl(ctx);
-
     let timer = dsl.create_faction_station_check_timer(
         spacetimedb::ScheduleAt::Interval(Duration::from_secs(4 * 60 * 60).into()), // 4 hours
         faction_id,
-        ctx.timestamp,
+        dsl.ctx().timestamp,
     )?;
 
     info!(
@@ -301,21 +297,19 @@ pub fn create_station_check_timer_for_faction(
 
 /// Creates a ship reaction timer for when a faction ship is destroyed
 pub fn create_ship_reaction_timer_for_faction(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     faction_id: &FactionId,
     aggressor_faction_id: Option<&FactionId>,
     destroyed_ship_type_id: &ShipTypeDefinitionId,
     destruction_sector_id: &SectorId,
 ) -> Result<FactionShipReactionTimer, String> {
-    let dsl = dsl(ctx);
-
     let timer = dsl.create_faction_ship_reaction_timer(
         spacetimedb::ScheduleAt::Interval(Duration::from_secs(30).into()), // 30 second delay
         faction_id,
         aggressor_faction_id.cloned(),
         destroyed_ship_type_id,
         destruction_sector_id,
-        ctx.timestamp,
+        dsl.ctx().timestamp,
     )?;
 
     info!(
@@ -330,13 +324,11 @@ pub fn create_ship_reaction_timer_for_faction(
 /// Updates faction standing between two factions
 /// Creates a new standing if one doesn't exist
 pub fn update_faction_standing(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     faction_one_id: &FactionId,
     faction_two_id: &FactionId,
     reputation_change: i32,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     // Look for existing standing
     for mut standing in dsl.get_all_faction_standings() {
         if standing.get_faction_one_id().value() == faction_one_id.value()
@@ -351,8 +343,8 @@ pub fn update_faction_standing(
 
             info!(
                 "Updated standing between {} and {}: {} -> {}",
-                get_faction_name(ctx, faction_one_id),
-                get_faction_name(ctx, faction_two_id),
+                get_faction_name(dsl, faction_one_id),
+                get_faction_name(dsl, faction_two_id),
                 new_reputation - reputation_change,
                 clamped_reputation
             );
@@ -366,8 +358,8 @@ pub fn update_faction_standing(
 
     info!(
         "Created new standing between {} and {}: {}",
-        get_faction_name(ctx, faction_one_id),
-        get_faction_name(ctx, faction_two_id),
+        get_faction_name(dsl, faction_one_id),
+        get_faction_name(dsl, faction_two_id),
         initial_reputation
     );
 

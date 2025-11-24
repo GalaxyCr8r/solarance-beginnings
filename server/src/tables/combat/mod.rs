@@ -1,5 +1,5 @@
 use spacetimedb::{ table, ReducerContext, ScheduleAt, SpacetimeType, Timestamp };
-use spacetimedsl::{ dsl, Wrapper };
+use spacetimedsl::*;
 
 use crate::tables::common::Vec2;
 use crate::tables::npcs::NpcShipController;
@@ -158,8 +158,8 @@ pub struct VisualEffect {
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init(ctx: &ReducerContext) -> Result<(), String> {
-    timers::init(ctx)?;
+pub fn init(dsl: &DSL) -> Result<(), String> {
+    timers::init(dsl)?;
 
     Ok(())
 }

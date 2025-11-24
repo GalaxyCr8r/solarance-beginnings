@@ -1,7 +1,7 @@
 
 use log::info;
 use spacetimedb::{table, Identity, ReducerContext, SpacetimeType, TimeDuration};
-use spacetimedsl::{dsl, Wrapper};
+use spacetimedsl::*;
 
 use crate::{
     logic::factions::CreateFactionShipReactionTimerRow,
@@ -112,9 +112,7 @@ pub struct FactionStanding {
 /// Utilities
 
 /// Gets the faction name for display purposes, with fallback for unknown factions
-pub fn get_faction_name(ctx: &ReducerContext, faction_id: &FactionId) -> String {
-    let dsl = dsl(ctx);
-
+pub fn get_faction_name(dsl: &DSL, faction_id: &FactionId) -> String {
     if let Ok(faction) = dsl.get_faction_by_id(faction_id) {
         faction.get_name().clone()
     } else {
@@ -123,9 +121,7 @@ pub fn get_faction_name(ctx: &ReducerContext, faction_id: &FactionId) -> String 
 }
 
 /// Checks if a faction exists and is joinable by players
-pub fn is_faction_joinable(ctx: &ReducerContext, faction_id: &FactionId) -> bool {
-    let dsl = dsl(ctx);
-
+pub fn is_faction_joinable(dsl: &DSL, faction_id: &FactionId) -> bool {
     if let Ok(faction) = dsl.get_faction_by_id(faction_id) {
         *faction.get_joinable()
     } else {
@@ -134,9 +130,7 @@ pub fn is_faction_joinable(ctx: &ReducerContext, faction_id: &FactionId) -> bool
 }
 
 /// Gets the faction tier for a given faction
-pub fn get_faction_tier(ctx: &ReducerContext, faction_id: &FactionId) -> Option<FactionTier> {
-    let dsl = dsl(ctx);
-
+pub fn get_faction_tier(dsl: &DSL, faction_id: &FactionId) -> Option<FactionTier> {
     if let Ok(faction) = dsl.get_faction_by_id(faction_id) {
         Some(faction.get_tier().clone())
     } else {
@@ -147,12 +141,10 @@ pub fn get_faction_tier(ctx: &ReducerContext, faction_id: &FactionId) -> Option<
 /// Gets the reputation score between two factions
 /// Returns 0 (neutral) if no standing exists
 pub fn get_faction_reputation(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     faction_one_id: &FactionId,
     faction_two_id: &FactionId,
 ) -> i32 {
-    let dsl = dsl(ctx);
-
     // Look for existing standing between the factions
     for standing in dsl.get_all_faction_standings() {
         if standing.get_faction_one_id().value() == faction_one_id.value()
@@ -168,59 +160,55 @@ pub fn get_faction_reputation(
 
 /// Checks if two factions are hostile to each other (reputation < -50)
 pub fn are_factions_hostile(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     faction_one_id: &FactionId,
     faction_two_id: &FactionId,
 ) -> bool {
-    get_faction_reputation(ctx, faction_one_id, faction_two_id) < -50
+    get_faction_reputation(dsl, faction_one_id, faction_two_id) < -50
 }
 
 /// Checks if two factions are allied (reputation > 50)
 pub fn are_factions_allied(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     faction_one_id: &FactionId,
     faction_two_id: &FactionId,
 ) -> bool {
-    get_faction_reputation(ctx, faction_one_id, faction_two_id) > 50
+    get_faction_reputation(dsl, faction_one_id, faction_two_id) > 50
 }
 
 /// Gets all stations belonging to a specific faction
-pub fn get_faction_stations(ctx: &ReducerContext, faction_id: &FactionId) -> Vec<Station> {
-    let dsl = dsl(ctx);
-
+pub fn get_faction_stations(dsl: &DSL, faction_id: &FactionId) -> Vec<Station> {
     dsl.get_all_stations()
         .filter(|station| station.get_owner_faction_id().value() == faction_id.value())
         .collect()
 }
 
 /// Gets all ships belonging to a specific faction
-pub fn get_faction_ships(ctx: &ReducerContext, faction_id: &FactionId) -> Vec<Ship> {
-    let dsl = dsl(ctx);
-
+pub fn get_faction_ships(dsl: &DSL, faction_id: &FactionId) -> Vec<Ship> {
     dsl.get_all_ships()
         .filter(|ship| ship.get_faction_id().value() == faction_id.value())
         .collect()
 }
 
 /// Counts the total number of stations controlled by a faction
-pub fn count_faction_stations(ctx: &ReducerContext, faction_id: &FactionId) -> usize {
-    get_faction_stations(ctx, faction_id).len()
+pub fn count_faction_stations(dsl: &DSL, faction_id: &FactionId) -> usize {
+    get_faction_stations(dsl, faction_id).len()
 }
 
 /// Counts the total number of ships controlled by a faction
-pub fn count_faction_ships(ctx: &ReducerContext, faction_id: &FactionId) -> usize {
-    get_faction_ships(ctx, faction_id).len()
+pub fn count_faction_ships(dsl: &DSL, faction_id: &FactionId) -> usize {
+    get_faction_ships(dsl, faction_id).len()
 }
 
 /// Gets all sectors where a faction has presence (stations or significant ship activity)
 pub fn get_faction_controlled_sectors(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     faction_id: &FactionId,
 ) -> Vec<SectorId> {
     let mut controlled_sectors = Vec::new();
 
     // Add sectors with faction stations
-    for station in get_faction_stations(ctx, faction_id) {
+    for station in get_faction_stations(dsl, faction_id) {
         let sector_id = station.get_sector_id();
         if !controlled_sectors.contains(&sector_id) {
             controlled_sectors.push(sector_id.clone());
@@ -235,7 +223,7 @@ pub fn get_faction_controlled_sectors(
 
 /// Handles when a faction ship is destroyed - creates reaction timer
 pub fn handle_faction_ship_destroyed(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     destroyed_ship: &Ship,
     aggressor_faction_id: Option<&FactionId>,
     destruction_sector_id: &SectorId,
@@ -244,18 +232,18 @@ pub fn handle_faction_ship_destroyed(
 
     // Only react if it's a faction ship (not player-owned)
     if destroyed_ship.get_player_id().value() == Identity::ONE {
-        dsl(ctx).create_faction_ship_reaction_timer(
+        dsl.create_faction_ship_reaction_timer(
             spacetimedb::ScheduleAt::Interval(TimeDuration::from_micros(1000)),
             &faction_id,
             aggressor_faction_id.cloned(),
             &destroyed_ship.get_shiptype_id(),
             destruction_sector_id,
-            ctx.timestamp,
+            dsl.ctx().timestamp,
         );
 
         info!(
             "Faction {} will react to the destruction of their {} in sector #{}",
-            get_faction_name(ctx, &faction_id),
+            get_faction_name(dsl, &faction_id),
             destroyed_ship.get_shiptype_id().value(),
             destruction_sector_id.value()
         );
@@ -265,9 +253,7 @@ pub fn handle_faction_ship_destroyed(
 }
 
 /// Gets a list of all joinable factions for player selection
-pub fn get_joinable_factions(ctx: &ReducerContext) -> Vec<Faction> {
-    let dsl = dsl(ctx);
-
+pub fn get_joinable_factions(dsl: &DSL) -> Vec<Faction> {
     dsl.get_all_factions()
         .filter(|faction| *faction.get_joinable())
         .collect()
@@ -275,11 +261,9 @@ pub fn get_joinable_factions(ctx: &ReducerContext) -> Vec<Faction> {
 
 /// Gets faction capital station if it exists
 pub fn get_faction_capital_station(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     faction_id: &FactionId,
 ) -> Option<Station> {
-    let dsl = dsl(ctx);
-
     if let Ok(faction) = dsl.get_faction_by_id(faction_id) {
         if let Some(capital_station_id) = faction.get_capital_station_id() {
             if let Ok(station) = dsl.get_station_by_id(&StationId::new(*capital_station_id)) {

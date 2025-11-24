@@ -8,7 +8,7 @@ use crate::tables::sectors::SectorId;
 use super::*;
 
 pub fn create_sobj_vec2(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     kind: StellarObjectKinds,
     sector_id: &SectorId,
     position: Vec2,
@@ -20,44 +20,40 @@ pub fn create_sobj_vec2(
         id: 0,                 // Default id
     };
 
-    create_sobj_internal(ctx, kind, sector_id, transform)
+    create_sobj_internal(dsl, kind, sector_id, transform)
 }
 
 pub fn create_sobj_internal(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     kind: StellarObjectKinds,
     sector_id: &SectorId,
     transform: StellarObjectTransformInternal,
 ) -> Result<StellarObject, String> {
-    let dsl = dsl(ctx);
-
     let sobj = dsl.create_stellar_object(kind, sector_id)?;
 
-    let _ = dsl.create_sobj_internal_transform(
+    dsl.create_sobj_internal_transform(
         &sobj,
         transform.x,
         transform.y,
         transform.rotation_radians,
     )?;
-    let _ = dsl.create_sobj_velocity(&sobj, 0.0, 0.0, 0.0, None)?;
+    dsl.create_sobj_velocity(&sobj, 0.0, 0.0, 0.0, None)?;
 
     //spacetimedb::log::info!("Created stellar object #{}!", sobj.id);
     return Ok(sobj);
 }
 
 pub fn create_sobj_pos(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     kind: StellarObjectKinds,
     sector_id: &SectorId,
     x: f32,
     y: f32,
 ) -> Result<StellarObject, String> {
-    let dsl = dsl(ctx);
-
     let sobj = dsl.create_stellar_object(kind, sector_id)?;
 
-    let _ = dsl.create_sobj_internal_transform(&sobj, x, y, 0.0)?;
-    let _ = dsl.create_sobj_velocity(&sobj, 0.0, 0.0, 0.0, None)?;
+    dsl.create_sobj_internal_transform(&sobj, x, y, 0.0)?;
+    dsl.create_sobj_velocity(&sobj, 0.0, 0.0, 0.0, None)?;
 
     //spacetimedb::log::info!("Created stellar object #{}!", sobj.id);
     return Ok(sobj);
@@ -65,7 +61,7 @@ pub fn create_sobj_pos(
 
 /// Creates a stellar object
 pub fn create_sobj_with_random_velocity(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     kind: StellarObjectKinds,
     sector_id: &SectorId,
     x: f32,
@@ -73,17 +69,15 @@ pub fn create_sobj_with_random_velocity(
     velocity: f32,
     auto_dampen: Option<f32>,
 ) -> Result<StellarObject, String> {
-    let dsl = dsl(ctx);
-
     let sobj = dsl.create_stellar_object(kind, sector_id)?;
 
     let _transform = dsl.create_sobj_internal_transform(&sobj, x, y, 0.0)?;
-    let random_angle = Vec2::from_angle(ctx.rng().gen_range(0.0..2.0 * PI)) * velocity;
-    let _velocity = dsl.create_sobj_velocity(
+    let random_angle = Vec2::from_angle(dsl.ctx().rng().gen_range(0.0..2.0 * PI)) * velocity;
+    dsl.create_sobj_velocity(
         &sobj,
         random_angle.x,
         random_angle.y,
-        ctx.rng().gen_range(random_angle.to_angle()..2.1 * PI),
+        dsl.ctx().rng().gen_range(random_angle.to_angle()..2.1 * PI),
         auto_dampen,
     )?;
 

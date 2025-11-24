@@ -5,15 +5,13 @@ use crate::{
 };
 
 pub fn create_basic_refinery_module(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     station: &Station,
     under_construction: bool,
     input_resource: ItemDefinitionId,
     output_resource: ItemDefinitionId,
     waste_resource: Option<ItemDefinitionId>,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-    //
     if under_construction {
         return Err("Not yet implemented".to_string());
     }
@@ -30,7 +28,7 @@ pub fn create_basic_refinery_module(
         identifier.as_str(), // TODO: Do we even need this field?
         true,
         None,
-        ctx.timestamp,
+        dsl.ctx().timestamp,
     )?;
 
     // Submodule

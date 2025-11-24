@@ -29,7 +29,7 @@ pub fn create_jumpgate_in_sector(
     let current_sector_id = SectorId::new(sector_id);
 
     let sobj = create_sobj_vec2(
-        ctx,
+        &dsl,
         StellarObjectKinds::JumpGate,
         &current_sector_id,
         glam::Vec2::new(x, y),

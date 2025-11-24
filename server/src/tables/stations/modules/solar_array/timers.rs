@@ -3,12 +3,10 @@ use crate::tables::sectors::{GetSectorRowOptionById, Sector, SectorId};
 
 /// Calculate the energy production for a solar array module
 pub fn calculate_solar_array_production(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     solar_array: &SolarArray,
     time_elapsed_hours: f32,
 ) -> Result<SolarArrayProductionResult, String> {
-    let dsl = dsl(ctx);
-
     // Get sector information to determine sunlight availability
     let station_module = dsl.get_station_module_by_id(solar_array.get_id())?;
     let station = dsl.get_station_by_id(StationId::new(station_module.station_id))?;
@@ -20,7 +18,7 @@ pub fn calculate_solar_array_production(
     // Calculate total efficiency
     let total_efficiency = solar_array.current_efficiency_modifier
         * sunlight_efficiency
-        * calculate_station_health_modifier(ctx, &dsl, &station)?;
+        * calculate_station_health_modifier(&dsl, &station)?;
 
     // Module operational status
     let operational_efficiency = if station_module.is_operational {
@@ -81,7 +79,6 @@ fn calculate_sunlight_efficiency(sector: &Sector) -> f32 {
 
 /// Calculate station health modifier for efficiency
 fn calculate_station_health_modifier(
-    _ctx: &ReducerContext,
     dsl: &DSL,
     station: &Station,
 ) -> Result<f32, String> {
@@ -94,12 +91,10 @@ fn calculate_station_health_modifier(
 
 /// Apply the calculated production results to the solar array's inventory
 pub fn apply_solar_array_production(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     solar_array: &SolarArray,
     production_result: &SolarArrayProductionResult,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     if production_result.energy_cells_produced == 0 {
         return Ok(());
     }
@@ -125,18 +120,16 @@ pub fn apply_solar_array_production(
 
 /// Calculate and update efficiency modifiers for solar array
 pub fn calculate_solar_array_efficiency(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     solar_array: &SolarArray,
 ) -> Result<f32, String> {
-    let dsl = dsl(ctx);
-
     let station_module = dsl.get_station_module_by_id(solar_array.get_id())?;
     let station = dsl.get_station_by_id(StationId::new(station_module.station_id))?;
     let sector = dsl.get_sector_by_id(SectorId::new(station.sector_id))?;
 
     // Calculate combined efficiency
     let sunlight_efficiency = calculate_sunlight_efficiency(&sector);
-    let health_modifier = calculate_station_health_modifier(ctx, &dsl, &station)?;
+    let health_modifier = calculate_station_health_modifier(&dsl, &station)?;
 
     let total_efficiency =
         solar_array.current_efficiency_modifier * sunlight_efficiency * health_modifier;

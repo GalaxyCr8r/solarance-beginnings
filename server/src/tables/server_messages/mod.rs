@@ -113,14 +113,12 @@ impl ServerMessageRecipient {
 
 /// Send message to individual player (server-only)
 pub fn send_server_message_to_player(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     player_id: &PlayerId,
     message: String,
     message_type: ServerMessageType,
     sender_context: Option<String>,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     // Create the server message
     let server_message = dsl.create_server_message(
         &message,
@@ -134,7 +132,7 @@ pub fn send_server_message_to_player(
         ServerMessageId::new(server_message.id),
         player_id.clone(),
         None, // read_at starts as None
-        ctx.timestamp,
+        dsl.ctx().timestamp,
     )?;
 
     Ok(())
@@ -142,15 +140,13 @@ pub fn send_server_message_to_player(
 
 /// Send message to multiple players with optional group name (server-only)
 pub fn send_server_message_to_group(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     player_ids: Vec<PlayerId>,
     message: String,
     message_type: ServerMessageType,
     group_name: Option<String>,
     sender_context: Option<String>,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     if player_ids.is_empty() {
         return Err("Cannot send message to empty group".to_string());
     }
@@ -165,7 +161,7 @@ pub fn send_server_message_to_group(
             ServerMessageId::new(server_message.id),
             player_id,
             None, // read_at starts as None
-            ctx.timestamp,
+            dsl.ctx().timestamp,
         )?;
     }
 
@@ -174,13 +170,13 @@ pub fn send_server_message_to_group(
 
 /// Convenience function for error messages from reducers (server-only)
 pub fn send_error_message(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     player_id: &PlayerId,
     message: String,
     action_context: Option<&str>,
 ) -> Result<(), String> {
     send_server_message_to_player(
-        ctx,
+        dsl,
         player_id,
         message,
         ServerMessageType::Error,
@@ -190,13 +186,13 @@ pub fn send_error_message(
 
 /// Convenience function for info messages from reducers (server-only)
 pub fn send_info_message(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     player_id: &PlayerId,
     message: String,
     action_context: Option<&str>,
 ) -> Result<(), String> {
     send_server_message_to_player(
-        ctx,
+        dsl,
         player_id,
         message,
         ServerMessageType::Info,
@@ -206,13 +202,13 @@ pub fn send_info_message(
 
 /// Convenience function for warning messages from reducers (server-only)
 pub fn send_warning_message(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     player_id: &PlayerId,
     message: String,
     action_context: Option<&str>,
 ) -> Result<(), String> {
     send_server_message_to_player(
-        ctx,
+        dsl,
         player_id,
         message,
         ServerMessageType::Warning,
@@ -222,13 +218,13 @@ pub fn send_warning_message(
 
 /// Convenience function for admin messages from reducers (server-only)
 pub fn send_admin_message(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     player_id: &PlayerId,
     message: String,
     action_context: Option<&str>,
 ) -> Result<(), String> {
     send_server_message_to_player(
-        ctx,
+        dsl,
         player_id,
         message,
         ServerMessageType::Admin,
@@ -237,9 +233,7 @@ pub fn send_admin_message(
 }
 
 /// Get unread message count for a player
-pub fn get_unread_message_count(ctx: &ReducerContext, player_id: &PlayerId) -> u64 {
-    let dsl = dsl(ctx);
-
+pub fn get_unread_message_count(dsl: &DSL, player_id: &PlayerId) -> u64 {
     dsl.get_server_message_recipients_by_player_id(player_id)
         .filter(|recipient| recipient.read_at.is_none())
         .count() as u64
@@ -247,11 +241,9 @@ pub fn get_unread_message_count(ctx: &ReducerContext, player_id: &PlayerId) -> u
 
 /// Get all unread messages for a player
 pub fn get_unread_messages_for_player(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     player_id: &PlayerId,
 ) -> Result<Vec<(ServerMessage, ServerMessageRecipient)>, String> {
-    let dsl = dsl(ctx);
-
     let unread_recipients: Vec<ServerMessageRecipient> = dsl
         .get_server_message_recipients_by_player_id(player_id)
         .filter(|recipient| recipient.read_at.is_none())
@@ -276,11 +268,10 @@ pub fn get_unread_messages_for_player(
 
 /// Mark a message as read for a specific player
 pub fn mark_message_as_read(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     player_id: &PlayerId,
     server_message_id: u64,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
 
     // Find the recipient record
     let recipient_opt = dsl
@@ -288,7 +279,7 @@ pub fn mark_message_as_read(
         .find(|r| r.server_message_id == server_message_id);
 
     if let Some(mut recipient) = recipient_opt {
-        recipient.read_at = Some(ctx.timestamp);
+        recipient.read_at = Some(dsl.ctx().timestamp);
         dsl.update_server_message_recipient_by_id(recipient)?;
         Ok(())
     } else {

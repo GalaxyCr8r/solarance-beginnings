@@ -5,12 +5,10 @@ use super::*;
 /// Calculate the production output for a refinery module based on available input resources
 /// and current efficiency modifiers. Only produces whole units of output.
 pub fn calculate_refinery_production(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     refinery: &Refinery,
     _time_elapsed_hours: f32,
 ) -> Result<RefineryProductionResult, String> {
-    let dsl = dsl(ctx);
-
     // Get the station module to access inventory
     let station_module = dsl.get_station_module_by_id(refinery.get_id())?;
 
@@ -106,12 +104,10 @@ pub fn calculate_refinery_production(
 
 /// Apply the calculated production results to the refinery's inventory
 pub fn apply_refinery_production(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     refinery: &Refinery,
     production_result: &RefineryProductionResult,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     if production_result.ingots_produced == 0 {
         spacetimedb::log::info!("No ingots produced, skipping production application");
         return Ok(()); // No production to apply
@@ -226,11 +222,9 @@ pub fn apply_refinery_production(
 
 /// Calculate efficiency modifiers based on station conditions, upgrades, etc.
 pub fn calculate_refinery_efficiency(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     refinery: &Refinery,
 ) -> Result<f32, String> {
-    let dsl = dsl(ctx);
-
     // Get the station module to check conditions
     let station_module = dsl.get_station_module_by_id(refinery.get_id())?;
     let station = dsl.get_station_by_id(StationId::new(station_module.station_id))?;
