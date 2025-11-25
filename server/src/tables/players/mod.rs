@@ -1,5 +1,5 @@
 use spacetimedb::{table, Identity, ReducerContext, Timestamp};
-use spacetimedsl::{dsl, Wrapper};
+use spacetimedsl::*;
 
 use crate::tables::factions::FactionId;
 
@@ -44,6 +44,6 @@ pub struct Player {
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init(_ctx: &ReducerContext) -> Result<(), String> {
+pub fn init(_dsl: &DSL) -> Result<(), String> {
     Ok(())
 }

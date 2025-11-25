@@ -19,21 +19,19 @@ use crate::{
 /// Object-type Logic
 
 pub fn try_mining_asteroid(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     controller: &PlayerShipController,
     ship_object: &Ship,
     ship_sobj: &StellarObject,
     asteroid_sobj: &StellarObject,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     if !controller.get_mining_laser_on() {
         return Ok(());
     }
 
     // If the player is trying to mine and is targetting an asteroid, create a mining timer.
     if ship_sobj
-        .distance_squared(ctx, asteroid_sobj)
+        .distance_squared(dsl, asteroid_sobj)
         .is_ok_and(|d| d < (300.0_f32).powi(2))
     {
         // Check if the player is already mining this asteroid
@@ -43,22 +41,22 @@ pub fn try_mining_asteroid(
         {
             // Only add if there is no mining timer for this ship and asteroid.
             let _ = send_info_message(
-                ctx,
+                dsl,
                 &controller.get_id(),
                 format!(
                     "Player {} started mining asteroid #{}!",
-                    get_username(ctx, controller.get_id().value()),
+                    get_username(dsl, controller.get_id().value()),
                     asteroid_sobj.get_id().value()
                 ),
                 Some("mining"),
-            );
+            ); // Should this Error really be suppressed?
             info!(
                 "Player {} started mining asteroid #{}!",
-                get_username(ctx, controller.get_id().value()),
+                get_username(dsl, controller.get_id().value()),
                 asteroid_sobj.get_id().value()
             );
             let _ = create_mining_timer_for_ship(
-                ctx,
+                dsl,
                 &ship_object.get_sobj_id(),
                 &asteroid_sobj.get_id(),
             )?;
@@ -69,7 +67,7 @@ pub fn try_mining_asteroid(
 }
 
 pub fn try_to_dock_to_station(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     player_ship_obj: &Ship,
     ship_sobj: &StellarObject,
     station: &Station,
@@ -79,25 +77,23 @@ pub fn try_to_dock_to_station(
     // If not, check faction standing
 
     info!("Trying to dock to station!");
-    dock_to_station(ctx, player_ship_obj, ship_sobj, station)?;
+    dock_to_station(dsl, player_ship_obj, ship_sobj, station)?;
 
     Ok(())
 }
 
 pub fn try_to_use_jumpgate(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     player_ship_obj: &Ship,
     jumpgate: &JumpGate,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     let mut ship_status = dsl.get_ship_status_by_id(player_ship_obj.get_id())?;
 
     // Jump once they have more than 100 energy
     if *ship_status.get_energy() > 100.0 {
         ship_status.set_energy(ship_status.get_energy() - 100.0);
         dsl.update_ship_status_by_id(ship_status)?;
-        //teleport_via_jumpgate(ctx, player_ship_obj.clone(), jumpgate)?;
+        //teleport_via_jumpgate(dsl, player_ship_obj.clone(), jumpgate)?;
         let mut ship = player_ship_obj.clone();
 
         let pos: &crate::tables::common::Vec2 = jumpgate.get_target_gate_arrival_pos();
@@ -119,7 +115,7 @@ pub fn try_to_use_jumpgate(
         }
 
         send_info_message(
-            ctx,
+            dsl,
             &ship.get_player_id(),
             format!(
                 "Jumped successfully via jumpgate to sector #{}: {}",

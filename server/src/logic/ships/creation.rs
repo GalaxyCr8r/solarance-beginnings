@@ -1,6 +1,6 @@
 use log::info;
 use spacetimedb::{Identity, ReducerContext};
-use spacetimedsl::{dsl, Wrapper};
+use spacetimedsl::*;
 
 use crate::{
     definitions::item_types::*,
@@ -41,7 +41,7 @@ pub fn create_player_controlled_ship(
 
             // Send server message for error feedback
             send_error_message(
-                ctx,
+                &dsl,
                 &player_id,
                 error_message.clone(),
                 Some("Ship Creation"),
@@ -52,32 +52,32 @@ pub fn create_player_controlled_ship(
     };
 
     if let Ok(sobj) = create_sobj_internal(
-        ctx,
+        &dsl,
         StellarObjectKinds::Ship,
         &SectorId::new(0), // TODO: Make this the proper sector id!
         StellarObjectTransformInternal::default().from_xy(64.0, 64.0),
     ) {
-        let _ = create_sobj_player_window_for(ctx, identity, sobj.get_id())?;
-        initialize_player_controller(ctx, &player_id, &sobj)?;
+        let _ = create_sobj_player_window_for(&dsl, identity, sobj.get_id())?;
+        initialize_player_controller(&dsl, &player_id, &sobj)?;
 
         let ship_type = dsl.get_ship_type_definition_by_id(ShipTypeDefinitionId::new(1001))?;
         let faction_id = player.get_faction_id().clone();
         let (ship, mut status) =
-            create_ship_from_sobj(ctx, &ship_type, &player_id, &faction_id, &sobj)?;
+            create_ship_from_sobj(&dsl, &ship_type, &player_id, &faction_id, &sobj)?;
 
-        let _ = attempt_to_load_cargo_into_ship(
-            ctx,
+        attempt_to_load_cargo_into_ship(
+            &dsl,
             &mut status,
             &ship.get_id(),
-            &get_item_definition(ctx, ITEM_FOOD_RATIONS)?,
+            &get_item_definition(&dsl, ITEM_FOOD_RATIONS)?,
             3,
             false,
         )?;
-        let _ = attempt_to_load_cargo_into_ship(
-            ctx,
+        attempt_to_load_cargo_into_ship(
+            &dsl,
             &mut status,
             &ship.get_id(),
-            &get_item_definition(ctx, ITEM_ENERGY_CELL)?,
+            &get_item_definition(&dsl, ITEM_ENERGY_CELL)?,
             5,
             false,
         )?;
@@ -97,7 +97,7 @@ pub fn create_player_controlled_ship(
         )?;
 
         info!("Successfully created ship!");
-        send_global_chat(ctx, format!("{} has created a ship!", username))?;
+        send_global_chat(&dsl, format!("{} has created a ship!", username))?;
         Ok(())
     } else {
         let error_message =
@@ -105,7 +105,7 @@ pub fn create_player_controlled_ship(
 
         // Send server message for error feedback
         send_error_message(
-            ctx,
+            &dsl,
             &player_id,
             error_message.clone(),
             Some("Ship Creation"),
@@ -120,15 +120,13 @@ pub fn create_player_controlled_ship(
 
 /// Creates a brand new ship instance in a sector with a specific stellar object.
 pub fn create_ship_from_sobj(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     ship_type: &ShipTypeDefinition,
     player_id: &PlayerId,
     faction_id: &FactionId,
     sobj: &StellarObject,
 ) -> Result<(Ship, ShipStatus), String> {
-    let dsl = dsl(ctx);
-
-    let ship = (match dsl.create_ship(
+    let ship = dsl.create_ship(
         ship_type.get_id(),
         ShipLocation::Sector,
         sobj,
@@ -136,13 +134,9 @@ pub fn create_ship_from_sobj(
         sobj.get_sector_id(),
         player_id,
         faction_id,
-    ) {
-        Ok(ship) => {
-            create_status_timer_for_ship(ctx, &ship.get_id(), &ship_type.get_id())?;
-            Ok(ship)
-        }
-        Err(e) => Err(e.to_string()),
-    })?;
+    )?;
+
+    create_status_timer_for_ship(dsl, &ship.get_id(), &ship_type.get_id())?;
 
     let ship_status = dsl.create_ship_status(
         &ship,
@@ -163,15 +157,13 @@ pub fn create_ship_from_sobj(
 
 /// Creates a brand new ship instance docked at a station.
 pub fn create_ship_docked_at_station(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     ship_type: ShipTypeDefinition,
     player_id: &PlayerId,
     faction_id: &FactionId,
     station: Station,
 ) -> Result<(Ship, ShipStatus), String> {
-    let dsl = dsl(ctx);
-
-    let ship = (match dsl.create_ship(
+    let ship = dsl.create_ship(
         ship_type.get_id(),
         ShipLocation::Station,
         station.get_sobj_id(),
@@ -179,13 +171,9 @@ pub fn create_ship_docked_at_station(
         station.get_sector_id(),
         player_id,
         faction_id,
-    ) {
-        Ok(ship) => {
-            create_status_timer_for_ship(ctx, &ship.get_id(), &ship_type.get_id())?;
-            Ok(ship)
-        }
-        Err(e) => Err(e.to_string()),
-    })?;
+    )?;
+
+    create_status_timer_for_ship(dsl, &ship.get_id(), &ship_type.get_id())?;
 
     let ship_status = dsl.create_ship_status(
         &ship,

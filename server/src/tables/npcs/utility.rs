@@ -1,5 +1,5 @@
 use spacetimedb::ReducerContext;
-use spacetimedsl::{dsl, Wrapper};
+use spacetimedsl::*;
 
 use crate::tables::stellarobjects::{GetStellarObjectRowOptionById, StellarObjectId};
 
@@ -11,12 +11,10 @@ use super::{
 /// Create a new NPC ship controller for a stellar object
 /// This is a utility function that can be called by other reducers
 pub fn create_npc_ship_controller(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     stellar_object_id: u64,
     initial_behavior: NpcBehavior,
 ) -> Result<NpcShipController, String> {
-    let dsl = dsl(ctx);
-
     // Validate that the stellar object exists
     let _stellar_object = dsl.get_stellar_object_by_id(StellarObjectId::new(stellar_object_id))?;
 
@@ -41,12 +39,10 @@ pub fn create_npc_ship_controller(
 
 /// Set the target for an NPC ship controller
 pub fn set_npc_target(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     npc_controller_id: u64,
     target_sobj_id: Option<u64>,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     let mut npc_controller =
         dsl.get_npc_ship_controller_by_id(NpcShipControllerId::new(npc_controller_id))?;
 
@@ -69,11 +65,10 @@ pub fn set_npc_target(
 
 /// Set the behavior for an NPC ship controller
 pub fn set_npc_behavior(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     npc_controller_id: u64,
     behavior: NpcBehavior,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
 
     let mut npc_controller =
         dsl.get_npc_ship_controller_by_id(NpcShipControllerId::new(npc_controller_id))?;
@@ -90,8 +85,7 @@ pub fn set_npc_behavior(
 }
 
 /// Trigger weapon firing for an NPC ship controller
-pub fn trigger_npc_weapon_fire(ctx: &ReducerContext, npc_controller_id: u64) -> Result<(), String> {
-    let dsl = dsl(ctx);
+pub fn trigger_npc_weapon_fire(dsl: &DSL, npc_controller_id: u64) -> Result<(), String> {
 
     let mut npc_controller =
         dsl.get_npc_ship_controller_by_id(NpcShipControllerId::new(npc_controller_id))?;
@@ -108,11 +102,9 @@ pub fn trigger_npc_weapon_fire(ctx: &ReducerContext, npc_controller_id: u64) -> 
 
 /// Trigger missile firing for an NPC ship controller
 pub fn trigger_npc_missile_fire(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     npc_controller_id: u64,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     let mut npc_controller =
         dsl.get_npc_ship_controller_by_id(NpcShipControllerId::new(npc_controller_id))?;
     npc_controller.set_fire_missiles(true);

@@ -1,5 +1,5 @@
 use spacetimedb::ReducerContext;
-use spacetimedsl::dsl;
+use spacetimedsl::*;
 
 use crate::tables::{
     items::*,
@@ -8,12 +8,10 @@ use crate::tables::{
 };
 
 pub fn attempt_to_pickup_cargo_crate(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     player_ship_obj: &Ship,
     crate_sobj: &StellarObject,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     let cargo_crate = dsl.get_cargo_crate_by_sobj_id(crate_sobj)?;
     let item_def = dsl.get_item_definition_by_id(cargo_crate.get_item_id())?;
     let ship = dsl.get_ship_status_by_id(player_ship_obj.get_id())?;
@@ -21,7 +19,7 @@ pub fn attempt_to_pickup_cargo_crate(
     if item_def.can_any_of_this_fit_inside_this_ship(&ship) {
         match create_timer_to_add_cargo_to_ship(
             // Do the actual thing
-            ctx,
+            dsl,
             ship.get_id(),
             item_def.get_id(),
             *cargo_crate.get_quantity(),

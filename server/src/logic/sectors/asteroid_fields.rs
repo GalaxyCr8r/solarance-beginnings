@@ -14,7 +14,7 @@ use crate::{
 /// Creates new asteroids when the count falls below the sector's sparseness threshold.
 pub fn asteroid_sector_upkeep(dsl: &DSL, sector_id: &SectorId) -> Result<(), String> {
     let ctx = dsl.ctx();
-    try_server_only(ctx)?;
+    try_server_only(dsl)?;
 
     let asteroid_sector = dsl.get_asteroid_sector_by_id(sector_id)?;
     if dsl.get_asteroids_by_current_sector_id(sector_id).count()
@@ -52,7 +52,7 @@ pub fn asteroid_sector_upkeep(dsl: &DSL, sector_id: &SectorId) -> Result<(), Str
 
         let amount = ctx.rng().gen_range(500..2000);
 
-        create_asteroid(ctx, pos, sector_id.into(), item, amount);
+        create_asteroid(dsl, pos, sector_id.into(), item, amount);
     }
 
     Ok(())

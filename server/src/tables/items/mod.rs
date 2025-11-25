@@ -1,5 +1,5 @@
 use spacetimedb::{table, SpacetimeType, Timestamp};
-use spacetimedsl::dsl;
+use spacetimedsl::*;
 
 use crate::tables::{
     combat::{MissileType, WeaponType},
@@ -186,8 +186,8 @@ pub struct CargoCrate {
 // Init
 //////////////////////////////////////////////////////////////
 
-// pub fn init(ctx: &ReducerContext) -> Result<(), String> {
-//     definitions::init(ctx)?;
+// pub fn init(dsl: &DSL) -> Result<(), String> {
+//     definitions::init(dsl)?;
 
 //     Ok(())
 // }

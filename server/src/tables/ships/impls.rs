@@ -13,8 +13,7 @@ impl ShipStatus {
         self.get_max_cargo_capacity() - self.get_used_cargo_capacity()
     }
 
-    pub fn calculate_used_cargo_space(&self, ctx: &ReducerContext) -> u16 {
-        let dsl = dsl(ctx);
+    pub fn calculate_used_cargo_space(&self, dsl: &DSL) -> u16 {
         let mut used_cargo_space = 0;
 
         info!(
@@ -24,7 +23,7 @@ impl ShipStatus {
 
         // Collect all the ship items and calculate their volume usage
         for item in dsl.get_ship_cargo_items_by_ship_id(self.get_id()) {
-            if let Ok(item_def) = get_item_definition(ctx, item.get_item_id().value()) {
+            if let Ok(item_def) = get_item_definition(dsl, item.get_item_id().value()) {
                 let volume_usage = item.quantity * item_def.get_volume_per_unit();
                 info!(
                     "     Stack of {}x {}: {} volume used",

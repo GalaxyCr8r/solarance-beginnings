@@ -5,8 +5,7 @@ use log::info;
 use spacetimedb::rand::Rng;
 use spacetimedb::ReducerContext;
 use spacetimedb::TimeDuration;
-use spacetimedsl::dsl;
-use spacetimedsl::Wrapper;
+use spacetimedsl::*;
 
 use crate::tables::items::*;
 use crate::tables::server_messages::*;
@@ -31,7 +30,7 @@ pub fn jettison_cargo_from_ship(
     let dsl = dsl(ctx);
     let ship = dsl.get_ship_by_id(ShipId::new(ship_id))?;
 
-    is_server_or_sobj_owner(ctx, Some(ship.get_sobj_id()))?;
+    is_server_or_sobj_owner(&dsl, Some(ship.get_sobj_id()))?;
 
     let mut ship_cargo = dsl.get_ship_cargo_item_by_id(ShipCargoItemId::new(ship_cargo_id))?;
     let item_def = dsl.get_item_definition_by_id(ship_cargo.get_item_id())?;
@@ -48,10 +47,10 @@ pub fn jettison_cargo_from_ship(
         dsl.update_ship_cargo_item_by_id(ship_cargo)?;
     }
 
-    create_cargo_crate_nearby_ship(ctx, &ship.get_sobj_id(), &item_def, amount)?;
+    create_cargo_crate_nearby_ship(&dsl, &ship.get_sobj_id(), &item_def, amount)?;
 
     send_info_message(
-        ctx,
+        &dsl,
         &ship.get_player_id(),
         format!("Jettioned successfully {}x {}", amount, item_def.get_name()),
         Some("status"),
@@ -65,12 +64,11 @@ pub fn jettison_cargo_from_ship(
 
 /// Removes cargo from a ship's cargo hold. Errors if the ship doesn't have enough of the item.
 pub fn remove_cargo_from_ship(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     ship_status: &mut ShipStatus,
     item_def: &ItemDefinition,
     amount: u16,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
     let mut remaining_amount = amount;
 
     if amount == 0 {
@@ -81,7 +79,7 @@ pub fn remove_cargo_from_ship(
         ));
     }
 
-    ship_status.set_used_cargo_capacity(ship_status.calculate_used_cargo_space(ctx)); // Just go through and make sure everything is ship-shape.
+    ship_status.set_used_cargo_capacity(ship_status.calculate_used_cargo_space(dsl)); // Just go through and make sure everything is ship-shape.
     info!(
         "Attempting to remove {}x {} ({}v) from ship #{} with remaining cargo space of {}v",
         amount,
@@ -123,7 +121,7 @@ pub fn remove_cargo_from_ship(
                 updated_cargo_item.set_quantity(new_amount);
                 dsl.update_ship_cargo_item_by_id(updated_cargo_item)?;
 
-                ship_status.set_used_cargo_capacity(ship_status.calculate_used_cargo_space(ctx));
+                ship_status.set_used_cargo_capacity(ship_status.calculate_used_cargo_space(dsl));
                 let _ = dsl.update_ship_status_by_id(ship_status.clone())?;
 
                 return Ok(());
@@ -140,8 +138,8 @@ pub fn remove_cargo_from_ship(
     }
 
     // Update ship status after removing cargo items
-    ship_status.set_used_cargo_capacity(ship_status.calculate_used_cargo_space(ctx));
-    let _ = dsl.update_ship_status_by_id(ship_status.clone())?;
+    ship_status.set_used_cargo_capacity(ship_status.calculate_used_cargo_space(dsl));
+    dsl.update_ship_status_by_id(ship_status.clone())?;
 
     Ok(())
 }
@@ -151,14 +149,13 @@ pub fn remove_cargo_from_ship(
 /// a cargo crate instead if create_a_crate_if_failed is true and Ship
 /// points to a Ship and not a Ship row.
 pub fn attempt_to_load_cargo_into_ship(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     ship_status: &mut ShipStatus,
     ship_id: &ShipId,
     item_def: &ItemDefinition,
     amount: u16,
     create_a_crate_if_failed: bool,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
     let mut remaining_amount = amount;
     let mut overflow_amount = 0; // How many items could NEVER had fit in the ship and must be made into a crate.
     let units_per_stack = *item_def.get_units_per_stack() as u16;
@@ -171,7 +168,7 @@ pub fn attempt_to_load_cargo_into_ship(
         ));
     }
 
-    ship_status.set_used_cargo_capacity(ship_status.calculate_used_cargo_space(ctx)); // Just go through and make sure everything is ship-shape.
+    ship_status.set_used_cargo_capacity(ship_status.calculate_used_cargo_space(dsl)); // Just go through and make sure everything is ship-shape.
     info!(
         "Attempting to load {}x {} ({}v) into ship #{} with remaining cargo space of {}v",
         amount,
@@ -285,7 +282,7 @@ pub fn attempt_to_load_cargo_into_ship(
             }
         }
     }
-    ship_status.set_used_cargo_capacity(ship_status.calculate_used_cargo_space(ctx)); // Just go through and make sure everything is ship-shape.
+    ship_status.set_used_cargo_capacity(ship_status.calculate_used_cargo_space(&dsl)); // Just go through and make sure everything is ship-shape.
 
     if overflow_amount > 0 {
         info!(
@@ -300,7 +297,7 @@ pub fn attempt_to_load_cargo_into_ship(
             if *ship_instance.get_location() == ShipLocation::Sector {
                 // Only spawn if the ship is in a sector
                 create_cargo_crate_nearby_ship(
-                    ctx,
+                    &dsl,
                     &ship_instance.get_sobj_id(),
                     item_def,
                     overflow_amount,
@@ -317,17 +314,17 @@ pub fn attempt_to_load_cargo_into_ship(
         }
     }
 
-    ship_status.set_used_cargo_capacity(ship_status.calculate_used_cargo_space(ctx)); // Just go through and make sure everything is ship-shape FINALLY.
+    ship_status.set_used_cargo_capacity(ship_status.calculate_used_cargo_space(&dsl)); // Just go through and make sure everything is ship-shape FINALLY.
     if ship_status.get_used_cargo_capacity() > ship_status.get_max_cargo_capacity() {
         return Err(
             "Despite our best efforts, we ended up with more cargo used than is maximum!"
                 .to_string(),
         );
     }
-    let _ = dsl.update_ship_status_by_id(ship_status.clone())?;
+    dsl.update_ship_status_by_id(ship_status.clone())?;
 
     send_info_message(
-        ctx,
+        dsl,
         &ship_status.get_player_id(),
         format!("Loaded successfully {}x {}", amount, item_def.get_name()),
         Some("status"),
@@ -339,13 +336,11 @@ pub fn attempt_to_load_cargo_into_ship(
 /// Crates a cargo crate nearby the given stellar object if it exists,
 /// otherwise it'll place it randomly in its last known sector.
 pub fn create_cargo_crate_nearby_ship(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     ship_sobj: &StellarObjectId,
     item_def: &ItemDefinition,
     quantity: u16,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     let sobj = dsl.get_stellar_object_by_id(ship_sobj)?;
     let pos = {
         if let Ok(transform) = dsl.get_sobj_internal_transform_by_id(ship_sobj) {
@@ -353,14 +348,14 @@ pub fn create_cargo_crate_nearby_ship(
         } else {
             info!("Could not find ship's stellar object transform, placing randomly...");
             Vec2::new(
-                ctx.rng().gen_range(-2048.0..2048.0),
-                ctx.rng().gen_range(-2048.0..2048.0),
+                dsl.ctx().rng().gen_range(-2048.0..2048.0),
+                dsl.ctx().rng().gen_range(-2048.0..2048.0),
             )
         }
     };
 
     let new_sobj = create_sobj_with_random_velocity(
-        ctx,
+        dsl,
         StellarObjectKinds::CargoCrate,
         &sobj.get_sector_id(),
         pos.x,
@@ -376,12 +371,12 @@ pub fn create_cargo_crate_nearby_ship(
         pos.y
     );
 
-    let _ = dsl.create_cargo_crate(
+    dsl.create_cargo_crate(
         sobj.get_sector_id(),
         new_sobj.get_id(),
         item_def.get_id(),
         quantity,
-        ctx.timestamp
+        dsl.ctx().timestamp
             .checked_add(TimeDuration::from_duration(Duration::from_secs(
                 /*D* /24 * /*H*/60 * */ /*M*/ 60,
             ))), // TODO cargo crate timer to despawn them

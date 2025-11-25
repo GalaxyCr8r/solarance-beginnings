@@ -5,13 +5,11 @@ use crate::{
 };
 
 pub fn create_basic_laboratory(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     station: &Station,
     under_construction: bool,
     lab_type: LaboratoryType,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     if under_construction {
         return Err("Not yet implemented".to_string());
     }
@@ -42,7 +40,7 @@ pub fn create_basic_laboratory(
         identifier.as_str(),
         true,
         None,
-        ctx.timestamp,
+        dsl.ctx().timestamp,
     )?;
 
     // Create laboratory submodule

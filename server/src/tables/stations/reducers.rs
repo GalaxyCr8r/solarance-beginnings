@@ -28,8 +28,8 @@ pub fn buy_item_from_station_module(
     item_id: ItemDefinitionId,
     quantity: u32,
 ) -> Result<(), String> {
-    is_server_or_ship_owner(ctx, Some(ship_id.clone()))?;
     let dsl = dsl(ctx);
+    is_server_or_ship_owner(&dsl, Some(ship_id.clone()))?;
 
     let ship = dsl.get_ship_by_id(&ship_id)?;
 
@@ -45,7 +45,7 @@ pub fn buy_item_from_station_module(
 
         // Send server message for error feedback
         send_error_message(
-            ctx,
+            &dsl,
             &player_id,
             error_message.clone(),
             Some("Station Trading"),
@@ -72,7 +72,7 @@ pub fn buy_item_from_station_module(
 
             // Send server message for error feedback
             let _ = send_error_message(
-                ctx,
+                &dsl,
                 &player_id,
                 error_message.clone(),
                 Some("Station Trading"),
@@ -97,7 +97,7 @@ pub fn buy_item_from_station_module(
 
         // Send server message for error feedback
         send_error_message(
-            ctx,
+            &dsl,
             &player_id,
             error_message.clone(),
             Some("Station Trading"),
@@ -127,7 +127,7 @@ pub fn buy_item_from_station_module(
 
         // Send server message for error feedback
         send_error_message(
-            ctx,
+            &dsl,
             &player_id,
             error_message.clone(),
             Some("Station Trading"),
@@ -143,7 +143,7 @@ pub fn buy_item_from_station_module(
     }
 
     if let Err(cargo_err) = attempt_to_load_cargo_into_ship(
-        ctx,
+        &dsl,
         &mut dsl.get_ship_status_by_id(&ship_id)?,
         &ship_id,
         &item_def,
@@ -159,7 +159,7 @@ pub fn buy_item_from_station_module(
 
         // Send server message for error feedback
         send_error_message(
-            ctx,
+            &dsl,
             &ship.get_player_id(),
             error_message.clone(),
             Some("Station Trading"),
@@ -177,7 +177,7 @@ pub fn buy_item_from_station_module(
     dsl.update_station_module_inventory_item_by_id(item_listing)?;
 
     send_info_message(
-        ctx,
+        &dsl,
         &ship.get_player_id(),
         format!(
             "Station #{} Module #{}: Bought {}x {} for {}c.",
@@ -202,8 +202,8 @@ pub fn sell_item_to_station_module(
     item_id: ItemDefinitionId,
     quantity: u32,
 ) -> Result<(), String> {
-    is_server_or_ship_owner(ctx, Some(ship_id.clone()))?;
     let dsl = dsl(ctx);
+    is_server_or_ship_owner(&dsl, Some(ship_id.clone()))?;
     let ship = dsl.get_ship_by_id(&ship_id)?;
     let station_module = dsl.get_station_module_by_id(&station_module_id)?;
 
@@ -226,7 +226,7 @@ pub fn sell_item_to_station_module(
 
         // Send server message for error feedback
         send_error_message(
-            ctx,
+            &dsl,
             &player_id,
             error_message.clone(),
             Some("Station Trading"),
@@ -253,7 +253,7 @@ pub fn sell_item_to_station_module(
 
             // Send server message for error feedback
             let _ = send_error_message(
-                ctx,
+                &dsl,
                 &player_id,
                 error_message.clone(),
                 Some("Station Trading"),
@@ -277,7 +277,7 @@ pub fn sell_item_to_station_module(
 
         // Send server message for error feedback
         send_error_message(
-            ctx,
+            &dsl,
             &player_id,
             error_message.clone(),
             Some("Station Trading"),
@@ -296,7 +296,7 @@ pub fn sell_item_to_station_module(
     // Check if the station has enough credits
     //if total_price <= *station.get_credits() {
     if let Err(cargo_err) = remove_cargo_from_ship(
-        ctx,
+        &dsl,
         &mut dsl.get_ship_status_by_id(&ship_id)?,
         &item_def,
         quantity as u16,
@@ -311,7 +311,7 @@ pub fn sell_item_to_station_module(
 
         // Send server message for error feedback
         send_error_message(
-            ctx,
+            &dsl,
             &player_id,
             error_message.clone(),
             Some("Station Trading"),
@@ -329,7 +329,7 @@ pub fn sell_item_to_station_module(
     dsl.update_station_module_inventory_item_by_id(item_listing)?;
 
     send_info_message(
-        ctx,
+        &dsl,
         &ship.get_player_id(),
         format!(
             "Station #{} Module #{}: Sold {}x {} for {}c.",
@@ -350,7 +350,7 @@ pub fn sell_item_to_station_module(
 #[spacetimedb::reducer]
 pub fn add_station_timers(ctx: &ReducerContext, station_id: u64) -> Result<(), String> {
     let dsl = dsl(ctx);
-    try_server_only(ctx)?;
+    try_server_only(&dsl)?;
     let station_id = StationId::new(station_id);
 
     // Verify the station exists

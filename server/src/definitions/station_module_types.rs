@@ -2,7 +2,7 @@ use std::u8;
 
 use log::info;
 use spacetimedb::*;
-use spacetimedsl::dsl;
+use spacetimedsl::*;
 
 use crate::{
     definitions::item_types::*,
@@ -50,12 +50,10 @@ pub const MODULE_SOLAR_ARRAY_LARGE: u32 = 7_002;
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init(ctx: &ReducerContext) -> Result<(), String> {
+pub fn init(dsl: &DSL) -> Result<(), String> {
     info!("Initing station modules...");
-    let dsl = dsl(ctx);
 
-    basic_station_module_blueprints(ctx)?;
-
+    basic_station_module_blueprints(dsl)?;
     info!(
         "Station Modules Loaded: {}",
         dsl.get_all_station_module_blueprints().count()
@@ -89,9 +87,7 @@ fn calculate_basic_module_cost(max_hp: u32, relative_complexity: u8) -> Vec<Reso
     ]
 }
 
-fn basic_station_module_blueprints(ctx: &ReducerContext) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
+fn basic_station_module_blueprints(dsl: &DSL) -> Result<(), String> {
     dsl.create_station_module_blueprint(
         MODULE_TRADING_BAZAAR,
         "Trading Bazaar",

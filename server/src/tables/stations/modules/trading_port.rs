@@ -42,15 +42,13 @@ pub struct TradingPortItemConfig {
 
 /// Generic function to create a trading port with specified items and configurations
 pub fn create_trading_port_with_items(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     station: &Station,
     module_name: &str,
     trading_type: u32, // e.g. defintions::MODULE_TRADING_BAZAAR
     items: &[TradingPortItemConfig],
     under_construction: bool,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     if under_construction {
         return Err("Stations under construction are not yet implemented".to_string());
     }
@@ -64,10 +62,10 @@ pub fn create_trading_port_with_items(
         module_name,
         true,
         None,
-        ctx.timestamp,
+        dsl.ctx().timestamp,
     )?;
 
-    let _trading = dsl.create_trading_port_module(module.get_id())?;
+    dsl.create_trading_port_module(module.get_id())?;
 
     // Create trading port listings for each configured item
     for item_config in items {
@@ -101,7 +99,7 @@ pub fn create_trading_port_with_items(
 }
 
 pub fn create_basic_bazaar(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     station: &Station,
     under_construction: bool,
 ) -> Result<(), String> {
@@ -157,7 +155,7 @@ pub fn create_basic_bazaar(
     ];
 
     create_trading_port_with_items(
-        ctx,
+        dsl,
         station,
         "bazaar",
         MODULE_TRADING_BAZAAR,
@@ -167,7 +165,7 @@ pub fn create_basic_bazaar(
 }
 
 pub fn create_rich_speciality(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     station: &Station,
     under_construction: bool,
 ) -> Result<(), String> {
@@ -211,7 +209,7 @@ pub fn create_rich_speciality(
     ];
 
     create_trading_port_with_items(
-        ctx,
+        dsl,
         station,
         "speciality",
         MODULE_TRADING_MARKET,

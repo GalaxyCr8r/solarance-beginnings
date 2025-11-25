@@ -97,7 +97,7 @@ impl GlobalChatMessage {
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init(_ctx: &ReducerContext) -> Result<(), String> {
+pub fn init(_dsl: &DSL) -> Result<(), String> {
     Ok(())
 }
 
@@ -114,7 +114,7 @@ pub fn send_global_chat(ctx: &ReducerContext, chat_message: String) -> Result<()
     // If ctx.sender is a valid, unbanned, unmuted player
     info!(
         "GlobalChat [{}]: {}",
-        get_username(ctx, ctx.sender),
+        get_username(&dsl, ctx.sender),
         chat_message
     );
 
@@ -132,7 +132,7 @@ pub fn send_sector_chat(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
     let sender = PlayerId::new(ctx.sender);
-    let username = get_username(ctx, ctx.sender);
+    let username = get_username(&dsl, ctx.sender);
 
     if let Some(player) = dsl.get_ships_by_player_id(&sender).next() {
         if player.get_sector_id().value() != sector_id {
@@ -162,7 +162,7 @@ pub fn send_faction_chat(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
     let sender = PlayerId::new(ctx.sender);
-    let username = get_username(ctx, ctx.sender);
+    let username = get_username(&dsl, ctx.sender);
 
     if let Ok(player) = dsl.get_player_by_id(&sender) {
         if player.get_faction_id().value() != faction_id.value() {
@@ -182,7 +182,7 @@ pub fn send_faction_chat(
     info!(
         "FactionChat #{} [{}]: {}",
         faction_id.value(),
-        get_username(ctx, ctx.sender),
+        get_username(&dsl, ctx.sender),
         chat_message
     );
 

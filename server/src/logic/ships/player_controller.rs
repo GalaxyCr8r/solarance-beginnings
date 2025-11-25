@@ -64,13 +64,11 @@ pub struct PlayerShipController {
 }
 
 pub fn initialize_player_controller(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     player: &PlayerId,
     sobj: &StellarObject,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
-    let _controller = dsl.create_player_ship_controller(
+    dsl.create_player_ship_controller(
         player,
         sobj.get_id(),
         false,
@@ -89,11 +87,11 @@ pub fn initialize_player_controller(
         false,
         None,
     )?;
-    let _update = dsl.create_player_ship_controller_update_timer(
+    dsl.create_player_ship_controller_update_timer(
         spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 20).into()),
         player,
     )?;
-    let _logic = dsl.create_player_ship_controller_logic_timer(
+    dsl.create_player_ship_controller_logic_timer(
         spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 2).into()),
         player,
     )?;
@@ -114,7 +112,7 @@ pub fn update_player_controller(
             "SECURITY ERROR: ID {} is trying to change player controller for ID {}!!! Username: {}",
             ctx.sender,
             controller_id,
-            get_username(ctx, controller_id)
+            get_username(dsl, controller_id)
         );
         return Err("ID Mismatch. This was reported to the system admin.".to_string());
     }
@@ -127,7 +125,7 @@ pub fn update_player_controller(
     if *previous_controller.get_mining_laser_on() && !controller.get_mining_laser_on() {
         info!(
             "Player {} no longer mining, removing mining timers.",
-            get_username(ctx, controller_id)
+            get_username(dsl, controller_id)
         );
         for mining_timer in
             dsl.get_ship_mining_timers_by_ship_sobj_id(previous_controller.get_stellar_object_id())
@@ -143,20 +141,20 @@ pub fn update_player_controller(
     // Process weapon firing
     if *controller.get_fire_weapons() {
         if let Some(target_sobj_id) = controller.get_targetted_sobj_id() {
-            match process_weapon_combat_action(ctx, source_sobj_id, *target_sobj_id) {
+            match process_weapon_combat_action(dsl, source_sobj_id, *target_sobj_id) {
                 Ok(_) => {
                     info!(
                         "Weapon fired successfully: {} -> {} by player {}",
                         source_sobj_id,
                         target_sobj_id,
-                        get_username(ctx, controller_id)
+                        get_username(dsl, controller_id)
                     );
                 }
                 Err(e) => {
                     info!(
                         "Weapon fire failed for ship {} (player {}): {}",
                         source_sobj_id,
-                        get_username(ctx, controller_id),
+                        get_username(&dsl, controller_id),
                         e
                     );
                 }
@@ -164,7 +162,7 @@ pub fn update_player_controller(
         } else {
             info!(
                 "Player {} attempted to fire weapons without a target",
-                get_username(ctx, controller_id)
+                get_username(&dsl, controller_id)
             );
         }
 
@@ -175,20 +173,20 @@ pub fn update_player_controller(
     // Process missile firing
     if *controller.get_fire_missles() {
         if let Some(target_sobj_id) = controller.get_targetted_sobj_id() {
-            match process_missile_combat_action(ctx, source_sobj_id, *target_sobj_id) {
+            match process_missile_combat_action(dsl, source_sobj_id, *target_sobj_id) {
                 Ok(_) => {
                     info!(
                         "Missile fired successfully: {} -> {} by player {}",
                         source_sobj_id,
                         target_sobj_id,
-                        get_username(ctx, controller_id)
+                        get_username(dsl, controller_id)
                     );
                 }
                 Err(e) => {
                     info!(
                         "Missile fire failed for ship {} (player {}): {}",
                         source_sobj_id,
-                        get_username(ctx, controller_id),
+                        get_username(dsl, controller_id),
                         e
                     );
                 }
@@ -196,7 +194,7 @@ pub fn update_player_controller(
         } else {
             info!(
                 "Player {} attempted to fire missiles without a target",
-                get_username(ctx, controller_id)
+                get_username(dsl, controller_id)
             );
         }
 
@@ -306,7 +304,7 @@ pub fn timer_player_controller_movement_update(
     }
 
     if controller.left || controller.right || controller.up || controller.down {
-        try_update_ship_velocity(ctx, &mut velocity, &controller, &ship_object)?;
+        try_update_ship_velocity(&dsl, &mut velocity, &controller, &ship_object)?;
     }
 
     dsl.update_sobj_velocity_by_id(velocity)?;
@@ -350,7 +348,7 @@ pub fn timer_player_controller_interaction_update(
         }
     };
 
-    remove_old_timers(ctx, &controller, &ship_object)?;
+    remove_old_timers(&dsl, &controller, &ship_object)?;
 
     // Check target-specific things.
     if controller.targetted_sobj_id.is_none() {
@@ -359,7 +357,7 @@ pub fn timer_player_controller_interaction_update(
 
     let player_sobj = dsl.get_stellar_object_by_id(ship_object.get_sobj_id())?;
 
-    match get_targetted_sobj(ctx, &controller, &player_sobj) {
+    match get_targetted_sobj(&dsl, &controller, &player_sobj) {
         // These "Do things if nearby target" should be in their own timer. As-is things will ONLY happen if you are updating your controller when nearby!!!
         Ok(target_sobj) => {
             match target_sobj.get_kind() {
@@ -370,7 +368,7 @@ pub fn timer_player_controller_interaction_update(
                 }
                 StellarObjectKinds::Asteroid => {
                     try_mining_asteroid(
-                        ctx,
+                        &dsl,
                         &controller,
                         &ship_object,
                         &player_sobj,
@@ -382,11 +380,11 @@ pub fn timer_player_controller_interaction_update(
                 StellarObjectKinds::CargoCrate => {
                     if controller.cargo_bay_open
                         && player_sobj
-                            .distance_squared(ctx, &target_sobj)
+                            .distance_squared(&dsl, &target_sobj)
                             .is_ok_and(|d| d < 1000.0)
                     {
                         // Picking up the crate!
-                        attempt_to_pickup_cargo_crate(ctx, &ship_object, &target_sobj)?;
+                        attempt_to_pickup_cargo_crate(&dsl, &ship_object, &target_sobj)?;
                         controller.targetted_sobj_id = None;
                         let _ = dsl.delete_stellar_object_by_id(&target_sobj);
                     }
@@ -394,21 +392,21 @@ pub fn timer_player_controller_interaction_update(
                 StellarObjectKinds::Station => {
                     if controller.dock
                         && player_sobj
-                            .distance_squared(ctx, &target_sobj)
+                            .distance_squared(&dsl, &target_sobj)
                             .is_ok_and(|d| d < (100.0_f32).powi(2))
                     {
                         let station = dsl.get_station_by_sobj_id(&target_sobj)?;
-                        try_to_dock_to_station(ctx, &ship_object, &player_sobj, &station)?;
+                        try_to_dock_to_station(&dsl, &ship_object, &player_sobj, &station)?;
                     }
                 }
                 StellarObjectKinds::JumpGate => {
                     if controller.dock
                         && player_sobj
-                            .distance_squared(ctx, &target_sobj)
+                            .distance_squared(&dsl, &target_sobj)
                             .is_ok_and(|d| d < (100.0_f32).powi(2))
                     {
                         let jumpgate = dsl.get_jump_gate_by_id(&target_sobj)?;
-                        try_to_use_jumpgate(ctx, &ship_object, &jumpgate)?;
+                        try_to_use_jumpgate(&dsl, &ship_object, &jumpgate)?;
                     }
                 }
                 _ => {
@@ -432,19 +430,17 @@ pub fn timer_player_controller_interaction_update(
 
 /// Verifies the controller's targetted stellar object exists and retrieves it.
 pub fn get_targetted_sobj(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     controller: &PlayerShipController,
     player_sobj: &StellarObject,
 ) -> Result<StellarObject, String> {
-    let dsl = dsl(ctx);
-
     let target_sobj =
         dsl.get_stellar_object_by_id(StellarObjectId::new(controller.targetted_sobj_id.unwrap()))?;
     if player_sobj.get_sector_id() != target_sobj.get_sector_id() {
         Err(
             format!(
                 "Player {} tried to target a stellar object in a different sector! Player SOBJ ID: {:?}, Target SOBJ ID: {:?}",
-                get_username(ctx, controller.id),
+                get_username(&dsl, controller.id),
                 player_sobj.get_id(),
                 target_sobj.get_id()
             )
@@ -455,13 +451,11 @@ pub fn get_targetted_sobj(
 }
 
 pub fn try_update_ship_velocity(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     velocity: &mut StellarObjectVelocity,
     controller: &PlayerShipController,
     ship_object: &Ship,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     let ship_type = dsl.get_ship_type_definition_by_id(ship_object.get_shiptype_id())?;
     let transform = dsl.get_sobj_internal_transform_by_id(&ship_object.get_sobj_id())?;
 
@@ -495,17 +489,15 @@ pub fn try_update_ship_velocity(
 }
 
 pub fn remove_old_timers(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     controller: &PlayerShipController,
     ship_object: &Ship,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     if !controller.mining_laser_on {
         for mining_timer in dsl.get_ship_mining_timers_by_ship_sobj_id(ship_object.get_sobj_id()) {
             info!(
                 "Player {} stopped trying to mine a asteroid: {}",
-                get_username(ctx, controller.id),
+                get_username(dsl, controller.id),
                 mining_timer.get_asteroid_sobj_id()
             );
             dsl.delete_ship_mining_timer_by_id(&mining_timer)?;

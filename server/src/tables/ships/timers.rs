@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use log::info;
 use spacetimedb::*;
-use spacetimedsl::{dsl, Wrapper};
+use spacetimedsl::*;
 
 use crate::{
     logic::ships::cargo::attempt_to_load_cargo_into_ship,
@@ -81,7 +81,7 @@ pub struct ShipAddCargoTimer {
 // Init
 //////////////////////////////////////////////////////////////
 
-// pub fn init(_ctx: &ReducerContext) -> Result<(), String> {
+// pub fn init(_dsl: &DSL) -> Result<(), String> {
 //     Ok(())
 // }
 
@@ -90,12 +90,10 @@ pub struct ShipAddCargoTimer {
 //////////////////////////////////////////////////////////////
 
 pub fn create_status_timer_for_ship(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     ship_id: &ShipId,
     type_id: &ShipTypeDefinitionId,
 ) -> Result<ShipStatusTimer, String> {
-    let dsl = dsl(ctx);
-
     let timer = dsl.create_ship_status_timer(
         spacetimedb::ScheduleAt::Interval(Duration::from_millis(500).into()),
         ship_id,
@@ -106,19 +104,17 @@ pub fn create_status_timer_for_ship(
 }
 
 pub fn create_mining_timer_for_ship(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     ship_sobj_id: &StellarObjectId,
     asteroid_sobj_id: &StellarObjectId,
 ) -> Result<ShipMiningTimer, String> {
-    let dsl = dsl(ctx);
-
     // Check if the ship is already mining and remove those timers.
     for timer in dsl.get_ship_mining_timers_by_ship_sobj_id(ship_sobj_id) {
         dsl.delete_ship_mining_timer_by_id(timer.get_id())?;
     }
 
     // Check if the ship and asteroid are in the same sector
-    if !same_sector_from_ids(ctx, &ship_sobj_id, &asteroid_sobj_id) {
+    if !same_sector_from_ids(dsl, &ship_sobj_id, &asteroid_sobj_id) {
         return Err(format!(
             "What are you trying to mine? {} and {} are in different sectors",
             ship_sobj_id.clone().value(),
@@ -135,13 +131,11 @@ pub fn create_mining_timer_for_ship(
 }
 
 pub fn create_timer_to_add_cargo_to_ship(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     ship_id: ShipId,
     item_id: ItemDefinitionId,
     amount: u16,
 ) -> Result<ShipAddCargoTimer, String> {
-    let dsl = dsl(ctx);
-
     Ok(dsl.create_ship_add_cargo_timer(
         spacetimedb::ScheduleAt::Interval(Duration::from_secs(1).into()),
         ship_id,
@@ -161,8 +155,8 @@ pub fn ship_status_timer_reducer(
     ctx: &ReducerContext,
     timer: ShipStatusTimer,
 ) -> Result<(), String> {
-    try_server_only(ctx)?;
     let dsl = dsl(ctx);
+    try_server_only(&dsl)?;
 
     // Get ship rows
     let ship_type = dsl.get_ship_type_definition_by_id(timer.get_ship_type_id())?;
@@ -196,8 +190,8 @@ pub fn ship_mining_timer_reducer(
     ctx: &ReducerContext,
     mut timer: ShipMiningTimer,
 ) -> Result<(), String> {
-    try_server_only(ctx)?;
     let dsl = dsl(ctx);
+    try_server_only(&dsl)?;
 
     let ship_object = dsl
         .get_ships_by_sobj_id(timer.get_ship_sobj_id())
@@ -211,7 +205,7 @@ pub fn ship_mining_timer_reducer(
         let _ = dsl.delete_stellar_object_by_id(&asteroid_object.get_id());
 
         let _ = send_info_message(
-            ctx,
+            &dsl,
             &ship_object.get_player_id(),
             "Targetted asteroid exhausted!".to_string(),
             Some("mining"),
@@ -224,7 +218,7 @@ pub fn ship_mining_timer_reducer(
     }
 
     // Get the volume of the asteroid's item type
-    let item_def = get_item_definition(ctx, asteroid_object.get_resource_item_id().value())?;
+    let item_def = get_item_definition(&dsl, asteroid_object.get_resource_item_id().value())?;
 
     // Do the logic to determine speed of mining based on mining equipment, item id, etc.
     let mut energy_consumption = 1.0f32;
@@ -260,7 +254,7 @@ pub fn ship_mining_timer_reducer(
 
     if ship_status.get_energy() < &energy_consumption {
         let _ = send_info_message(
-            ctx,
+            &dsl,
             &ship_object.get_player_id(),
             format!(
                 "Your ship does not have enough energy to mine. {} energy / {} required",
@@ -295,7 +289,7 @@ pub fn ship_mining_timer_reducer(
 
         let _ = dsl.update_asteroid_by_id(asteroid_object)?; // TODO handle this properly
         create_timer_to_add_cargo_to_ship(
-            ctx,
+            &dsl,
             ship_object.get_id(),
             item_def.get_id(),
             diff.floor() as u16,
@@ -304,7 +298,7 @@ pub fn ship_mining_timer_reducer(
         timer.set_mining_progress(0.0); //timer.get_mining_progress() - diff.floor()); // Just reset it to 0 instead of letting it roll over
 
         let _ = send_info_message(
-            ctx,
+            &dsl,
             &ship_object.get_player_id(),
             format!(
                 "Your ship has mined {}x of {}. Attempting to load...",
@@ -334,8 +328,8 @@ pub fn ship_add_cargo_timer_reducer(
     ctx: &ReducerContext,
     timer: ShipAddCargoTimer,
 ) -> Result<(), String> {
-    try_server_only(ctx)?;
     let dsl = dsl(ctx);
+    try_server_only(&dsl)?;
 
     info!(
         "Attempting to add {}x #{:?} to ship id #{:?}",
@@ -351,11 +345,11 @@ pub fn ship_add_cargo_timer_reducer(
     let mut ship_status = dsl.get_ship_status_by_id(timer.get_ship_id())?;
 
     // Get the item definition
-    let item_def = get_item_definition(ctx, timer.item_id)?;
+    let item_def = get_item_definition(&dsl, timer.item_id)?;
 
     // Attempt to load it into the ship
     attempt_to_load_cargo_into_ship(
-        ctx,
+        &dsl,
         &mut ship_status,
         &ship_object.get_id(),
         &item_def,

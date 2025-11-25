@@ -1,6 +1,6 @@
 use log::info;
 use spacetimedb::ReducerContext;
-use spacetimedsl::{ dsl, Wrapper };
+use spacetimedsl::*;
 
 use crate::{
     logic::combat::visual_effects::{ process_missile_fire, process_weapon_fire },
@@ -9,12 +9,10 @@ use crate::{
 
 /// Process weapon firing for a specific ship and target
 pub fn process_weapon_combat_action(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     source_sobj_id: u64,
     target_sobj_id: u64
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     // Validate target is valid Ship or Station class
     let target_sobj = dsl.get_stellar_object_by_id(StellarObjectId::new(target_sobj_id))?;
     match target_sobj.get_kind() {
@@ -53,7 +51,7 @@ pub fn process_weapon_combat_action(
 
     // Fire each equipped weapon
     for weapon_slot in weapon_slots {
-        let weapon_def = get_item_definition(ctx, weapon_slot.get_item_id().value())?;
+        let weapon_def = get_item_definition(dsl, weapon_slot.get_item_id().value())?;
 
         // For now, assume all weapons are hitscan type
         // TODO: Determine weapon type from item metadata in future tasks
@@ -61,7 +59,7 @@ pub fn process_weapon_combat_action(
 
         match
             process_weapon_fire(
-                ctx,
+                dsl,
                 source_sobj_id,
                 target_sobj_id,
                 target_pos,
@@ -93,12 +91,10 @@ pub fn process_weapon_combat_action(
 
 /// Process missile firing for a specific ship and target
 pub fn process_missile_combat_action(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     source_sobj_id: u64,
     target_sobj_id: u64
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     // Validate target is valid Ship or Station class
     let target_sobj = dsl.get_stellar_object_by_id(StellarObjectId::new(target_sobj_id))?;
     match target_sobj.get_kind() {
@@ -141,7 +137,7 @@ pub fn process_missile_combat_action(
 
     // Fire each equipped missile
     for missile_slot in missile_slots {
-        let missile_def = get_item_definition(ctx, missile_slot.get_item_id().value())?;
+        let missile_def = get_item_definition(dsl, missile_slot.get_item_id().value())?;
 
         // For now, assume all missiles are dumbfire type
         // TODO: Determine missile type from item metadata in future tasks
@@ -149,7 +145,7 @@ pub fn process_missile_combat_action(
 
         match
             process_missile_fire(
-                ctx,
+                dsl,
                 source_sobj_id,
                 target_sobj_id,
                 target_pos,

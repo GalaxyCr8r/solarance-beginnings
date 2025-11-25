@@ -1,7 +1,7 @@
 use glam::Vec2;
 use log::info;
 use spacetimedb::{rand::Rng, table, ReducerContext};
-use spacetimedsl::dsl;
+use spacetimedsl::*;
 
 use crate::tables::{
     items::ItemDefinitionId,
@@ -42,18 +42,16 @@ pub struct Asteroid {
 /// Utility
 
 pub fn create_asteroid(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     position: Vec2,
     sector: SectorId,
     item: ItemDefinitionId,
     resource_amount: u16,
 ) -> Option<Asteroid> {
-    let dsl = dsl(ctx);
-
-    let gfx_key = format!("asteroid.{}", ctx.rng().gen_range(1..=5)).to_string();
+    let gfx_key = format!("asteroid.{}", dsl.ctx().rng().gen_range(1..=5)).to_string();
 
     let sobj = create_sobj_internal(
-        ctx,
+        dsl,
         StellarObjectKinds::Asteroid,
         &sector,
         StellarObjectTransformInternal::default().from_vec2(position),

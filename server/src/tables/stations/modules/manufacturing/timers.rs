@@ -4,12 +4,10 @@ use super::*;
 
 /// Calculate the manufacturing production for a manufacturing module
 pub fn calculate_manufacturing_production(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     manufacturing: &Manufacturing,
     time_elapsed_seconds: f32,
 ) -> Result<ManufacturingProductionResult, String> {
-    let dsl = dsl(ctx);
-
     // Check if manufacturing is active and has a recipe
     if !manufacturing.is_producing || manufacturing.current_recipe_id.is_none() {
         info!("Skipping production calculation");
@@ -50,7 +48,6 @@ pub fn calculate_manufacturing_production(
 
     // Check if we have enough inputs for the items we want to complete
     let (actual_items_completed, inputs_consumed, was_limited) = check_and_consume_inputs(
-        ctx,
         &dsl,
         &station_module,
         &recipe,
@@ -67,7 +64,6 @@ pub fn calculate_manufacturing_production(
 
 /// Check input availability and calculate what can actually be produced
 fn check_and_consume_inputs(
-    _ctx: &ReducerContext,
     dsl: &DSL,
     station_module: &StationModule,
     recipe: &ProductionRecipeDefinition,
@@ -113,12 +109,10 @@ fn check_and_consume_inputs(
 
 /// Apply the calculated production results to the manufacturing module's inventory
 pub fn apply_manufacturing_production(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     manufacturing: &Manufacturing,
     production_result: &ManufacturingProductionResult,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     let mut updated_manufacturing = manufacturing.clone();
 
     if production_result.items_completed == 0 {
@@ -192,11 +186,9 @@ pub fn apply_manufacturing_production(
 
 /// Calculate efficiency modifiers for manufacturing production
 pub fn calculate_manufacturing_efficiency(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     manufacturing: &Manufacturing,
 ) -> Result<f32, String> {
-    let dsl = dsl(ctx);
-
     let station_module = dsl.get_station_module_by_id(manufacturing.get_id())?;
     let station = dsl.get_station_by_id(StationId::new(station_module.station_id))?;
 

@@ -1,6 +1,6 @@
 use log::info;
 use spacetimedb::ReducerContext;
-use spacetimedsl::{dsl, Wrapper, DSL};
+use spacetimedsl::*;
 
 use crate::tables::factions::*;
 
@@ -25,11 +25,9 @@ pub const REPUTATION_ALLIED: i32 = 75;
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init(ctx: &ReducerContext) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
-    factions(&dsl)?;
-    faction_standings(&dsl)?;
+pub fn init(dsl: &DSL) -> Result<(), String> {
+    factions(dsl)?;
+    faction_standings(dsl)?;
 
     info!("Faction Defs Loaded: {}", dsl.count_of_all_factions());
     Ok(())

@@ -2,13 +2,11 @@ use super::*;
 use crate::{definitions::item_types::*, tables::items::*};
 
 pub fn create_basic_food_farm(
-    ctx: &ReducerContext,
+    dsl: &DSL,
     station: &Station,
     under_construction: bool,
     output_quality: FarmOutputQuality,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     if under_construction {
         return Err("Not yet implemented".to_string());
     }
@@ -32,7 +30,7 @@ pub fn create_basic_food_farm(
         identifier.as_str(),
         true,
         None,
-        ctx.timestamp,
+        dsl.ctx().timestamp,
     )?;
 
     // Create farm submodule

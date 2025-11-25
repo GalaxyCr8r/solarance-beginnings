@@ -1,5 +1,5 @@
 use spacetimedb::ReducerContext;
-use spacetimedsl::dsl;
+use spacetimedsl::*;
 
 use super::{StellarObject, StellarObjectTransformInternal, StellarObjectVelocity};
 use crate::tables::stellarobjects::GetSobjInternalTransformRowOptionById;
@@ -7,11 +7,9 @@ use crate::tables::stellarobjects::GetSobjInternalTransformRowOptionById;
 impl StellarObject {
     pub fn distance_squared(
         &self,
-        ctx: &ReducerContext,
+        dsl: &DSL,
         target: &StellarObject,
     ) -> Result<f32, String> {
-        let dsl = dsl(ctx);
-
         let transform = dsl.get_sobj_internal_transform_by_id(self)?;
         let target_transform = dsl.get_sobj_internal_transform_by_id(target)?;
 

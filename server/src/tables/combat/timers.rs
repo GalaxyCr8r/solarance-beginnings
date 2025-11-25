@@ -1,7 +1,7 @@
 use super::*;
 use crate::tables::ships::*;
 use spacetimedb::TimeDuration;
-use spacetimedsl::{ dsl, Wrapper };
+use spacetimedsl::*;
 
 #[dsl(plural_name = visual_effect_timers)]
 #[spacetimedb::table(name = visual_effect_timer, scheduled(cleanup_visual_effect))]
@@ -60,7 +60,7 @@ pub struct CombatCooldownTimer {
 #[spacetimedb::reducer]
 pub fn update_combat_cooldowns(
     ctx: &ReducerContext,
-    _timer: CombatCooldownTimer
+    _timer: CombatCooldownTimer,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
@@ -98,15 +98,11 @@ pub fn update_combat_cooldowns(
     Ok(())
 }
 
-pub fn init(ctx: &ReducerContext) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
+pub fn init(dsl: &DSL) -> Result<(), String> {
     // Schedule the cooldown update timer to run every 100ms
-    let cooldown_timer = dsl.create_combat_cooldown_timer(
-        spacetimedb::ScheduleAt::Interval(
-            TimeDuration::from_micros(100_000) // 100ms = 100,000 microseconds
-        )
-    )?;
+    let cooldown_timer = dsl.create_combat_cooldown_timer(spacetimedb::ScheduleAt::Interval(
+        TimeDuration::from_micros(100_000), // 100ms = 100,000 microseconds
+    ))?;
 
     spacetimedb::log::info!(
         "Combat cooldown timer initialized with ID {}",

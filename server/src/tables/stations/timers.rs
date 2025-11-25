@@ -34,9 +34,7 @@ pub struct StationStatusSchedule {
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init(ctx: &ReducerContext) -> Result<(), String> {
-    let _dsl = dsl(ctx);
-
+pub fn init(_dsl: &DSL) -> Result<(), String> {
     Ok(())
 }
 
@@ -89,25 +87,25 @@ pub fn process_station_production_tick(
 
         let result = match blueprint.category {
             StationModuleCategory::LogisticsAndStorage => {
-                update_logistics_and_storage(ctx, &station, &module, &blueprint)
+                update_logistics_and_storage(&dsl, &station, &module, &blueprint)
             }
             StationModuleCategory::ResourceProductionAndRefining => {
-                update_resource_production_and_refining(ctx, &station, &module, &blueprint)
+                update_resource_production_and_refining(&dsl, &station, &module, &blueprint)
             }
             StationModuleCategory::ManufacturingAndAssembly => {
-                update_manufacturing_and_assembly(ctx, &station, &module, &blueprint)
+                update_manufacturing_and_assembly(&dsl, &station, &module, &blueprint)
             }
             StationModuleCategory::ResearchAndDevelopment => {
-                update_research_and_development(ctx, &station, &module, &blueprint)
+                update_research_and_development(&dsl, &station, &module, &blueprint)
             }
             StationModuleCategory::CivilianAndSupportServices => {
-                update_civilian_and_support_services(ctx, &station, &module, &blueprint)
+                update_civilian_and_support_services(&dsl, &station, &module, &blueprint)
             }
             StationModuleCategory::DiplomacyAndFaction => {
-                update_diplomacy_and_faction(ctx, &station, &module, &blueprint)
+                update_diplomacy_and_faction(&dsl, &station, &module, &blueprint)
             }
             StationModuleCategory::DefenseAndMilitary => {
-                update_defense_and_military(ctx, &station, &module, &blueprint)
+                update_defense_and_military(&dsl, &station, &module, &blueprint)
             }
         };
 

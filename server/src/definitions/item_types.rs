@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 
 use log::info;
 use spacetimedb::ReducerContext;
-use spacetimedsl::{dsl, DSL};
+use spacetimedsl::*;
 
 use crate::tables::{combat::WeaponType, items::*};
 
@@ -153,10 +153,8 @@ pub const MASSIVE_STACK_SIZE: u8 = 4;
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init(ctx: &ReducerContext) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
-    commodity_definitions(&dsl)?;
+pub fn init(dsl: &DSL) -> Result<(), String> {
+    commodity_definitions(dsl)?;
 
     info!("Item Defs Loaded: {}", dsl.count_of_all_item_definitions());
     Ok(())
