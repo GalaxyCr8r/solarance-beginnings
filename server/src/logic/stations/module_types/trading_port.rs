@@ -1,8 +1,8 @@
-use super::*;
-use crate::{
-    definitions::{item_types::*, station_module_types::*},
-    tables::items::*,
-};
+use spacetimedb::*;
+use spacetimedsl::*;
+
+use crate::tables::items::*;
+use crate::tables::stations::*;
 
 #[dsl(plural_name = trading_port_modules)]
 #[table(name = trading_port_module, public)]
@@ -39,6 +39,9 @@ pub struct TradingPortItemConfig {
     pub buying_margin: Option<f32>,
     pub selling_margin: Option<f32>,
 }
+
+///////////////////////////////////////////////////////////
+/// Create Modules
 
 /// Generic function to create a trading port with specified items and configurations
 pub fn create_trading_port_with_items(
@@ -77,9 +80,11 @@ pub fn create_trading_port_with_items(
                 module.get_id(),
                 ItemDefinitionId::new(item_config.item_id),
                 item_config.starting_quantity,
-                blueprint.max_internal_storage_volume_per_slot_m3.unwrap()
+                blueprint
+                    .get_max_internal_storage_volume_per_slot_m3()
+                    .unwrap()
                     / *item_def.get_volume_per_unit() as u32,
-                format!("{};{};trading", module.id, item_config.item_id).as_str(),
+                format!("{};{};trading", module.get_id(), item_config.item_id).as_str(),
                 0, // Initial cached price, will be updated immediately
             )?;
 
