@@ -1,4 +1,8 @@
+use crate::{tables::stations::*, *};
+use spacetimedb::{log::info, table, ReducerContext, ScheduleAt, Timestamp};
+use spacetimedsl::*;
 
+use super::*;
 
 #[dsl(plural_name = station_production_schedules)]
 #[table(name = station_production_schedule, scheduled(process_station_production_tick))]
@@ -45,8 +49,8 @@ pub fn process_station_production_tick(
         if wrapped_blueprint.is_err() {
             info!(
                 "WARNING Station Module Blueprint #{} does not exist. Station #{} is looking for it.",
-                module.blueprint,
-                timer.id
+                module.get_blueprint(),
+                timer.get_id()
             );
             continue;
         }
@@ -54,10 +58,11 @@ pub fn process_station_production_tick(
 
         info!(
             "Processing module {} of type {:?}",
-            module.id, blueprint.category
+            module.get_id(),
+            blueprint.get_category()
         );
 
-        let result = match blueprint.category {
+        let result = match blueprint.get_category() {
             StationModuleCategory::LogisticsAndStorage => {
                 update_logistics_and_storage(&dsl, &station, &module, &blueprint)
             }
@@ -82,13 +87,15 @@ pub fn process_station_production_tick(
         };
 
         if let Err(e) = result {
-            info!("Error processing module {}: {}", module.id, e);
+            info!("Error processing module {}: {}", module.get_id(), e);
         }
     }
 
     info!(
         "Completed production tick for station #{}: {} (Sector ID#:{})",
-        timer.id, station.name, station.sector_id
+        timer.get_id(),
+        station.get_name(),
+        station.get_sector_id()
     );
     Ok(())
 }

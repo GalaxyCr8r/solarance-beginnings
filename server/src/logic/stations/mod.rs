@@ -1,14 +1,11 @@
 use crate::{
     definitions::item_types::*,
-    logic::stations::module_types::{
-        manufacturing::{self, *},
-        refineries::{self as refinery, *},
-        solar_arrays::{self as solar_array, *},
-        trading_port,
+    logic::stations::{
+        module_types::{manufacturing::*, refineries::*, solar_arrays::*, trading_port},
+        production::*,
+        status::*,
     },
-    tables::{
-        factions::FactionId, items::*, sectors::Sector, stations::*, stellarobjects::StellarObject,
-    },
+    tables::{factions::*, items::*, sectors::*, stations::*, stellarobjects::*},
     utility::try_server_only,
 };
 
@@ -170,13 +167,13 @@ pub fn verify(dsl: &DSL, station: Station) -> Result<(), String> {
     let current_module_count = dsl
         .get_station_modules_by_station_id(station.get_id())
         .count();
-    let max_modules = station.size.modules() as usize;
+    let max_modules = station.get_size().max_module_amount() as usize;
 
     if current_module_count > max_modules {
         return Err(format!(
             "Too many station modules attached. Found {} modules but station size {:?} only allows {} modules.",
             current_module_count,
-            station.size,
+            station.get_size(),
             max_modules
         ));
     }
@@ -214,59 +211,50 @@ pub fn update_resource_production_and_refining(
     // Calculate time elapsed since last update (assuming 30 second intervals)
     let time_elapsed_hours = 30.0 / 3600.0; // 30 seconds in hours
 
-    match blueprint.specific_type {
+    match blueprint.get_specific_type() {
         StationModuleSpecificType::RefineryBasicOre => {
             // Handle refinery modules
             if let Ok(refinery) = dsl.get_refinery_module_by_id(module.get_id()) {
-                let production_result = refinery::timers::calculate_refinery_production(
-                    dsl,
-                    &refinery,
-                    time_elapsed_hours,
-                )?;
+                let production_result =
+                    calculate_refinery_production(dsl, &refinery, time_elapsed_hours)?;
 
-                refinery::timers::apply_refinery_production(dsl, &refinery, &production_result)?;
+                apply_refinery_production(dsl, &refinery, &production_result)?;
 
                 spacetimedb::log::info!(
                     "Refinery module {} produced {:.2} ingots, consumed {:.2} ore",
-                    module.id,
+                    module.get_id(),
                     production_result.ingots_produced,
                     production_result.ore_consumed
                 );
             }
         }
         StationModuleSpecificType::FarmStandard | StationModuleSpecificType::FarmLuxury => {
+            // TODO: Farm modules not yet implemented
             // Handle farm modules
-            if let Ok(farm) = dsl.get_farm_module_by_id(module.get_id()) {
-                let production_result =
-                    farm::timers::calculate_farm_production(dsl, &farm, time_elapsed_hours)?;
-
-                farm::timers::apply_farm_production(dsl, &farm, &production_result)?;
-
-                spacetimedb::log::info!(
-                    "Farm module {} produced {:.2} food units",
-                    module.id,
-                    production_result.food_produced
-                );
-            }
+            // if let Ok(farm) = dsl.get_farm_module_by_id(module.get_id()) {
+            //     let production_result =
+            //         farm::timers::calculate_farm_production(dsl, &farm, time_elapsed_hours)?;
+            //
+            //     farm::timers::apply_farm_production(dsl, &farm, &production_result)?;
+            //
+            //     spacetimedb::log::info!(
+            //         "Farm module {} produced {:.2} food units",
+            //         module.id,
+            //         production_result.food_produced
+            //     );
+            // }
         }
         StationModuleSpecificType::SolarArray => {
             // Handle solar array modules
             if let Ok(solar_array) = dsl.get_solar_array_module_by_id(module.get_id()) {
-                let production_result = solar_array::timers::calculate_solar_array_production(
-                    dsl,
-                    &solar_array,
-                    time_elapsed_hours,
-                )?;
+                let production_result =
+                    calculate_solar_array_production(dsl, &solar_array, time_elapsed_hours)?;
 
-                solar_array::timers::apply_solar_array_production(
-                    dsl,
-                    &solar_array,
-                    &production_result,
-                )?;
+                apply_solar_array_production(dsl, &solar_array, &production_result)?;
 
                 spacetimedb::log::info!(
                     "Solar array module {} produced {:.2} energy cells",
-                    module.id,
+                    module.get_id(),
                     production_result.energy_cells_produced
                 );
             }
@@ -294,10 +282,10 @@ pub fn update_manufacturing_and_assembly(
         manufacturing
             .get_current_recipe_id()
             .map(|r| dsl.get_production_recipe_definition_by_id(r)),
-        blueprint.specific_type
+        blueprint.get_specific_type()
     );
 
-    match blueprint.specific_type {
+    match blueprint.get_specific_type() {
         StationModuleSpecificType::FactoryBasicComponents
         | StationModuleSpecificType::FactoryAdvancedComponents => {
             // Handle manufacturing modules
@@ -310,7 +298,7 @@ pub fn update_manufacturing_and_assembly(
             if production_result.items_completed > 0 {
                 spacetimedb::log::info!(
                     "Manufacturing module {} completed {} items, progress: {:.2}",
-                    module.id,
+                    module.get_id(),
                     production_result.items_completed,
                     production_result.progress_made
                 );
@@ -333,33 +321,34 @@ pub fn update_research_and_development(
     blueprint: &StationModuleBlueprint,
 ) -> Result<(), String> {
     // Calculate time elapsed since last update (assuming 30 second intervals)
-    let time_elapsed_hours = 30.0 / 3600.0; // 30 seconds in hours
+    let _time_elapsed_hours = 30.0 / 3600.0; // 30 seconds in hours
 
-    match blueprint.specific_type {
+    match blueprint.get_specific_type() {
         StationModuleSpecificType::Laboratory => {
+            // TODO: Laboratory modules not yet implemented
             // Handle laboratory modules
-            if let Ok(laboratory) = dsl.get_laboratory_module_by_id(module.get_id()) {
-                let production_result = laboratory::timers::calculate_laboratory_production(
-                    dsl,
-                    &laboratory,
-                    time_elapsed_hours,
-                )?;
-
-                laboratory::timers::apply_laboratory_production(
-                    dsl,
-                    &laboratory,
-                    &production_result,
-                )?;
-
-                if production_result.fragments_produced > 0 {
-                    spacetimedb::log::info!(
-                        "Laboratory module {} produced {:.2} research fragments ({:.2} points)",
-                        module.id,
-                        production_result.fragments_produced,
-                        production_result.research_points_produced
-                    );
-                }
-            }
+            // if let Ok(laboratory) = dsl.get_laboratory_module_by_id(module.get_id()) {
+            //     let production_result = laboratory::timers::calculate_laboratory_production(
+            //         dsl,
+            //         &laboratory,
+            //         time_elapsed_hours,
+            //     )?;
+            //
+            //     laboratory::timers::apply_laboratory_production(
+            //         dsl,
+            //         &laboratory,
+            //         &production_result,
+            //     )?;
+            //
+            //     if production_result.fragments_produced > 0 {
+            //         spacetimedb::log::info!(
+            //             "Laboratory module {} produced {:.2} research fragments ({:.2} points)",
+            //             module.id,
+            //             production_result.fragments_produced,
+            //             production_result.research_points_produced
+            //         );
+            //     }
+            // }
         }
         _ => {
             // Not a research/development module, skip
@@ -401,105 +390,85 @@ pub fn update_defense_and_military(
     //
     Ok(())
 }
-/// Helper function to create a basic food farm module
-pub fn create_basic_farm_module() -> ModuleCreationFn {
-    Box::new(|dsl, station| {
-        farm::definitions::create_basic_food_farm(
-            dsl,
-            station,
-            false,
-            farm::FarmOutputQuality::Average,
-        )
-    })
-}
+// TODO: Farm modules not yet implemented
+// /// Helper function to create a basic food farm module
+// pub fn create_basic_farm_module() -> ModuleCreationFn {
+//     Box::new(|dsl, station| {
+//         farm::definitions::create_basic_food_farm(
+//             dsl,
+//             station,
+//             false,
+//             farm::FarmOutputQuality::Average,
+//         )
+//     })
+// }
+//
+// /// Helper function to create a luxury food farm module
+// pub fn create_luxury_farm_module() -> ModuleCreationFn {
+//     Box::new(|dsl, station| {
+//         farm::definitions::create_basic_food_farm(
+//             dsl,
+//             station,
+//             false,
+//             farm::FarmOutputQuality::Luxury,
+//         )
+//     })
+// }
 
-/// Helper function to create a luxury food farm module
-pub fn create_luxury_farm_module() -> ModuleCreationFn {
-    Box::new(|dsl, station| {
-        farm::definitions::create_basic_food_farm(
-            dsl,
-            station,
-            false,
-            farm::FarmOutputQuality::Luxury,
-        )
-    })
-}
-
-/// Helper function to create a basic laboratory module
-pub fn create_basic_laboratory_module() -> ModuleCreationFn {
-    Box::new(|dsl, station| {
-        laboratory::definitions::create_basic_laboratory(
-            dsl,
-            station,
-            false,
-            laboratory::definitions::LaboratoryType::Basic,
-        )
-    })
-}
-
-/// Helper function to create an advanced laboratory module
-pub fn create_advanced_laboratory_module() -> ModuleCreationFn {
-    Box::new(|dsl, station| {
-        laboratory::definitions::create_basic_laboratory(
-            dsl,
-            station,
-            false,
-            laboratory::definitions::LaboratoryType::Advanced,
-        )
-    })
-}
+// TODO: Laboratory modules not yet implemented
+// /// Helper function to create a basic laboratory module
+// pub fn create_basic_laboratory_module() -> ModuleCreationFn {
+//     Box::new(|dsl, station| {
+//         laboratory::definitions::create_basic_laboratory(
+//             dsl,
+//             station,
+//             false,
+//             laboratory::definitions::LaboratoryType::Basic,
+//         )
+//     })
+// }
+//
+// /// Helper function to create an advanced laboratory module
+// pub fn create_advanced_laboratory_module() -> ModuleCreationFn {
+//     Box::new(|dsl, station| {
+//         laboratory::definitions::create_basic_laboratory(
+//             dsl,
+//             station,
+//             false,
+//             laboratory::definitions::LaboratoryType::Advanced,
+//         )
+//     })
+// }
 
 /// Helper function to create a basic manufacturing module
-pub fn create_basic_manufacturing_module() -> ModuleCreationFn {
+pub fn create_basic_manufacturing_module_fn() -> ModuleCreationFn {
     Box::new(|dsl, station| {
-        manufacturing::definitions::create_basic_manufacturing_module(
-            dsl,
-            station,
-            false,
-            manufacturing::definitions::ManufacturingType::BasicFactory,
-        )
+        create_basic_manufacturing_module(dsl, station, false, ManufacturingType::BasicFactory)
     })
 }
 
 /// Helper function to create an advanced manufacturing module
 pub fn create_advanced_manufacturing_module() -> ModuleCreationFn {
     Box::new(|dsl, station| {
-        manufacturing::definitions::create_basic_manufacturing_module(
-            dsl,
-            station,
-            false,
-            manufacturing::definitions::ManufacturingType::AdvancedFactory,
-        )
+        create_basic_manufacturing_module(dsl, station, false, ManufacturingType::AdvancedFactory)
     })
 }
 
 /// Helper function to create a small solar array module
 pub fn create_small_solar_array_module() -> ModuleCreationFn {
     Box::new(|dsl, station| {
-        solar_array::definitions::create_basic_solar_array(
-            dsl,
-            station,
-            false,
-            solar_array::definitions::SolarArraySize::Small,
-        )
+        create_simple_solar_array_module(dsl, station, false, SolarArraySize::Small)
     })
 }
 
 /// Helper function to create a large solar array module
 pub fn create_large_solar_array_module() -> ModuleCreationFn {
     Box::new(|dsl, station| {
-        solar_array::definitions::create_basic_solar_array(
-            dsl,
-            station,
-            false,
-            solar_array::definitions::SolarArraySize::Large,
-        )
+        create_simple_solar_array_module(dsl, station, false, SolarArraySize::Large)
     })
 }
 
 /// Helper function to create a metal plate manufacturing module
-pub fn create_metal_plate_module() -> ModuleCreationFn {
-    Box::new(|dsl, station| {
-        manufacturing::definitions::create_metal_plate_module(dsl, station, false)
-    })
+pub fn create_metal_plate_module_fn() -> ModuleCreationFn {
+    Box::new(|dsl, station| create_metal_plate_module(dsl, station, false))
 }

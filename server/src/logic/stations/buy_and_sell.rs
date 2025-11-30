@@ -1,3 +1,12 @@
+use crate::{
+    logic::ships::cargo::{attempt_to_load_cargo_into_ship, remove_cargo_from_ship},
+    tables::{items::*, players::*, server_messages::*, ships::*, stations::*},
+    utility::is_server_or_ship_owner,
+    *,
+};
+use spacetimedb::{log::info, ReducerContext};
+use spacetimedsl::*;
+
 ///////////////////////////////////////////////////////////
 // Reducers ///
 ///////////////////////////////////////////////////////////
@@ -165,8 +174,8 @@ pub fn buy_item_from_station_module(
         &ship.get_player_id(),
         format!(
             "Station #{} Module #{}: Bought {}x {} for {}c.",
-            station_module.station_id,
-            station_module_id.value(),
+            station_module.get_station_id(),
+            station_module_id,
             quantity,
             item_def.get_name(),
             total_price
@@ -317,8 +326,8 @@ pub fn sell_item_to_station_module(
         &ship.get_player_id(),
         format!(
             "Station #{} Module #{}: Sold {}x {} for {}c.",
-            station_module.station_id,
-            station_module_id.value(),
+            station_module.get_station_id(),
+            station_module_id,
             quantity,
             item_def.get_name(),
             total_price

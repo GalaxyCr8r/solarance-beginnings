@@ -1,3 +1,7 @@
+use crate::tables::stations::StationId;
+use spacetimedb::{table, ReducerContext, ScheduleAt, Timestamp};
+use spacetimedsl::dsl;
+
 #[dsl(plural_name = station_status_schedules)]
 #[table(name = station_status_schedule, scheduled(process_station_status_tick))]
 pub struct StationStatusSchedule {

@@ -1,7 +1,9 @@
 use spacetimedb::{table, SpacetimeType, Timestamp};
 use spacetimedsl::*;
 
-use crate::{tables::economy::ResourceAmount, *};
+use crate::tables::economy::ResourceAmount;
+use crate::tables::items::{self, ItemDefinition};
+use crate::*;
 
 //////////////////////////////////
 // Enums
@@ -247,12 +249,12 @@ pub struct StationStatus {
 }
 
 ////////////////////////////////////////////////////
-/// impls
+/// Impls
 ///
 
 impl StationSize {
     /// How many modules can this size support?
-    pub fn modules(&self) -> u8 {
+    pub fn max_module_amount(&self) -> u8 {
         match self {
             StationSize::Capital => 13,
             StationSize::Large => 9,
@@ -263,21 +265,22 @@ impl StationSize {
         }
     }
 
-    pub fn base_cost(&self) -> u32 {
-        (self.modules().pow(2) as u32) * 100_000 + 300_000
+    pub fn calculate_base_cost(&self) -> u32 {
+        (self.max_module_amount().pow(2) as u32) * 100_000 + 300_000
     }
 
     /// Retooling a space station to a larger size should be possible, but discouraged.
-    pub fn upgrade_cost(&self, new_size: StationSize) -> u32 {
-        new_size.base_cost() - self.base_cost() + ((new_size.modules() - self.modules()) as u32)
+    pub fn calculate_upgrade_cost(&self, new_size: StationSize) -> u32 {
+        new_size.calculate_base_cost() - self.calculate_base_cost()
+            + ((new_size.max_module_amount() - self.max_module_amount()) as u32)
     }
 
-    pub fn base_health(&self) -> u32 {
-        (self.modules().pow(2) as u32) * 25_000 + 100_000
+    pub fn calculate_base_health(&self) -> u32 {
+        (self.max_module_amount().pow(2) as u32) * 25_000 + 100_000
     }
 
-    pub fn base_shields(&self) -> u32 {
-        (self.modules().pow(2) as u32) * 50_000 + 200_000
+    pub fn calculate_base_shields(&self) -> u32 {
+        (self.max_module_amount().pow(2) as u32) * 50_000 + 200_000
     }
 }
 
