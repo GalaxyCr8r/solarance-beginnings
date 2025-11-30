@@ -2,6 +2,7 @@ use log::info;
 use spacetimedb::*;
 use spacetimedsl::*;
 
+use crate::definitions::item_types::*;
 use crate::tables::economy::ResourceAmount;
 use crate::tables::items::*;
 use crate::tables::stations::*;

@@ -1,19 +1,3 @@
-use log::info;
-use spacetimedb::ScheduleAt;
-use std::time::Duration;
-
-use crate::logic::ships::cargo::{attempt_to_load_cargo_into_ship, remove_cargo_from_ship};
-use crate::tables::{
-    items::{ItemDefinitionId, *},
-    players::{GetPlayerRowOptionById, UpdatePlayerRowById},
-    server_messages::{send_error_message, send_info_message},
-    ships::*,
-    stations::timers::*,
-};
-use crate::utility::*;
-
-use super::*;
-
 ///////////////////////////////////////////////////////////
 // Reducers ///
 ///////////////////////////////////////////////////////////
@@ -341,55 +325,6 @@ pub fn sell_item_to_station_module(
         ),
         Some("station_module"),
     )?;
-
-    Ok(())
-}
-
-/// Creates station timers for the given station ID.
-/// Sets up both production and status schedules for the station.
-#[spacetimedb::reducer]
-pub fn add_station_timers(ctx: &ReducerContext, station_id: u64) -> Result<(), String> {
-    let dsl = dsl(ctx);
-    try_server_only(&dsl)?;
-    let station_id = StationId::new(station_id);
-
-    // Verify the station exists
-    let _station = dsl.get_station_by_id(&station_id)?;
-
-    // Check if production schedule already exists
-    if dsl
-        .get_station_production_schedule_by_id(&station_id)
-        .is_ok()
-    {
-        info!(
-            "Station production schedule already exists for station {}",
-            station_id
-        );
-    } else {
-        // Set up station production schedule (every 30 seconds)
-        dsl.create_station_production_schedule(
-            &station_id,
-            ScheduleAt::Interval(Duration::from_secs(30).into()), // TODO: Make this dependant on a GlobalConfig value
-            ctx.timestamp,
-        )?;
-    }
-
-    // Check if status schedule already exists
-    if dsl.get_station_status_schedule_by_id(&station_id).is_ok() {
-        info!(
-            "Station status schedule already exists for station {}",
-            station_id
-        );
-    } else {
-        // Set up station status schedule (every 10 seconds)
-        dsl.create_station_status_schedule(
-            &station_id,
-            ScheduleAt::Interval(Duration::from_secs(10).into()), // TODO: Make this dependant on a GlobalConfig value
-            ctx.timestamp,
-        )?;
-    }
-
-    info!("Created station timers for station {}", station_id);
 
     Ok(())
 }

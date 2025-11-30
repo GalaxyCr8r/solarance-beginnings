@@ -1,6 +1,8 @@
 use spacetimedb::*;
 use spacetimedsl::*;
 
+use crate::definitions::item_types::*;
+use crate::definitions::station_module_types::*;
 use crate::tables::items::*;
 use crate::tables::stations::*;
 

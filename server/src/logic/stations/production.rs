@@ -1,10 +1,4 @@
-use log::info;
-use spacetimedb::*;
-use spacetimedsl::*;
 
-use crate::tables::stations::utility::*;
-
-use super::*;
 
 #[dsl(plural_name = station_production_schedules)]
 #[table(name = station_production_schedule, scheduled(process_station_production_tick))]
@@ -18,28 +12,6 @@ pub struct StationProductionSchedule {
     pub last_processed_timestamp: Timestamp,
 }
 
-#[dsl(plural_name = station_status_schedules)]
-#[table(name = station_status_schedule, scheduled(process_station_status_tick))]
-pub struct StationStatusSchedule {
-    #[primary_key]
-    #[use_wrapper(path = StationId)]
-    /// FK to SpaceStation
-    id: u64,
-    pub scheduled_at: ScheduleAt, // Periodic (e.g., every minute or 5 minutes)
-
-    pub last_processed_timestamp: Timestamp,
-}
-
-//////////////////////////////////////////////////////////////
-// Init
-//////////////////////////////////////////////////////////////
-
-pub fn init(_dsl: &DSL) -> Result<(), String> {
-    Ok(())
-}
-
-//////////////////////////////////////////////////////////////
-// Reducers
 //////////////////////////////////////////////////////////////
 
 /// Scheduled reducer that processes production for all modules in a station.
@@ -118,20 +90,5 @@ pub fn process_station_production_tick(
         "Completed production tick for station #{}: {} (Sector ID#:{})",
         timer.id, station.name, station.sector_id
     );
-    Ok(())
-}
-
-/// Scheduled reducer that processes station status updates and maintenance.
-/// Currently not implemented - placeholder for future station health/status monitoring.
-#[spacetimedb::reducer]
-pub fn process_station_status_tick(
-    ctx: &ReducerContext,
-    _timer: StationStatusSchedule,
-) -> Result<(), String> {
-    let _dsl = dsl(ctx);
-
-    // TODO: Implement station shields
-    //Err("Not implemented".to_string())
-
     Ok(())
 }
