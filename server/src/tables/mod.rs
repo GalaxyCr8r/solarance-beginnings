@@ -3,9 +3,10 @@
 pub mod asteroids;
 pub mod chats;
 pub mod combat;
-pub mod common;
+pub mod common_types;
 pub mod economy;
 pub mod factions;
+pub mod global_config;
 pub mod items;
 pub mod jumpgates;
 pub mod npcs;

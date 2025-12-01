@@ -51,7 +51,7 @@ pub fn recalculate_sobj_transforms(
     let mut update = timer;
     let low_resolution = update.current_update == 0;
 
-    move_stellar_objects(&dsl)?;
+    move_stellar_objects(dsl.ctx())?;
 
     // Update the value in the config table
     update.current_update = (update.current_update + 1) % 5; // TODO: Make this configurable
@@ -123,12 +123,12 @@ pub fn __move_stellar_object(dsl: &DSL, sobj: StellarObject) -> Result<(), Strin
     Ok(())
 }
 
-/// Server-only reducer that applies physics updates to all stellar objects.
+/// Server-only ~reducer~ that applies physics updates to all stellar objects.
 /// Updates position, rotation, and velocity for each object based on their current state.
-#[spacetimedb::reducer]
-pub fn move_stellar_objects(ctx: &ReducerContext) -> Result<(), String> {
-    let dsl = dsl(ctx);
-    try_server_only(dsl)?;
+//#[spacetimedb::reducer]
+pub fn move_stellar_objects(dsl: &DSL) -> Result<(), String> {
+    // let dsl = dsl(ctx);
+    // try_server_only(dsl)?;
 
     // TODO Cache which sectors have players in them and only do fine updates in those.
 
@@ -148,8 +148,10 @@ pub fn recalculate_player_windows(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
+    try_server_only(&dsl);
+
     // Bail out ASAP if there's no players connected.
-    if !global_config_any_active_players(dsl) {
+    if !global_config_any_active_players(&dsl) {
         return Ok(());
     }
 

@@ -1,7 +1,7 @@
-use crate::tables::players::PlayerId;
+use crate::{tables::players::PlayerId, utility::try_server_only};
 use spacetimedsl::*;
 
-use super::{ utility::*, * };
+use super::{utility::*, *};
 
 ///////////////////////////////////////////////////////////
 // Reducers ///
@@ -13,19 +13,17 @@ use super::{ utility::*, * };
 pub fn create_sobj_player_window_for(
     ctx: &ReducerContext,
     identity: Identity,
-    sobj_id: StellarObjectId
+    sobj_id: StellarObjectId,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
+    let pid = PlayerId::new(identity);
+
+    if dsl.get_sobj_player_window_by_id(&pid).is_ok() {
+        return Err("Player Window already exists".to_string());
+    }
 
     dsl.create_sobj_player_window(
-        PlayerId::new(identity),
-        &sobj_id,
-        4000.0,
-        2000.0,
-        -2000.0,
-        -2000.0,
-        2000.0,
-        2000.0
+        pid, &sobj_id, 4000.0, 2000.0, -2000.0, -2000.0, 2000.0, 2000.0,
     )?;
     info!(
         "Created player window for {} and object #{}!",
@@ -40,9 +38,11 @@ pub fn create_sobj_player_window_for(
 #[spacetimedb::reducer]
 pub fn create_turn_left_controller_for(
     ctx: &ReducerContext,
-    sobj_id: StellarObjectId
+    sobj_id: StellarObjectId,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
+
+    try_server_only(&dsl);
 
     if let Ok(controller) = dsl.get_sobj_turn_left_controller_by_id(&sobj_id) {
         dsl.delete_sobj_turn_left_controller_by_id(controller.get_id())?;
@@ -61,11 +61,11 @@ pub fn create_stellar_object(
     ctx: &ReducerContext,
     kind: StellarObjectKinds,
     sector_id: SectorId,
-    transform: StellarObjectTransformInternal
+    transform: StellarObjectTransformInternal,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    //server_only(&dsl);
+    try_server_only(&dsl);
 
     match create_sobj_internal(&dsl, kind, &sector_id, transform) {
         Ok(_) => Ok(()),
@@ -77,20 +77,20 @@ pub fn create_stellar_object(
 /// Generates random position and rotation within predefined bounds.
 #[spacetimedb::reducer]
 pub fn create_sobj_random(ctx: &ReducerContext, sector_id: u64) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
-    //server_only(&dsl);
+    try_server_only(&dsl(ctx));
 
     create_stellar_object(
-        &dsl,
+        ctx,
         StellarObjectKinds::Ship,
         SectorId::new(sector_id),
         StellarObjectTransformInternal {
             id: 0,
             x: ctx.rng().gen_range(0.0..1024.0),
             y: ctx.rng().gen_range(0.0..512.0),
-            rotation_radians: ctx.rng().gen_range(-std::f32::consts::PI..std::f32::consts::PI),
-        }
+            rotation_radians: ctx
+                .rng()
+                .gen_range(-std::f32::consts::PI..std::f32::consts::PI),
+        },
     )
 }
 

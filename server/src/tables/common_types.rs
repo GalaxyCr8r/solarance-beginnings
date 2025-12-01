@@ -1,36 +1,11 @@
 use std::hash::Hasher;
 
 use spacetimedb::*;
-use spacetimedsl::*;
-
-//use super::{ items::ItemDefinitionId, stations::StationId };
-
-// pub mod definitions; // Definitions for initial ingested data.
-pub mod impls; // Impls for this file's structs
-               // pub mod reducers; // SpacetimeDB Reducers for this file's structs.
-               // pub mod rls; // Row-level-security rules for this file's structs.
-               // pub mod timers; // Timers related to this file's structs.
-               //pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
 #[derive(SpacetimeType, Clone, Debug)]
 pub struct Vec2 {
     pub x: f32,
     pub y: f32,
-}
-
-#[dsl(plural_name = global_configurations)]
-#[table(name = global_config)]
-pub struct GlobalConfig {
-    #[primary_key]
-    #[create_wrapper]
-    id: u32,
-
-    pub active_players: u32,
-    pub old_gods_defeated: u8,
-    pub version: String,
-
-    created_at: Timestamp,
-    modified_at: Timestamp,
 }
 
 // pub struct TradeCommand {
@@ -88,25 +63,41 @@ impl Vec2 {
     pub fn from_glam(vec: glam::Vec2) -> Vec2 {
         Vec2 { x: vec.x, y: vec.y }
     }
+
+    pub fn new(x: f32, y: f32) -> Self {
+        Vec2 { x, y }
+    }
+
+    pub fn sub(&self, other: &Vec2) -> Vec2 {
+        Vec2 {
+            x: self.x - other.x,
+            y: self.y - other.y,
+        }
+    }
+
+    pub fn length(&self) -> f32 {
+        (self.x * self.x + self.y * self.y).sqrt()
+    }
+
+    pub fn signed_angle_to(&self, other: &Vec2) -> f32 {
+        // Calculate the angle from self to other
+        let cross = self.x * other.y - self.y * other.x;
+        let dot = self.x * other.x + self.y * other.y;
+        cross.atan2(dot)
+    }
 }
 
-///////////////////////////////////////////////////////////
-// Reducers
-///////////////////////////////////////////////////////////
-
-///////////////////////////////////////////////////////////
-// Utility
-///////////////////////////////////////////////////////////
-
-pub fn global_config_any_active_players(dsl: &DSL) -> bool {
-    match dsl.get_global_config_by_id(&0) {
-        Ok(config) => {
-            if config.active_players == 0 {
-                return false;
-            }
+impl From<glam::Vec2> for Vec2 {
+    fn from(glam_vec: glam::Vec2) -> Self {
+        Vec2 {
+            x: glam_vec.x,
+            y: glam_vec.y,
         }
-        Err(_) => {}
-    };
+    }
+}
 
-    true
+impl From<Vec2> for glam::Vec2 {
+    fn from(vec: Vec2) -> Self {
+        glam::Vec2 { x: vec.x, y: vec.y }
+    }
 }

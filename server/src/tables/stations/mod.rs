@@ -2,7 +2,7 @@ use spacetimedb::{table, SpacetimeType, Timestamp};
 use spacetimedsl::*;
 
 use crate::tables::economy::ResourceAmount;
-use crate::tables::items::{self, ItemDefinition};
+use crate::tables::items::*;
 use crate::*;
 
 //////////////////////////////////
