@@ -6,10 +6,7 @@ use spacetimedsl::*;
 
 use crate::{
     logic::ships::cargo::attempt_to_load_cargo_into_ship,
-    tables::{
-        asteroids::*, items::utility::*, server_messages::send_info_message,
-        stellarobjects::*,
-    },
+    tables::{asteroids::*, server_messages::*, stellarobjects::*},
     utility::try_server_only,
 };
 
@@ -218,7 +215,7 @@ pub fn ship_mining_timer_reducer(
     }
 
     // Get the volume of the asteroid's item type
-    let item_def = get_item_definition(&dsl, asteroid_object.get_resource_item_id().value())?;
+    let item_def = dsl.get_item_definition_by_id(asteroid_object.get_resource_item_id())?;
 
     // Do the logic to determine speed of mining based on mining equipment, item id, etc.
     let mut energy_consumption = 1.0f32;
@@ -345,7 +342,7 @@ pub fn ship_add_cargo_timer_reducer(
     let mut ship_status = dsl.get_ship_status_by_id(timer.get_ship_id())?;
 
     // Get the item definition
-    let item_def = get_item_definition(&dsl, timer.item_id)?;
+    let item_def = dsl.get_item_definition_by_id(ItemDefinitionId::new(timer.item_id))?;
 
     // Attempt to load it into the ship
     attempt_to_load_cargo_into_ship(

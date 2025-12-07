@@ -111,7 +111,7 @@ pub fn undock_from_station(dsl: &DSL, docked: &Ship) -> Result<Ship, String> {
 
     if docked.get_player_id().value() != Identity::ONE {
         // There is a real player controlling this ship, so create the necessary helpers.
-        create_sobj_player_window_for(dsl, docked.get_player_id().value(), sobj.get_id())?;
+        create_sobj_player_window_for(dsl.ctx(), docked.get_player_id().value(), sobj.get_id())?;
         let _ = initialize_player_controller(dsl, &docked.get_player_id(), &sobj); // Should this error really be suppressed?
     } else {
         // There is NOT a real player controllering this ship, so error for now.

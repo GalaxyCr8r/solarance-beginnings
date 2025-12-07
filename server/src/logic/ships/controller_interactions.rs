@@ -5,6 +5,7 @@ use spacetimedsl::*;
 use crate::{
     logic::ships::station_interactions::dock_to_station,
     tables::{
+        common_types::Vec2,
         jumpgates::*,
         players::{utility::*, *},
         sectors::GetSectorRowOptionById,
@@ -96,7 +97,7 @@ pub fn try_to_use_jumpgate(
         //teleport_via_jumpgate(dsl, player_ship_obj.clone(), jumpgate)?;
         let mut ship = player_ship_obj.clone();
 
-        let pos: &crate::tables::common::Vec2 = jumpgate.get_target_gate_arrival_pos();
+        let pos: &Vec2 = jumpgate.get_target_gate_arrival_pos();
         let destination_sector = dsl.get_sector_by_id(jumpgate.get_target_sector_id())?;
 
         ship.set_sector_id(&destination_sector);

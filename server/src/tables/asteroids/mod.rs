@@ -1,6 +1,6 @@
 use glam::Vec2;
 use log::info;
-use spacetimedb::{rand::Rng, table, ReducerContext};
+use spacetimedb::{rand::Rng, table};
 use spacetimedsl::*;
 
 use crate::tables::{

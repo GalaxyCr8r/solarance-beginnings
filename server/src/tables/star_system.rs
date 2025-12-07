@@ -1,7 +1,10 @@
 use spacetimedb::*;
 use spacetimedsl::*;
 
-use crate::tables::{common, factions::*};
+use crate::tables::{
+    common_types::{self},
+    factions::*,
+};
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
 pub enum SpectralKind {
@@ -43,7 +46,7 @@ pub struct StarSystem {
     #[unique]
     pub name: String, // e.g., "Sol", "Alpha Centauri"
 
-    pub map_coordinates: common::Vec2, // Coordinates on the galactic map
+    pub map_coordinates: common_types::Vec2, // Coordinates on the galactic map
     pub spectral: SpectralKind,
     /// 0, Hypergiants ... 5, Main sequence (Sol) ... 7, White dwarfs
     pub luminosity: u8,

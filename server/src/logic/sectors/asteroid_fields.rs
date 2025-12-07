@@ -1,7 +1,7 @@
 use std::f32::consts::PI;
 
 use glam::Vec2;
-use spacetimedb::{rand::Rng, *};
+use spacetimedb::rand::Rng;
 use spacetimedsl::*;
 
 use crate::{

@@ -1,4 +1,3 @@
-use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 
 use crate::tables::stellarobjects::{GetStellarObjectRowOptionById, StellarObjectId};

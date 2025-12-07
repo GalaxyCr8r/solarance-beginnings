@@ -1,15 +1,16 @@
 use log::info;
-use spacetimedb::ReducerContext;
+use spacetimedb::*;
 use spacetimedsl::*;
 
 use crate::{
     definitions::factions::FACTION_LRAK_COMBINE,
+    logic::stations::*,
     tables::{
-        common::Vec2,
+        common_types::Vec2,
         factions::*,
         sectors::*,
         star_system::*,
-        stations::{utility::*, StationSize},
+        stations::*,
         stellarobjects::{utility::*, *},
     },
 };
@@ -203,7 +204,7 @@ fn create_beta_trading_station(
         faction_id.clone(),
         format!("{} Trading Station", beta.get_name()).as_str(),
         None,
-        vec![create_trading_module(), create_metal_plate_module()],
+        vec![create_trading_module()], //TODO:, create_metal_plate_module()],
     )?;
     Ok(())
 }

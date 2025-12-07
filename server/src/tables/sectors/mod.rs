@@ -91,11 +91,7 @@ impl Sector {
 // Utilities
 
 /// Creates a jumpgate in each sector, using the direction of the each other sector's position
-pub fn connect_sectors_with_warpgates(
-    dsl: &DSL,
-    a: &Sector,
-    b: &Sector,
-) -> Result<(), String> {
+pub fn connect_sectors_with_warpgates(dsl: &DSL, a: &Sector, b: &Sector) -> Result<(), String> {
     let a_pos = glam::Vec2::new(a.x, a.y);
     let b_pos = glam::Vec2::new(b.x, b.y);
     //info!("Sector Positions: A{} B{}", a_pos, b_pos);
@@ -109,10 +105,22 @@ pub fn connect_sectors_with_warpgates(
     //info!("Sector WP Pos: A{} B{}", a_wp_pos, b_wp_pos);
 
     create_jumpgate_in_sector(
-        dsl, a.id, a_wp_pos.x, a_wp_pos.y, b.id, b_wp_pos.x, b_wp_pos.y,
+        dsl.ctx(),
+        a.id,
+        a_wp_pos.x,
+        a_wp_pos.y,
+        b.id,
+        b_wp_pos.x,
+        b_wp_pos.y,
     )?;
     create_jumpgate_in_sector(
-        dsl, b.id, b_wp_pos.x, b_wp_pos.y, a.id, a_wp_pos.x, a_wp_pos.y,
+        dsl.ctx(),
+        b.id,
+        b_wp_pos.x,
+        b_wp_pos.y,
+        a.id,
+        a_wp_pos.x,
+        a_wp_pos.y,
     )?;
 
     Ok(())

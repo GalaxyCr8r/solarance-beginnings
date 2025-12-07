@@ -12,7 +12,7 @@ use crate::{
         ships::controller_interactions::*,
     },
     tables::{
-        common::CurrentAction,
+        common_types::CurrentAction,
         jumpgates::*,
         players::{utility::*, *},
         ships::{timers::*, *},
@@ -112,7 +112,7 @@ pub fn update_player_controller(
             "SECURITY ERROR: ID {} is trying to change player controller for ID {}!!! Username: {}",
             ctx.sender,
             controller_id,
-            get_username(dsl, controller_id)
+            get_username(&dsl, controller_id)
         );
         return Err("ID Mismatch. This was reported to the system admin.".to_string());
     }
@@ -125,7 +125,7 @@ pub fn update_player_controller(
     if *previous_controller.get_mining_laser_on() && !controller.get_mining_laser_on() {
         info!(
             "Player {} no longer mining, removing mining timers.",
-            get_username(dsl, controller_id)
+            get_username(&dsl, controller_id)
         );
         for mining_timer in
             dsl.get_ship_mining_timers_by_ship_sobj_id(previous_controller.get_stellar_object_id())
@@ -141,13 +141,13 @@ pub fn update_player_controller(
     // Process weapon firing
     if *controller.get_fire_weapons() {
         if let Some(target_sobj_id) = controller.get_targetted_sobj_id() {
-            match process_weapon_combat_action(dsl, source_sobj_id, *target_sobj_id) {
+            match process_weapon_combat_action(&dsl, source_sobj_id, *target_sobj_id) {
                 Ok(_) => {
                     info!(
                         "Weapon fired successfully: {} -> {} by player {}",
                         source_sobj_id,
                         target_sobj_id,
-                        get_username(dsl, controller_id)
+                        get_username(&dsl, controller_id)
                     );
                 }
                 Err(e) => {
@@ -173,20 +173,20 @@ pub fn update_player_controller(
     // Process missile firing
     if *controller.get_fire_missles() {
         if let Some(target_sobj_id) = controller.get_targetted_sobj_id() {
-            match process_missile_combat_action(dsl, source_sobj_id, *target_sobj_id) {
+            match process_missile_combat_action(&dsl, source_sobj_id, *target_sobj_id) {
                 Ok(_) => {
                     info!(
                         "Missile fired successfully: {} -> {} by player {}",
                         source_sobj_id,
                         target_sobj_id,
-                        get_username(dsl, controller_id)
+                        get_username(&dsl, controller_id)
                     );
                 }
                 Err(e) => {
                     info!(
                         "Missile fire failed for ship {} (player {}): {}",
                         source_sobj_id,
-                        get_username(dsl, controller_id),
+                        get_username(&dsl, controller_id),
                         e
                     );
                 }
@@ -194,7 +194,7 @@ pub fn update_player_controller(
         } else {
             info!(
                 "Player {} attempted to fire missiles without a target",
-                get_username(dsl, controller_id)
+                get_username(&dsl, controller_id)
             );
         }
 
@@ -409,9 +409,6 @@ pub fn timer_player_controller_interaction_update(
                         try_to_use_jumpgate(&dsl, &ship_object, &jumpgate)?;
                     }
                 }
-                _ => {
-                    // Do nothing
-                }
             }
         }
         Err(error) => {
@@ -497,7 +494,7 @@ pub fn remove_old_timers(
         for mining_timer in dsl.get_ship_mining_timers_by_ship_sobj_id(ship_object.get_sobj_id()) {
             info!(
                 "Player {} stopped trying to mine a asteroid: {}",
-                get_username(dsl, controller.id),
+                get_username(&dsl, controller.id),
                 mining_timer.get_asteroid_sobj_id()
             );
             dsl.delete_ship_mining_timer_by_id(&mining_timer)?;

@@ -1,7 +1,6 @@
 use super::*;
 use crate::tables::ships::*;
 use spacetimedb::TimeDuration;
-use spacetimedsl::*;
 
 #[dsl(plural_name = visual_effect_timers)]
 #[spacetimedb::table(name = visual_effect_timer, scheduled(cleanup_visual_effect))]

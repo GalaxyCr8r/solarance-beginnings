@@ -1,5 +1,5 @@
 use log::info;
-use spacetimedb::ReducerContext;
+use spacetimedb::*;
 use spacetimedsl::*;
 
 use crate::tables::factions::*;

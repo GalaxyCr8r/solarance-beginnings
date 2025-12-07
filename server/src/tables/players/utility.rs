@@ -1,11 +1,10 @@
-
 use spacetimedb::*;
 use spacetimedsl::*;
 
 use super::*;
 
 pub fn get_username(dsl: &DSL, id: Identity) -> String {
-    if let Some(player) = dsl.get_player_by_id(&id).ok() {
+    if let Some(player) = dsl.get_player_by_id(&PlayerId::new(id)).ok() {
         player.username
     } else {
         if dsl.ctx().sender == dsl.ctx().identity() {

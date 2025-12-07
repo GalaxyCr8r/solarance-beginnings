@@ -6,7 +6,7 @@ use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 
 use crate::tables::{
-    common::Vec2,
+    common_types::Vec2,
     jumpgates::CreateJumpGateRow,
     sectors::SectorId,
     stellarobjects::{utility::create_sobj_vec2, StellarObjectKinds},

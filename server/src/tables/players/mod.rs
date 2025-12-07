@@ -1,9 +1,9 @@
-use spacetimedb::{table, Identity, ReducerContext, Timestamp};
+use spacetimedb::{table, Identity, Timestamp};
 use spacetimedsl::*;
 
 use crate::tables::factions::FactionId;
 
-use super::{ships::*, stellarobjects::*};
+use super::stellarobjects::*;
 
 // Re-export PlayerShipController for referenced_by attributes
 pub use crate::logic::ships::player_controller::PlayerShipController;

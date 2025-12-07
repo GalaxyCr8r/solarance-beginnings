@@ -1,6 +1,5 @@
-
 use log::info;
-use spacetimedb::{table, Identity, ReducerContext, SpacetimeType, TimeDuration};
+use spacetimedb::{table, Identity, SpacetimeType, TimeDuration};
 use spacetimedsl::*;
 
 use crate::{
@@ -201,10 +200,7 @@ pub fn count_faction_ships(dsl: &DSL, faction_id: &FactionId) -> usize {
 }
 
 /// Gets all sectors where a faction has presence (stations or significant ship activity)
-pub fn get_faction_controlled_sectors(
-    dsl: &DSL,
-    faction_id: &FactionId,
-) -> Vec<SectorId> {
+pub fn get_faction_controlled_sectors(dsl: &DSL, faction_id: &FactionId) -> Vec<SectorId> {
     let mut controlled_sectors = Vec::new();
 
     // Add sectors with faction stations
@@ -232,7 +228,7 @@ pub fn handle_faction_ship_destroyed(
 
     // Only react if it's a faction ship (not player-owned)
     if destroyed_ship.get_player_id().value() == Identity::ONE {
-        dsl.create_faction_ship_reaction_timer(
+        let _ = dsl.create_faction_ship_reaction_timer(
             spacetimedb::ScheduleAt::Interval(TimeDuration::from_micros(1000)),
             &faction_id,
             aggressor_faction_id.cloned(),
@@ -260,10 +256,7 @@ pub fn get_joinable_factions(dsl: &DSL) -> Vec<Faction> {
 }
 
 /// Gets faction capital station if it exists
-pub fn get_faction_capital_station(
-    dsl: &DSL,
-    faction_id: &FactionId,
-) -> Option<Station> {
+pub fn get_faction_capital_station(dsl: &DSL, faction_id: &FactionId) -> Option<Station> {
     if let Ok(faction) = dsl.get_faction_by_id(faction_id) {
         if let Some(capital_station_id) = faction.get_capital_station_id() {
             if let Ok(station) = dsl.get_station_by_id(&StationId::new(*capital_station_id)) {

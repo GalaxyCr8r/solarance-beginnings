@@ -1,4 +1,3 @@
-use std::hash::Hasher;
 
 use spacetimedb::*;
 use spacetimedsl::*;

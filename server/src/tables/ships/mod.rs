@@ -1,10 +1,10 @@
 use log::info;
-use spacetimedb::{table, Identity, ReducerContext, SpacetimeType};
+use spacetimedb::{*};
 use spacetimedsl::*;
 
 use crate::tables::{
-    common::*, items::utility::*, items::*, sectors::*, stations::*,
-    stellarobjects::StellarObjectId,
+    common_types::*, items::*, sectors::*, stations::*,
+    stellarobjects::*,
 };
 
 pub mod impls; // Impls for this file's structs

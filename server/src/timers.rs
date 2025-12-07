@@ -63,7 +63,7 @@ pub fn initialize_timers(dsl: &DSL) -> Result<(), String> {
         }
     }
 
-    let timer = dsl.create_faction_management_timer(
+    let _timer = dsl.create_faction_management_timer(
         spacetimedb::ScheduleAt::Interval(Duration::from_secs(12 * 60 * 60).into()), // 12 hours
         dsl.ctx().timestamp,
     )?;

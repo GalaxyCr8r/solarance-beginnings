@@ -1,6 +1,8 @@
 use spacetimedb::ReducerContext;
 use spacetimedsl::*;
-use tables::{common::*, *};
+use tables::*;
+
+use crate::tables::global_config::*;
 
 pub mod admin;
 pub mod definitions;

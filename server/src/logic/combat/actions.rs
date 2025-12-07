@@ -1,17 +1,22 @@
 use log::info;
-use spacetimedb::ReducerContext;
+use spacetimedb::*;
 use spacetimedsl::*;
 
 use crate::{
-    logic::combat::visual_effects::{ process_missile_fire, process_weapon_fire },
-    tables::{ combat::{ MissileType, WeaponType }, items::utility::*, ships::*, stellarobjects::* },
+    logic::combat::visual_effects::{process_missile_fire, process_weapon_fire},
+    tables::{
+        combat::{MissileType, WeaponType},
+        items::*,
+        ships::*,
+        stellarobjects::*,
+    },
 };
 
 /// Process weapon firing for a specific ship and target
 pub fn process_weapon_combat_action(
     dsl: &DSL,
     source_sobj_id: u64,
-    target_sobj_id: u64
+    target_sobj_id: u64,
 ) -> Result<(), String> {
     // Validate target is valid Ship or Station class
     let target_sobj = dsl.get_stellar_object_by_id(StellarObjectId::new(target_sobj_id))?;
@@ -20,12 +25,10 @@ pub fn process_weapon_combat_action(
             // Valid target
         }
         _ => {
-            return Err(
-                format!(
-                    "Invalid target class: {:?}. Only Ship and Station can be targeted.",
-                    target_sobj.get_kind()
-                )
-            );
+            return Err(format!(
+                "Invalid target class: {:?}. Only Ship and Station can be targeted.",
+                target_sobj.get_kind()
+            ));
         }
     }
 
@@ -33,7 +36,12 @@ pub fn process_weapon_combat_action(
     let source_ship = dsl
         .get_ships_by_sobj_id(StellarObjectId::new(source_sobj_id))
         .next()
-        .ok_or_else(|| { format!("Source ship not found for stellar object {}", source_sobj_id) })?;
+        .ok_or_else(|| {
+            format!(
+                "Source ship not found for stellar object {}",
+                source_sobj_id
+            )
+        })?;
 
     // Find equipped weapons in weapon slots
     let weapon_slots: Vec<ShipEquipmentSlot> = dsl
@@ -51,22 +59,20 @@ pub fn process_weapon_combat_action(
 
     // Fire each equipped weapon
     for weapon_slot in weapon_slots {
-        let weapon_def = get_item_definition(dsl, weapon_slot.get_item_id().value())?;
+        let weapon_def = dsl.get_item_definition_by_id(&weapon_slot.get_item_id())?;
 
         // For now, assume all weapons are hitscan type
         // TODO: Determine weapon type from item metadata in future tasks
         let weapon_type = WeaponType::Hitscan;
 
-        match
-            process_weapon_fire(
-                dsl,
-                source_sobj_id,
-                target_sobj_id,
-                target_pos,
-                weapon_type,
-                weapon_def
-            )
-        {
+        match process_weapon_fire(
+            dsl,
+            source_sobj_id,
+            target_sobj_id,
+            target_pos,
+            weapon_type,
+            weapon_def,
+        ) {
             Ok(_) => {
                 info!(
                     "Weapon {} fired successfully from ship {}",
@@ -93,7 +99,7 @@ pub fn process_weapon_combat_action(
 pub fn process_missile_combat_action(
     dsl: &DSL,
     source_sobj_id: u64,
-    target_sobj_id: u64
+    target_sobj_id: u64,
 ) -> Result<(), String> {
     // Validate target is valid Ship or Station class
     let target_sobj = dsl.get_stellar_object_by_id(StellarObjectId::new(target_sobj_id))?;
@@ -102,12 +108,10 @@ pub fn process_missile_combat_action(
             // Valid target
         }
         _ => {
-            return Err(
-                format!(
-                    "Invalid target class: {:?}. Only Ship and Station can be targeted.",
-                    target_sobj.get_kind()
-                )
-            );
+            return Err(format!(
+                "Invalid target class: {:?}. Only Ship and Station can be targeted.",
+                target_sobj.get_kind()
+            ));
         }
     }
 
@@ -115,7 +119,12 @@ pub fn process_missile_combat_action(
     let source_ship = dsl
         .get_ships_by_sobj_id(StellarObjectId::new(source_sobj_id))
         .next()
-        .ok_or_else(|| { format!("Source ship not found for stellar object {}", source_sobj_id) })?;
+        .ok_or_else(|| {
+            format!(
+                "Source ship not found for stellar object {}",
+                source_sobj_id
+            )
+        })?;
 
     // TODO: Implement missile slot type in future tasks
     // For now, missiles will be handled as special equipment or weapons
@@ -127,7 +136,10 @@ pub fn process_missile_combat_action(
 
     if missile_slots.is_empty() {
         // Don't error for missing missiles since this is placeholder functionality
-        info!("No missile equipment found for ship {} (placeholder implementation)", source_sobj_id);
+        info!(
+            "No missile equipment found for ship {} (placeholder implementation)",
+            source_sobj_id
+        );
         return Ok(());
     }
 
@@ -137,22 +149,20 @@ pub fn process_missile_combat_action(
 
     // Fire each equipped missile
     for missile_slot in missile_slots {
-        let missile_def = get_item_definition(dsl, missile_slot.get_item_id().value())?;
+        let missile_def = dsl.get_item_definition_by_id(&missile_slot.get_item_id())?;
 
         // For now, assume all missiles are dumbfire type
         // TODO: Determine missile type from item metadata in future tasks
         let missile_type = MissileType::Dumbfire;
 
-        match
-            process_missile_fire(
-                dsl,
-                source_sobj_id,
-                target_sobj_id,
-                target_pos,
-                missile_type,
-                missile_def
-            )
-        {
+        match process_missile_fire(
+            dsl,
+            source_sobj_id,
+            target_sobj_id,
+            target_pos,
+            missile_type,
+            missile_def,
+        ) {
             Ok(_) => {
                 info!(
                     "Missile {} fired successfully from ship {}",

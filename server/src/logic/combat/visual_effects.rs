@@ -1,4 +1,4 @@
-use spacetimedb::{ ReducerContext, Timestamp };
+use spacetimedb::Timestamp;
 use spacetimedsl::*;
 
 use crate::tables::{

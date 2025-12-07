@@ -1,7 +1,6 @@
 use std::f32::consts::PI;
 
 use log::info;
-use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 
 use crate::tables::ships::*;

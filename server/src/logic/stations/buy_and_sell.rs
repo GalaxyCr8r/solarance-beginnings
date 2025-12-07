@@ -5,7 +5,6 @@ use crate::{
     *,
 };
 use spacetimedb::{log::info, ReducerContext};
-use spacetimedsl::*;
 
 ///////////////////////////////////////////////////////////
 // Reducers ///

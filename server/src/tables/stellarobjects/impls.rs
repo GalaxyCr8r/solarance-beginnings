@@ -1,4 +1,3 @@
-use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 
 use super::{StellarObject, StellarObjectTransformInternal, StellarObjectVelocity};

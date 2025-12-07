@@ -315,9 +315,9 @@ pub fn update_manufacturing_and_assembly(
 
 /// ResearchAndDevelopment,
 pub fn update_research_and_development(
-    dsl: &DSL,
+    _dsl: &DSL,
     _station: &Station,
-    module: &StationModule,
+    _module: &StationModule,
     blueprint: &StationModuleBlueprint,
 ) -> Result<(), String> {
     // Calculate time elapsed since last update (assuming 30 second intervals)

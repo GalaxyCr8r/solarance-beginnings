@@ -42,7 +42,7 @@ pub fn create_turn_left_controller_for(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    try_server_only(&dsl);
+    try_server_only(&dsl)?;
 
     if let Ok(controller) = dsl.get_sobj_turn_left_controller_by_id(&sobj_id) {
         dsl.delete_sobj_turn_left_controller_by_id(controller.get_id())?;
@@ -65,7 +65,7 @@ pub fn create_stellar_object(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    try_server_only(&dsl);
+    try_server_only(&dsl)?;
 
     match create_sobj_internal(&dsl, kind, &sector_id, transform) {
         Ok(_) => Ok(()),
@@ -77,7 +77,7 @@ pub fn create_stellar_object(
 /// Generates random position and rotation within predefined bounds.
 #[spacetimedb::reducer]
 pub fn create_sobj_random(ctx: &ReducerContext, sector_id: u64) -> Result<(), String> {
-    try_server_only(&dsl(ctx));
+    try_server_only(&dsl(ctx))?;
 
     create_stellar_object(
         ctx,

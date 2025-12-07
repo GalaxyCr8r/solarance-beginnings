@@ -1,7 +1,7 @@
-use spacetimedb::{table, ReducerContext};
+use spacetimedb::table;
 use spacetimedsl::*;
 
-use super::common::Vec2;
+use super::common_types::Vec2;
 
 // pub mod definitions; // Definitions for initial ingested data.
 // pub mod impls; // Impls for this file's structs

@@ -10,7 +10,7 @@ use crate::{
     tables::{
         chats::send_global_chat,
         factions::FactionId,
-        items::{utility::*, *},
+        items::{*},
         players::{GetPlayerRowOptionById, PlayerId},
         sectors::SectorId,
         server_messages::*,
@@ -57,7 +57,7 @@ pub fn create_player_controlled_ship(
         &SectorId::new(0), // TODO: Make this the proper sector id!
         StellarObjectTransformInternal::default().from_xy(64.0, 64.0),
     ) {
-        let _ = create_sobj_player_window_for(&dsl, identity, sobj.get_id())?;
+        let _ = create_sobj_player_window_for(dsl.ctx(), identity, sobj.get_id())?;
         initialize_player_controller(&dsl, &player_id, &sobj)?;
 
         let ship_type = dsl.get_ship_type_definition_by_id(ShipTypeDefinitionId::new(1001))?;
@@ -69,7 +69,7 @@ pub fn create_player_controlled_ship(
             &dsl,
             &mut status,
             &ship.get_id(),
-            &get_item_definition(&dsl, ITEM_FOOD_RATIONS)?,
+            &dsl.get_item_definition_by_id(ItemDefinitionId::new(ITEM_FOOD_RATIONS))?,
             3,
             false,
         )?;
@@ -77,7 +77,7 @@ pub fn create_player_controlled_ship(
             &dsl,
             &mut status,
             &ship.get_id(),
-            &get_item_definition(&dsl, ITEM_ENERGY_CELL)?,
+            &dsl.get_item_definition_by_id(ItemDefinitionId::new(ITEM_ENERGY_CELL))?,
             5,
             false,
         )?;
@@ -97,7 +97,7 @@ pub fn create_player_controlled_ship(
         )?;
 
         info!("Successfully created ship!");
-        send_global_chat(&dsl, format!("{} has created a ship!", username))?;
+        send_global_chat(dsl.ctx(), format!("{} has created a ship!", username))?;
         Ok(())
     } else {
         let error_message =

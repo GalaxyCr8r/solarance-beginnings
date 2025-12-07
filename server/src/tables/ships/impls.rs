@@ -23,7 +23,7 @@ impl ShipStatus {
 
         // Collect all the ship items and calculate their volume usage
         for item in dsl.get_ship_cargo_items_by_ship_id(self.get_id()) {
-            if let Ok(item_def) = get_item_definition(dsl, item.get_item_id().value()) {
+            if let Ok(item_def) = dsl.get_item_definition_by_id(item.get_item_id()) {
                 let volume_usage = item.quantity * item_def.get_volume_per_unit();
                 info!(
                     "     Stack of {}x {}: {} volume used",
@@ -44,11 +44,7 @@ impl ShipStatus {
 }
 
 impl ShipTypeDefinition {
-    pub fn get_world_corners_at_position(
-        &self,
-        position: &crate::tables::common::Vec2,
-        angle: f32,
-    ) -> [crate::tables::common::Vec2; 4] {
+    pub fn get_world_corners_at_position(&self, position: &Vec2, angle: f32) -> [Vec2; 4] {
         let half_width = self.sprite_width as f32 / 2.0;
         let half_height = self.sprite_height as f32 / 2.0;
 
@@ -67,7 +63,7 @@ impl ShipTypeDefinition {
         corners_local.map(|(x, y)| {
             let rotated_x = x * cos_angle - y * sin_angle;
             let rotated_y = x * sin_angle + y * cos_angle;
-            crate::tables::common::Vec2::new(position.x + rotated_x, position.y + rotated_y)
+            Vec2::new(position.x + rotated_x, position.y + rotated_y)
         })
     }
 }

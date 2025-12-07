@@ -3,10 +3,8 @@ use spacetimedb::*;
 use spacetimedsl::*;
 use std::f32::consts::PI;
 
-use crate::tables::common::global_config_any_active_players;
-use crate::tables::{
-    items::GetCargoCrateRowOptionBySobjId, ships::GetShipRowsByPlayerId, stellarobjects::*,
-};
+use crate::tables::global_config::*;
+use crate::tables::{items::*, ships::*, stellarobjects::*};
 use crate::utility::*;
 
 #[dsl(plural_name = all_transforms_timers)]
@@ -51,7 +49,7 @@ pub fn recalculate_sobj_transforms(
     let mut update = timer;
     let low_resolution = update.current_update == 0;
 
-    move_stellar_objects(dsl.ctx())?;
+    move_stellar_objects(&dsl)?;
 
     // Update the value in the config table
     update.current_update = (update.current_update + 1) % 5; // TODO: Make this configurable
@@ -148,7 +146,7 @@ pub fn recalculate_player_windows(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    try_server_only(&dsl);
+    try_server_only(&dsl)?;
 
     // Bail out ASAP if there's no players connected.
     if !global_config_any_active_players(&dsl) {
