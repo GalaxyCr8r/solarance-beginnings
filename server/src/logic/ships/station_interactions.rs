@@ -4,12 +4,13 @@ use spacetimedsl::*;
 
 use crate::{
     logic::ships::player_controller::initialize_player_controller,
+    logic::stellarobjects::{player_windows::create_sobj_player_window_for, stellar_objects::*},
     tables::{
         players::PlayerId,
         server_messages::send_info_message,
         ships::{timers::*, *},
         stations::*,
-        stellarobjects::{reducers::create_sobj_player_window_for, utility::*, *},
+        stellarobjects::*,
     },
     utility::is_server_or_ship_owner,
 };
@@ -106,13 +107,15 @@ pub fn undock_from_station(dsl: &DSL, docked: &Ship) -> Result<Ship, String> {
         .get_ship_status_timer_by_ship_id(docked.get_id())
         .is_err()
     {
-        let _ = create_status_timer_for_ship(dsl, &ship.get_id(), &ship_type.get_id()); // Should this error really be suppressed?
+        let _ = create_status_timer_for_ship(dsl, &ship.get_id(), &ship_type.get_id());
+        // Should this error really be suppressed?
     }
 
     if docked.get_player_id().value() != Identity::ONE {
         // There is a real player controlling this ship, so create the necessary helpers.
         create_sobj_player_window_for(dsl.ctx(), docked.get_player_id().value(), sobj.get_id())?;
-        let _ = initialize_player_controller(dsl, &docked.get_player_id(), &sobj); // Should this error really be suppressed?
+        let _ = initialize_player_controller(dsl, &docked.get_player_id(), &sobj);
+    // Should this error really be suppressed?
     } else {
         // There is NOT a real player controllering this ship, so error for now.
         return Err("Unsupported: There was an attempt to undock an NPC ship!".to_string());

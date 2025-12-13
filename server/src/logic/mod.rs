@@ -7,3 +7,4 @@ pub mod players;
 pub mod sectors;
 pub mod ships;
 pub mod stations;
+pub mod stellarobjects;

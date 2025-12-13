@@ -1,10 +1,11 @@
 use glam::Vec2;
+use log::info;
 use spacetimedb::*;
 use spacetimedsl::*;
 use std::f32::consts::PI;
 
-use crate::tables::global_config::*;
-use crate::tables::{items::*, ships::*, stellarobjects::*};
+use crate::tables::items::*;
+use crate::tables::stellarobjects::*;
 use crate::utility::*;
 
 #[dsl(plural_name = all_transforms_timers)]
@@ -18,20 +19,6 @@ pub struct AllTransformsTimer {
     scheduled_at: spacetimedb::ScheduleAt,
     pub current_update: u8,
 }
-
-#[dsl(plural_name = player_windows_timers)]
-#[spacetimedb::table(name = player_windows_timer, scheduled(recalculate_player_windows))]
-pub struct PlayerWindowsTimer {
-    #[primary_key]
-    #[auto_inc]
-    #[create_wrapper]
-    id: u64,
-    scheduled_at: spacetimedb::ScheduleAt,
-}
-
-//////////////////////////////////////////////////////////////
-// Reducers
-//////////////////////////////////////////////////////////////
 
 /// Scheduled reducer that recalculates and updates stellar object transforms.
 /// Runs every 50ms (20 FPS) to move objects and update their positions.
@@ -69,11 +56,21 @@ pub fn recalculate_sobj_transforms(
 
     // Update all high res positions
     for row in dsl.get_all_sobj_internal_transforms() {
-        dsl.create_sobj_hi_res_transform(&row.get_id(), row.x, row.y, row.rotation_radians)?; // TODO, Only create hi-res transforms if a player is in-sector.
+        dsl.create_sobj_hi_res_transform(
+            &row.get_id(),
+            *row.get_x(),
+            *row.get_y(),
+            *row.get_rotation_radians(),
+        )?; // TODO, Only create hi-res transforms if a player is in-sector.
 
         // Update all low res positions
         if low_resolution {
-            dsl.create_sobj_low_res_transform(row.get_id(), row.x, row.y, row.rotation_radians)?;
+            dsl.create_sobj_low_res_transform(
+                row.get_id(),
+                *row.get_x(),
+                *row.get_y(),
+                *row.get_rotation_radians(),
+            )?;
         }
     }
 
@@ -86,32 +83,33 @@ pub fn __move_stellar_object(dsl: &DSL, sobj: StellarObject) -> Result<(), Strin
 
     // TODO: Remove this code, this is ONLY for early milestones!
     if let Ok(_) = dsl.get_sobj_turn_left_controller_by_id(&sobj) {
-        velocity = velocity.from_vec2(Vec2::from_angle(transform.rotation_radians) * 25.0);
-        transform.rotation_radians += PI * 0.01337;
+        velocity = velocity.from_vec2(Vec2::from_angle(*transform.get_rotation_radians()) * 25.0);
+        transform.set_rotation_radians(transform.get_rotation_radians() + PI * 0.01337);
     }
     // TODO:RM
 
-    if let Some(dampen) = velocity.auto_dampen {
+    if let Some(dampen) = velocity.get_auto_dampen() {
         velocity = velocity.from_vec2(velocity.to_vec2() * dampen);
     }
 
     // Apply velocity to transform
     transform = transform.from_vec2(transform.to_vec2() + velocity.to_vec2());
-    transform.rotation_radians += velocity.rotation_radians;
-    if transform.rotation_radians.abs() > PI * 2.0 {
-        transform.rotation_radians = (transform.rotation_radians.abs() % PI) * 2.0;
+    transform
+        .set_rotation_radians(transform.get_rotation_radians() + velocity.get_rotation_radians());
+    if transform.get_rotation_radians().abs() > PI * 2.0 {
+        transform.set_rotation_radians((transform.get_rotation_radians().abs() % PI) * 2.0);
     }
 
     dsl.update_sobj_velocity_by_id(velocity)?;
     dsl.update_sobj_internal_transform_by_id(transform)?;
 
-    if sobj.kind == StellarObjectKinds::CargoCrate {
+    if *sobj.get_kind() == StellarObjectKinds::CargoCrate {
         let cargo_crate = dsl.get_cargo_crate_by_sobj_id(sobj.get_id())?;
         if let Some(despawn_ts) = cargo_crate.get_despawn_ts() {
             if *despawn_ts < dsl.ctx().timestamp {
                 info!(
                     "Cargo Crate outlived its despawn timestamp. Deleting #{}!",
-                    sobj.id
+                    sobj.get_id()
                 );
                 dsl.delete_stellar_object_by_id(&sobj)?;
             }
@@ -132,46 +130,6 @@ pub fn move_stellar_objects(dsl: &DSL) -> Result<(), String> {
 
     for object in dsl.get_all_stellar_objects() {
         __move_stellar_object(&dsl, object)?;
-    }
-    Ok(())
-}
-
-/// Scheduled reducer that updates player viewing windows based on ship movement.
-/// Runs every 750ms to recalculate viewing boundaries when players move near window margins.
-/// Only processes if there are active players connected to optimize performance.
-#[spacetimedb::reducer]
-pub fn recalculate_player_windows(
-    ctx: &ReducerContext,
-    _timer: PlayerWindowsTimer,
-) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
-    try_server_only(&dsl)?;
-
-    // Bail out ASAP if there's no players connected.
-    if !global_config_any_active_players(&dsl) {
-        return Ok(());
-    }
-
-    for window in dsl.get_all_sobj_player_windows() {
-        if let Some(ship_obj) = dsl.get_ships_by_player_id(&window.get_id()).next() {
-            let transform = dsl.get_sobj_internal_transform_by_id(&ship_obj.get_sobj_id())?;
-            // Check to see if the player has moved too close to window's margin and recalculate the window if needed.
-            if transform.x < window.tl_x + window.margin
-                || transform.x > window.br_x - window.margin
-                || transform.y < window.tl_y + window.margin
-                || transform.y > window.br_y - window.margin
-            {
-                dsl.update_sobj_player_window_by_id(StellarObjectPlayerWindow {
-                    tl_x: transform.x - window.window,
-                    tl_y: transform.y - window.window,
-                    br_x: transform.x + window.window,
-                    br_y: transform.y + window.window,
-                    ..window
-                })?;
-                //info!("Recalcuating window for player stellar obj #{}: [({}, {}) ({}, {})]", player.sobj_id, result.tl_x, result.tl_y, result.br_x, result.br_y);
-            }
-        }
     }
     Ok(())
 }

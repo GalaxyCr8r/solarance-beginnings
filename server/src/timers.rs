@@ -22,11 +22,9 @@ use crate::{
             GetFactionStationCheckTimerRowOptionByFactionId,
         },
         sectors::*,
+        stellarobjects::{player_windows::*, transforms::*},
     },
-    tables::{
-        factions::{FactionTier, GetAllFactionRows},
-        stellarobjects::timers::*,
-    },
+    tables::factions::{FactionTier, GetAllFactionRows},
 };
 
 pub fn initialize_timers(dsl: &DSL) -> Result<(), String> {

@@ -7,10 +7,10 @@ use spacetimedb::ReducerContext;
 use spacetimedb::TimeDuration;
 use spacetimedsl::*;
 
+use crate::logic::stellarobjects::stellar_objects::create_sobj_with_random_velocity;
 use crate::tables::items::*;
 use crate::tables::server_messages::*;
 use crate::tables::ships::*;
-use crate::tables::stellarobjects::utility::create_sobj_with_random_velocity;
 use crate::tables::stellarobjects::*;
 use crate::utility::*;
 
@@ -376,7 +376,8 @@ pub fn create_cargo_crate_nearby_ship(
         new_sobj.get_id(),
         item_def.get_id(),
         quantity,
-        dsl.ctx().timestamp
+        dsl.ctx()
+            .timestamp
             .checked_add(TimeDuration::from_duration(Duration::from_secs(
                 /*D* /24 * /*H*/60 * */ /*M*/ 60,
             ))), // TODO cargo crate timer to despawn them

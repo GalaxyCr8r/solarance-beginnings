@@ -5,11 +5,10 @@
 use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 
+use crate::logic::stellarobjects::stellar_objects::create_sobj_vec2;
 use crate::tables::{
-    common_types::Vec2,
-    jumpgates::CreateJumpGateRow,
-    sectors::SectorId,
-    stellarobjects::{utility::create_sobj_vec2, StellarObjectKinds},
+    common_types::Vec2, jumpgates::CreateJumpGateRow, sectors::SectorId,
+    stellarobjects::StellarObjectKinds,
 };
 
 /// Creates a jump gate in a sector that connects to another sector.

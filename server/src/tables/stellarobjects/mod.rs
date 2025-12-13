@@ -1,15 +1,5 @@
-use log::info;
-use spacetimedb::{rand::Rng, table, Identity, ReducerContext, SpacetimeType};
+use spacetimedb::{table, Identity, SpacetimeType};
 use spacetimedsl::*;
-
-use super::sectors::SectorId;
-
-//pub mod definitions; // Definitions for initial ingested data.
-pub mod impls; // Impls for this file's structs
-pub mod reducers; // SpacetimeDB Reducers for this file's structs.
-pub mod rls; // Row-level-security rules for this file's structs.
-pub mod timers; // Timers related to this file's structs.
-pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
 /// What kind of stellar object it is. OBE with the advent of asteroid/ship/station tables?
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq, PartialOrd)]
@@ -128,6 +118,12 @@ pub struct StellarObjectControllerTurnLeft {
     id: u64,
 }
 
+impl StellarObjectControllerTurnLeft {
+    pub fn id(&self) -> u64 {
+        self.id
+    }
+}
+
 #[dsl(plural_name = sobj_player_windows)]
 #[table(name = sobj_player_window, public)]
 pub struct StellarObjectPlayerWindow {
@@ -152,18 +148,113 @@ pub struct StellarObjectPlayerWindow {
     pub br_y: f32,
 }
 
+impl StellarObjectPlayerWindow {
+    pub fn tl_x(&self) -> f32 {
+        self.tl_x
+    }
+    pub fn tl_y(&self) -> f32 {
+        self.tl_y
+    }
+    pub fn br_x(&self) -> f32 {
+        self.br_x
+    }
+    pub fn br_y(&self) -> f32 {
+        self.br_y
+    }
+    pub fn margin(&self) -> f32 {
+        self.margin
+    }
+    pub fn window(&self) -> f32 {
+        self.window
+    }
+}
+
 //////////////////////////////////////////////////////////////
 // Utilities
 
-pub fn same_sector_from_ids(
-    dsl: &DSL,
-    id1: &StellarObjectId,
-    id2: &StellarObjectId,
-) -> bool {
+pub fn same_sector_from_ids(dsl: &DSL, id1: &StellarObjectId, id2: &StellarObjectId) -> bool {
     if let Ok(sobj1) = dsl.get_stellar_object_by_id(id1) {
         if let Ok(sobj2) = dsl.get_stellar_object_by_id(id2) {
             return sobj1.get_sector_id() == sobj2.get_sector_id();
         }
     }
     false
+}
+
+//////////////////////////////////////////////////////////////
+// Impls
+//////////////////////////////////////////////////////////////
+
+impl StellarObject {
+    pub fn id(&self) -> u64 {
+        self.id
+    }
+
+    pub fn distance_squared(&self, dsl: &DSL, target: &StellarObject) -> Result<f32, String> {
+        let transform = dsl.get_sobj_internal_transform_by_id(self)?;
+        let target_transform = dsl.get_sobj_internal_transform_by_id(target)?;
+
+        Ok(transform
+            .to_vec2()
+            .distance_squared(target_transform.to_vec2()))
+    }
+
+    // Deprecated due to STDSL's fk deletion rules
+    // /// Attempts to smartly delete everything related to this stellar object.
+    // pub fn delete(
+}
+
+impl StellarObjectVelocity {
+    // pub fn new(x: f32, y: f32) -> Self {
+    //     Self { x, y }
+    // }
+
+    pub fn to_vec2(&self) -> glam::Vec2 {
+        glam::Vec2 {
+            x: self.x,
+            y: self.y,
+        }
+    }
+
+    pub fn from_vec2(&self, vec: glam::Vec2) -> StellarObjectVelocity {
+        StellarObjectVelocity {
+            x: vec.x,
+            y: vec.y,
+            ..*self
+        }
+    }
+}
+
+impl StellarObjectTransformInternal {
+    pub fn new(x: f32, y: f32, rotation_radians: f32) -> Self {
+        Self {
+            id: 0,
+            x,
+            y,
+            rotation_radians,
+        }
+    }
+
+    pub fn to_vec2(&self) -> glam::Vec2 {
+        glam::Vec2 {
+            x: self.x,
+            y: self.y,
+        }
+    }
+
+    pub fn from_vec2(&self, vec: glam::Vec2) -> StellarObjectTransformInternal {
+        StellarObjectTransformInternal {
+            x: vec.x,
+            y: vec.y,
+            ..*self
+        }
+    }
+
+    pub fn from_xy(&self, x: f32, y: f32) -> StellarObjectTransformInternal {
+        StellarObjectTransformInternal {
+            x: x,
+            y: y,
+            ..*self
+        }
+    }
 }
