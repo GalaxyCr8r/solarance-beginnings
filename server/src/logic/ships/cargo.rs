@@ -7,7 +7,7 @@ use spacetimedb::ReducerContext;
 use spacetimedb::TimeDuration;
 use spacetimedsl::*;
 
-use crate::logic::stellarobjects::stellar_objects::create_sobj_with_random_velocity;
+use crate::logic::stellarobjects::stellar_object_creation::create_sobj_with_random_velocity;
 use crate::tables::items::*;
 use crate::tables::server_messages::*;
 use crate::tables::ships::*;

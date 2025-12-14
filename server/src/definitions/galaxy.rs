@@ -5,7 +5,7 @@ use spacetimedsl::*;
 use crate::{
     definitions::factions::FACTION_LRAK_COMBINE,
     logic::stations::*,
-    logic::stellarobjects::stellar_objects::*,
+    logic::stellarobjects::stellar_object_creation::*,
     tables::{
         common_types::Vec2, factions::*, sectors::*, star_system::*, stations::*, stellarobjects::*,
     },

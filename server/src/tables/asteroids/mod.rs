@@ -3,7 +3,7 @@ use log::info;
 use spacetimedb::{rand::Rng, table};
 use spacetimedsl::*;
 
-use crate::logic::stellarobjects::stellar_objects::*;
+use crate::logic::stellarobjects::stellar_object_creation::*;
 use crate::tables::{items::ItemDefinitionId, sectors::SectorId, stellarobjects::*};
 
 #[dsl(plural_name = asteroids)]

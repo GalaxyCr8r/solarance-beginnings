@@ -5,31 +5,10 @@ use spacetimedb::*;
 use spacetimedsl::*;
 
 use crate::{
-    logic::ships::cargo::attempt_to_load_cargo_into_ship,
-    tables::{asteroids::*, server_messages::*, stellarobjects::*},
+    logic::ships::add_cargo_timer::*,
+    tables::{asteroids::*, items::*, server_messages::*, ships::*, stellarobjects::*},
     utility::try_server_only,
 };
-
-use super::*;
-
-#[dsl(plural_name = ship_status_timers)]
-#[spacetimedb::table(name = ship_status_timer, scheduled(ship_status_timer_reducer))]
-pub struct ShipStatusTimer {
-    #[primary_key]
-    #[auto_inc]
-    #[create_wrapper]
-    id: u64,
-    scheduled_at: spacetimedb::ScheduleAt,
-
-    #[unique]
-    #[use_wrapper(path = ShipId)]
-    /// FK to Ship
-    pub ship_id: u64,
-
-    #[use_wrapper(path = ShipTypeDefinitionId)]
-    /// FK to Ship Type
-    pub ship_type_id: u32,
-}
 
 #[dsl(plural_name = ship_mining_timers)]
 #[spacetimedb::table(name = ship_mining_timer, scheduled(ship_mining_timer_reducer))]
@@ -50,54 +29,6 @@ pub struct ShipMiningTimer {
     pub asteroid_sobj_id: u64,
 
     pub mining_progress: f32, // How much of the asteroid has been mined (0 to 1.0)
-}
-
-/// Adds a cargo item to a ship's cargo after a delay. If there isn't room, it creates a cargo crate instead.
-#[dsl(plural_name = ship_add_cargo_timers)]
-#[spacetimedb::table(name = ship_add_cargo_timer, scheduled(ship_add_cargo_timer_reducer))]
-pub struct ShipAddCargoTimer {
-    #[primary_key]
-    #[auto_inc]
-    #[create_wrapper]
-    id: u64,
-    scheduled_at: spacetimedb::ScheduleAt,
-
-    #[index(btree)]
-    #[use_wrapper(path = ShipId)]
-    /// FK to Ship
-    pub ship_id: u64,
-
-    #[use_wrapper(path = ItemDefinitionId)]
-    /// FK to Item Definition
-    pub item_id: u32,
-
-    pub amount: u16,
-}
-
-//////////////////////////////////////////////////////////////
-// Init
-//////////////////////////////////////////////////////////////
-
-// pub fn init(_dsl: &DSL) -> Result<(), String> {
-//     Ok(())
-// }
-
-//////////////////////////////////////////////////////////////
-// Utility
-//////////////////////////////////////////////////////////////
-
-pub fn create_status_timer_for_ship(
-    dsl: &DSL,
-    ship_id: &ShipId,
-    type_id: &ShipTypeDefinitionId,
-) -> Result<ShipStatusTimer, String> {
-    let timer = dsl.create_ship_status_timer(
-        spacetimedb::ScheduleAt::Interval(Duration::from_millis(500).into()),
-        ship_id,
-        type_id,
-    )?;
-
-    Ok(timer)
 }
 
 pub fn create_mining_timer_for_ship(
@@ -125,59 +56,6 @@ pub fn create_mining_timer_for_ship(
         asteroid_sobj_id,
         0.0,
     )?)
-}
-
-pub fn create_timer_to_add_cargo_to_ship(
-    dsl: &DSL,
-    ship_id: ShipId,
-    item_id: ItemDefinitionId,
-    amount: u16,
-) -> Result<ShipAddCargoTimer, String> {
-    Ok(dsl.create_ship_add_cargo_timer(
-        spacetimedb::ScheduleAt::Interval(Duration::from_secs(1).into()),
-        ship_id,
-        item_id,
-        amount,
-    )?)
-}
-
-//////////////////////////////////////////////////////////////
-// Timer Reducers
-//////////////////////////////////////////////////////////////
-
-/// Scheduled reducer that handles ship status updates like shield and energy regeneration.
-/// Runs every 500ms to gradually restore shields and energy based on ship type specifications.
-#[spacetimedb::reducer]
-pub fn ship_status_timer_reducer(
-    ctx: &ReducerContext,
-    timer: ShipStatusTimer,
-) -> Result<(), String> {
-    let dsl = dsl(ctx);
-    try_server_only(&dsl)?;
-
-    // Get ship rows
-    let ship_type = dsl.get_ship_type_definition_by_id(timer.get_ship_type_id())?;
-    let mut ship_status = dsl.get_ship_status_by_id(timer.get_ship_id())?;
-
-    // TODO: Grab shield regen from attached shield modules and the current ship type
-    if ship_status.shields < (ship_type.max_shields as f32) {
-        ship_status.shields += 0.525175;
-    }
-    if ship_status.energy > (ship_type.max_shields as f32) {
-        ship_status.shields = ship_type.max_shields as f32;
-    }
-
-    // TODO: Grab energy regen from attached special modules and the current ship type
-    if ship_status.energy < (ship_type.max_energy as f32) {
-        ship_status.energy += 0.1275;
-    }
-    if ship_status.energy > (ship_type.max_energy as f32) {
-        ship_status.energy = ship_type.max_energy as f32;
-    }
-
-    dsl.update_ship_status_by_id(ship_status)?;
-
-    Ok(())
 }
 
 /// Scheduled reducer that processes ship mining operations against asteroids.
@@ -221,7 +99,7 @@ pub fn ship_mining_timer_reducer(
     let mut energy_consumption = 1.0f32;
     let mut mining_speed = 1.0f32;
     for item in dsl.get_ship_equipment_slots_by_ship_id(ship_object.get_id()) {
-        if item.slot_type == EquipmentSlotType::MiningLaser {
+        if *item.get_slot_type() == EquipmentSlotType::MiningLaser {
             let laser_def = dsl.get_item_definition_by_id(item.get_item_id())?;
             laser_def
                 .get_metadata()
@@ -315,44 +193,5 @@ pub fn ship_mining_timer_reducer(
 
     dsl.update_ship_status_by_id(ship_status)?;
     dsl.update_ship_mining_timer_by_id(timer)?;
-    Ok(())
-}
-
-/// Scheduled reducer that adds mined cargo to a ship's inventory after a delay.
-/// If the ship's cargo bay is full, creates a cargo crate in space instead.
-#[spacetimedb::reducer]
-pub fn ship_add_cargo_timer_reducer(
-    ctx: &ReducerContext,
-    timer: ShipAddCargoTimer,
-) -> Result<(), String> {
-    let dsl = dsl(ctx);
-    try_server_only(&dsl)?;
-
-    info!(
-        "Attempting to add {}x #{:?} to ship id #{:?}",
-        timer.amount,
-        timer.get_item_id(),
-        timer.get_ship_id()
-    );
-
-    // Either way, we don't want this to continue.
-    dsl.delete_ship_add_cargo_timer_by_id(&timer)?;
-
-    let ship_object = dsl.get_ship_by_id(timer.get_ship_id())?;
-    let mut ship_status = dsl.get_ship_status_by_id(timer.get_ship_id())?;
-
-    // Get the item definition
-    let item_def = dsl.get_item_definition_by_id(ItemDefinitionId::new(timer.item_id))?;
-
-    // Attempt to load it into the ship
-    attempt_to_load_cargo_into_ship(
-        &dsl,
-        &mut ship_status,
-        &ship_object.get_id(),
-        &item_def,
-        timer.amount,
-        true,
-    )?;
-
     Ok(())
 }

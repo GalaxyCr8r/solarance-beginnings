@@ -1,9 +1,8 @@
 use spacetimedsl::*;
 
-use crate::tables::{
-    items::*,
-    ships::{timers::*, *},
-    stellarobjects::*,
+use crate::{
+    logic::ships::add_cargo_timer::*,
+    tables::{items::*, ships::*, stellarobjects::*},
 };
 
 pub fn attempt_to_pickup_cargo_crate(

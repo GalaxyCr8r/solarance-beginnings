@@ -1,15 +1,8 @@
 use log::info;
-use spacetimedb::{*};
+use spacetimedb::*;
 use spacetimedsl::*;
 
-use crate::tables::{
-    common_types::*, items::*, sectors::*, stations::*,
-    stellarobjects::*,
-};
-
-pub mod impls; // Impls for this file's structs
-pub mod rls; // Row-level-security rules for this file's structs.
-pub mod timers; // Timers related to this file's structs.
+use crate::tables::{common_types::*, items::*, sectors::*, stations::*, stellarobjects::*};
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
 pub enum ShipClass {
@@ -86,6 +79,31 @@ pub struct ShipTypeDefinition {
     pub gfx_key: Option<String>, // Key for client to look up 2D sprite/model
 }
 
+impl ShipTypeDefinition {
+    pub fn get_world_corners_at_position(&self, position: &Vec2, angle: f32) -> [Vec2; 4] {
+        let half_width = self.sprite_width as f32 / 2.0;
+        let half_height = self.sprite_height as f32 / 2.0;
+
+        let cos_angle = angle.cos();
+        let sin_angle = angle.sin();
+
+        // Corners relative to ship's center, assuming 0 orientation
+        let corners_local = [
+            (half_width, half_height),   // top_right
+            (-half_width, half_height),  // top_left
+            (-half_width, -half_height), // bottom_left
+            (half_width, -half_height),  // bottom_right
+        ];
+
+        // Rotate and translate to world space
+        corners_local.map(|(x, y)| {
+            let rotated_x = x * cos_angle - y * sin_angle;
+            let rotated_y = x * sin_angle + y * cos_angle;
+            Vec2::new(position.x + rotated_x, position.y + rotated_y)
+        })
+    }
+}
+
 #[dsl(plural_name = ship_statuses)]
 #[table(name = ship_status, public)]
 /// The status of a ship agnostic of where it is physically.
@@ -115,6 +133,41 @@ pub struct ShipStatus {
     pub max_cargo_capacity: u16,  // Needs to be manually maintained via ShipCargoItem
 
     pub ai_state: Option<CurrentAction>, // Current high-level AI state or player command
+}
+
+impl ShipStatus {
+    pub fn get_remaining_cargo_space(&self) -> u16 {
+        self.get_max_cargo_capacity() - self.get_used_cargo_capacity()
+    }
+
+    pub fn calculate_used_cargo_space(&self, dsl: &DSL) -> u16 {
+        let mut used_cargo_space = 0;
+
+        info!(
+            "Calculating cargo space usage for ship #{}. (Max cargo {}v)",
+            self.id, self.max_cargo_capacity
+        );
+
+        // Collect all the ship items and calculate their volume usage
+        for item in dsl.get_ship_cargo_items_by_ship_id(self.get_id()) {
+            if let Ok(item_def) = dsl.get_item_definition_by_id(item.get_item_id()) {
+                let volume_usage = item.quantity * item_def.get_volume_per_unit();
+                info!(
+                    "     Stack of {}x {}: {} volume used",
+                    item.quantity,
+                    item_def.get_name(),
+                    volume_usage
+                );
+                used_cargo_space += volume_usage;
+            }
+        }
+        info!(
+            "Total cargo space usage for ship #{}: {}",
+            self.id, used_cargo_space
+        );
+
+        used_cargo_space
+    }
 }
 
 #[dsl(plural_name = ships)]
@@ -213,13 +266,3 @@ pub struct ShipEquipmentSlot {
     /// FK to ItemDefinition
     pub item_id: u32,
 }
-
-//////////////////////////////////////////////////////////////
-// Init
-//////////////////////////////////////////////////////////////
-
-// pub fn init(dsl: &DSL) -> Result<(), String> {
-//     timers::init(dsl)?;
-
-//     Ok(())
-// }

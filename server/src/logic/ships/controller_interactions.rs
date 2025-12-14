@@ -3,14 +3,14 @@ use spacetimedb::*;
 use spacetimedsl::*;
 
 use crate::{
-    logic::ships::station_interactions::dock_to_station,
+    logic::ships::{mining::*, station_interactions::dock_to_station},
     tables::{
         common_types::Vec2,
         jumpgates::*,
         players::{utility::*, *},
         sectors::GetSectorRowOptionById,
         server_messages::send_info_message,
-        ships::{timers::*, *},
+        ships::*,
         stations::*,
         stellarobjects::*,
     },

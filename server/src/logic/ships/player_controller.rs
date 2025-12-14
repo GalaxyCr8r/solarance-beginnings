@@ -8,14 +8,15 @@ use spacetimedsl::*;
 
 use crate::{
     logic::{
-        cargo_crates::attempt_to_pickup_cargo_crate, combat::actions::*,
-        ships::controller_interactions::*,
+        cargo_crates::attempt_to_pickup_cargo_crate,
+        combat::actions::*,
+        ships::{controller_interactions::*, mining::*},
     },
     tables::{
         common_types::CurrentAction,
         jumpgates::*,
         players::{utility::*, *},
-        ships::{timers::*, *},
+        ships::*,
         stations::*,
         stellarobjects::*,
     },

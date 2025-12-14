@@ -3,13 +3,14 @@ use spacetimedb::*;
 use spacetimedsl::*;
 
 use crate::{
-    logic::ships::player_controller::initialize_player_controller,
-    logic::stellarobjects::{player_windows::create_sobj_player_window_for, stellar_objects::*},
+    logic::{
+        ships::{player_controller::*, status::*},
+        stellarobjects::{
+            player_windows::create_sobj_player_window_for, stellar_object_creation::*,
+        },
+    },
     tables::{
-        players::PlayerId,
-        server_messages::send_info_message,
-        ships::{timers::*, *},
-        stations::*,
+        players::PlayerId, server_messages::send_info_message, ships::*, stations::*,
         stellarobjects::*,
     },
     utility::is_server_or_ship_owner,
