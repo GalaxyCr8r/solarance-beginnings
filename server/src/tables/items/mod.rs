@@ -1,16 +1,10 @@
-use spacetimedb::{table, SpacetimeType, Timestamp};
+use spacetimedb::*;
 use spacetimedsl::*;
 
 use crate::tables::{
     combat::{MissileType, WeaponType},
     ships::*,
 };
-
-pub mod impls; // Impls for this file's structs
-pub mod reducers; // SpacetimeDB Reducers for this file's structs.
-pub mod rls; // Row-level-security rules for this file's structs.
-pub mod timers; // Timers related to this file's structs.
-pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
 #[derive(SpacetimeType, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ResourceCategory {
@@ -183,11 +177,11 @@ pub struct CargoCrate {
 }
 
 //////////////////////////////////////////////////////////////
-// Init
+// Impls
 //////////////////////////////////////////////////////////////
 
-// pub fn init(dsl: &DSL) -> Result<(), String> {
-//     definitions::init(dsl)?;
-
-//     Ok(())
-// }
+impl ItemDefinition {
+    pub fn can_any_of_this_fit_inside_this_ship(&self, ship_status: &ShipStatus) -> bool {
+        (ship_status.get_remaining_cargo_space() / self.volume_per_unit) > 0
+    }
+}

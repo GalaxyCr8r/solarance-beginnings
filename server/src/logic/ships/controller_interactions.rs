@@ -5,14 +5,8 @@ use spacetimedsl::*;
 use crate::{
     logic::ships::{mining::*, station_interactions::dock_to_station},
     tables::{
-        common_types::Vec2,
-        jumpgates::*,
-        players::{utility::*, *},
-        sectors::GetSectorRowOptionById,
-        server_messages::send_info_message,
-        ships::*,
-        stations::*,
-        stellarobjects::*,
+        common_types::Vec2, jumpgates::*, players::*, sectors::GetSectorRowOptionById,
+        server_messages::send_info_message, ships::*, stations::*, stellarobjects::*,
     },
 };
 

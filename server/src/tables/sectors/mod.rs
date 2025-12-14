@@ -1,7 +1,10 @@
 use spacetimedb::*;
 use spacetimedsl::*;
 
-use crate::tables::{factions::*, jumpgates::reducers::*, star_system::*};
+use crate::{
+    admin::creation::create_jumpgate_in_sector,
+    tables::{factions::*, star_system::*},
+};
 
 #[dsl(plural_name = sectors)]
 #[table(name = sector, public)]

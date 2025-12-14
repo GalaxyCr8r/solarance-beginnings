@@ -2,12 +2,7 @@ use log::info;
 use spacetimedb::{table, Identity, ReducerContext, Timestamp};
 use spacetimedsl::*;
 
-use crate::tables::{
-    factions::FactionId,
-    players::{utility::get_username, GetPlayerRowOptionById, PlayerId},
-    sectors::SectorId,
-    ships::*,
-};
+use crate::tables::{factions::FactionId, players::*, sectors::SectorId, ships::*};
 
 // //pub mod definitions; // Definitions for initial ingested data.
 // pub mod impls; // Impls for this file's structs

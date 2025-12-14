@@ -13,11 +13,7 @@ use crate::{
         ships::{controller_interactions::*, mining::*},
     },
     tables::{
-        common_types::CurrentAction,
-        jumpgates::*,
-        players::{utility::*, *},
-        ships::*,
-        stations::*,
+        common_types::CurrentAction, jumpgates::*, players::*, ships::*, stations::*,
         stellarobjects::*,
     },
 };

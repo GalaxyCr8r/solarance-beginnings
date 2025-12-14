@@ -1,7 +1,3 @@
-//////////////////////////////////////////////////////////////
-// Reducers
-//////////////////////////////////////////////////////////////
-
 use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 
@@ -10,6 +6,7 @@ use crate::tables::{
     common_types::Vec2, jumpgates::CreateJumpGateRow, sectors::SectorId,
     stellarobjects::StellarObjectKinds,
 };
+use crate::utility::try_server_only;
 
 /// Creates a jump gate in a sector that connects to another sector.
 /// Automatically determines gate orientation (north/south/east/west) based on position.
@@ -24,6 +21,8 @@ pub fn create_jumpgate_in_sector(
     t_y: f32,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
+
+    try_server_only(&dsl)?;
 
     let current_sector_id = SectorId::new(sector_id);
 
