@@ -272,7 +272,6 @@ pub fn mark_message_as_read(
     player_id: &PlayerId,
     server_message_id: u64,
 ) -> Result<(), String> {
-
     // Find the recipient record
     let recipient_opt = dsl
         .get_server_message_recipients_by_player_id(player_id)
