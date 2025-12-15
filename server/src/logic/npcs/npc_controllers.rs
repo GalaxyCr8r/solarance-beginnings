@@ -1,11 +1,80 @@
+use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 
-use crate::tables::stellarobjects::{GetStellarObjectRowOptionById, StellarObjectId};
+use crate::tables::stellarobjects::*;
+use crate::utility::try_server_only;
 
-use super::{
-    CreateNpcShipControllerRow, GetNpcShipControllerRowOptionById, NpcBehavior, NpcShipController,
-    NpcShipControllerId, UpdateNpcShipControllerRowById,
-};
+use crate::tables::npcs::*;
+
+/// Create a new NPC ship controller (server-only)
+/// This reducer allows the server to create NPC controllers for ships
+#[spacetimedb::reducer]
+pub fn create_npc_controller(
+    ctx: &ReducerContext,
+    stellar_object_id: u64,
+    initial_behavior: NpcBehavior,
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
+
+    try_server_only(&dsl)?;
+
+    create_npc_ship_controller(&dsl, stellar_object_id, initial_behavior)?;
+
+    Ok(())
+}
+
+/// Update NPC behavior (server-only)
+/// This reducer allows the server to change NPC AI behavior
+#[spacetimedb::reducer]
+pub fn update_npc_behavior(
+    ctx: &ReducerContext,
+    npc_controller_id: u64,
+    new_behavior: NpcBehavior,
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
+    try_server_only(&dsl)?;
+
+    set_npc_behavior(&dsl, npc_controller_id, new_behavior)?;
+
+    Ok(())
+}
+
+/// Set NPC target (server-only)
+/// This reducer allows the server to set targets for NPCs
+#[spacetimedb::reducer]
+pub fn set_npc_controller_target(
+    ctx: &ReducerContext,
+    npc_controller_id: u64,
+    target_sobj_id: Option<u64>,
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
+    try_server_only(&dsl)?;
+
+    set_npc_target(&dsl, npc_controller_id, target_sobj_id)?;
+
+    Ok(())
+}
+
+/// Remove an NPC ship controller (server-only)
+/// This reducer allows the server to clean up NPC controllers
+#[spacetimedb::reducer]
+pub fn remove_npc_controller(ctx: &ReducerContext, npc_controller_id: u64) -> Result<(), String> {
+    let dsl = dsl(ctx);
+
+    try_server_only(&dsl)?;
+    let npc_controller =
+        dsl.get_npc_ship_controller_by_id(NpcShipControllerId::new(npc_controller_id))?;
+
+    spacetimedb::log::info!(
+        "Removing NPC controller {} for stellar object {}",
+        npc_controller_id,
+        npc_controller.get_stellar_object_id().value()
+    );
+
+    dsl.delete_npc_ship_controller_by_id(NpcShipControllerId::new(npc_controller_id))?;
+
+    Ok(())
+}
 
 /// Create a new NPC ship controller for a stellar object
 /// This is a utility function that can be called by other reducers
@@ -68,7 +137,6 @@ pub fn set_npc_behavior(
     npc_controller_id: u64,
     behavior: NpcBehavior,
 ) -> Result<(), String> {
-
     let mut npc_controller =
         dsl.get_npc_ship_controller_by_id(NpcShipControllerId::new(npc_controller_id))?;
     npc_controller.set_ai_behavior(behavior.clone());
@@ -85,7 +153,6 @@ pub fn set_npc_behavior(
 
 /// Trigger weapon firing for an NPC ship controller
 pub fn trigger_npc_weapon_fire(dsl: &DSL, npc_controller_id: u64) -> Result<(), String> {
-
     let mut npc_controller =
         dsl.get_npc_ship_controller_by_id(NpcShipControllerId::new(npc_controller_id))?;
     npc_controller.set_fire_weapons(true);
@@ -100,10 +167,7 @@ pub fn trigger_npc_weapon_fire(dsl: &DSL, npc_controller_id: u64) -> Result<(), 
 }
 
 /// Trigger missile firing for an NPC ship controller
-pub fn trigger_npc_missile_fire(
-    dsl: &DSL,
-    npc_controller_id: u64,
-) -> Result<(), String> {
+pub fn trigger_npc_missile_fire(dsl: &DSL, npc_controller_id: u64) -> Result<(), String> {
     let mut npc_controller =
         dsl.get_npc_ship_controller_by_id(NpcShipControllerId::new(npc_controller_id))?;
     npc_controller.set_fire_missiles(true);
