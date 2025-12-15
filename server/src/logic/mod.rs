@@ -1,4 +1,5 @@
 pub mod cargo_crates;
+pub mod chat_messages;
 pub mod combat;
 pub mod factions;
 pub mod game_loop;

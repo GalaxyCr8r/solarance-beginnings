@@ -1,14 +1,9 @@
-use spacetimedb::{table, ReducerContext, ScheduleAt, SpacetimeType, Timestamp};
+use spacetimedb::*;
 use spacetimedsl::*;
 
 use crate::tables::common_types::Vec2;
 use crate::tables::npcs::NpcShipController;
 use crate::tables::players::PlayerShipController;
-
-pub mod impls; // Impls for this file's structs
-               //pub mod reducers; // SpacetimeDB Reducers for this file's structs.
-pub mod timers; // Timers related to this file's structs.
-                //pub mod utility; // Utility functions (NOT reducers) for this file's structs.
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
 pub enum VisualEffectType {
@@ -139,7 +134,7 @@ pub struct VisualEffect {
     #[primary_key]
     #[auto_inc]
     #[create_wrapper]
-    #[referenced_by(path = crate::tables::combat::timers, table = visual_effect_timer)]
+    #[referenced_by(path = crate::logic::combat::visual_effects, table = visual_effect_timer)]
     id: u64,
 
     #[index(btree)]
@@ -152,14 +147,4 @@ pub struct VisualEffect {
 
     pub effect_type: VisualEffectType,
     created_at: Timestamp,
-}
-
-//////////////////////////////////////////////////////////////
-// Init
-//////////////////////////////////////////////////////////////
-
-pub fn init(dsl: &DSL) -> Result<(), String> {
-    timers::init(dsl)?;
-
-    Ok(())
 }

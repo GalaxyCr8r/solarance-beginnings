@@ -5,12 +5,13 @@ use spacetimedsl::*;
 use crate::{
     definitions::item_types::*,
     logic::{
+        chat_messages::send_global_chat,
         ships::{cargo::*, player_controller::*, status::*},
         stellarobjects::{player_windows::*, stellar_object_creation::*},
     },
     tables::{
-        chats::send_global_chat, factions::FactionId, items::*, players::*, sectors::SectorId,
-        server_messages::*, ships::*, stations::*, stellarobjects::*,
+        factions::FactionId, items::*, players::*, sectors::SectorId, server_messages::*, ships::*,
+        stations::*, stellarobjects::*,
     },
 };
 

@@ -15,8 +15,6 @@ pub mod utility;
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    combat::init(&dsl)?;
-
     definitions::init(&dsl)?;
 
     // Create a Global Config row, or reinitalize the one if it exists.

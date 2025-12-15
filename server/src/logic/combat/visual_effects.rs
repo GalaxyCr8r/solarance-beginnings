@@ -1,21 +1,52 @@
-use spacetimedb::Timestamp;
+use spacetimedb::*;
 use spacetimedsl::*;
 
-use crate::tables::{
-    items::{ ItemDefinition, ItemMetadata },
-    sectors::SectorId,
-    ships::*,
-    stellarobjects::*,
-};
+use crate::tables::{combat::*, items::*, sectors::SectorId, ships::*, stellarobjects::*};
 
 use crate::tables::combat::{
-    CombatError,
-    CreateVisualEffectRow,
-    MissileType,
-    VisualEffectType,
-    WeaponType,
-    timers::CreateVisualEffectTimerRow,
+    CombatError, CreateVisualEffectRow, MissileType, VisualEffectType, WeaponType,
 };
+
+#[dsl(plural_name = visual_effect_timers)]
+#[spacetimedb::table(name = visual_effect_timer, scheduled(cleanup_visual_effect))]
+pub struct VisualEffectTimer {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]
+    id: u64,
+
+    #[index(btree)]
+    #[use_wrapper(path = VisualEffectId)]
+    #[foreign_key(
+        path = crate::tables::combat,
+        table = visual_effect,
+        column = id,
+        on_delete = Delete
+    )]
+    pub effect_id: u64,
+
+    pub scheduled_at: ScheduleAt,
+}
+
+#[spacetimedb::reducer]
+pub fn cleanup_visual_effect(ctx: &ReducerContext, timer: VisualEffectTimer) -> Result<(), String> {
+    let dsl = dsl(ctx);
+
+    // Delete the visual effect from the database
+    let effect_id = VisualEffectId::new(timer.get_effect_id().value());
+    if let Ok(_) = dsl.delete_visual_effect_by_id(effect_id) {
+        spacetimedb::log::info!("Cleaned up visual effect {}", timer.get_effect_id().value());
+    } else {
+        // Visual effect might have already been deleted, which is fine
+        spacetimedb::log::info!(
+            "Visual effect {} already cleaned up",
+            timer.get_effect_id().value()
+        );
+    }
+
+    // The timer itself is automatically deleted by SpacetimeDB after this reducer runs
+    Ok(())
+}
 
 /// Comprehensive server-side validation for combat actions
 /// This function performs all necessary checks before allowing combat
@@ -23,7 +54,7 @@ pub fn validate_combat_action(
     dsl: &DSL,
     source_sobj_id: u64,
     target_sobj_id: u64,
-    is_missile: bool
+    is_missile: bool,
 ) -> Result<(), CombatError> {
     // Validate source exists and is a ship
     let source_sobj = dsl
@@ -96,14 +127,17 @@ pub fn validate_combat_action(
 
 /// Validate if a target is a valid combat target
 pub fn is_valid_combat_target(target_kind: &StellarObjectKinds) -> bool {
-    matches!(target_kind, StellarObjectKinds::Ship | StellarObjectKinds::Station)
+    matches!(
+        target_kind,
+        StellarObjectKinds::Ship | StellarObjectKinds::Station
+    )
 }
 
 /// Validate if a ship has sufficient energy for combat action
 pub fn has_sufficient_energy_for_action(
     ship_status: &ShipStatus,
     required_energy: f32,
-    is_missile: bool
+    is_missile: bool,
 ) -> Result<(), CombatError> {
     // Check cooldowns first
     if is_missile {
@@ -127,7 +161,7 @@ pub fn has_sufficient_energy_for_action(
 /// Validate weapon equipment and return equipped weapons
 pub fn get_equipped_weapons(
     dsl: &DSL,
-    ship_id: ShipId
+    ship_id: ShipId,
 ) -> Result<Vec<ShipEquipmentSlot>, CombatError> {
     let weapon_slots: Vec<ShipEquipmentSlot> = dsl
         .get_ship_equipment_slots_by_ship_id(ship_id)
@@ -144,7 +178,7 @@ pub fn get_equipped_weapons(
 /// Validate missile equipment and return equipped missiles
 pub fn get_equipped_missiles(
     dsl: &DSL,
-    ship_id: ShipId
+    ship_id: ShipId,
 ) -> Result<Vec<ShipEquipmentSlot>, CombatError> {
     let missile_slots: Vec<ShipEquipmentSlot> = dsl
         .get_ship_equipment_slots_by_ship_id(ship_id)
@@ -160,7 +194,7 @@ pub fn log_combat_error(
     source_sobj_id: u64,
     target_sobj_id: Option<u64>,
     error: &CombatError,
-    action_type: &str
+    action_type: &str,
 ) {
     match target_sobj_id {
         Some(target_id) => {
@@ -189,24 +223,18 @@ pub fn test_combat_validation(
     dsl: &DSL,
     source_sobj_id: u64,
     target_sobj_id: u64,
-    is_missile: bool
+    is_missile: bool,
 ) -> Result<String, CombatError> {
     // Test the validation function
     validate_combat_action(dsl, source_sobj_id, target_sobj_id, is_missile)?;
 
     // If validation passes, return success message
-    Ok(
-        format!(
-            "Combat validation passed for {} {} -> {}",
-            if is_missile {
-                "missile"
-            } else {
-                "weapon"
-            },
-            source_sobj_id,
-            target_sobj_id
-        )
-    )
+    Ok(format!(
+        "Combat validation passed for {} {} -> {}",
+        if is_missile { "missile" } else { "weapon" },
+        source_sobj_id,
+        target_sobj_id
+    ))
 }
 
 /// Represents the result of damage calculation
@@ -299,7 +327,7 @@ pub fn process_weapon_fire(
     target_sobj_id: u64,
     actual_location: glam::Vec2, // Where exactly did the projectile explode, used for AoE weapons
     _weapon_type: WeaponType,
-    weapon_item_def: ItemDefinition // To get specific combat-related metadata
+    weapon_item_def: ItemDefinition, // To get specific combat-related metadata
 ) -> Result<(), CombatError> {
     // Get source and target stellar objects
     let source_sobj = dsl.get_stellar_object_by_id(StellarObjectId::new(source_sobj_id))?;
@@ -347,44 +375,39 @@ pub fn process_weapon_fire(
     }
 
     // Get target ship dimensions for accurate collision detection
-    let (target_width, target_height, target_orientation) = if
-        target_sobj.get_kind() == &StellarObjectKinds::Ship
-    {
-        if
-            let Some(target_ship) = dsl
+    let (target_width, target_height, target_orientation) =
+        if target_sobj.get_kind() == &StellarObjectKinds::Ship {
+            if let Some(target_ship) = dsl
                 .get_ships_by_sobj_id(StellarObjectId::new(target_sobj_id))
                 .next()
-        {
-            let target_ship_def = dsl.get_ship_type_definition_by_id(
-                target_ship.get_shiptype_id()
-            )?;
-            (
-                *target_ship_def.get_sprite_width() as f32,
-                *target_ship_def.get_sprite_height() as f32,
-                *target_transform.get_rotation_radians(),
-            )
+            {
+                let target_ship_def =
+                    dsl.get_ship_type_definition_by_id(target_ship.get_shiptype_id())?;
+                (
+                    *target_ship_def.get_sprite_width() as f32,
+                    *target_ship_def.get_sprite_height() as f32,
+                    *target_transform.get_rotation_radians(),
+                )
+            } else {
+                // Fallback to default dimensions if ship not found
+                (32.0, 32.0, 0.0)
+            }
         } else {
-            // Fallback to default dimensions if ship not found
-            (32.0, 32.0, 0.0)
-        }
-    } else {
-        // For stations or other objects, use default dimensions for now
-        // TODO: Add station dimensions when station combat is implemented
-        (64.0, 64.0, 0.0)
-    };
+            // For stations or other objects, use default dimensions for now
+            // TODO: Add station dimensions when station combat is implemented
+            (64.0, 64.0, 0.0)
+        };
 
     // Check if target is within lock-on angle using actual target dimensions
-    if
-        !is_within_lock_on_angle(
-            &source_pos,
-            &target_pos,
-            ship_facing_angle,
-            lock_on_angle_bound,
-            target_width,
-            target_height,
-            target_orientation
-        )
-    {
+    if !is_within_lock_on_angle(
+        &source_pos,
+        &target_pos,
+        ship_facing_angle,
+        lock_on_angle_bound,
+        target_width,
+        target_height,
+        target_orientation,
+    ) {
         return Err(CombatError::OutOfRange);
     }
 
@@ -394,16 +417,14 @@ pub fn process_weapon_fire(
             return Err(CombatError::OutOfRange);
         }
 
-        if
-            !hitscan_intersects_target_with_size(
-                &source_pos,
-                &target_pos,
-                ship_facing_angle,
-                target_width,
-                target_height,
-                target_orientation
-            )
-        {
+        if !hitscan_intersects_target_with_size(
+            &source_pos,
+            &target_pos,
+            ship_facing_angle,
+            target_width,
+            target_height,
+            target_orientation,
+        ) {
             return Err(CombatError::OutOfRange);
         }
     }
@@ -436,21 +457,16 @@ pub fn process_weapon_fire(
 
     // Apply damage to target if it's a ship
     if target_sobj.get_kind() == &StellarObjectKinds::Ship {
-        if
-            let Some(target_ship) = dsl
-                .get_ships_by_sobj_id(StellarObjectId::new(target_sobj_id))
-                .next()
+        if let Some(target_ship) = dsl
+            .get_ships_by_sobj_id(StellarObjectId::new(target_sobj_id))
+            .next()
         {
-            let mut target_ship_status = dsl.get_ship_status_by_id(
-                ShipId::new(target_ship.get_id().value())
-            )?;
+            let mut target_ship_status =
+                dsl.get_ship_status_by_id(ShipId::new(target_ship.get_id().value()))?;
 
             // Apply damage using the enhanced damage calculation system
-            let target_destroyed = apply_damage_to_ship(
-                dsl,
-                &mut target_ship_status,
-                &damage_calc
-            )?;
+            let target_destroyed =
+                apply_damage_to_ship(dsl, &mut target_ship_status, &damage_calc)?;
 
             if target_destroyed {
                 spacetimedb::log::info!(
@@ -478,7 +494,7 @@ pub fn process_weapon_fire(
         source_pos,
         actual_location.into(),
         VisualEffectType::WeaponFire,
-        source_sector_id
+        source_sector_id,
     )?;
 
     spacetimedb::log::info!(
@@ -500,7 +516,7 @@ pub fn process_missile_fire(
     target_sobj_id: u64,
     actual_location: glam::Vec2, // Where exactly did the missile explode, used for AoE missiles
     missile_type: MissileType,
-    missile_item_def: ItemDefinition // To get specific combat-related metadata
+    missile_item_def: ItemDefinition, // To get specific combat-related metadata
 ) -> Result<(), CombatError> {
     // Get source stellar object for position
     let source_sobj = dsl.get_stellar_object_by_id(StellarObjectId::new(source_sobj_id))?;
@@ -514,9 +530,8 @@ pub fn process_missile_fire(
         .next()
         .ok_or(CombatError::InvalidTarget)?;
 
-    let mut source_ship_status = dsl.get_ship_status_by_id(
-        ShipId::new(source_ship.get_id().value())
-    )?;
+    let mut source_ship_status =
+        dsl.get_ship_status_by_id(ShipId::new(source_ship.get_id().value()))?;
 
     // Check missile cooldown
     if *source_ship_status.get_missile_cooldown_ms() > 0 {
@@ -561,7 +576,7 @@ pub fn process_missile_fire(
         source_pos,
         actual_location,
         VisualEffectType::MissileFire,
-        source_sector_id
+        source_sector_id,
     )?;
 
     spacetimedb::log::info!(
@@ -583,7 +598,7 @@ pub fn process_missile_fire(
 pub fn apply_damage_to_ship(
     dsl: &DSL,
     target_ship_status: &mut ShipStatus,
-    damage_calc: &DamageCalculation
+    damage_calc: &DamageCalculation,
 ) -> Result<bool, CombatError> {
     let current_shields = *target_ship_status.get_shields();
     let current_hull = *target_ship_status.get_health();
@@ -620,10 +635,7 @@ pub fn apply_damage_to_ship(
 }
 
 /// Handle ship destruction when hull health reaches zero
-fn handle_ship_destruction(
-    _dsl: &DSL,
-    ship_status: &ShipStatus
-) -> Result<(), CombatError> {
+fn handle_ship_destruction(_dsl: &DSL, ship_status: &ShipStatus) -> Result<(), CombatError> {
     spacetimedb::log::info!("Ship {} destroyed in combat", ship_status.get_id().value());
 
     // TODO: Implement full ship destruction logic in future tasks:
@@ -643,7 +655,7 @@ fn handle_ship_destruction(
 /// Returns a multiplier based on target type and weapon characteristics
 pub fn calculate_damage_effectiveness(
     weapon_metadata: &[ItemMetadata],
-    target_type: &StellarObjectKinds
+    target_type: &StellarObjectKinds,
 ) -> f32 {
     // Different weapon types have different effectiveness against different targets
     // This can be expanded in the future for more complex damage calculations
@@ -683,7 +695,7 @@ pub fn calculate_damage_effectiveness(
 pub fn has_line_of_sight(
     source_pos: &glam::Vec2,
     target_pos: &glam::Vec2,
-    target_max_dimension: f32
+    target_max_dimension: f32,
 ) -> bool {
     // For now, we assume clear line of sight since we don't have obstacles
     // In the future, this could check for asteroids, stations, or other ships blocking the shot
@@ -703,19 +715,15 @@ pub fn hitscan_intersects_target_with_size(
     ship_facing_angle: f32,
     target_width: f32,
     target_height: f32,
-    target_orientation: f32
+    target_orientation: f32,
 ) -> bool {
     // Calculate the hitscan ray direction
     let ray_dx = ship_facing_angle.cos();
     let ray_dy = ship_facing_angle.sin();
 
     // Get the target's actual corners based on its dimensions and orientation
-    let target_corners = get_target_corners(
-        target_pos,
-        target_width,
-        target_height,
-        target_orientation
-    );
+    let target_corners =
+        get_target_corners(target_pos, target_width, target_height, target_orientation);
 
     // Check if the ray intersects with any edge of the target's oriented bounding box
     // We'll use a simplified approach: check if the ray intersects the axis-aligned bounding box
@@ -785,7 +793,7 @@ pub fn is_within_lock_on_angle(
     lock_on_angle_bound_rads: f32,
     target_width: f32,
     target_height: f32,
-    target_orientation: f32
+    target_orientation: f32,
 ) -> bool {
     // Edge case: If ships are at the same position, it's ambiguous, but usually considered pointing.
     if source_pos.x == target_pos.x && source_pos.y == target_pos.y {
@@ -795,12 +803,8 @@ pub fn is_within_lock_on_angle(
     let your_forward_vec = glam::Vec2::new(ship_facing_angle.cos(), ship_facing_angle.sin());
 
     // Calculate target corners based on actual dimensions and orientation
-    let target_corners = get_target_corners(
-        target_pos,
-        target_width,
-        target_height,
-        target_orientation
-    );
+    let target_corners =
+        get_target_corners(target_pos, target_width, target_height, target_orientation);
 
     let mut min_angle_to_target_extremity = f32::MAX;
     let mut max_angle_to_target_extremity = f32::MIN;
@@ -824,16 +828,14 @@ pub fn is_within_lock_on_angle(
     // Check for overlap between the target's angular range and the weapon's cone
     if min_angle_to_target_extremity <= max_angle_to_target_extremity {
         // Target does not wrap around +/- PI. Standard overlap check.
-        lock_on_angle_bound_rads >= min_angle_to_target_extremity &&
-            -lock_on_angle_bound_rads <= max_angle_to_target_extremity
+        lock_on_angle_bound_rads >= min_angle_to_target_extremity
+            && -lock_on_angle_bound_rads <= max_angle_to_target_extremity
     } else {
         // Target wraps around +/- PI (e.g., from +170 to -170). This means it includes 0.
         // Your cone also includes 0. So there's an overlap unless your cone is entirely
         // within the 'gap' of the target's wrap.
-        !(
-            lock_on_angle_bound_rads < min_angle_to_target_extremity &&
-            -lock_on_angle_bound_rads > max_angle_to_target_extremity
-        )
+        !(lock_on_angle_bound_rads < min_angle_to_target_extremity
+            && -lock_on_angle_bound_rads > max_angle_to_target_extremity)
     }
 }
 
@@ -842,7 +844,7 @@ fn get_target_corners(
     position: &glam::Vec2,
     width: f32,
     height: f32,
-    orientation: f32
+    orientation: f32,
 ) -> [glam::Vec2; 4] {
     let half_width = width / 2.0;
     let half_height = height / 2.0;
@@ -852,10 +854,10 @@ fn get_target_corners(
 
     // Corners relative to target's center, assuming 0 orientation
     let corners_local = [
-        (half_width, half_height), // top_right
-        (-half_width, half_height), // top_left
+        (half_width, half_height),   // top_right
+        (-half_width, half_height),  // top_left
         (-half_width, -half_height), // bottom_left
-        (half_width, -half_height), // bottom_right
+        (half_width, -half_height),  // bottom_right
     ];
 
     // Rotate and translate to world space
@@ -871,7 +873,7 @@ pub fn hitscan_intersects_target(
     source_pos: &glam::Vec2,
     target_pos: &glam::Vec2,
     ship_facing_angle: f32,
-    target_half_size: f32
+    target_half_size: f32,
 ) -> bool {
     let target_size = target_half_size * 2.0;
     hitscan_intersects_target_with_size(
@@ -880,7 +882,7 @@ pub fn hitscan_intersects_target(
         ship_facing_angle,
         target_size,
         target_size,
-        0.0 // Default orientation
+        0.0, // Default orientation
     )
 }
 
@@ -888,7 +890,7 @@ pub fn hitscan_intersects_target(
 pub fn is_target_in_range(
     source_pos: &glam::Vec2,
     target_pos: &glam::Vec2,
-    weapon_metadata: &[ItemMetadata]
+    weapon_metadata: &[ItemMetadata],
 ) -> bool {
     let mut max_range = f32::INFINITY; // Default to infinite range if not specified
 
@@ -913,20 +915,20 @@ fn create_visual_effect(
     source_pos: glam::Vec2,
     target_pos: glam::Vec2,
     effect_type: VisualEffectType,
-    sector_id: u64
+    sector_id: u64,
 ) -> Result<(), CombatError> {
     // Create visual effect
     let visual_effect = dsl.create_visual_effect(
         SectorId::new(sector_id),
         source_pos.into(),
         target_pos.into(),
-        effect_type
+        effect_type,
     )?;
 
     // Schedule cleanup after 10 milliseconds
-    let cleanup_time = spacetimedb::ScheduleAt::Time(
-        Timestamp::from_micros_since_unix_epoch(dsl.ctx().timestamp.to_micros_since_unix_epoch() + 10_000)
-    );
+    let cleanup_time = spacetimedb::ScheduleAt::Time(Timestamp::from_micros_since_unix_epoch(
+        dsl.ctx().timestamp.to_micros_since_unix_epoch() + 10_000,
+    ));
 
     dsl.create_visual_effect_timer(visual_effect.get_id(), cleanup_time)?;
 

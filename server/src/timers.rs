@@ -17,6 +17,7 @@ use spacetimedsl::*;
 
 use crate::{
     logic::{
+        combat::combat_cooldown::CreateCombatCooldownTimerRow,
         factions::{
             create_station_check_timer_for_faction, CreateFactionManagementTimerRow,
             GetFactionStationCheckTimerRowOptionByFactionId,
@@ -61,10 +62,17 @@ pub fn initialize_timers(dsl: &DSL) -> Result<(), String> {
         }
     }
 
+    // Factions
     let _timer = dsl.create_faction_management_timer(
         spacetimedb::ScheduleAt::Interval(Duration::from_secs(12 * 60 * 60).into()), // 12 hours
         dsl.ctx().timestamp,
     )?;
+
+    // Combat
+    // Schedule the cooldown update timer to run every 100ms
+    let cooldown_timer = dsl.create_combat_cooldown_timer(spacetimedb::ScheduleAt::Interval(
+        TimeDuration::from_micros(100_000), // 100ms = 100,000 microseconds
+    ))?;
 
     Ok(())
 }
