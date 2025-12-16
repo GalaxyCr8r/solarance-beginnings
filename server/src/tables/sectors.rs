@@ -1,4 +1,4 @@
-use spacetimedb::{table, SpacetimeType, Identity, Timestamp};
+use spacetimedb::{table, Identity, SpacetimeType, Timestamp};
 use spacetimedsl::*;
 
 use crate::{
@@ -85,7 +85,10 @@ pub struct AsteroidSector {
 //////////////////////////////////////////////////////////////
 
 impl Sector {
-    pub fn get(dsl: &DSL<T>, id: &SectorId) -> Result<Sector, String> {
+    pub fn get<T: spacetimedsl::WriteContext>(
+        dsl: &DSL<T>,
+        id: &SectorId,
+    ) -> Result<Sector, String> {
         Ok(dsl.get_sector_by_id(id)?)
     }
 }
@@ -94,7 +97,11 @@ impl Sector {
 // Utilities
 
 /// Creates a jumpgate in each sector, using the direction of the each other sector's position
-pub fn connect_sectors_with_warpgates(dsl: &DSL<T>, a: &Sector, b: &Sector) -> Result<(), String> {
+pub fn connect_sectors_with_warpgates<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    a: &Sector,
+    b: &Sector,
+) -> Result<(), String> {
     let a_pos = glam::Vec2::new(a.x, a.y);
     let b_pos = glam::Vec2::new(b.x, b.y);
     //info!("Sector Positions: A{} B{}", a_pos, b_pos);

@@ -136,7 +136,7 @@ pub fn faction_station_check_timer_reducer(
     }
 
     // Update the last check timestamp
-    timer.set_last_check_timestamp(dsl.ctx().timestamp);
+    timer.set_last_check_timestamp(dsl.ctx().timestamp());
     dsl.update_faction_station_check_timer_by_id(timer)?;
 
     Ok(())
@@ -249,7 +249,7 @@ pub fn faction_management_timer_reducer(
     }
 
     // Update the last management timestamp
-    timer.set_last_management_timestamp(dsl.ctx().timestamp);
+    timer.set_last_management_timestamp(dsl.ctx().timestamp());
     dsl.update_faction_management_timer_by_id(timer)?;
 
     info!("Faction management timer completed successfully");
@@ -282,14 +282,14 @@ pub fn create_faction_management_timer_if_needed<T: spacetimedsl::WriteContext>(
 }
 
 /// Creates a station check timer for a faction - runs every 4 hours
-pub fn create_station_check_timer_for_faction(
+pub fn create_station_check_timer_for_faction<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     faction_id: &FactionId,
 ) -> Result<FactionStationCheckTimer, String> {
     let timer = dsl.create_faction_station_check_timer(
         spacetimedb::ScheduleAt::Interval(Duration::from_secs(4 * 60 * 60).into()), // 4 hours
         faction_id,
-        dsl.ctx().timestamp,
+        dsl.ctx().timestamp(),
     )?;
 
     info!(
@@ -300,7 +300,7 @@ pub fn create_station_check_timer_for_faction(
 }
 
 /// Creates a ship reaction timer for when a faction ship is destroyed
-pub fn create_ship_reaction_timer_for_faction(
+pub fn create_ship_reaction_timer_for_faction<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     faction_id: &FactionId,
     aggressor_faction_id: Option<&FactionId>,
@@ -313,7 +313,7 @@ pub fn create_ship_reaction_timer_for_faction(
         aggressor_faction_id.cloned(),
         destroyed_ship_type_id,
         destruction_sector_id,
-        dsl.ctx().timestamp,
+        dsl.ctx().timestamp(),
     )?;
 
     info!(
@@ -327,7 +327,7 @@ pub fn create_ship_reaction_timer_for_faction(
 
 /// Updates faction standing between two factions
 /// Creates a new standing if one doesn't exist
-pub fn update_faction_standing(
+pub fn update_faction_standing<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     faction_one_id: &FactionId,
     faction_two_id: &FactionId,
@@ -358,7 +358,11 @@ pub fn update_faction_standing(
 
     // If no standing exists, create a new one
     let initial_reputation = reputation_change.max(-100).min(100);
-    dsl.create_faction_standing(faction_one_id, faction_two_id, initial_reputation)?;
+    dsl.create_faction_standing(CreateFactionStanding {
+        faction_one_id: faction_one_id.value(),
+        faction_two_id: faction_two_id.value(),
+        reputation_score: initial_reputation,
+    })?;
 
     info!(
         "Created new standing between {} and {}: {}",

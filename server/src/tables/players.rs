@@ -34,7 +34,7 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn get_ship_id<T>(&self, dsl: &DSL<T>) -> Option<u64> {
+    pub fn get_ship_id<T: spacetimedsl::WriteContext>(&self, dsl: &DSL<T>) -> Option<u64> {
         if let Ok(window) = dsl.get_sobj_player_window_by_id(&self.get_id()) {
             Some(window.get_sobj_id().value())
         } else {
@@ -47,15 +47,15 @@ impl Player {
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init<T>(_dsl: &DSL<T>) -> Result<(), String> {
+pub fn init<T: spacetimedsl::WriteContext>(_dsl: &DSL<T>) -> Result<(), String> {
     Ok(())
 }
 
-pub fn get_username(dsl: &DSL<T>, id: Identity) -> String {
+pub fn get_username<T: spacetimedsl::WriteContext>(dsl: &DSL<T>, id: Identity) -> String {
     if let Some(player) = dsl.get_player_by_id(&PlayerId::new(id)).ok() {
         player.username
     } else {
-        if dsl.ctx().sender == dsl.ctx().identity() {
+        if dsl.ctx().sender() == dsl.ctx().identity() {
             "SERVER".to_string()
         } else {
             id.to_abbreviated_hex().to_string()

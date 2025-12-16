@@ -53,7 +53,7 @@ pub fn undock_ship(ctx: &ReducerContext, ship: Ship) -> Result<(), String> {
 ///  Utilities
 
 /// Creates the Ship object plus removes the Ship and StellarObject but keeps the cargo, health, etc.
-pub fn dock_to_station(
+pub fn dock_to_station<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     ship: &Ship,
     ship_sobj: &StellarObject,
@@ -84,7 +84,10 @@ pub fn dock_to_station(
     Ok(docked.clone())
 }
 
-pub fn undock_from_station(dsl: &DSL<T>, docked: &Ship) -> Result<Ship, String> {
+pub fn undock_from_station<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    docked: &Ship,
+) -> Result<Ship, String> {
     let station = dsl.get_station_by_id(docked.get_station_id())?;
     let station_transform = dsl.get_sobj_internal_transform_by_id(station.get_sobj_id())?;
     let ship_type = dsl.get_ship_type_definition_by_id(docked.get_shiptype_id())?;

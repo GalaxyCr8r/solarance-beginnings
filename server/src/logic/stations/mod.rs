@@ -45,9 +45,9 @@ pub fn add_station_timers(ctx: &ReducerContext, station_id: u64) -> Result<(), S
     } else {
         // Set up station production schedule (every 30 seconds)
         dsl.create_station_production_schedule(CreateStationProductionSchedule {
-            id: station_id.value(),
+            id: station_id,
             scheduled_at: ScheduleAt::Interval(Duration::from_secs(30).into()), // TODO: Make this dependant on a GlobalConfig value
-            last_processed_timestamp: ctx.timestamp(),
+            last_processed_timestamp: ctx.timestamp()(),
         })?;
     }
 
@@ -60,9 +60,9 @@ pub fn add_station_timers(ctx: &ReducerContext, station_id: u64) -> Result<(), S
     } else {
         // Set up station status schedule (every 10 seconds)
         dsl.create_station_status_schedule(CreateStationStatusSchedule {
-            id: station_id.value(),
+            id: station_id,
             scheduled_at: ScheduleAt::Interval(Duration::from_secs(10).into()), // TODO: Make this dependant on a GlobalConfig value
-            last_processed_timestamp: ctx.timestamp(),
+            last_processed_timestamp: ctx.timestamp()(),
         })?;
     }
 
@@ -122,7 +122,7 @@ pub fn create_silicon_refinery_module() -> ModuleCreationFn {
 }
 
 /// Helper function to create a station with modules and automatically set up schedules
-pub fn create_station_with_modules(
+pub fn create_station_with_modules<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     size: StationSize,
     sector: &Sector,
@@ -142,27 +142,31 @@ pub fn create_station_with_modules(
 
     // Set up station production schedule (every 30 seconds) TODO Tie this to GlobalConfig
     dsl.create_station_production_schedule(
-        station.get_id(),
+        StationId::new(station.get_id()),
         ScheduleAt::Interval(Duration::from_secs(30).into()),
-        dsl.ctx().timestamp,
+        dsl.ctx().timestamp(),
     )?;
 
     // Set up station status schedule (every 60 seconds) TODO Tie this to GlobalConfig
     dsl.create_station_status_schedule(
-        station.get_id(),
+        StationId::new(station.get_id()),
         ScheduleAt::Interval(Duration::from_secs(10).into()),
-        dsl.ctx().timestamp,
+        dsl.ctx().timestamp(),
     )?;
 
     // Verify station invariants
     verify(dsl, station.clone())?;
+    verify(dsl, &station)?;
 
     Ok(station)
 }
 
 /// Verify the invariants of this class that Rust cannot guarantee due to the database limitations.
 /// Should be called after modifying a station.
-pub fn verify(dsl: &DSL<T>, station: Station) -> Result<(), String> {
+pub fn verify<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    station: &Station,
+) -> Result<(), String> {
     // Verify the station does not have more modules than it should.
     let current_module_count = dsl
         .get_station_modules_by_station_id(station.get_id())
@@ -182,7 +186,7 @@ pub fn verify(dsl: &DSL<T>, station: Station) -> Result<(), String> {
 }
 
 /// LogisticsAndStorage,
-pub fn update_logistics_and_storage(
+pub fn update_logistics_and_storage<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     _station: &Station,
     module: &StationModule,
@@ -190,7 +194,9 @@ pub fn update_logistics_and_storage(
 ) -> Result<(), String> {
     // Update cached prices for all inventory items in this module
     for mut inventory_item in dsl.get_station_module_inventory_items_by_module_id(module.get_id()) {
-        if let Ok(item_def) = dsl.get_item_definition_by_id(inventory_item.get_resource_item_id()) {
+        if let Ok(item_def) =
+            dsl.get_item_definition_by_id(ItemDefinitionId::new(inventory_item.resource_item_id))
+        {
             let current_price = inventory_item.calculate_current_price(&item_def);
             //info!("    Old Value : {}c", inventory_item.cached_price);
             inventory_item.set_cached_price(current_price);
@@ -202,7 +208,7 @@ pub fn update_logistics_and_storage(
 }
 
 /// ResourceProductionAndRefining,
-pub fn update_resource_production_and_refining(
+pub fn update_resource_production_and_refining<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     _station: &Station,
     module: &StationModule,
@@ -268,7 +274,7 @@ pub fn update_resource_production_and_refining(
 }
 
 /// ManufacturingAndAssembly,
-pub fn update_manufacturing_and_assembly(
+pub fn update_manufacturing_and_assembly<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     _station: &Station,
     module: &StationModule,
@@ -314,7 +320,7 @@ pub fn update_manufacturing_and_assembly(
 }
 
 /// ResearchAndDevelopment,
-pub fn update_research_and_development(
+pub fn update_research_and_development<T: spacetimedsl::WriteContext>(
     _dsl: &DSL<T>,
     _station: &Station,
     _module: &StationModule,
@@ -359,7 +365,7 @@ pub fn update_research_and_development(
 }
 
 /// CivilianAndSupportServices,
-pub fn update_civilian_and_support_services(
+pub fn update_civilian_and_support_services<T: spacetimedsl::WriteContext>(
     _dsl: &DSL<T>,
     _station: &Station,
     _module: &StationModule,
@@ -370,7 +376,7 @@ pub fn update_civilian_and_support_services(
 }
 
 /// DiplomacyAndFaction,
-pub fn update_diplomacy_and_faction(
+pub fn update_diplomacy_and_faction<T: spacetimedsl::WriteContext>(
     _dsl: &DSL<T>,
     _station: &Station,
     _module: &StationModule,
@@ -381,7 +387,7 @@ pub fn update_diplomacy_and_faction(
 }
 
 /// DefenseAndMilitary,
-pub fn update_defense_and_military(
+pub fn update_defense_and_military<T: spacetimedsl::WriteContext>(
     _dsl: &DSL<T>,
     _station: &Station,
     _module: &StationModule,

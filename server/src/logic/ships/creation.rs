@@ -120,7 +120,7 @@ pub fn create_player_controlled_ship(
 /// Utility
 
 /// Creates a brand new ship instance in a sector with a specific stellar object.
-pub fn create_ship_from_sobj(
+pub fn create_ship_from_sobj<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     ship_type: &ShipTypeDefinition,
     player_id: &PlayerId,
@@ -157,7 +157,7 @@ pub fn create_ship_from_sobj(
 }
 
 /// Creates a brand new ship instance docked at a station.
-pub fn create_ship_docked_at_station(
+pub fn create_ship_docked_at_station<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     ship_type: ShipTypeDefinition,
     player_id: &PlayerId,

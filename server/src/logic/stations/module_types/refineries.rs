@@ -1,5 +1,5 @@
 use log::info;
-use spacetimedb::{table, SpacetimeType, Identity, Timestamp};
+use spacetimedb::{table, Identity, SpacetimeType, Timestamp};
 use spacetimedsl::*;
 
 use crate::definitions::station_module_types::*;
@@ -47,7 +47,7 @@ pub struct RefineryProductionResult {
 /// Create Module
 ///
 
-pub fn create_basic_refinery_module(
+pub fn create_basic_refinery_module<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     station: &Station,
     under_construction: bool,
@@ -71,7 +71,7 @@ pub fn create_basic_refinery_module(
         identifier.as_str(), // TODO: Do we even need this field?
         true,
         None,
-        dsl.ctx().timestamp,
+        dsl.ctx().timestamp(),
     )?;
 
     // Submodule
@@ -145,7 +145,7 @@ pub fn create_basic_refinery_module(
 
 /// Calculate the production output for a refinery module based on available input resources
 /// and current efficiency modifiers. Only produces whole units of output.
-pub fn calculate_refinery_production(
+pub fn calculate_refinery_production<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     refinery: &Refinery,
     _time_elapsed_hours: f32,
@@ -156,7 +156,9 @@ pub fn calculate_refinery_production(
     // Find input ore inventory item
     let input_inventory = dsl
         .get_station_module_inventory_items_by_module_id(refinery.get_id())
-        .find(|item| item.get_resource_item_id() == refinery.get_input_ore_resource_id())
+        .find(|item: &StationModuleInventoryItem| {
+            item.resource_item_id == refinery.input_ore_resource_id
+        })
         .ok_or("Input ore inventory not found")?;
 
     // info!(
@@ -245,7 +247,7 @@ pub fn calculate_refinery_production(
 }
 
 /// Apply the calculated production results to the refinery's inventory
-pub fn apply_refinery_production(
+pub fn apply_refinery_production<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     refinery: &Refinery,
     production_result: &RefineryProductionResult,
@@ -363,7 +365,10 @@ pub fn apply_refinery_production(
 }
 
 /// Calculate efficiency modifiers based on station conditions, upgrades, etc.
-pub fn calculate_refinery_efficiency(dsl: &DSL<T>, refinery: &Refinery) -> Result<f32, String> {
+pub fn calculate_refinery_efficiency<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    refinery: &Refinery,
+) -> Result<f32, String> {
     // Get the station module to check conditions
     let station_module = dsl.get_station_module_by_id(refinery.get_id())?;
     let station = dsl.get_station_by_id(station_module.get_station_id())?;

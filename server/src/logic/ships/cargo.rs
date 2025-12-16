@@ -63,7 +63,7 @@ pub fn jettison_cargo_from_ship(
 /// Utility functions
 
 /// Removes cargo from a ship's cargo hold. Errors if the ship doesn't have enough of the item.
-pub fn remove_cargo_from_ship(
+pub fn remove_cargo_from_ship<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     ship_status: &mut ShipStatus,
     item_def: &ItemDefinition,
@@ -148,7 +148,7 @@ pub fn remove_cargo_from_ship(
 /// It creates new cargo items if necessary, but if it can't it will create
 /// a cargo crate instead if create_a_crate_if_failed is true and Ship
 /// points to a Ship and not a Ship row.
-pub fn attempt_to_load_cargo_into_ship(
+pub fn attempt_to_load_cargo_into_ship<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     ship_status: &mut ShipStatus,
     ship_id: &ShipId,
@@ -335,7 +335,7 @@ pub fn attempt_to_load_cargo_into_ship(
 
 /// Crates a cargo crate nearby the given stellar object if it exists,
 /// otherwise it'll place it randomly in its last known sector.
-pub fn create_cargo_crate_nearby_ship(
+pub fn create_cargo_crate_nearby_ship<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     ship_sobj: &StellarObjectId,
     item_def: &ItemDefinition,
@@ -377,7 +377,7 @@ pub fn create_cargo_crate_nearby_ship(
         item_def.get_id(),
         quantity,
         dsl.ctx()
-            .timestamp
+            .timestamp()
             .checked_add(TimeDuration::from_duration(Duration::from_secs(
                 /*D* /24 * /*H*/60 * */ /*M*/ 60,
             ))), // TODO cargo crate timer to despawn them

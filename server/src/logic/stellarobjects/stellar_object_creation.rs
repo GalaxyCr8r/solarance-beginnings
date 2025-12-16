@@ -67,7 +67,7 @@ pub fn create_sobj_random(ctx: &ReducerContext, sector_id: u64) -> Result<(), St
     )
 }
 
-pub fn create_sobj_vec2(
+pub fn create_sobj_vec2<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     kind: StellarObjectKinds,
     sector_id: &SectorId,
@@ -78,7 +78,7 @@ pub fn create_sobj_vec2(
     create_sobj_internal(dsl, kind, sector_id, transform)
 }
 
-pub fn create_sobj_internal(
+pub fn create_sobj_internal<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     kind: StellarObjectKinds,
     sector_id: &SectorId,
@@ -98,7 +98,7 @@ pub fn create_sobj_internal(
     return Ok(sobj);
 }
 
-pub fn create_sobj_pos(
+pub fn create_sobj_pos<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     kind: StellarObjectKinds,
     sector_id: &SectorId,
@@ -115,7 +115,7 @@ pub fn create_sobj_pos(
 }
 
 /// Creates a stellar object
-pub fn create_sobj_with_random_velocity(
+pub fn create_sobj_with_random_velocity<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     kind: StellarObjectKinds,
     sector_id: &SectorId,

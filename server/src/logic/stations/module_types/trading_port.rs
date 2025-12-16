@@ -1,4 +1,4 @@
-use spacetimedb::{table, SpacetimeType, Identity, Timestamp};
+use spacetimedb::{table, Identity, SpacetimeType, Timestamp};
 use spacetimedsl::*;
 
 use crate::definitions::item_types::*;
@@ -46,7 +46,7 @@ pub struct TradingPortItemConfig {
 /// Create Modules
 
 /// Generic function to create a trading port with specified items and configurations
-pub fn create_trading_port_with_items(
+pub fn create_trading_port_with_items<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     station: &Station,
     module_name: &str,
@@ -67,7 +67,7 @@ pub fn create_trading_port_with_items(
         module_name,
         true,
         None,
-        dsl.ctx().timestamp,
+        dsl.ctx().timestamp(),
     )?;
 
     dsl.create_trading_port_module(module.get_id())?;
@@ -105,7 +105,7 @@ pub fn create_trading_port_with_items(
     Ok(())
 }
 
-pub fn create_basic_bazaar(
+pub fn create_basic_bazaar<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     station: &Station,
     under_construction: bool,
@@ -171,7 +171,7 @@ pub fn create_basic_bazaar(
     )
 }
 
-pub fn create_rich_speciality(
+pub fn create_rich_speciality<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     station: &Station,
     under_construction: bool,

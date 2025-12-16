@@ -111,7 +111,10 @@ pub struct FactionStanding {
 /// Utilities
 
 /// Gets the faction name for display purposes, with fallback for unknown factions
-pub fn get_faction_name(dsl: &DSL<T>, faction_id: &FactionId) -> String {
+pub fn get_faction_name<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    faction_id: &FactionId,
+) -> String {
     if let Ok(faction) = dsl.get_faction_by_id(faction_id) {
         faction.get_name().clone()
     } else {
@@ -120,7 +123,10 @@ pub fn get_faction_name(dsl: &DSL<T>, faction_id: &FactionId) -> String {
 }
 
 /// Checks if a faction exists and is joinable by players
-pub fn is_faction_joinable(dsl: &DSL<T>, faction_id: &FactionId) -> bool {
+pub fn is_faction_joinable<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    faction_id: &FactionId,
+) -> bool {
     if let Ok(faction) = dsl.get_faction_by_id(faction_id) {
         *faction.get_joinable()
     } else {
@@ -129,7 +135,10 @@ pub fn is_faction_joinable(dsl: &DSL<T>, faction_id: &FactionId) -> bool {
 }
 
 /// Gets the faction tier for a given faction
-pub fn get_faction_tier(dsl: &DSL<T>, faction_id: &FactionId) -> Option<FactionTier> {
+pub fn get_faction_tier<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    faction_id: &FactionId,
+) -> Option<FactionTier> {
     if let Ok(faction) = dsl.get_faction_by_id(faction_id) {
         Some(faction.get_tier().clone())
     } else {
@@ -139,7 +148,7 @@ pub fn get_faction_tier(dsl: &DSL<T>, faction_id: &FactionId) -> Option<FactionT
 
 /// Gets the reputation score between two factions
 /// Returns 0 (neutral) if no standing exists
-pub fn get_faction_reputation(
+pub fn get_faction_reputation<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     faction_one_id: &FactionId,
     faction_two_id: &FactionId,
@@ -158,7 +167,7 @@ pub fn get_faction_reputation(
 }
 
 /// Checks if two factions are hostile to each other (reputation < -50)
-pub fn are_factions_hostile(
+pub fn are_factions_hostile<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     faction_one_id: &FactionId,
     faction_two_id: &FactionId,
@@ -167,7 +176,7 @@ pub fn are_factions_hostile(
 }
 
 /// Checks if two factions are allied (reputation > 50)
-pub fn are_factions_allied(
+pub fn are_factions_allied<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     faction_one_id: &FactionId,
     faction_two_id: &FactionId,
@@ -176,31 +185,46 @@ pub fn are_factions_allied(
 }
 
 /// Gets all stations belonging to a specific faction
-pub fn get_faction_stations(dsl: &DSL<T>, faction_id: &FactionId) -> Vec<Station> {
+pub fn get_faction_stations<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    faction_id: &FactionId,
+) -> Vec<Station> {
     dsl.get_all_stations()
         .filter(|station| station.get_owner_faction_id().value() == faction_id.value())
         .collect()
 }
 
 /// Gets all ships belonging to a specific faction
-pub fn get_faction_ships(dsl: &DSL<T>, faction_id: &FactionId) -> Vec<Ship> {
+pub fn get_faction_ships<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    faction_id: &FactionId,
+) -> Vec<Ship> {
     dsl.get_all_ships()
         .filter(|ship| ship.get_faction_id().value() == faction_id.value())
         .collect()
 }
 
 /// Counts the total number of stations controlled by a faction
-pub fn count_faction_stations(dsl: &DSL<T>, faction_id: &FactionId) -> usize {
+pub fn count_faction_stations<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    faction_id: &FactionId,
+) -> usize {
     get_faction_stations(dsl, faction_id).len()
 }
 
 /// Counts the total number of ships controlled by a faction
-pub fn count_faction_ships(dsl: &DSL<T>, faction_id: &FactionId) -> usize {
+pub fn count_faction_ships<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    faction_id: &FactionId,
+) -> usize {
     get_faction_ships(dsl, faction_id).len()
 }
 
 /// Gets all sectors where a faction has presence (stations or significant ship activity)
-pub fn get_faction_controlled_sectors(dsl: &DSL<T>, faction_id: &FactionId) -> Vec<SectorId> {
+pub fn get_faction_controlled_sectors<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    faction_id: &FactionId,
+) -> Vec<SectorId> {
     let mut controlled_sectors = Vec::new();
 
     // Add sectors with faction stations
@@ -218,7 +242,7 @@ pub fn get_faction_controlled_sectors(dsl: &DSL<T>, faction_id: &FactionId) -> V
 }
 
 /// Handles when a faction ship is destroyed - creates reaction timer
-pub fn handle_faction_ship_destroyed(
+pub fn handle_faction_ship_destroyed<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     destroyed_ship: &Ship,
     aggressor_faction_id: Option<&FactionId>,
@@ -234,7 +258,7 @@ pub fn handle_faction_ship_destroyed(
             aggressor_faction_id.cloned(),
             &destroyed_ship.get_shiptype_id(),
             destruction_sector_id,
-            dsl.ctx().timestamp,
+            dsl.ctx().timestamp(),
         );
 
         info!(
@@ -256,7 +280,10 @@ pub fn get_joinable_factions<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Vec
 }
 
 /// Gets faction capital station if it exists
-pub fn get_faction_capital_station(dsl: &DSL<T>, faction_id: &FactionId) -> Option<Station> {
+pub fn get_faction_capital_station<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    faction_id: &FactionId,
+) -> Option<Station> {
     if let Ok(faction) = dsl.get_faction_by_id(faction_id) {
         if let Some(capital_station_id) = faction.get_capital_station_id() {
             if let Ok(station) = dsl.get_station_by_id(&StationId::new(*capital_station_id)) {

@@ -172,10 +172,14 @@ impl StellarObjectPlayerWindow {
 //////////////////////////////////////////////////////////////
 // Utilities
 
-pub fn same_sector_from_ids(dsl: &DSL<T>, id1: &StellarObjectId, id2: &StellarObjectId) -> bool {
+pub fn same_sector_from_ids<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    id1: &StellarObjectId,
+    id2: &StellarObjectId,
+) -> bool {
     if let Ok(sobj1) = dsl.get_stellar_object_by_id(id1) {
         if let Ok(sobj2) = dsl.get_stellar_object_by_id(id2) {
-            return sobj1.get_sector_id() == sobj2.get_sector_id();
+            return sobj1.sector_id == sobj2.sector_id;
         }
     }
     false
@@ -190,7 +194,11 @@ impl StellarObject {
         self.id
     }
 
-    pub fn distance_squared(&self, dsl: &DSL<T>, target: &StellarObject) -> Result<f32, String> {
+    pub fn distance_squared<T: spacetimedsl::WriteContext>(
+        &self,
+        dsl: &DSL<T>,
+        target: &StellarObject,
+    ) -> Result<f32, String> {
         let transform = dsl.get_sobj_internal_transform_by_id(self)?;
         let target_transform = dsl.get_sobj_internal_transform_by_id(target)?;
 

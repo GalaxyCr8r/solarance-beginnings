@@ -38,7 +38,7 @@ pub struct Asteroid {
 /////////////////////////////////////////
 /// Utility
 
-pub fn create_asteroid(
+pub fn create_asteroid<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     position: Vec2,
     sector: SectorId,
@@ -61,15 +61,15 @@ pub fn create_asteroid(
         return None;
     }
 
-    match dsl.create_asteroid(
-        &sobj.unwrap(),
-        sector,
-        16.0,
-        item,
-        resource_amount,
-        resource_amount,
-        Some(gfx_key),
-    ) {
+    match dsl.create_asteroid(CreateAsteroid {
+        id: sobj.unwrap().get_id(),
+        current_sector_id: sector.value(),
+        size_radius: 16.0,
+        resource_item_id: item.value(),
+        current_resources: resource_amount,
+        initial_resources: resource_amount,
+        gfx_key: Some(gfx_key),
+    }) {
         Ok(ast) => Some(ast),
         Err(e) => {
             info!("ERROR: Failed to create asteroid: {}", e);

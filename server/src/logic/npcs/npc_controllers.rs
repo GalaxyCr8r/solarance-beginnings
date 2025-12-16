@@ -78,7 +78,7 @@ pub fn remove_npc_controller(ctx: &ReducerContext, npc_controller_id: u64) -> Re
 
 /// Create a new NPC ship controller for a stellar object
 /// This is a utility function that can be called by other reducers
-pub fn create_npc_ship_controller(
+pub fn create_npc_ship_controller<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     stellar_object_id: u64,
     initial_behavior: NpcBehavior,
@@ -106,7 +106,7 @@ pub fn create_npc_ship_controller(
 }
 
 /// Set the target for an NPC ship controller
-pub fn set_npc_target(
+pub fn set_npc_target<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     npc_controller_id: u64,
     target_sobj_id: Option<u64>,
@@ -132,7 +132,7 @@ pub fn set_npc_target(
 }
 
 /// Set the behavior for an NPC ship controller
-pub fn set_npc_behavior(
+pub fn set_npc_behavior<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     npc_controller_id: u64,
     behavior: NpcBehavior,
@@ -152,7 +152,10 @@ pub fn set_npc_behavior(
 }
 
 /// Trigger weapon firing for an NPC ship controller
-pub fn trigger_npc_weapon_fire(dsl: &DSL<T>, npc_controller_id: u64) -> Result<(), String> {
+pub fn trigger_npc_weapon_fire<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    npc_controller_id: u64,
+) -> Result<(), String> {
     let mut npc_controller =
         dsl.get_npc_ship_controller_by_id(NpcShipControllerId::new(npc_controller_id))?;
     npc_controller.set_fire_weapons(true);
@@ -167,7 +170,10 @@ pub fn trigger_npc_weapon_fire(dsl: &DSL<T>, npc_controller_id: u64) -> Result<(
 }
 
 /// Trigger missile firing for an NPC ship controller
-pub fn trigger_npc_missile_fire(dsl: &DSL<T>, npc_controller_id: u64) -> Result<(), String> {
+pub fn trigger_npc_missile_fire<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    npc_controller_id: u64,
+) -> Result<(), String> {
     let mut npc_controller =
         dsl.get_npc_ship_controller_by_id(NpcShipControllerId::new(npc_controller_id))?;
     npc_controller.set_fire_missiles(true);

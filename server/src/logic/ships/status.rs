@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use spacetimedb::{table, SpacetimeType, Identity, Timestamp, ReducerContext};
+use spacetimedb::{table, Identity, ReducerContext, SpacetimeType, Timestamp};
 use spacetimedsl::*;
 
 use crate::{tables::ships::*, utility::try_server_only};
@@ -24,7 +24,7 @@ pub struct ShipStatusTimer {
     pub ship_type_id: u32,
 }
 
-pub fn create_status_timer_for_ship(
+pub fn create_status_timer_for_ship<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     ship_id: &ShipId,
     type_id: &ShipTypeDefinitionId,

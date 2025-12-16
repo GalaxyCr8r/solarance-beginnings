@@ -77,7 +77,10 @@ pub fn recalculate_sobj_transforms(
     Ok(())
 }
 
-pub fn __move_stellar_object(dsl: &DSL<T>, sobj: StellarObject) -> Result<(), String> {
+pub fn __move_stellar_object<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    sobj: StellarObject,
+) -> Result<(), String> {
     let mut transform = dsl.get_sobj_internal_transform_by_id(&sobj)?;
     let mut velocity = dsl.get_sobj_velocity_by_id(&sobj)?;
 
@@ -106,7 +109,7 @@ pub fn __move_stellar_object(dsl: &DSL<T>, sobj: StellarObject) -> Result<(), St
     if *sobj.get_kind() == StellarObjectKinds::CargoCrate {
         let cargo_crate = dsl.get_cargo_crate_by_sobj_id(sobj.get_id())?;
         if let Some(despawn_ts) = cargo_crate.get_despawn_ts() {
-            if *despawn_ts < dsl.ctx().timestamp {
+            if *despawn_ts < dsl.ctx().timestamp() {
                 info!(
                     "Cargo Crate outlived its despawn timestamp. Deleting #{}!",
                     sobj.get_id()

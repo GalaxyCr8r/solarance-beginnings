@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use log::info;
-use spacetimedb::{table, SpacetimeType, Identity, Timestamp, ReducerContext};
+use spacetimedb::{table, Identity, ReducerContext, SpacetimeType, Timestamp};
 use spacetimedsl::*;
 
 use crate::{
@@ -36,7 +36,7 @@ pub struct ShipAddCargoTimer {
 // Utility
 //////////////////////////////////////////////////////////////
 
-pub fn create_timer_to_add_cargo_to_ship(
+pub fn create_timer_to_add_cargo_to_ship<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     ship_id: ShipId,
     item_id: ItemDefinitionId,

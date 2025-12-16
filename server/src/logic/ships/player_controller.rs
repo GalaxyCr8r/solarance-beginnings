@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use glam::Vec2;
 use log::info;
-use spacetimedb::{table, SpacetimeType, Identity, Timestamp, ReducerContext};
+use spacetimedb::{table, Identity, ReducerContext, SpacetimeType, Timestamp};
 use spacetimedsl::*;
 
 use crate::{
@@ -60,7 +60,7 @@ pub struct PlayerShipController {
     pub targetted_sobj_id: Option<u64>,
 }
 
-pub fn initialize_player_controller(
+pub fn initialize_player_controller<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     player: &PlayerId,
     sobj: &StellarObject,
@@ -423,7 +423,7 @@ pub fn timer_player_controller_interaction_update(
 }
 
 /// Verifies the controller's targetted stellar object exists and retrieves it.
-pub fn get_targetted_sobj(
+pub fn get_targetted_sobj<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     controller: &PlayerShipController,
     player_sobj: &StellarObject,
@@ -444,7 +444,7 @@ pub fn get_targetted_sobj(
     }
 }
 
-pub fn try_update_ship_velocity(
+pub fn try_update_ship_velocity<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     velocity: &mut StellarObjectVelocity,
     controller: &PlayerShipController,
@@ -482,7 +482,7 @@ pub fn try_update_ship_velocity(
     Ok(())
 }
 
-pub fn remove_old_timers(
+pub fn remove_old_timers<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     controller: &PlayerShipController,
     ship_object: &Ship,

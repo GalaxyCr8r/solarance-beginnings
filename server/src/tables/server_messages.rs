@@ -112,7 +112,7 @@ impl ServerMessageRecipient {
 ///
 
 /// Send message to individual player (server-only)
-pub fn send_server_message_to_player(
+pub fn send_server_message_to_player<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     player_id: &PlayerId,
     message: String,
@@ -132,14 +132,14 @@ pub fn send_server_message_to_player(
         ServerMessageId::new(server_message.id),
         player_id.clone(),
         None, // read_at starts as None
-        dsl.ctx().timestamp,
+        dsl.ctx().timestamp(),
     )?;
 
     Ok(())
 }
 
 /// Send message to multiple players with optional group name (server-only)
-pub fn send_server_message_to_group(
+pub fn send_server_message_to_group<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     player_ids: Vec<PlayerId>,
     message: String,
@@ -161,7 +161,7 @@ pub fn send_server_message_to_group(
             ServerMessageId::new(server_message.id),
             player_id,
             None, // read_at starts as None
-            dsl.ctx().timestamp,
+            dsl.ctx().timestamp(),
         )?;
     }
 
@@ -169,7 +169,7 @@ pub fn send_server_message_to_group(
 }
 
 /// Convenience function for error messages from reducers (server-only)
-pub fn send_error_message(
+pub fn send_error_message<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     player_id: &PlayerId,
     message: String,
@@ -185,7 +185,7 @@ pub fn send_error_message(
 }
 
 /// Convenience function for info messages from reducers (server-only)
-pub fn send_info_message(
+pub fn send_info_message<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     player_id: &PlayerId,
     message: String,
@@ -201,7 +201,7 @@ pub fn send_info_message(
 }
 
 /// Convenience function for warning messages from reducers (server-only)
-pub fn send_warning_message(
+pub fn send_warning_message<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     player_id: &PlayerId,
     message: String,
@@ -217,7 +217,7 @@ pub fn send_warning_message(
 }
 
 /// Convenience function for admin messages from reducers (server-only)
-pub fn send_admin_message(
+pub fn send_admin_message<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     player_id: &PlayerId,
     message: String,
@@ -233,14 +233,17 @@ pub fn send_admin_message(
 }
 
 /// Get unread message count for a player
-pub fn get_unread_message_count(dsl: &DSL<T>, player_id: &PlayerId) -> u64 {
+pub fn get_unread_message_count<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    player_id: &PlayerId,
+) -> u64 {
     dsl.get_server_message_recipients_by_player_id(player_id)
         .filter(|recipient| recipient.read_at.is_none())
         .count() as u64
 }
 
 /// Get all unread messages for a player
-pub fn get_unread_messages_for_player(
+pub fn get_unread_messages_for_player<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     player_id: &PlayerId,
 ) -> Result<Vec<(ServerMessage, ServerMessageRecipient)>, String> {
@@ -267,7 +270,7 @@ pub fn get_unread_messages_for_player(
 }
 
 /// Mark a message as read for a specific player
-pub fn mark_message_as_read(
+pub fn mark_message_as_read<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     player_id: &PlayerId,
     server_message_id: u64,
@@ -278,7 +281,7 @@ pub fn mark_message_as_read(
         .find(|r| r.server_message_id == server_message_id);
 
     if let Some(mut recipient) = recipient_opt {
-        recipient.read_at = Some(dsl.ctx().timestamp);
+        recipient.read_at = Some(dsl.ctx().timestamp());
         dsl.update_server_message_recipient_by_id(recipient)?;
         Ok(())
     } else {

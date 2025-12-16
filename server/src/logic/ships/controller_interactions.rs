@@ -13,7 +13,7 @@ use crate::{
 /////////////////////////////////////////
 /// Object-type Logic
 
-pub fn try_mining_asteroid(
+pub fn try_mining_asteroid<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     controller: &PlayerShipController,
     ship_object: &Ship,
@@ -61,7 +61,7 @@ pub fn try_mining_asteroid(
     Ok(())
 }
 
-pub fn try_to_dock_to_station(
+pub fn try_to_dock_to_station<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     player_ship_obj: &Ship,
     ship_sobj: &StellarObject,
@@ -77,7 +77,7 @@ pub fn try_to_dock_to_station(
     Ok(())
 }
 
-pub fn try_to_use_jumpgate(
+pub fn try_to_use_jumpgate<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     player_ship_obj: &Ship,
     jumpgate: &JumpGate,

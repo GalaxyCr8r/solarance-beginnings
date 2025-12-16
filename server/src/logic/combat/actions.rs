@@ -13,7 +13,7 @@ use crate::{
 };
 
 /// Process weapon firing for a specific ship and target
-pub fn process_weapon_combat_action(
+pub fn process_weapon_combat_action<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     source_sobj_id: u64,
     target_sobj_id: u64,
@@ -59,7 +59,8 @@ pub fn process_weapon_combat_action(
 
     // Fire each equipped weapon
     for weapon_slot in weapon_slots {
-        let weapon_def = dsl.get_item_definition_by_id(&weapon_slot.get_item_id())?;
+        let weapon_def =
+            dsl.get_item_definition_by_id(ItemDefinitionId::new(weapon_slot.item_id))?;
 
         // For now, assume all weapons are hitscan type
         // TODO: Determine weapon type from item metadata in future tasks
@@ -96,7 +97,7 @@ pub fn process_weapon_combat_action(
 }
 
 /// Process missile firing for a specific ship and target
-pub fn process_missile_combat_action(
+pub fn process_missile_combat_action<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     source_sobj_id: u64,
     target_sobj_id: u64,
@@ -149,7 +150,8 @@ pub fn process_missile_combat_action(
 
     // Fire each equipped missile
     for missile_slot in missile_slots {
-        let missile_def = dsl.get_item_definition_by_id(&missile_slot.get_item_id())?;
+        let missile_def =
+            dsl.get_item_definition_by_id(ItemDefinitionId::new(missile_slot.item_id))?;
 
         // For now, assume all missiles are dumbfire type
         // TODO: Determine missile type from item metadata in future tasks
