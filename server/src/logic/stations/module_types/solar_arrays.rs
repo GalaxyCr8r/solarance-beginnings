@@ -1,4 +1,4 @@
-use spacetimedb::*;
+use spacetimedb::{table, SpacetimeType, Identity, Timestamp};
 use spacetimedsl::*;
 
 use crate::tables::sectors::*;
@@ -19,15 +19,15 @@ pub const MODULE_SOLAR_ARRAY_MEDIUM: u32 = 7_001;
 pub const MODULE_SOLAR_ARRAY_LARGE: u32 = 7_002;
 pub const MODULE_SOLAR_ARRAY_INDUSTRIAL: u32 = 7_003;
 
-#[dsl(plural_name = solar_array_modules)]
+#[dsl(plural_name = solar_array_modules, method(update = true))]
 #[table(name = solar_array_module, public)]
 pub struct SolarArray {
     #[primary_key]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     /// FK to StationModule
     id: u64,
 
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub output_energy_cell_resource_id: u32, // FK to ResourceDefinition
 
@@ -48,7 +48,7 @@ pub struct SolarArrayProductionResult {
 /// Create Module
 
 pub fn create_simple_solar_array_module(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     station: &Station,
     under_construction: bool,
     array_size: SolarArraySize,
@@ -111,7 +111,7 @@ pub fn create_simple_solar_array_module(
 
 /// Calculate the energy production for a solar array module
 pub fn calculate_solar_array_production(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     solar_array: &SolarArray,
     time_elapsed_hours: f32,
 ) -> Result<SolarArrayProductionResult, String> {
@@ -186,7 +186,7 @@ fn calculate_sunlight_efficiency(sector: &Sector) -> f32 {
 }
 
 /// Calculate station health modifier for efficiency
-fn calculate_station_health_modifier(dsl: &DSL, station: &Station) -> Result<f32, String> {
+fn calculate_station_health_modifier(dsl: &DSL<T>, station: &Station) -> Result<f32, String> {
     if let Ok(station_status) = dsl.get_station_status_by_id(station.get_id()) {
         Ok((station_status.get_health() / 100.0).max(0.1))
     } else {
@@ -196,7 +196,7 @@ fn calculate_station_health_modifier(dsl: &DSL, station: &Station) -> Result<f32
 
 /// Apply the calculated production results to the solar array's inventory
 pub fn apply_solar_array_production(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     solar_array: &SolarArray,
     production_result: &SolarArrayProductionResult,
 ) -> Result<(), String> {
@@ -225,7 +225,7 @@ pub fn apply_solar_array_production(
 
 /// Calculate and update efficiency modifiers for solar array
 pub fn calculate_solar_array_efficiency(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     solar_array: &SolarArray,
 ) -> Result<f32, String> {
     let station_module = dsl.get_station_module_by_id(solar_array.get_id())?;

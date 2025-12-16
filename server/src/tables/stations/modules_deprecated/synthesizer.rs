@@ -1,22 +1,22 @@
 use super::*;
 
-#[dsl(plural_name = synthesizer_modules)]
+#[dsl(plural_name = synthesizer_modules, method(update = true))]
 #[table(name = synthesizer_module, public)]
 pub struct Synthesizer {
     #[primary_key]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     /// FK to StationModule
     id: u64,
 
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub input_exotic_matter_resource_id: u32,
 
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub input_gas_resource_id: u32,
 
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub output_jump_fuel_resource_id: u32,
 

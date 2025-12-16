@@ -74,7 +74,7 @@ pub enum StationModuleSpecificType {
 /////////////////////////////////////
 // Tables
 
-#[dsl(plural_name = station_module_blueprints)]
+#[dsl(plural_name = station_module_blueprints, method(update = true))]
 #[table(name = station_module_blueprint, public)]
 pub struct StationModuleBlueprint {
     #[primary_key]
@@ -109,7 +109,7 @@ pub struct StationModuleBlueprint {
     pub operational_hp: u32,  // Max HP when fully built
 }
 
-#[dsl(plural_name = station_modules)]
+#[dsl(plural_name = station_modules, method(update = true))]
 #[table(name = station_module, public)]
 pub struct StationModule {
     #[primary_key]
@@ -119,14 +119,14 @@ pub struct StationModule {
     id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = StationId)]
+    #[use_wrapper(StationId)]
     #[foreign_key(path = crate::tables::stations, table = station, column = id, on_delete = Delete)]
     /// FK to SpaceStation
     pub station_id: u64,
 
     /// FK to StationModuleBlueprint
     #[index(btree)]
-    #[use_wrapper(path = StationModuleBlueprintId)]
+    #[use_wrapper(StationModuleBlueprintId)]
     #[foreign_key(path = crate::tables::stations, table = station_module_blueprint, column = id, on_delete = Error)]
     pub blueprint: u32,
 
@@ -137,11 +137,11 @@ pub struct StationModule {
     pub last_status_update_timestamp: Timestamp,
 }
 
-#[dsl(plural_name = stations_under_construction)]
+#[dsl(plural_name = stations_under_construction, method(update = true))]
 #[table(name = station_under_construction, public)]
 pub struct StationUnderConstruction {
     #[primary_key]
-    #[use_wrapper(path = StationId)]
+    #[use_wrapper(StationId)]
     #[foreign_key(path = crate::tables::stations, table = station, column = id, on_delete = Delete)]
     /// FK to SpaceStation
     id: u64,
@@ -150,11 +150,11 @@ pub struct StationUnderConstruction {
     pub construction_progress_percentage: f32,
 }
 
-#[dsl(plural_name = station_modules_under_construction)]
+#[dsl(plural_name = station_modules_under_construction, method(update = true))]
 #[table(name = station_module_under_construction, public)]
 pub struct StationModuleUnderConstruction {
     #[primary_key]
-    #[use_wrapper(path = StationId)]
+    #[use_wrapper(StationId)]
     #[foreign_key(path = crate::tables::stations, table = station, column = id, on_delete = Delete)]
     /// FK to SpaceStation
     id: u64,
@@ -164,7 +164,7 @@ pub struct StationModuleUnderConstruction {
 }
 
 /// Stores items used for a module's operation or as temporary input/output buffers.
-#[dsl(plural_name = station_module_inventory_items)]
+#[dsl(plural_name = station_module_inventory_items, method(update = true))]
 #[table(name = station_module_inventory_item, public)]
 pub struct StationModuleInventoryItem {
     #[primary_key]
@@ -173,13 +173,13 @@ pub struct StationModuleInventoryItem {
     id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     #[foreign_key(path = crate::tables::stations, table = station_module, column = id, on_delete = Delete)]
     /// FK to StationModule
     pub module_id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     #[foreign_key(path = crate::tables::items, table = item_definition, column = id, on_delete = Error)]
     /// FK to ItemDefinition
     pub resource_item_id: u32,
@@ -194,7 +194,7 @@ pub struct StationModuleInventoryItem {
     pub cached_price: u32,
 }
 
-#[dsl(plural_name = stations)]
+#[dsl(plural_name = stations, method(update = true))]
 #[table(name = station, public)]
 pub struct Station {
     #[primary_key]
@@ -211,19 +211,19 @@ pub struct Station {
     pub size: StationSize,
 
     #[index(btree)]
-    #[use_wrapper(path = sectors::SectorId)]
+    #[use_wrapper(sectors::SectorId)]
     #[foreign_key(path = crate::tables::sectors, table = sector, column = id, on_delete = Error)]
     /// FK to Sector.id
     pub sector_id: u64,
 
     #[unique]
-    #[use_wrapper(path = stellarobjects::StellarObjectId)]
+    #[use_wrapper(stellarobjects::StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     /// FK to StellarObject
     pub sobj_id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = factions::FactionId)]
+    #[use_wrapper(factions::FactionId)]
     #[foreign_key(path = crate::tables::factions, table = faction, column = id, on_delete = Error)]
     /// FK to FactionDefinition
     pub owner_faction_id: u32,
@@ -234,11 +234,11 @@ pub struct Station {
     pub gfx_key: Option<String>,
 }
 
-#[dsl(plural_name = station_statuses)]
+#[dsl(plural_name = station_statuses, method(update = true))]
 #[table(name = station_status, public)]
 pub struct StationStatus {
     #[primary_key]
-    #[use_wrapper(path = StationId)]
+    #[use_wrapper(StationId)]
     #[foreign_key(path = crate::tables::stations, table = station, column = id, on_delete = Delete)]
     /// FK to Station
     id: u64,

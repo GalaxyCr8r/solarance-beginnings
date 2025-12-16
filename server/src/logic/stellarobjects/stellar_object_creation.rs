@@ -1,8 +1,8 @@
 use crate::tables::sectors::SectorId;
-use crate::tables::stellarobjects::*;
+use crate::tables::stellarobjects::{CreateSobjTurnLeftController, *};
 use crate::utility::try_server_only;
 use glam::Vec2;
-use spacetimedb::{rand::Rng, *};
+use spacetimedb::{rand::Rng, ReducerContext, *};
 use spacetimedsl::*;
 use std::f32::consts::PI;
 
@@ -21,7 +21,9 @@ pub fn create_turn_left_controller_for(
         dsl.delete_sobj_turn_left_controller_by_id(controller.get_id())?;
         spacetimedb::log::info!("Deleted controller #{:?}", sobj_id.value());
     } else {
-        let controller = dsl.create_sobj_turn_left_controller(sobj_id)?;
+        let controller = dsl.create_sobj_turn_left_controller(CreateSobjTurnLeftController {
+            id: sobj_id.value(),
+        })?;
         spacetimedb::log::info!("Created controller #{}", controller.id());
     }
     Ok(())
@@ -66,7 +68,7 @@ pub fn create_sobj_random(ctx: &ReducerContext, sector_id: u64) -> Result<(), St
 }
 
 pub fn create_sobj_vec2(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     kind: StellarObjectKinds,
     sector_id: &SectorId,
     position: Vec2,
@@ -77,7 +79,7 @@ pub fn create_sobj_vec2(
 }
 
 pub fn create_sobj_internal(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     kind: StellarObjectKinds,
     sector_id: &SectorId,
     transform: StellarObjectTransformInternal,
@@ -97,7 +99,7 @@ pub fn create_sobj_internal(
 }
 
 pub fn create_sobj_pos(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     kind: StellarObjectKinds,
     sector_id: &SectorId,
     x: f32,
@@ -114,7 +116,7 @@ pub fn create_sobj_pos(
 
 /// Creates a stellar object
 pub fn create_sobj_with_random_velocity(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     kind: StellarObjectKinds,
     sector_id: &SectorId,
     x: f32,

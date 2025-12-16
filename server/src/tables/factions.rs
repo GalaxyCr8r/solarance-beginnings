@@ -23,7 +23,7 @@ pub enum FactionTier {
     Squad, // e.g., local corporation, pirate clan
 }
 
-#[dsl(plural_name = factions)]
+#[dsl(plural_name = factions, method(update = true))]
 #[table(name = faction, public)]
 pub struct Faction {
     #[primary_key]
@@ -57,7 +57,7 @@ pub struct Faction {
     // Other faction-specific data like relations, home sector, etc.
 }
 
-#[dsl(plural_name = faction_standings)]
+#[dsl(plural_name = faction_standings, method(update = true))]
 #[table(name = faction_standing, public)]
 pub struct FactionStanding {
     #[primary_key]
@@ -66,13 +66,13 @@ pub struct FactionStanding {
     id: u64,
 
     #[index(btree)] // To find all players with standing for a faction
-    #[use_wrapper(path = FactionId)]
+    #[use_wrapper(FactionId)]
     #[foreign_key(path = crate::tables::factions, table = faction, column = id, on_delete = Error)]
     /// FK to FactionDefinition
     pub faction_one_id: u32,
 
     #[index(btree)] // To find all players with standing for a faction
-    #[use_wrapper(path = FactionId)]
+    #[use_wrapper(FactionId)]
     #[foreign_key(path = crate::tables::factions, table = faction, column = id, on_delete = Error)]
     /// FK to FactionDefinition
     pub faction_two_id: u32,
@@ -85,7 +85,7 @@ pub struct FactionStanding {
 
 // We are ignoring player-level faction standings at the moment.
 
-// #[dsl(plural_name = player_faction_standings)]
+// #[dsl(plural_name = player_faction_standings, method(update = true))]
 // #[table(name = player_faction_standing, public)]
 // pub struct PlayerFactionStanding {
 //     #[primary_key]
@@ -94,12 +94,12 @@ pub struct FactionStanding {
 //     id: u64,
 
 //     #[index(btree)] // To find all standings for a player
-//     #[use_wrapper(path = crate::players::PlayerId)]
+//     #[use_wrapper(crate::players::PlayerId)]
 //     #[foreign_key(path = crate::tables::players, table = player, column = id, on_delete = Delete)]
 //     pub player_identity: Identity,
 
 //     #[index(btree)] // To find all players with standing for a faction
-//     #[use_wrapper(path = FactionId)]
+//     #[use_wrapper(FactionId)]
 //     #[foreign_key(path = crate::tables::factions, table = faction, column = id, on_delete = Error)]
 //     /// FK to FactionDefinition
 //     pub faction_id: u32,
@@ -111,7 +111,7 @@ pub struct FactionStanding {
 /// Utilities
 
 /// Gets the faction name for display purposes, with fallback for unknown factions
-pub fn get_faction_name(dsl: &DSL, faction_id: &FactionId) -> String {
+pub fn get_faction_name(dsl: &DSL<T>, faction_id: &FactionId) -> String {
     if let Ok(faction) = dsl.get_faction_by_id(faction_id) {
         faction.get_name().clone()
     } else {
@@ -120,7 +120,7 @@ pub fn get_faction_name(dsl: &DSL, faction_id: &FactionId) -> String {
 }
 
 /// Checks if a faction exists and is joinable by players
-pub fn is_faction_joinable(dsl: &DSL, faction_id: &FactionId) -> bool {
+pub fn is_faction_joinable(dsl: &DSL<T>, faction_id: &FactionId) -> bool {
     if let Ok(faction) = dsl.get_faction_by_id(faction_id) {
         *faction.get_joinable()
     } else {
@@ -129,7 +129,7 @@ pub fn is_faction_joinable(dsl: &DSL, faction_id: &FactionId) -> bool {
 }
 
 /// Gets the faction tier for a given faction
-pub fn get_faction_tier(dsl: &DSL, faction_id: &FactionId) -> Option<FactionTier> {
+pub fn get_faction_tier(dsl: &DSL<T>, faction_id: &FactionId) -> Option<FactionTier> {
     if let Ok(faction) = dsl.get_faction_by_id(faction_id) {
         Some(faction.get_tier().clone())
     } else {
@@ -140,7 +140,7 @@ pub fn get_faction_tier(dsl: &DSL, faction_id: &FactionId) -> Option<FactionTier
 /// Gets the reputation score between two factions
 /// Returns 0 (neutral) if no standing exists
 pub fn get_faction_reputation(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     faction_one_id: &FactionId,
     faction_two_id: &FactionId,
 ) -> i32 {
@@ -159,7 +159,7 @@ pub fn get_faction_reputation(
 
 /// Checks if two factions are hostile to each other (reputation < -50)
 pub fn are_factions_hostile(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     faction_one_id: &FactionId,
     faction_two_id: &FactionId,
 ) -> bool {
@@ -168,7 +168,7 @@ pub fn are_factions_hostile(
 
 /// Checks if two factions are allied (reputation > 50)
 pub fn are_factions_allied(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     faction_one_id: &FactionId,
     faction_two_id: &FactionId,
 ) -> bool {
@@ -176,31 +176,31 @@ pub fn are_factions_allied(
 }
 
 /// Gets all stations belonging to a specific faction
-pub fn get_faction_stations(dsl: &DSL, faction_id: &FactionId) -> Vec<Station> {
+pub fn get_faction_stations(dsl: &DSL<T>, faction_id: &FactionId) -> Vec<Station> {
     dsl.get_all_stations()
         .filter(|station| station.get_owner_faction_id().value() == faction_id.value())
         .collect()
 }
 
 /// Gets all ships belonging to a specific faction
-pub fn get_faction_ships(dsl: &DSL, faction_id: &FactionId) -> Vec<Ship> {
+pub fn get_faction_ships(dsl: &DSL<T>, faction_id: &FactionId) -> Vec<Ship> {
     dsl.get_all_ships()
         .filter(|ship| ship.get_faction_id().value() == faction_id.value())
         .collect()
 }
 
 /// Counts the total number of stations controlled by a faction
-pub fn count_faction_stations(dsl: &DSL, faction_id: &FactionId) -> usize {
+pub fn count_faction_stations(dsl: &DSL<T>, faction_id: &FactionId) -> usize {
     get_faction_stations(dsl, faction_id).len()
 }
 
 /// Counts the total number of ships controlled by a faction
-pub fn count_faction_ships(dsl: &DSL, faction_id: &FactionId) -> usize {
+pub fn count_faction_ships(dsl: &DSL<T>, faction_id: &FactionId) -> usize {
     get_faction_ships(dsl, faction_id).len()
 }
 
 /// Gets all sectors where a faction has presence (stations or significant ship activity)
-pub fn get_faction_controlled_sectors(dsl: &DSL, faction_id: &FactionId) -> Vec<SectorId> {
+pub fn get_faction_controlled_sectors(dsl: &DSL<T>, faction_id: &FactionId) -> Vec<SectorId> {
     let mut controlled_sectors = Vec::new();
 
     // Add sectors with faction stations
@@ -219,7 +219,7 @@ pub fn get_faction_controlled_sectors(dsl: &DSL, faction_id: &FactionId) -> Vec<
 
 /// Handles when a faction ship is destroyed - creates reaction timer
 pub fn handle_faction_ship_destroyed(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     destroyed_ship: &Ship,
     aggressor_faction_id: Option<&FactionId>,
     destruction_sector_id: &SectorId,
@@ -249,14 +249,14 @@ pub fn handle_faction_ship_destroyed(
 }
 
 /// Gets a list of all joinable factions for player selection
-pub fn get_joinable_factions(dsl: &DSL) -> Vec<Faction> {
+pub fn get_joinable_factions<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Vec<Faction> {
     dsl.get_all_factions()
         .filter(|faction| *faction.get_joinable())
         .collect()
 }
 
 /// Gets faction capital station if it exists
-pub fn get_faction_capital_station(dsl: &DSL, faction_id: &FactionId) -> Option<Station> {
+pub fn get_faction_capital_station(dsl: &DSL<T>, faction_id: &FactionId) -> Option<Station> {
     if let Ok(faction) = dsl.get_faction_by_id(faction_id) {
         if let Some(capital_station_id) = faction.get_capital_station_id() {
             if let Ok(station) = dsl.get_station_by_id(&StationId::new(*capital_station_id)) {

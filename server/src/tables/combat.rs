@@ -1,4 +1,4 @@
-use spacetimedb::*;
+use spacetimedb::{table, SpacetimeType, Identity, Timestamp};
 use spacetimedsl::*;
 
 use crate::tables::common_types::Vec2;
@@ -128,7 +128,7 @@ impl ShipController {
     }
 }
 
-#[dsl(plural_name = visual_effects)]
+#[dsl(plural_name = visual_effects, method(update = true))]
 #[table(name = visual_effect, public)]
 pub struct VisualEffect {
     #[primary_key]
@@ -138,7 +138,7 @@ pub struct VisualEffect {
     id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = crate::tables::sectors::SectorId)]
+    #[use_wrapper(crate::tables::sectors::SectorId)]
     #[foreign_key(path = crate::tables::sectors, table = sector, column = id, on_delete = Delete)]
     pub sector_id: u64,
 

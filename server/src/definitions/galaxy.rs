@@ -1,5 +1,5 @@
 use log::info;
-use spacetimedb::*;
+use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 
 use crate::{
@@ -15,7 +15,7 @@ use crate::{
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init(dsl: &DSL) -> Result<(), String> {
+pub fn init<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     demo_sectors(dsl)?;
 
     info!("Sectors Loaded: {}", dsl.get_all_sectors().count());
@@ -26,7 +26,7 @@ pub fn init(dsl: &DSL) -> Result<(), String> {
 // Utility
 //////////////////////////////////////////////////////////////
 
-fn demo_sectors(dsl: &DSL) -> Result<(), String> {
+fn demo_sectors<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     let faction_lrak = FactionId::new(FACTION_LRAK_COMBINE);
     let procyon = create_procyon_star_system(dsl, &faction_lrak)?;
     let (alpha, beta, gamma) = create_procyon_sectors(dsl, &procyon, &faction_lrak)?;
@@ -38,7 +38,7 @@ fn demo_sectors(dsl: &DSL) -> Result<(), String> {
 }
 
 /// Creates the Procyon star system with all its celestial objects
-fn create_procyon_star_system(dsl: &DSL, faction_id: &FactionId) -> Result<StarSystem, String> {
+fn create_procyon_star_system(dsl: &DSL<T>, faction_id: &FactionId) -> Result<StarSystem, String> {
     let procyon = dsl.create_star_system(
         "Procyon",
         Vec2::new(13.0, 37.0),
@@ -92,7 +92,7 @@ fn create_procyon_star_system(dsl: &DSL, faction_id: &FactionId) -> Result<StarS
 
 /// Creates the three main sectors in the Procyon system
 fn create_procyon_sectors(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     procyon: &StarSystem,
     faction_id: &FactionId,
 ) -> Result<(Sector, Sector, Sector), String> {
@@ -149,7 +149,7 @@ fn create_procyon_sectors(
 
 /// Sets up warp gate connections between sectors
 fn setup_sector_connections(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     alpha: &Sector,
     beta: &Sector,
     gamma: &Sector,
@@ -160,7 +160,7 @@ fn setup_sector_connections(
 }
 
 /// Populates sectors with asteroid fields
-fn populate_sectors_with_asteroids(dsl: &DSL, alpha: &Sector, beta: &Sector) -> Result<(), String> {
+fn populate_sectors_with_asteroids(dsl: &DSL<T>, alpha: &Sector, beta: &Sector) -> Result<(), String> {
     dsl.create_asteroid_sector(alpha, 1, 25, 3000.0, Some(1000.0))?;
     dsl.create_asteroid_sector(beta, 5, 0, 5000.0, None)?;
 
@@ -169,7 +169,7 @@ fn populate_sectors_with_asteroids(dsl: &DSL, alpha: &Sector, beta: &Sector) -> 
 
 /// Creates stations in each sector with appropriate modules
 fn create_sector_stations(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     alpha: &Sector,
     beta: &Sector,
     gamma: &Sector,
@@ -183,7 +183,7 @@ fn create_sector_stations(
 
 /// Creates the trading station in Beta sector
 fn create_beta_trading_station(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     beta: &Sector,
     faction_id: &FactionId,
 ) -> Result<(), String> {
@@ -207,7 +207,7 @@ fn create_beta_trading_station(
 
 /// Creates the refinery station in Alpha sector
 fn create_alpha_refinery_station(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     alpha: &Sector,
     faction_id: &FactionId,
 ) -> Result<(), String> {
@@ -235,7 +235,7 @@ fn create_alpha_refinery_station(
 
 /// Creates the capital station in Gamma sector
 fn create_gamma_capital_station(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     gamma: &Sector,
     faction_id: &FactionId,
 ) -> Result<(), String> {

@@ -25,7 +25,7 @@ impl ServerMessageType {
     }
 }
 
-#[dsl(plural_name = server_messages)]
+#[dsl(plural_name = server_messages, method(update = true))]
 #[table(name = server_message, public)]
 pub struct ServerMessage {
     #[primary_key]
@@ -62,7 +62,7 @@ impl ServerMessage {
     }
 }
 
-#[dsl(plural_name = server_message_recipients)]
+#[dsl(plural_name = server_message_recipients, method(update = true))]
 #[table(name = server_message_recipient, public)]
 pub struct ServerMessageRecipient {
     #[primary_key]
@@ -71,12 +71,12 @@ pub struct ServerMessageRecipient {
     id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = crate::tables::server_messages::ServerMessageId)]
+    #[use_wrapper(crate::tables::server_messages::ServerMessageId)]
     #[foreign_key(path = crate::tables::server_messages, table = server_message, column = id, on_delete = Delete)]
     pub server_message_id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = crate::tables::players::PlayerId)]
+    #[use_wrapper(crate::tables::players::PlayerId)]
     #[foreign_key(path = crate::tables::players, table = player, column = id, on_delete = Delete)]
     pub player_id: Identity,
 
@@ -113,7 +113,7 @@ impl ServerMessageRecipient {
 
 /// Send message to individual player (server-only)
 pub fn send_server_message_to_player(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     player_id: &PlayerId,
     message: String,
     message_type: ServerMessageType,
@@ -140,7 +140,7 @@ pub fn send_server_message_to_player(
 
 /// Send message to multiple players with optional group name (server-only)
 pub fn send_server_message_to_group(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     player_ids: Vec<PlayerId>,
     message: String,
     message_type: ServerMessageType,
@@ -170,7 +170,7 @@ pub fn send_server_message_to_group(
 
 /// Convenience function for error messages from reducers (server-only)
 pub fn send_error_message(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     player_id: &PlayerId,
     message: String,
     action_context: Option<&str>,
@@ -186,7 +186,7 @@ pub fn send_error_message(
 
 /// Convenience function for info messages from reducers (server-only)
 pub fn send_info_message(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     player_id: &PlayerId,
     message: String,
     action_context: Option<&str>,
@@ -202,7 +202,7 @@ pub fn send_info_message(
 
 /// Convenience function for warning messages from reducers (server-only)
 pub fn send_warning_message(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     player_id: &PlayerId,
     message: String,
     action_context: Option<&str>,
@@ -218,7 +218,7 @@ pub fn send_warning_message(
 
 /// Convenience function for admin messages from reducers (server-only)
 pub fn send_admin_message(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     player_id: &PlayerId,
     message: String,
     action_context: Option<&str>,
@@ -233,7 +233,7 @@ pub fn send_admin_message(
 }
 
 /// Get unread message count for a player
-pub fn get_unread_message_count(dsl: &DSL, player_id: &PlayerId) -> u64 {
+pub fn get_unread_message_count(dsl: &DSL<T>, player_id: &PlayerId) -> u64 {
     dsl.get_server_message_recipients_by_player_id(player_id)
         .filter(|recipient| recipient.read_at.is_none())
         .count() as u64
@@ -241,7 +241,7 @@ pub fn get_unread_message_count(dsl: &DSL, player_id: &PlayerId) -> u64 {
 
 /// Get all unread messages for a player
 pub fn get_unread_messages_for_player(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     player_id: &PlayerId,
 ) -> Result<Vec<(ServerMessage, ServerMessageRecipient)>, String> {
     let unread_recipients: Vec<ServerMessageRecipient> = dsl
@@ -268,7 +268,7 @@ pub fn get_unread_messages_for_player(
 
 /// Mark a message as read for a specific player
 pub fn mark_message_as_read(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     player_id: &PlayerId,
     server_message_id: u64,
 ) -> Result<(), String> {

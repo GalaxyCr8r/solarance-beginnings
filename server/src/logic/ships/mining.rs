@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use log::info;
-use spacetimedb::*;
+use spacetimedb::{table, SpacetimeType, Identity, Timestamp, ReducerContext};
 use spacetimedsl::*;
 
 use crate::{
@@ -10,7 +10,7 @@ use crate::{
     utility::try_server_only,
 };
 
-#[dsl(plural_name = ship_mining_timers)]
+#[dsl(plural_name = ship_mining_timers, method(update = true))]
 #[spacetimedb::table(name = ship_mining_timer, scheduled(ship_mining_timer_reducer))]
 pub struct ShipMiningTimer {
     #[primary_key]
@@ -20,11 +20,11 @@ pub struct ShipMiningTimer {
     scheduled_at: spacetimedb::ScheduleAt,
 
     #[index(btree)]
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     /// FK to StellarObject
     pub ship_sobj_id: u64,
 
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     /// FK to StellarObject
     pub asteroid_sobj_id: u64,
 
@@ -32,7 +32,7 @@ pub struct ShipMiningTimer {
 }
 
 pub fn create_mining_timer_for_ship(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     ship_sobj_id: &StellarObjectId,
     asteroid_sobj_id: &StellarObjectId,
 ) -> Result<ShipMiningTimer, String> {

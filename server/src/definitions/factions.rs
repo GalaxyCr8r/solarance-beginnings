@@ -1,5 +1,5 @@
 use log::info;
-use spacetimedb::*;
+use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 
 use crate::tables::factions::*;
@@ -25,7 +25,7 @@ pub const REPUTATION_ALLIED: i32 = 75;
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init(dsl: &DSL) -> Result<(), String> {
+pub fn init<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     factions(dsl)?;
     faction_standings(dsl)?;
 
@@ -37,32 +37,32 @@ pub fn init(dsl: &DSL) -> Result<(), String> {
 // Utility
 //////////////////////////////////////////////////////////////
 
-fn factions(dsl: &DSL) -> Result<(), String> {
+fn factions<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     let pc = Some(FactionId::new(FACTION_ALLIANCE_PROCYON));
 
     // Factionless - neutral faction for players who want no faction affiliation
-    dsl.create_faction(
-        FACTION_FACTIONLESS,
-        None, // This is a standalone faction
-        "Factionless",
-        "FX",
-        "Independent operators who have chosen to remain neutral in galactic politics. Factionless individuals trade freely with all factions but receive no protection or special privileges from any government. They must rely on their own skills and resources to survive in the galaxy.",
-        FactionTier::Galactic,
-        true, // joinable
-        None,
-    )?;
+    dsl.create_faction(CreateFaction {
+        id: FACTION_FACTIONLESS,
+        parent_id: None,
+        name: "Factionless".to_string(),
+        short_name: "FX".to_string(),
+        description: "Independent operators who have chosen to remain neutral in galactic politics. Factionless individuals trade freely with all factions but receive no protection or special privileges from any government. They must rely on their own skills and resources to survive in the galaxy.".to_string(),
+        tier: FactionTier::Galactic,
+        joinable: true,
+        capital_station_id: None,
+    })?;
 
     // Lrak Combine - disliked by all other factions (Galactic tier, joinable)
-    dsl.create_faction(
-        FACTION_LRAK_COMBINE,
-        pc.clone(), // This is a standalone faction that has joined the Proycon Compact
-        "Lrak Combine",
-        "LC",
-        "A militaristic faction known for their aggressive expansion and authoritarian rule dependent on their control of humanity's homeworld. The Lrak Combine seeks to dominate through superior firepower and strict hierarchical control.",
-        FactionTier::Galactic, // tier
-        true, // joinable
-        None,
-    )?;
+    dsl.create_faction(CreateFaction {
+        id: FACTION_LRAK_COMBINE,
+        parent_id: pc.clone(),
+        name: "Lrak Combine".to_string(),
+        short_name: "LC".to_string(),
+        description: "A militaristic faction known for their aggressive expansion and authoritarian rule dependent on their control of humanity's homeworld. The Lrak Combine seeks to dominate through superior firepower and strict hierarchical control.".to_string(),
+        tier: FactionTier::Galactic,
+        joinable: true,
+        capital_station_id: None,
+    })?;
 
     // Independent Worlds Alliance - disliked by Lrak and FTU, neutral to others (Galactic tier, joinable)
     dsl.create_faction(
@@ -127,7 +127,7 @@ fn factions(dsl: &DSL) -> Result<(), String> {
     Ok(())
 }
 
-fn faction_standings(dsl: &DSL) -> Result<(), String> {
+fn faction_standings<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     // Factionless relationships (neutral with everyone except hostile to Vancellan)
     create_mutual_standing(
         dsl,
@@ -233,7 +233,7 @@ fn faction_standings(dsl: &DSL) -> Result<(), String> {
 
 /// Helper function to create mutual faction standings (both directions)
 fn create_mutual_standing(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     faction_one: u32,
     faction_two: u32,
     reputation: i32,

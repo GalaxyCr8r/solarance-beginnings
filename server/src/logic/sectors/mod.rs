@@ -1,4 +1,4 @@
-use spacetimedb::*;
+use spacetimedb::{table, SpacetimeType, Identity, Timestamp, ReducerContext};
 use spacetimedsl::*;
 
 use crate::{logic::sectors::asteroid_fields::*, tables::sectors::*, utility::try_server_only};
@@ -9,7 +9,7 @@ pub mod asteroid_fields;
 /// Timers
 ///
 
-#[dsl(plural_name = sector_upkeep_timers)]
+#[dsl(plural_name = sector_upkeep_timers, method(update = true))]
 #[spacetimedb::table(name = sector_upkeep_timer, scheduled(sector_upkeep))]
 pub struct SectorUpkeepTimer {
     #[primary_key]

@@ -152,7 +152,7 @@ pub const MASSIVE_STACK_SIZE: u8 = 4;
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init(dsl: &DSL) -> Result<(), String> {
+pub fn init<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     commodity_definitions(dsl)?;
 
     info!("Item Defs Loaded: {}", dsl.count_of_all_item_definitions());
@@ -163,7 +163,7 @@ pub fn init(dsl: &DSL) -> Result<(), String> {
 // Utility
 //////////////////////////////////////////////////////////////
 
-fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
+fn commodity_definitions<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     energy_definitions(dsl)?;
     ore_definitions(dsl)?;
     ingot_definitions(dsl)?;
@@ -173,7 +173,7 @@ fn commodity_definitions(dsl: &DSL) -> Result<(), String> {
     Ok(())
 }
 
-fn energy_definitions(dsl: &DSL) -> Result<(), String> {
+fn energy_definitions<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     let current_category = ItemCategory::Resource(ResourceCategory::StoredEnergy);
 
     // Energy Cells
@@ -224,7 +224,7 @@ fn energy_definitions(dsl: &DSL) -> Result<(), String> {
     Ok(())
 }
 
-fn ore_definitions(dsl: &DSL) -> Result<(), String> {
+fn ore_definitions<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     let current_category = ItemCategory::Resource(ResourceCategory::RawOre);
 
     dsl.create_item_definition(
@@ -349,7 +349,7 @@ fn ore_definitions(dsl: &DSL) -> Result<(), String> {
     Ok(())
 }
 
-fn ingot_definitions(dsl: &DSL) -> Result<(), String> {
+fn ingot_definitions<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     let current_category = ItemCategory::Resource(ResourceCategory::RefinedIngot);
 
     dsl.create_item_definition(
@@ -475,7 +475,7 @@ fn ingot_definitions(dsl: &DSL) -> Result<(), String> {
     Ok(())
 }
 
-fn biomatter_definitions(dsl: &DSL) -> Result<(), String> {
+fn biomatter_definitions<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     let current_category = ItemCategory::Resource(ResourceCategory::BiomatterRaw);
 
     dsl.create_item_definition(
@@ -604,7 +604,7 @@ fn biomatter_definitions(dsl: &DSL) -> Result<(), String> {
     Ok(())
 }
 
-fn food_definitions(dsl: &DSL) -> Result<(), String> {
+fn food_definitions<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     let mut current_category = ItemCategory::Resource(ResourceCategory::BiomatterProcessedFood);
 
     // Food Rations
@@ -676,7 +676,7 @@ fn food_definitions(dsl: &DSL) -> Result<(), String> {
     Ok(())
 }
 
-fn ship_module_definitions(dsl: &DSL) -> Result<(), String> {
+fn ship_module_definitions<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     use ItemMetadata::*;
 
     dsl.create_item_definition(

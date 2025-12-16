@@ -1,14 +1,14 @@
 use glam::Vec2;
 use log::info;
-use spacetimedb::*;
+use spacetimedb::{table, Identity, ReducerContext, SpacetimeType, Timestamp};
 use spacetimedsl::*;
 use std::f32::consts::PI;
 
 use crate::tables::items::*;
-use crate::tables::stellarobjects::*;
+use crate::tables::stellarobjects::{CreateSobjHiResTransform, CreateSobjLowResTransform, *};
 use crate::utility::*;
 
-#[dsl(plural_name = all_transforms_timers)]
+#[dsl(plural_name = all_transforms_timers, method(update = true))]
 #[spacetimedb::table(name = all_transforms_timer, scheduled(recalculate_sobj_transforms))]
 pub struct AllTransformsTimer {
     #[primary_key]
@@ -56,28 +56,28 @@ pub fn recalculate_sobj_transforms(
 
     // Update all high res positions
     for row in dsl.get_all_sobj_internal_transforms() {
-        dsl.create_sobj_hi_res_transform(
-            &row.get_id(),
-            *row.get_x(),
-            *row.get_y(),
-            *row.get_rotation_radians(),
-        )?; // TODO, Only create hi-res transforms if a player is in-sector.
+        dsl.create_sobj_hi_res_transform(CreateSobjHiResTransform {
+            id: row.get_id().value(),
+            x: *row.get_x(),
+            y: *row.get_y(),
+            rotation_radians: *row.get_rotation_radians(),
+        })?; // TODO, Only create hi-res transforms if a player is in-sector.
 
         // Update all low res positions
         if low_resolution {
-            dsl.create_sobj_low_res_transform(
-                row.get_id(),
-                *row.get_x(),
-                *row.get_y(),
-                *row.get_rotation_radians(),
-            )?;
+            dsl.create_sobj_low_res_transform(CreateSobjLowResTransform {
+                id: row.get_id().value(),
+                x: *row.get_x(),
+                y: *row.get_y(),
+                rotation_radians: *row.get_rotation_radians(),
+            })?;
         }
     }
 
     Ok(())
 }
 
-pub fn __move_stellar_object(dsl: &DSL, sobj: StellarObject) -> Result<(), String> {
+pub fn __move_stellar_object(dsl: &DSL<T>, sobj: StellarObject) -> Result<(), String> {
     let mut transform = dsl.get_sobj_internal_transform_by_id(&sobj)?;
     let mut velocity = dsl.get_sobj_velocity_by_id(&sobj)?;
 
@@ -122,7 +122,7 @@ pub fn __move_stellar_object(dsl: &DSL, sobj: StellarObject) -> Result<(), Strin
 /// Server-only ~reducer~ that applies physics updates to all stellar objects.
 /// Updates position, rotation, and velocity for each object based on their current state.
 //#[spacetimedb::reducer]
-pub fn move_stellar_objects(dsl: &DSL) -> Result<(), String> {
+pub fn move_stellar_objects<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     // let dsl = dsl(ctx);
     // try_server_only(dsl)?;
 

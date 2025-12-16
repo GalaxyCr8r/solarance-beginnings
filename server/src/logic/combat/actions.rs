@@ -1,5 +1,5 @@
 use log::info;
-use spacetimedb::*;
+use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 
 use crate::{
@@ -14,7 +14,7 @@ use crate::{
 
 /// Process weapon firing for a specific ship and target
 pub fn process_weapon_combat_action(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     source_sobj_id: u64,
     target_sobj_id: u64,
 ) -> Result<(), String> {
@@ -97,7 +97,7 @@ pub fn process_weapon_combat_action(
 
 /// Process missile firing for a specific ship and target
 pub fn process_missile_combat_action(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     source_sobj_id: u64,
     target_sobj_id: u64,
 ) -> Result<(), String> {

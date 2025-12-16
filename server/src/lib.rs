@@ -1,8 +1,9 @@
+use crate::tables::global_config::{
+    CreateGlobalConfig, CreateGlobalConfigRow, GetAllGlobalConfigRows, UpdateGlobalConfigRowById,
+};
 use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 use tables::*;
-
-use crate::tables::global_config::*;
 
 pub mod admin;
 pub mod definitions;
@@ -18,11 +19,17 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     definitions::init(&dsl)?;
 
     // Create a Global Config row, or reinitalize the one if it exists.
-    if dsl.count_of_all_global_configurations() == 0 {
-        dsl.create_global_config(0, 0, 0, env!("CARGO_PKG_VERSION"))?;
+    if dsl.get_all_global_configurations().count() == 0 {
+        dsl.create_global_config(CreateGlobalConfig {
+            id: 0,
+            active_players: 0,
+            old_gods_defeated: 0,
+            version: env!("CARGO_PKG_VERSION").to_string(),
+        })?;
     } else {
         let mut config = dsl
             .get_all_global_configurations()
+            .into_iter()
             .last()
             .ok_or("Failed to find existing global configuration")?;
         config.set_active_players(0);
@@ -38,7 +45,7 @@ pub fn identity_connected(ctx: &ReducerContext) -> Result<(), String> {
 
     // TODO: When someone logs in set their player to online
 
-    if let Some(mut config) = dsl.get_all_global_configurations().last() {
+    if let Some(mut config) = dsl.get_all_global_configurations().into_iter().last() {
         config.set_active_players(config.get_active_players() + 1);
         dsl.update_global_config_by_id(config)?;
     }
@@ -51,7 +58,7 @@ pub fn identity_disconnected(ctx: &ReducerContext) -> Result<(), String> {
     let dsl = dsl(ctx);
     // Called everytime a client disconnects
 
-    if let Some(mut config) = dsl.get_all_global_configurations().last() {
+    if let Some(mut config) = dsl.get_all_global_configurations().into_iter().last() {
         if *config.get_active_players() > 0 {
             config.set_active_players(config.get_active_players() - 1);
             dsl.update_global_config_by_id(config)?;

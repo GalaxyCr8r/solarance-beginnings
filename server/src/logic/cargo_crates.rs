@@ -6,7 +6,7 @@ use crate::{
 };
 
 pub fn attempt_to_pickup_cargo_crate(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     player_ship_obj: &Ship,
     crate_sobj: &StellarObject,
 ) -> Result<(), String> {

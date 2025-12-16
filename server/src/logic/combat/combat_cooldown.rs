@@ -1,8 +1,8 @@
 use crate::tables::ships::*;
-use spacetimedb::*;
+use spacetimedb::{table, Identity, ReducerContext, ScheduleAt, SpacetimeType, Timestamp};
 use spacetimedsl::*;
 
-#[dsl(plural_name = combat_cooldown_timers)]
+#[dsl(plural_name = combat_cooldown_timers, method(update = true))]
 #[spacetimedb::table(name = combat_cooldown_timer, scheduled(update_combat_cooldowns))]
 pub struct CombatCooldownTimer {
     #[primary_key]

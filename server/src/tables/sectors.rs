@@ -1,4 +1,4 @@
-use spacetimedb::*;
+use spacetimedb::{table, SpacetimeType, Identity, Timestamp};
 use spacetimedsl::*;
 
 use crate::{
@@ -6,7 +6,7 @@ use crate::{
     tables::{factions::*, star_system::*},
 };
 
-#[dsl(plural_name = sectors)]
+#[dsl(plural_name = sectors, method(update = true))]
 #[table(name = sector, public)]
 pub struct Sector {
     #[primary_key] // NOT Auto-inc so it can be reloaded as-is
@@ -23,7 +23,7 @@ pub struct Sector {
     id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = StarSystemId)]
+    #[use_wrapper(StarSystemId)]
     #[foreign_key(path = crate::tables::star_system, table = star_system, column = id, on_delete = Error)]
     /// FK to StarSystem
     pub system_id: u32,
@@ -32,7 +32,7 @@ pub struct Sector {
     pub description: Option<String>,
 
     #[index(btree)]
-    #[use_wrapper(path = FactionId)]
+    #[use_wrapper(FactionId)]
     #[foreign_key(path = crate::tables::factions, table = faction, column = id, on_delete = Error)]
     /// FK to Faction, can change
     pub controlling_faction_id: u32,
@@ -66,11 +66,11 @@ pub struct Sector {
     pub background_gfx_key: Option<String>, // Key for client to look up background image
 }
 
-#[dsl(plural_name = asteroid_sectors)]
+#[dsl(plural_name = asteroid_sectors, method(update = true))]
 #[table(name = asteroid_sector)]
 pub struct AsteroidSector {
     #[primary_key] // NOT Auto-inc so it can be reloaded as-is
-    #[use_wrapper(path = SectorId)]
+    #[use_wrapper(SectorId)]
     #[foreign_key(path = crate::tables::sectors, table = sector, column = id, on_delete = Delete)]
     id: u64,
 
@@ -85,7 +85,7 @@ pub struct AsteroidSector {
 //////////////////////////////////////////////////////////////
 
 impl Sector {
-    pub fn get(dsl: &DSL, id: &SectorId) -> Result<Sector, String> {
+    pub fn get(dsl: &DSL<T>, id: &SectorId) -> Result<Sector, String> {
         Ok(dsl.get_sector_by_id(id)?)
     }
 }
@@ -94,7 +94,7 @@ impl Sector {
 // Utilities
 
 /// Creates a jumpgate in each sector, using the direction of the each other sector's position
-pub fn connect_sectors_with_warpgates(dsl: &DSL, a: &Sector, b: &Sector) -> Result<(), String> {
+pub fn connect_sectors_with_warpgates(dsl: &DSL<T>, a: &Sector, b: &Sector) -> Result<(), String> {
     let a_pos = glam::Vec2::new(a.x, a.y);
     let b_pos = glam::Vec2::new(b.x, b.y);
     //info!("Sector Positions: A{} B{}", a_pos, b_pos);

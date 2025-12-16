@@ -1,28 +1,28 @@
 use log::info;
-use spacetimedb::*;
+use spacetimedb::{table, SpacetimeType, Identity, Timestamp};
 use spacetimedsl::*;
 
 use crate::definitions::station_module_types::*;
 use crate::tables::items::*;
 use crate::tables::stations::*;
 
-#[dsl(plural_name = refinery_modules)]
+#[dsl(plural_name = refinery_modules, method(update = true))]
 #[table(name = refinery_module, public)]
 pub struct Refinery {
     #[primary_key]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     /// FK to StationModule
     id: u64,
 
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub input_ore_resource_id: u32, // FK to ResourceDefinition
 
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub output_ingot_resource_id: u32, // FK to ResourceDefinition
 
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub waste_resource_id: Option<u32>, // FK to ResourceDefinition
 
@@ -48,7 +48,7 @@ pub struct RefineryProductionResult {
 ///
 
 pub fn create_basic_refinery_module(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     station: &Station,
     under_construction: bool,
     input_resource: ItemDefinitionId,
@@ -146,7 +146,7 @@ pub fn create_basic_refinery_module(
 /// Calculate the production output for a refinery module based on available input resources
 /// and current efficiency modifiers. Only produces whole units of output.
 pub fn calculate_refinery_production(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     refinery: &Refinery,
     _time_elapsed_hours: f32,
 ) -> Result<RefineryProductionResult, String> {
@@ -246,7 +246,7 @@ pub fn calculate_refinery_production(
 
 /// Apply the calculated production results to the refinery's inventory
 pub fn apply_refinery_production(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     refinery: &Refinery,
     production_result: &RefineryProductionResult,
 ) -> Result<(), String> {
@@ -363,7 +363,7 @@ pub fn apply_refinery_production(
 }
 
 /// Calculate efficiency modifiers based on station conditions, upgrades, etc.
-pub fn calculate_refinery_efficiency(dsl: &DSL, refinery: &Refinery) -> Result<f32, String> {
+pub fn calculate_refinery_efficiency(dsl: &DSL<T>, refinery: &Refinery) -> Result<f32, String> {
     // Get the station module to check conditions
     let station_module = dsl.get_station_module_by_id(refinery.get_id())?;
     let station = dsl.get_station_by_id(station_module.get_station_id())?;

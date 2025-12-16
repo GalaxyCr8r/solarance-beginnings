@@ -2,7 +2,7 @@ use super::*;
 use crate::{definitions::item_types::*, tables::items::*};
 
 pub fn create_basic_food_farm(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     station: &Station,
     under_construction: bool,
     output_quality: FarmOutputQuality,

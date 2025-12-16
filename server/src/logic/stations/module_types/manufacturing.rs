@@ -1,5 +1,5 @@
 use log::info;
-use spacetimedb::*;
+use spacetimedb::{table, SpacetimeType, Identity, Timestamp};
 use spacetimedsl::*;
 
 use crate::definitions::item_types::*;
@@ -8,7 +8,7 @@ use crate::tables::items::*;
 use crate::tables::stations::*;
 
 /// Defines a recipe that a manufacturing module can use.
-#[dsl(plural_name = production_recipe_definitions)]
+#[dsl(plural_name = production_recipe_definitions, method(update = true))]
 #[table(name = production_recipe_definition, public)]
 pub struct ProductionRecipeDefinition {
     #[primary_key]
@@ -21,7 +21,7 @@ pub struct ProductionRecipeDefinition {
 
     pub input_resources: Vec<ResourceAmount>,
 
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub output_resource_id: u32, // FK to ResourceDefinition
 
@@ -33,15 +33,15 @@ pub struct ProductionRecipeDefinition {
 }
 
 /// Data for a generic manufacturing module instance (Factory, Assembler, Fabricator).
-#[dsl(plural_name = manufacturing_modules)]
+#[dsl(plural_name = manufacturing_modules, method(update = true))]
 #[table(name = manufacturing_module, public)]
 pub struct Manufacturing {
     #[primary_key]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     /// FK to StationModule
     id: u64,
 
-    #[use_wrapper(path = ProductionRecipeDefinitionId)]
+    #[use_wrapper(ProductionRecipeDefinitionId)]
     /// The recipe this specific module instance is currently configured to produce. FK to ProductionRecipeDefinition
     pub current_recipe_id: Option<u32>,
 
@@ -78,7 +78,7 @@ pub struct ManufacturingProductionResult {
 /// Create Module
 
 pub fn create_basic_manufacturing_module(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     station: &Station,
     under_construction: bool,
     manufacturing_type: ManufacturingType,
@@ -215,7 +215,7 @@ pub fn create_basic_manufacturing_module(
 
 /// Generic function to create a manufacturing module with a specific recipe
 pub fn create_manufacturing_module_and_recipe(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     station: &Station,
     module_name: &str,
     recipe_name: &str,
@@ -288,7 +288,7 @@ pub fn create_manufacturing_module_and_recipe(
 
 /// Create a basic manufacturing module that turns iron ingots and energy cells into metal plates
 pub fn create_metal_plate_module(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     station: &Station,
     under_construction: bool,
 ) -> Result<(), String> {
@@ -311,7 +311,7 @@ pub fn create_metal_plate_module(
 }
 
 fn create_manufacturing_inventory_slot(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     module: &StationModule,
     blueprint: &StationModuleBlueprint,
     item_id: u32,
@@ -342,7 +342,7 @@ fn create_manufacturing_inventory_slot(
 
 /// Calculate the manufacturing production for a manufacturing module
 pub fn calculate_manufacturing_production(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     manufacturing: &Manufacturing,
     time_elapsed_seconds: f32,
 ) -> Result<ManufacturingProductionResult, String> {
@@ -398,7 +398,7 @@ pub fn calculate_manufacturing_production(
 
 /// Check input availability and calculate what can actually be produced
 fn check_and_consume_inputs(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     station_module: &StationModule,
     recipe: &ProductionRecipeDefinition,
     desired_items: u32,
@@ -443,7 +443,7 @@ fn check_and_consume_inputs(
 
 /// Apply the calculated production results to the manufacturing module's inventory
 pub fn apply_manufacturing_production(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     manufacturing: &Manufacturing,
     production_result: &ManufacturingProductionResult,
 ) -> Result<(), String> {
@@ -521,7 +521,7 @@ pub fn apply_manufacturing_production(
 
 /// Calculate efficiency modifiers for manufacturing production
 pub fn calculate_manufacturing_efficiency(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     manufacturing: &Manufacturing,
 ) -> Result<f32, String> {
     let station_module = dsl.get_station_module_by_id(manufacturing.get_id())?;

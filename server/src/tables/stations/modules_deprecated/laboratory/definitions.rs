@@ -5,7 +5,7 @@ use crate::{
 };
 
 pub fn create_basic_laboratory(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     station: &Station,
     under_construction: bool,
     lab_type: LaboratoryType,

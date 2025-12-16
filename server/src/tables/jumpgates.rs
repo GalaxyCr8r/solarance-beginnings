@@ -3,23 +3,23 @@ use spacetimedsl::*;
 
 use super::common_types::Vec2;
 
-#[dsl(plural_name = jump_gates)]
+#[dsl(plural_name = jump_gates, method(update = true))]
 #[table(name = jump_gate, public)]
 pub struct JumpGate {
     #[primary_key]
-    #[use_wrapper(path = crate::tables::stellarobjects::StellarObjectId)]
+    #[use_wrapper(crate::tables::stellarobjects::StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     /// FK to StellarObject
     id: u64,
 
-    #[use_wrapper(path = crate::tables::sectors::SectorId)]
+    #[use_wrapper(crate::tables::sectors::SectorId)]
     #[index(btree)] // To find gates in a specific sector
     #[foreign_key(path = crate::tables::sectors, table = sector, column = id, on_delete = Error)]
     /// FK to SectorDefinition where this gate physically is
     pub current_sector_id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = crate::tables::sectors::SectorId)]
+    #[use_wrapper(crate::tables::sectors::SectorId)]
     #[foreign_key(path = crate::tables::sectors, table = sector, column = id, on_delete = Error)]
     /// FK to SectorDefinition for the destination sector
     pub target_sector_id: u64,
@@ -36,6 +36,6 @@ pub struct JumpGate {
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init(_dsl: &DSL) -> Result<(), String> {
+pub fn init<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     Ok(())
 }

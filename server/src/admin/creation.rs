@@ -3,7 +3,7 @@ use spacetimedsl::*;
 
 use crate::logic::stellarobjects::stellar_object_creation::create_sobj_vec2;
 use crate::tables::{
-    common_types::Vec2, jumpgates::CreateJumpGateRow, sectors::SectorId,
+    common_types::Vec2, jumpgates::CreateJumpGate, sectors::SectorId,
     stellarobjects::StellarObjectKinds,
 };
 use crate::utility::try_server_only;
@@ -49,14 +49,14 @@ pub fn create_jumpgate_in_sector(
             }
         }
     };
-    dsl.create_jump_gate(
-        &sobj,
-        current_sector_id,
-        &SectorId::new(target_sector_id),
-        Vec2 { x: t_x, y: t_y },
-        Some(gfx_key),
-        true,
-    )?;
+    dsl.create_jump_gate(CreateJumpGate {
+        id: sobj.get_id().value(),
+        current_sector_id: current_sector_id.value(),
+        target_sector_id,
+        target_gate_arrival_pos: Vec2 { x: t_x, y: t_y },
+        gfx_key: Some(gfx_key),
+        is_active: true,
+    })?;
 
     Ok(())
 }

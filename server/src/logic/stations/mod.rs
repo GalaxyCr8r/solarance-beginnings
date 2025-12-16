@@ -2,15 +2,15 @@ use crate::{
     definitions::item_types::*,
     logic::stations::{
         module_types::{manufacturing::*, refineries::*, solar_arrays::*, trading_port},
-        production::*,
-        status::*,
+        production::{CreateStationProductionSchedule, *},
+        status::{CreateStationStatusSchedule, *},
     },
     tables::{factions::*, items::*, sectors::*, stations::*, stellarobjects::*},
     utility::try_server_only,
 };
 
 use log::info;
-use spacetimedb::*;
+use spacetimedb::{ReducerContext, ScheduleAt};
 use spacetimedsl::*;
 use std::time::Duration;
 
@@ -44,11 +44,11 @@ pub fn add_station_timers(ctx: &ReducerContext, station_id: u64) -> Result<(), S
         );
     } else {
         // Set up station production schedule (every 30 seconds)
-        dsl.create_station_production_schedule(
-            &station_id,
-            ScheduleAt::Interval(Duration::from_secs(30).into()), // TODO: Make this dependant on a GlobalConfig value
-            ctx.timestamp,
-        )?;
+        dsl.create_station_production_schedule(CreateStationProductionSchedule {
+            id: station_id.value(),
+            scheduled_at: ScheduleAt::Interval(Duration::from_secs(30).into()), // TODO: Make this dependant on a GlobalConfig value
+            last_processed_timestamp: ctx.timestamp(),
+        })?;
     }
 
     // Check if status schedule already exists
@@ -59,11 +59,11 @@ pub fn add_station_timers(ctx: &ReducerContext, station_id: u64) -> Result<(), S
         );
     } else {
         // Set up station status schedule (every 10 seconds)
-        dsl.create_station_status_schedule(
-            &station_id,
-            ScheduleAt::Interval(Duration::from_secs(10).into()), // TODO: Make this dependant on a GlobalConfig value
-            ctx.timestamp,
-        )?;
+        dsl.create_station_status_schedule(CreateStationStatusSchedule {
+            id: station_id.value(),
+            scheduled_at: ScheduleAt::Interval(Duration::from_secs(10).into()), // TODO: Make this dependant on a GlobalConfig value
+            last_processed_timestamp: ctx.timestamp(),
+        })?;
     }
 
     info!("Created station timers for station {}", station_id);
@@ -123,7 +123,7 @@ pub fn create_silicon_refinery_module() -> ModuleCreationFn {
 
 /// Helper function to create a station with modules and automatically set up schedules
 pub fn create_station_with_modules(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     size: StationSize,
     sector: &Sector,
     sobj: &StellarObject,
@@ -162,7 +162,7 @@ pub fn create_station_with_modules(
 
 /// Verify the invariants of this class that Rust cannot guarantee due to the database limitations.
 /// Should be called after modifying a station.
-pub fn verify(dsl: &DSL, station: Station) -> Result<(), String> {
+pub fn verify(dsl: &DSL<T>, station: Station) -> Result<(), String> {
     // Verify the station does not have more modules than it should.
     let current_module_count = dsl
         .get_station_modules_by_station_id(station.get_id())
@@ -183,7 +183,7 @@ pub fn verify(dsl: &DSL, station: Station) -> Result<(), String> {
 
 /// LogisticsAndStorage,
 pub fn update_logistics_and_storage(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     _station: &Station,
     module: &StationModule,
     _blueprint: &StationModuleBlueprint,
@@ -203,7 +203,7 @@ pub fn update_logistics_and_storage(
 
 /// ResourceProductionAndRefining,
 pub fn update_resource_production_and_refining(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     _station: &Station,
     module: &StationModule,
     blueprint: &StationModuleBlueprint,
@@ -269,7 +269,7 @@ pub fn update_resource_production_and_refining(
 
 /// ManufacturingAndAssembly,
 pub fn update_manufacturing_and_assembly(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     _station: &Station,
     module: &StationModule,
     blueprint: &StationModuleBlueprint,
@@ -315,7 +315,7 @@ pub fn update_manufacturing_and_assembly(
 
 /// ResearchAndDevelopment,
 pub fn update_research_and_development(
-    _dsl: &DSL,
+    _dsl: &DSL<T>,
     _station: &Station,
     _module: &StationModule,
     blueprint: &StationModuleBlueprint,
@@ -360,7 +360,7 @@ pub fn update_research_and_development(
 
 /// CivilianAndSupportServices,
 pub fn update_civilian_and_support_services(
-    _dsl: &DSL,
+    _dsl: &DSL<T>,
     _station: &Station,
     _module: &StationModule,
     _blueprint: &StationModuleBlueprint,
@@ -371,7 +371,7 @@ pub fn update_civilian_and_support_services(
 
 /// DiplomacyAndFaction,
 pub fn update_diplomacy_and_faction(
-    _dsl: &DSL,
+    _dsl: &DSL<T>,
     _station: &Station,
     _module: &StationModule,
     _blueprint: &StationModuleBlueprint,
@@ -382,7 +382,7 @@ pub fn update_diplomacy_and_faction(
 
 /// DefenseAndMilitary,
 pub fn update_defense_and_military(
-    _dsl: &DSL,
+    _dsl: &DSL<T>,
     _station: &Station,
     _module: &StationModule,
     _blueprint: &StationModuleBlueprint,

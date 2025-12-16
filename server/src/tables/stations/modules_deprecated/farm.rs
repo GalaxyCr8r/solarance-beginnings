@@ -11,11 +11,11 @@ pub enum FarmOutputQuality {
     Luxury,
 }
 
-#[dsl(plural_name = farm_modules)]
+#[dsl(plural_name = farm_modules, method(update = true))]
 #[table(name = farm_module, public)]
 pub struct Farm {
     #[primary_key]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     /// FK to StationModule
     id: u64,
 
@@ -26,13 +26,13 @@ pub struct Farm {
     pub output_quality: FarmOutputQuality,
 
     /// Resource ID for the primary input (e.g., "Raw Biomatter Type A")
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub primary_input_resource_id: u32,
     pub primary_input_conversion_rate: f32, // units of primary input per unit of output
 
     /// Resource ID for a secondary input (e.g., "Purified Water")
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub secondary_input_resource_id: Option<u32>,
     pub secondary_input_conversion_rate: Option<f32>,

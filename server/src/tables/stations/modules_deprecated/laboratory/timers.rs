@@ -3,7 +3,7 @@ use crate::definitions::item_types::*;
 
 /// Calculate the research production for a laboratory module
 pub fn calculate_laboratory_production(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     laboratory: &Laboratory,
     time_elapsed_hours: f32,
 ) -> Result<LaboratoryProductionResult, String> {
@@ -83,7 +83,7 @@ pub fn calculate_laboratory_production(
 
 /// Apply the calculated production results to the laboratory's inventory
 pub fn apply_laboratory_production(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     laboratory: &Laboratory,
     production_result: &LaboratoryProductionResult,
 ) -> Result<(), String> {
@@ -163,7 +163,7 @@ fn determine_output_fragment_type(laboratory: &Laboratory) -> u32 {
 
 /// Calculate efficiency modifiers for laboratory production
 pub fn calculate_laboratory_efficiency(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     laboratory: &Laboratory,
 ) -> Result<f32, String> {
     let station_module = dsl.get_station_module_by_id(laboratory.get_id())?;

@@ -9,7 +9,7 @@ use crate::tables::ships::*;
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init(dsl: &DSL) -> Result<(), String> {
+pub fn init<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     fighters(dsl)?;
 
     info!(
@@ -23,7 +23,7 @@ pub fn init(dsl: &DSL) -> Result<(), String> {
 // Utility
 //////////////////////////////////////////////////////////////
 
-fn fighters(dsl: &DSL) -> Result<(), String> {
+fn fighters<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     dsl.create_ship_type_definition(
         1000,
         "Phalanx",

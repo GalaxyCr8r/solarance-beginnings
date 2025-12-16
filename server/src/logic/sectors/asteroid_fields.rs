@@ -12,7 +12,7 @@ use crate::{
 
 /// Function that maintains asteroid populations in sectors.
 /// Creates new asteroids when the count falls below the sector's sparseness threshold.
-pub fn asteroid_sector_upkeep(dsl: &DSL, sector_id: &SectorId) -> Result<(), String> {
+pub fn asteroid_sector_upkeep(dsl: &DSL<T>, sector_id: &SectorId) -> Result<(), String> {
     let ctx = dsl.ctx();
     try_server_only(dsl)?;
 

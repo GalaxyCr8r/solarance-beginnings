@@ -10,8 +10,14 @@ use crate::{
         stellarobjects::{player_windows::*, stellar_object_creation::*},
     },
     tables::{
-        factions::FactionId, items::*, players::*, sectors::SectorId, server_messages::*, ships::*,
-        stations::*, stellarobjects::*,
+        factions::FactionId,
+        items::*,
+        players::*,
+        sectors::SectorId,
+        server_messages::*,
+        ships::{CreateShipEquipmentSlot, *},
+        stations::*,
+        stellarobjects::*,
     },
 };
 
@@ -77,19 +83,19 @@ pub fn create_player_controlled_ship(
             false,
         )?;
 
-        dsl.create_ship_equipment_slot(
-            &ship.get_id(),
-            EquipmentSlotType::MiningLaser,
-            0,
-            ItemDefinitionId::new(SMOD_BASIC_MINING_LASER),
-        )?;
+        dsl.create_ship_equipment_slot(CreateShipEquipmentSlot {
+            ship_id: ship.get_id().value(),
+            slot_type: EquipmentSlotType::MiningLaser,
+            slot_index: 0,
+            item_id: ItemDefinitionId::new(SMOD_BASIC_MINING_LASER).value(),
+        })?;
 
-        dsl.create_ship_equipment_slot(
-            &ship.get_id(),
-            EquipmentSlotType::Weapon,
-            0,
-            ItemDefinitionId::new(SMOD_IONIC_BLASTER),
-        )?;
+        dsl.create_ship_equipment_slot(CreateShipEquipmentSlot {
+            ship_id: ship.get_id().value(),
+            slot_type: EquipmentSlotType::Weapon,
+            slot_index: 0,
+            item_id: ItemDefinitionId::new(SMOD_IONIC_BLASTER).value(),
+        })?;
 
         info!("Successfully created ship!");
         send_global_chat(dsl.ctx(), format!("{} has created a ship!", username))?;
@@ -115,7 +121,7 @@ pub fn create_player_controlled_ship(
 
 /// Creates a brand new ship instance in a sector with a specific stellar object.
 pub fn create_ship_from_sobj(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     ship_type: &ShipTypeDefinition,
     player_id: &PlayerId,
     faction_id: &FactionId,
@@ -152,7 +158,7 @@ pub fn create_ship_from_sobj(
 
 /// Creates a brand new ship instance docked at a station.
 pub fn create_ship_docked_at_station(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     ship_type: ShipTypeDefinition,
     player_id: &PlayerId,
     faction_id: &FactionId,

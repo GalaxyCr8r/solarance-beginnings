@@ -1,4 +1,4 @@
-use spacetimedb::*;
+use spacetimedb::{table, SpacetimeType, Identity, Timestamp};
 use spacetimedsl::*;
 
 use crate::tables::{
@@ -33,7 +33,7 @@ pub enum StarSystemObjectKind {
     NebulaBelt,
 }
 
-#[dsl(plural_name = star_systems)]
+#[dsl(plural_name = star_systems, method(update = true))]
 #[table(name = star_system, public)]
 pub struct StarSystem {
     #[primary_key]
@@ -52,14 +52,14 @@ pub struct StarSystem {
     pub luminosity: u8,
 
     #[index(btree)]
-    #[use_wrapper(path = FactionId)]
+    #[use_wrapper(FactionId)]
     #[foreign_key(path = crate::tables::factions, table = faction, column = id, on_delete = Error)]
     /// FK to Faction, can change
     pub controlling_faction_id: u32,
     //pub discovered_by_faction_id: Option<u32>, // First faction to chart it
 }
 
-#[dsl(plural_name = star_system_objects)]
+#[dsl(plural_name = star_system_objects, method(update = true))]
 #[table(name = star_system_object, public)]
 pub struct StarSystemObject {
     #[primary_key]
@@ -68,7 +68,7 @@ pub struct StarSystemObject {
     id: u32,
 
     #[index(btree)]
-    #[use_wrapper(path = StarSystemId)]
+    #[use_wrapper(StarSystemId)]
     #[foreign_key(path = crate::tables::star_system, table = star_system, column = id, on_delete = Delete)]
     /// FK to StarSystem
     pub system_id: u32,

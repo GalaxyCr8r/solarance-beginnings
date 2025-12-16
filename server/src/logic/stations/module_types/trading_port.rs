@@ -1,4 +1,4 @@
-use spacetimedb::*;
+use spacetimedb::{table, SpacetimeType, Identity, Timestamp};
 use spacetimedsl::*;
 
 use crate::definitions::item_types::*;
@@ -6,11 +6,11 @@ use crate::definitions::station_module_types::*;
 use crate::tables::items::*;
 use crate::tables::stations::*;
 
-#[dsl(plural_name = trading_port_modules)]
+#[dsl(plural_name = trading_port_modules, method(update = true))]
 #[table(name = trading_port_module, public)]
 pub struct TradingPort {
     #[primary_key]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     /// FK to StationModule
     id: u64,
     // Configuration for item capacity is better in StationModuleBlueprint (max_internal_storage_slots/volume)
@@ -20,11 +20,11 @@ pub struct TradingPort {
 
 /// Represents items the Trading Port module is actively buying or selling.
 /// This is distinct from general market orders placed by players at a station.
-#[dsl(plural_name = trading_port_listings)]
+#[dsl(plural_name = trading_port_listings, method(update = true))]
 #[table(name = trading_port_listing, public)]
 pub struct TradingPortListing {
     #[primary_key]
-    #[use_wrapper(path = StationModuleInventoryItemId)]
+    #[use_wrapper(StationModuleInventoryItemId)]
     /// FK to StationModuleInventoryItem
     id: u64,
 
@@ -47,7 +47,7 @@ pub struct TradingPortItemConfig {
 
 /// Generic function to create a trading port with specified items and configurations
 pub fn create_trading_port_with_items(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     station: &Station,
     module_name: &str,
     trading_type: u32, // e.g. defintions::MODULE_TRADING_BAZAAR
@@ -106,7 +106,7 @@ pub fn create_trading_port_with_items(
 }
 
 pub fn create_basic_bazaar(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     station: &Station,
     under_construction: bool,
 ) -> Result<(), String> {
@@ -172,7 +172,7 @@ pub fn create_basic_bazaar(
 }
 
 pub fn create_rich_speciality(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     station: &Station,
     under_construction: bool,
 ) -> Result<(), String> {

@@ -12,7 +12,7 @@ pub enum StellarObjectKinds {
 }
 
 /// An object that exists inside a sector.
-#[dsl(plural_name = stellar_objects)]
+#[dsl(plural_name = stellar_objects, method(update = true))]
 #[table(name = stellar_object, public)]
 pub struct StellarObject {
     #[primary_key]
@@ -37,19 +37,19 @@ pub struct StellarObject {
     pub kind: StellarObjectKinds,
 
     #[index(btree)]
-    #[use_wrapper(path = crate::tables::sectors::SectorId)]
+    #[use_wrapper(crate::tables::sectors::SectorId)]
     #[foreign_key(path = crate::tables::sectors, table = sector, column = id, on_delete = Delete)]
     /// FK to SectorLocation
     pub sector_id: u64,
 }
 
 /// The current velocity of a stellar object.
-#[dsl(plural_name = sobj_velocities)]
+#[dsl(plural_name = sobj_velocities, method(update = true))]
 #[table(name = sobj_velocity, public)]
 #[derive(Default)]
 pub struct StellarObjectVelocity {
     #[primary_key]
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     /// FK to StellarObject
     id: u64,
@@ -62,12 +62,12 @@ pub struct StellarObjectVelocity {
 }
 
 /// The current exact transform of a stellar object. Used to populate low/high resolution tables.
-#[dsl(plural_name = sobj_internal_transforms)]
+#[dsl(plural_name = sobj_internal_transforms, method(update = true))]
 #[table(name = sobj_internal_transform)]
 #[derive(Default)]
 pub struct StellarObjectTransformInternal {
     #[primary_key]
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     /// FK to StellarObject
     id: u64,
@@ -78,12 +78,12 @@ pub struct StellarObjectTransformInternal {
 }
 
 /// The position of a stellar object that has a high rate of updates
-#[dsl(plural_name = sobj_hi_res_transforms)]
+#[dsl(plural_name = sobj_hi_res_transforms, method(update = true))]
 #[table(name = sobj_hi_res_transform, public)]
 #[derive(Default)]
 pub struct StellarObjectTransformHiRes {
     #[primary_key]
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     /// FK to StellarObject
     id: u64,
@@ -93,12 +93,12 @@ pub struct StellarObjectTransformHiRes {
     pub rotation_radians: f32,
 }
 
-#[dsl(plural_name = sobj_low_res_transforms)]
+#[dsl(plural_name = sobj_low_res_transforms, method(update = true))]
 #[table(name = sobj_low_res_transform, public)]
 #[derive(Default)]
 pub struct StellarObjectTransformLowRes {
     #[primary_key]
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     /// FK to StellarObject
     id: u64,
@@ -108,11 +108,11 @@ pub struct StellarObjectTransformLowRes {
     pub rotation_radians: f32,
 }
 
-#[dsl(plural_name = sobj_turn_left_controllers)]
+#[dsl(plural_name = sobj_turn_left_controllers, method(update = true))]
 #[table(name = sobj_turn_left_controller)]
 pub struct StellarObjectControllerTurnLeft {
     #[primary_key]
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     /// FK to StellarObject
     id: u64,
@@ -124,16 +124,16 @@ impl StellarObjectControllerTurnLeft {
     }
 }
 
-#[dsl(plural_name = sobj_player_windows)]
+#[dsl(plural_name = sobj_player_windows, method(update = true))]
 #[table(name = sobj_player_window, public)]
 pub struct StellarObjectPlayerWindow {
     #[primary_key]
-    #[use_wrapper(path = crate::players::PlayerId)]
+    #[use_wrapper(crate::players::PlayerId)]
     #[foreign_key(path = crate::players, table = player, column = id, on_delete = Delete)]
     id: Identity,
 
     #[unique]
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     /// FK to StellarObject
     pub sobj_id: u64,
@@ -172,7 +172,7 @@ impl StellarObjectPlayerWindow {
 //////////////////////////////////////////////////////////////
 // Utilities
 
-pub fn same_sector_from_ids(dsl: &DSL, id1: &StellarObjectId, id2: &StellarObjectId) -> bool {
+pub fn same_sector_from_ids(dsl: &DSL<T>, id1: &StellarObjectId, id2: &StellarObjectId) -> bool {
     if let Ok(sobj1) = dsl.get_stellar_object_by_id(id1) {
         if let Ok(sobj2) = dsl.get_stellar_object_by_id(id2) {
             return sobj1.get_sector_id() == sobj2.get_sector_id();
@@ -190,7 +190,7 @@ impl StellarObject {
         self.id
     }
 
-    pub fn distance_squared(&self, dsl: &DSL, target: &StellarObject) -> Result<f32, String> {
+    pub fn distance_squared(&self, dsl: &DSL<T>, target: &StellarObject) -> Result<f32, String> {
         let transform = dsl.get_sobj_internal_transform_by_id(self)?;
         let target_transform = dsl.get_sobj_internal_transform_by_id(target)?;
 

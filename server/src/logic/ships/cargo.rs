@@ -64,7 +64,7 @@ pub fn jettison_cargo_from_ship(
 
 /// Removes cargo from a ship's cargo hold. Errors if the ship doesn't have enough of the item.
 pub fn remove_cargo_from_ship(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     ship_status: &mut ShipStatus,
     item_def: &ItemDefinition,
     amount: u16,
@@ -149,7 +149,7 @@ pub fn remove_cargo_from_ship(
 /// a cargo crate instead if create_a_crate_if_failed is true and Ship
 /// points to a Ship and not a Ship row.
 pub fn attempt_to_load_cargo_into_ship(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     ship_status: &mut ShipStatus,
     ship_id: &ShipId,
     item_def: &ItemDefinition,
@@ -336,7 +336,7 @@ pub fn attempt_to_load_cargo_into_ship(
 /// Crates a cargo crate nearby the given stellar object if it exists,
 /// otherwise it'll place it randomly in its last known sector.
 pub fn create_cargo_crate_nearby_ship(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     ship_sobj: &StellarObjectId,
     item_def: &ItemDefinition,
     quantity: u16,

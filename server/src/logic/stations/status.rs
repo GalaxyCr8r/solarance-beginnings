@@ -2,11 +2,11 @@ use crate::tables::stations::StationId;
 use spacetimedb::{table, ReducerContext, ScheduleAt, Timestamp};
 use spacetimedsl::dsl;
 
-#[dsl(plural_name = station_status_schedules)]
+#[dsl(plural_name = station_status_schedules, method(update = true))]
 #[table(name = station_status_schedule, scheduled(process_station_status_tick))]
 pub struct StationStatusSchedule {
     #[primary_key]
-    #[use_wrapper(path = StationId)]
+    #[use_wrapper(StationId)]
     /// FK to SpaceStation
     id: u64,
     pub scheduled_at: ScheduleAt, // Periodic (e.g., every minute or 5 minutes)

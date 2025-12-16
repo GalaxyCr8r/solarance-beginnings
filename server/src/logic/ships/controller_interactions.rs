@@ -1,5 +1,5 @@
 use log::info;
-use spacetimedb::*;
+use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 
 use crate::{
@@ -14,7 +14,7 @@ use crate::{
 /// Object-type Logic
 
 pub fn try_mining_asteroid(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     controller: &PlayerShipController,
     ship_object: &Ship,
     ship_sobj: &StellarObject,
@@ -62,7 +62,7 @@ pub fn try_mining_asteroid(
 }
 
 pub fn try_to_dock_to_station(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     player_ship_obj: &Ship,
     ship_sobj: &StellarObject,
     station: &Station,
@@ -78,7 +78,7 @@ pub fn try_to_dock_to_station(
 }
 
 pub fn try_to_use_jumpgate(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     player_ship_obj: &Ship,
     jumpgate: &JumpGate,
 ) -> Result<(), String> {
