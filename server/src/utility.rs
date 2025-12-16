@@ -15,11 +15,13 @@ pub fn try_server_only(dsl: &DSL) -> Result<(), String> {
         //log::info!("I'm a server!");
         return Ok(());
     }
-    if dsl.ctx().sender.to_string().contains("c2009ba0980240569a0be51") {
-        //log::info!("I'm Karl's desktop!");
+
+    let sender = dsl.ctx().sender.to_string();
+    if sender.contains("c2009ba0980240569a0be51")
+        || sender.contains("000000000000000000000000000000000000000000000000000000000000dcba")
+    {
         return Ok(());
     }
-    //info!("{} is NOT an admin!", dsl.ctx().sender.to_string());
 
     Err(IS_SERVER_ERROR.to_string())
 }
@@ -46,10 +48,7 @@ pub fn is_server_or_sobj_owner(
 }
 
 /// Checks if the context sender is the server or the owner of the given Ship.
-pub fn is_server_or_ship_owner(
-    dsl: &DSL,
-    ship_id: Option<ShipId>,
-) -> Result<(), String> {
+pub fn is_server_or_ship_owner(dsl: &DSL, ship_id: Option<ShipId>) -> Result<(), String> {
     if dsl.ctx().sender == dsl.ctx().identity() {
         return Ok(());
     }

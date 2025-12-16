@@ -8,10 +8,12 @@ pub mod station_module_types;
 
 pub fn init(dsl: &DSL) -> Result<(), String> {
     factions::init(dsl)?;
-    galaxy::init(dsl)?;
+    station_module_types::init(dsl)?;
     item_types::init(dsl)?;
     ship_types::init(dsl)?;
-    station_module_types::init(dsl)?;
+
+    // Init galaxy only AFTER all other definitions
+    galaxy::init(dsl)?;
 
     Ok(())
 }
