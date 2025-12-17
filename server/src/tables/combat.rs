@@ -1,4 +1,4 @@
-use spacetimedb::{table, SpacetimeType, Identity, Timestamp};
+use spacetimedb::{table, SpacetimeType, Timestamp};
 use spacetimedsl::*;
 
 use crate::tables::common_types::Vec2;

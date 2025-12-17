@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use log::info;
-use spacetimedb::{table, Identity, ReducerContext, SpacetimeType, Timestamp};
+use spacetimedb::{ReducerContext, Timestamp};
 use spacetimedsl::*;
 
 use crate::{
@@ -136,7 +136,7 @@ pub fn faction_station_check_timer_reducer(
     }
 
     // Update the last check timestamp
-    timer.set_last_check_timestamp(dsl.ctx().timestamp());
+    timer.set_last_check_timestamp(dsl.ctx().timestamp);
     dsl.update_faction_station_check_timer_by_id(timer)?;
 
     Ok(())
@@ -249,7 +249,7 @@ pub fn faction_management_timer_reducer(
     }
 
     // Update the last management timestamp
-    timer.set_last_management_timestamp(dsl.ctx().timestamp());
+    timer.set_last_management_timestamp(dsl.ctx().timestamp);
     dsl.update_faction_management_timer_by_id(timer)?;
 
     info!("Faction management timer completed successfully");
@@ -286,11 +286,11 @@ pub fn create_station_check_timer_for_faction<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     faction_id: &FactionId,
 ) -> Result<FactionStationCheckTimer, String> {
-    let timer = dsl.create_faction_station_check_timer(
-        spacetimedb::ScheduleAt::Interval(Duration::from_secs(4 * 60 * 60).into()), // 4 hours
-        faction_id,
-        dsl.ctx().timestamp(),
-    )?;
+    let timer = dsl.create_faction_station_check_timer(CreateFactionStationCheckTimer {
+        scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_secs(4 * 60 * 60).into()), // 4 hours
+        faction_id: faction_id.clone(),
+        last_check_timestamp: dsl.ctx().timestamp(),
+    })?;
 
     info!(
         "Created station check timer for faction #{}",
@@ -307,14 +307,14 @@ pub fn create_ship_reaction_timer_for_faction<T: spacetimedsl::WriteContext>(
     destroyed_ship_type_id: &ShipTypeDefinitionId,
     destruction_sector_id: &SectorId,
 ) -> Result<FactionShipReactionTimer, String> {
-    let timer = dsl.create_faction_ship_reaction_timer(
-        spacetimedb::ScheduleAt::Interval(Duration::from_secs(30).into()), // 30 second delay
-        faction_id,
-        aggressor_faction_id.cloned(),
-        destroyed_ship_type_id,
-        destruction_sector_id,
-        dsl.ctx().timestamp(),
-    )?;
+    let timer = dsl.create_faction_ship_reaction_timer(CreateFactionShipReactionTimer {
+        scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_secs(30).into()), // 30 second delay
+        faction_id: faction_id.clone(),
+        aggressor_faction_id: aggressor_faction_id.cloned(),
+        destroyed_ship_type_id: destroyed_ship_type_id.clone(),
+        destruction_sector_id: destruction_sector_id.clone(),
+        destruction_timestamp: dsl.ctx().timestamp(),
+    })?;
 
     info!(
         "Created ship reaction timer for faction #{} - ship type #{} destroyed in sector #{}",
@@ -359,8 +359,8 @@ pub fn update_faction_standing<T: spacetimedsl::WriteContext>(
     // If no standing exists, create a new one
     let initial_reputation = reputation_change.max(-100).min(100);
     dsl.create_faction_standing(CreateFactionStanding {
-        faction_one_id: faction_one_id.value(),
-        faction_two_id: faction_two_id.value(),
+        faction_one_id: faction_one_id.clone(),
+        faction_two_id: faction_two_id.clone(),
         reputation_score: initial_reputation,
     })?;
 

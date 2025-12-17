@@ -1,5 +1,5 @@
 use crate::tables::ships::*;
-use spacetimedb::{table, Identity, ReducerContext, ScheduleAt, SpacetimeType, Timestamp};
+use spacetimedb::{ReducerContext, ScheduleAt};
 use spacetimedsl::*;
 
 #[dsl(plural_name = combat_cooldown_timers, method(update = true))]

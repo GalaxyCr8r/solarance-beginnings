@@ -1,6 +1,6 @@
 use glam::Vec2;
 use log::info;
-use spacetimedb::{table, Identity, ReducerContext, SpacetimeType, Timestamp};
+use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 use std::f32::consts::PI;
 
@@ -57,7 +57,7 @@ pub fn recalculate_sobj_transforms(
     // Update all high res positions
     for row in dsl.get_all_sobj_internal_transforms() {
         dsl.create_sobj_hi_res_transform(CreateSobjHiResTransform {
-            id: row.get_id().value(),
+            id: row.get_id().clone(),
             x: *row.get_x(),
             y: *row.get_y(),
             rotation_radians: *row.get_rotation_radians(),
@@ -66,7 +66,7 @@ pub fn recalculate_sobj_transforms(
         // Update all low res positions
         if low_resolution {
             dsl.create_sobj_low_res_transform(CreateSobjLowResTransform {
-                id: row.get_id().value(),
+                id: row.get_id().clone(),
                 x: *row.get_x(),
                 y: *row.get_y(),
                 rotation_radians: *row.get_rotation_radians(),

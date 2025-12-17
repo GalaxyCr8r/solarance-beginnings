@@ -1,5 +1,5 @@
 use log::info;
-use spacetimedb::ReducerContext;
+
 use spacetimedsl::*;
 
 use crate::tables::factions::*;
@@ -232,25 +232,25 @@ fn faction_standings<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), 
 }
 
 /// Helper function to create mutual faction standings (both directions)
-fn create_mutual_standing<T>(
+fn create_mutual_standing<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     faction_one: u32,
     faction_two: u32,
     reputation: i32,
 ) -> Result<(), String> {
     // Create standing from faction_one to faction_two
-    dsl.create_faction_standing(
-        FactionId::new(faction_one),
-        FactionId::new(faction_two),
-        reputation,
-    )?;
+    dsl.create_faction_standing(CreateFactionStanding {
+        faction_one_id: FactionId::new(faction_one),
+        faction_two_id: FactionId::new(faction_two),
+        reputation_score: reputation,
+    })?;
 
     // Create standing from faction_two to faction_one (mutual)
-    dsl.create_faction_standing(
-        FactionId::new(faction_two),
-        FactionId::new(faction_one),
-        reputation,
-    )?;
+    dsl.create_faction_standing(CreateFactionStanding {
+        faction_one_id: FactionId::new(faction_two),
+        faction_two_id: FactionId::new(faction_one),
+        reputation_score: reputation,
+    })?;
 
     Ok(())
 }

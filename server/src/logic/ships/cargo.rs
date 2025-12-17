@@ -47,7 +47,7 @@ pub fn jettison_cargo_from_ship(
         dsl.update_ship_cargo_item_by_id(ship_cargo)?;
     }
 
-    create_cargo_crate_nearby_ship(&dsl, &ship.get_sobj_id(), &item_def, amount)?;
+    create_cargo_crate_nearby_ship(ctx, &dsl, &ship.get_sobj_id(), &item_def, amount)?;
 
     send_info_message(
         &dsl,
@@ -149,6 +149,7 @@ pub fn remove_cargo_from_ship<T: spacetimedsl::WriteContext>(
 /// a cargo crate instead if create_a_crate_if_failed is true and Ship
 /// points to a Ship and not a Ship row.
 pub fn attempt_to_load_cargo_into_ship<T: spacetimedsl::WriteContext>(
+    ctx: &spacetimedb::ReducerContext,
     dsl: &DSL<T>,
     ship_status: &mut ShipStatus,
     ship_id: &ShipId,
@@ -269,9 +270,11 @@ pub fn attempt_to_load_cargo_into_ship<T: spacetimedsl::WriteContext>(
                 stack_amount,
                 item_def.get_name()
             );
-            if let Err(e) =
-                dsl.create_ship_cargo_item(ship_status.get_id(), item_def, stack_amount.into())
-            {
+            if let Err(e) = dsl.create_ship_cargo_item(CreateShipCargoItem {
+                ship_id: ship_status.get_id(),
+                item_id: item_def.get_id(),
+                quantity: stack_amount as u16,
+            }) {
                 info!(
                     "Failed to create cargo item for ship {:?}, adding {} to overflow: {}",
                     ship_status.get_id(),
@@ -297,6 +300,7 @@ pub fn attempt_to_load_cargo_into_ship<T: spacetimedsl::WriteContext>(
             if *ship_instance.get_location() == ShipLocation::Sector {
                 // Only spawn if the ship is in a sector
                 create_cargo_crate_nearby_ship(
+                    ctx,
                     &dsl,
                     &ship_instance.get_sobj_id(),
                     item_def,
@@ -336,6 +340,7 @@ pub fn attempt_to_load_cargo_into_ship<T: spacetimedsl::WriteContext>(
 /// Crates a cargo crate nearby the given stellar object if it exists,
 /// otherwise it'll place it randomly in its last known sector.
 pub fn create_cargo_crate_nearby_ship<T: spacetimedsl::WriteContext>(
+    ctx: &spacetimedb::ReducerContext,
     dsl: &DSL<T>,
     ship_sobj: &StellarObjectId,
     item_def: &ItemDefinition,
@@ -348,40 +353,37 @@ pub fn create_cargo_crate_nearby_ship<T: spacetimedsl::WriteContext>(
         } else {
             info!("Could not find ship's stellar object transform, placing randomly...");
             Vec2::new(
-                dsl.ctx().rng().gen_range(-2048.0..2048.0),
-                dsl.ctx().rng().gen_range(-2048.0..2048.0),
+                ctx.rng().gen_range(-2048.0..2048.0),
+                ctx.rng().gen_range(-2048.0..2048.0),
             )
         }
     };
 
     let new_sobj = create_sobj_with_random_velocity(
+        ctx,
         dsl,
         StellarObjectKinds::CargoCrate,
-        &sobj.get_sector_id(),
+        sobj.get_sector_id(),
         pos.x,
         pos.y,
-        0.125,
+        1.0,
         Some(0.9995),
     )?;
 
-    info!(
-        "Created cargo crate in sector #{:?} at {}, {}!",
-        &sobj.get_sector_id(),
-        pos.x,
-        pos.y
-    );
-
-    dsl.create_cargo_crate(
-        sobj.get_sector_id(),
-        new_sobj.get_id(),
-        item_def.get_id(),
+    dsl.create_cargo_crate(CreateCargoCrate {
+        sobj_id: new_sobj.get_id(),
+        current_sector_id: sobj.get_sector_id(),
+        item_id: item_def.get_id(),
         quantity,
-        dsl.ctx()
-            .timestamp()
-            .checked_add(TimeDuration::from_duration(Duration::from_secs(
-                /*D* /24 * /*H*/60 * */ /*M*/ 60,
-            ))), // TODO cargo crate timer to despawn them
-        None,
-    )?;
+        despawn_ts: Some(
+            dsl.ctx()
+                .timestamp()
+                .checked_add(TimeDuration::from_duration(Duration::from_secs(
+                    /*D* /24 * /*H*/60 * */ /*M*/ 60,
+                )))
+                .unwrap(),
+        ), // TODO cargo crate timer to despawn them
+        gfx_key: None,
+    })?;
     Ok(())
 }

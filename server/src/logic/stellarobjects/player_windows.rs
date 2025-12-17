@@ -34,7 +34,7 @@ pub fn create_sobj_player_window_for(
 
     dsl.create_sobj_player_window(CreateSobjPlayerWindow {
         id: pid,
-        sobj_id: sobj_id.value(),
+        sobj_id: sobj_id.clone(),
         window: 4000.0,
         margin: 2000.0,
         tl_x: -2000.0,

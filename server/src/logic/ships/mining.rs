@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use log::info;
-use spacetimedb::{table, Identity, ReducerContext, SpacetimeType, Timestamp};
+use spacetimedb::{table, ReducerContext};
 use spacetimedsl::*;
 
 use crate::{
@@ -52,8 +52,8 @@ pub fn create_mining_timer_for_ship<T: spacetimedsl::WriteContext>(
 
     Ok(dsl.create_ship_mining_timer(CreateShipMiningTimer {
         scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_secs(3).into()),
-        ship_sobj_id: ship_sobj_id.value(),
-        asteroid_sobj_id: asteroid_sobj_id.value(),
+        ship_sobj_id: ship_sobj_id.clone(),
+        asteroid_sobj_id: asteroid_sobj_id.clone(),
         mining_progress: 0.0,
     })?)
 }

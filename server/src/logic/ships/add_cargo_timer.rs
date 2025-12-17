@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use log::info;
-use spacetimedb::{table, Identity, ReducerContext, SpacetimeType, Timestamp};
+use spacetimedb::{table, ReducerContext};
 use spacetimedsl::*;
 
 use crate::{
@@ -42,12 +42,12 @@ pub fn create_timer_to_add_cargo_to_ship<T: spacetimedsl::WriteContext>(
     item_id: ItemDefinitionId,
     amount: u16,
 ) -> Result<ShipAddCargoTimer, String> {
-    Ok(dsl.create_ship_add_cargo_timer(
-        spacetimedb::ScheduleAt::Interval(Duration::from_secs(1).into()),
-        ship_id,
-        item_id,
+    Ok(dsl.create_ship_add_cargo_timer(CreateShipAddCargoTimer {
+        scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_secs(1).into()),
+        ship_id: ship_id,
+        item_id: item_id,
         amount,
-    )?)
+    })?)
 }
 
 //////////////////////////////////////////////////////////////
@@ -82,6 +82,7 @@ pub fn ship_add_cargo_timer_reducer(
 
     // Attempt to load it into the ship
     attempt_to_load_cargo_into_ship(
+        ctx,
         &dsl,
         &mut ship_status,
         &ship_object.get_id(),

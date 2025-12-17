@@ -1,5 +1,5 @@
 use log::info;
-use spacetimedb::{table, Identity, SpacetimeType, Timestamp};
+use spacetimedb::{table, Identity, SpacetimeType};
 use spacetimedsl::*;
 
 use crate::tables::{common_types::*, items::*, sectors::*, stations::*, stellarobjects::*};
@@ -140,8 +140,8 @@ impl ShipStatus {
         self.get_max_cargo_capacity() - self.get_used_cargo_capacity()
     }
 
-    pub fn calculate_used_cargo_space<T>(&self, dsl: &DSL<T>) -> u16 {
-        let mut used_cargo_space = 0;
+    pub fn calculate_used_cargo_space<T: spacetimedsl::WriteContext>(&self, dsl: &DSL<T>) -> u16 {
+        let mut used_cargo_space: u16 = 0;
 
         info!(
             "Calculating cargo space usage for ship #{}. (Max cargo {}v)",
@@ -149,9 +149,9 @@ impl ShipStatus {
         );
 
         // Collect all the ship items and calculate their volume usage
-        for item in dsl.get_ship_cargo_items_by_ship_id(self.get_id()) {
-            if let Ok(item_def) = dsl.get_item_definition_by_id(item.get_item_id()) {
-                let volume_usage = item.quantity * item_def.get_volume_per_unit();
+        for item in dsl.get_ship_cargo_items_by_ship_id(&self.get_id()) {
+            if let Ok(item_def) = dsl.get_item_definition_by_id(&item.get_item_id()) {
+                let volume_usage: u16 = item.quantity * item_def.get_volume_per_unit();
                 info!(
                     "     Stack of {}x {}: {} volume used",
                     item.quantity,

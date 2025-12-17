@@ -87,13 +87,13 @@ pub fn create_npc_ship_controller<T: spacetimedsl::WriteContext>(
     let _stellar_object = dsl.get_stellar_object_by_id(StellarObjectId::new(stellar_object_id))?;
 
     // Create the NPC ship controller
-    let npc_controller = dsl.create_npc_ship_controller(
-        StellarObjectId::new(stellar_object_id),
-        false, // fire_weapons
-        false, // fire_missiles
-        None,  // targetted_sobj_id
-        initial_behavior.clone(),
-    )?;
+    let npc_controller = dsl.create_npc_ship_controller(CreateNpcShipController {
+        stellar_object_id: StellarObjectId::new(stellar_object_id),
+        fire_weapons: false,
+        fire_missiles: false,
+        targetted_sobj_id: None,
+        ai_behavior: initial_behavior.clone(),
+    })?;
 
     spacetimedb::log::info!(
         "Created NPC ship controller {} for stellar object {} with behavior {:?}",

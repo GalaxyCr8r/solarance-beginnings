@@ -1,4 +1,4 @@
-use spacetimedb::{table, Identity, SpacetimeType, Timestamp};
+use spacetimedb::table;
 use spacetimedsl::*;
 
 use crate::tables::sectors::*;
@@ -68,34 +68,34 @@ pub fn create_simple_solar_array_module<T: spacetimedsl::WriteContext>(
         dsl.get_station_module_blueprint_by_id(StationModuleBlueprintId::new(blueprint_id))?;
     let identifier = format!("{:?} Solar Array", array_size);
 
-    let module = dsl.create_station_module(
-        station.get_id(),
-        blueprint.get_id(),
-        identifier.as_str(),
-        true,
-        None,
-        dsl.ctx().timestamp(),
-    )?;
+    let module = dsl.create_station_module(CreateStationModule {
+        station_id: station.get_id(),
+        blueprint: blueprint.get_id(),
+        station_slot_identifier: identifier.as_str().to_string(),
+        is_operational: true,
+        built_at_timestamp: None,
+        last_status_update_timestamp: dsl.ctx().timestamp(),
+    })?;
 
     // Create solar array submodule
-    let solar_array = dsl.create_solar_array_module(
-        module.get_id(),
-        ItemDefinitionId::new(ITEM_ENERGY_CELL), // Always produces energy cells
-        base_production,
-        1.0, // Default efficiency modifier
-    )?;
+    let solar_array = dsl.create_solar_array_module(CreateSolarArrayModule {
+        id: module.get_id(),
+        output_energy_cell_resource_id: ItemDefinitionId::new(ITEM_ENERGY_CELL),
+        base_energy_cells_produced_per_hour: base_production,
+        current_efficiency_modifier: 1.0,
+    })?;
 
     // Create output inventory for energy cells
-    let mut item = dsl.create_station_module_inventory_item(
-        module.get_id(),
-        ItemDefinitionId::new(ITEM_ENERGY_CELL),
-        0,
-        blueprint
+    let mut item = dsl.create_station_module_inventory_item(CreateStationModuleInventoryItem {
+        module_id: module.get_id(),
+        resource_item_id: ItemDefinitionId::new(ITEM_ENERGY_CELL),
+        quantity: 0,
+        max_quantity: blueprint
             .get_max_internal_storage_volume_per_slot_m3()
             .unwrap(),
-        format!("{};{};output", module.get_id().value(), solar_array.id).as_str(),
-        0,
-    )?;
+        storage_purpose_tag: format!("{};{};output", module.get_id().value(), solar_array.id),
+        cached_price: 0,
+    })?;
 
     if let Ok(item_def) = dsl.get_item_definition_by_id(ItemDefinitionId::new(ITEM_ENERGY_CELL)) {
         let initial_price = item.calculate_current_price(&item_def);

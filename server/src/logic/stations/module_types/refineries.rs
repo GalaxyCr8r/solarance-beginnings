@@ -1,5 +1,5 @@
 use log::info;
-use spacetimedb::{table, Identity, SpacetimeType, Timestamp};
+use spacetimedb::{table, ReducerContext};
 use spacetimedsl::*;
 
 use crate::definitions::station_module_types::*;
@@ -65,37 +65,37 @@ pub fn create_basic_refinery_module<T: spacetimedsl::WriteContext>(
     let output_item_def = dsl.get_item_definition_by_id(&output_resource)?;
     let identifier = format!("{} Refinery", output_item_def.get_name());
 
-    let module = dsl.create_station_module(
-        station.get_id(),
-        blueprint.get_id(),
-        identifier.as_str(), // TODO: Do we even need this field?
-        true,
-        None,
-        dsl.ctx().timestamp(),
-    )?;
+    let module = dsl.create_station_module(CreateStationModule {
+        station_id: station.get_id(),
+        blueprint: blueprint.get_id(),
+        station_slot_identifier: identifier.to_string(),
+        is_operational: true,
+        built_at_timestamp: None,
+        last_status_update_timestamp: dsl.ctx().timestamp(),
+    })?;
 
     // Submodule
-    let iron_ref = dsl.create_refinery_module(
-        module.get_id(),
-        &input_resource,
-        &output_resource,
-        None,
-        5,
-        0,
-        30,
-        1.0,
-    )?;
+    let iron_ref = dsl.create_refinery_module(CreateRefineryModule {
+        id: module.get_id(), // FK to module
+        input_ore_resource_id: input_resource,
+        output_ingot_resource_id: output_resource,
+        waste_resource_id: waste_resource, // Option<ItemDefinitionId>
+        ore_to_ingot_ratio: 5,
+        waste_per_ingot_ratio: 0,
+        base_ingots_produced_per_hour: 30,
+        current_efficiency_modifier: 1.0,
+    })?;
 
-    let mut item = dsl.create_station_module_inventory_item(
-        module.get_id(),
-        &input_resource,
-        0,
-        blueprint
+    let mut item = dsl.create_station_module_inventory_item(CreateStationModuleInventoryItem {
+        module_id: module.get_id(),
+        resource_item_id: input_resource.clone(),
+        quantity: 0,
+        max_quantity: blueprint
             .get_max_internal_storage_volume_per_slot_m3()
             .unwrap(),
-        format!("{};{};input", module.get_id(), iron_ref.get_id()).as_str(),
-        0, // Initial cached price, will be updated immediately
-    )?;
+        storage_purpose_tag: format!("{};{};input", module.get_id(), iron_ref.get_id()),
+        cached_price: 0, // Initial cached price, will be updated immediately
+    })?;
     // Calculate and set initial cached current price
     if let Ok(item_def) = dsl.get_item_definition_by_id(&input_resource) {
         let initial_price = item.calculate_current_price(&item_def);
@@ -103,32 +103,33 @@ pub fn create_basic_refinery_module<T: spacetimedsl::WriteContext>(
         dsl.update_station_module_inventory_item_by_id(item)?;
     }
 
-    let mut item = dsl.create_station_module_inventory_item(
-        module.get_id(),
-        &output_resource,
-        0,
-        blueprint
+    let mut item = dsl.create_station_module_inventory_item(CreateStationModuleInventoryItem {
+        module_id: module.get_id(),
+        resource_item_id: output_resource.clone(),
+        quantity: 0,
+        max_quantity: blueprint
             .get_max_internal_storage_volume_per_slot_m3()
             .unwrap(),
-        format!("{};{};output", module.get_id(), iron_ref.get_id()).as_str(),
-        0, // Initial cached price, will be updated immediately
-    )?;
+        storage_purpose_tag: format!("{};{};output", module.get_id(), iron_ref.get_id()),
+        cached_price: 0, // Initial cached price, will be updated immediately
+    })?;
     // Calculate and set initial cached current price
     let initial_price = item.calculate_current_price(&output_item_def);
     item.set_cached_price(initial_price);
     dsl.update_station_module_inventory_item_by_id(item)?;
 
     if let Some(waste) = waste_resource {
-        let mut item = dsl.create_station_module_inventory_item(
-            module.get_id(),
-            &waste,
-            0,
-            blueprint
-                .get_max_internal_storage_volume_per_slot_m3()
-                .unwrap(),
-            format!("{};{};waste", module.get_id(), iron_ref.get_id()).as_str(),
-            0, // Initial cached price, will be updated immediately
-        )?;
+        let mut item =
+            dsl.create_station_module_inventory_item(CreateStationModuleInventoryItem {
+                module_id: module.get_id(),
+                resource_item_id: waste.clone(),
+                quantity: 0,
+                max_quantity: blueprint
+                    .get_max_internal_storage_volume_per_slot_m3()
+                    .unwrap(),
+                storage_purpose_tag: format!("{};{};waste", module.get_id(), iron_ref.get_id()),
+                cached_price: 0, // Initial cached price, will be updated immediately
+            })?;
         // Calculate and set initial cached current price
         if let Ok(item_def) = dsl.get_item_definition_by_id(&waste) {
             let initial_price = item.calculate_current_price(&item_def);

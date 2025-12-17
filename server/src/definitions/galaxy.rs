@@ -1,5 +1,5 @@
 use log::info;
-use spacetimedb::ReducerContext;
+use spacetimedb::SpacetimeType;
 use spacetimedsl::*;
 
 use crate::{
@@ -15,7 +15,7 @@ use crate::{
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
+pub fn init<T: spacetimedsl::WriteContext + 'static>(dsl: &DSL<T>) -> Result<(), String> {
     demo_sectors(dsl)?;
 
     info!("Sectors Loaded: {}", dsl.get_all_sectors().count());
@@ -26,7 +26,7 @@ pub fn init<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
 // Utility
 //////////////////////////////////////////////////////////////
 
-fn demo_sectors<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
+fn demo_sectors<T: spacetimedsl::WriteContext + 'static>(dsl: &DSL<T>) -> Result<(), String> {
     let faction_lrak = FactionId::new(FACTION_LRAK_COMBINE);
     let procyon = create_procyon_star_system(dsl, &faction_lrak)?;
     let (alpha, beta, gamma) = create_procyon_sectors(dsl, &procyon, &faction_lrak)?;
@@ -47,7 +47,7 @@ fn create_procyon_star_system<T: spacetimedsl::WriteContext>(
         map_coordinates: Vec2::new(13.0, 37.0),
         spectral: SpectralKind::G,
         luminosity: 5,
-        controlling_faction_id: faction_id.value(),
+        controlling_faction_id: faction_id.clone(),
     })?;
 
     // Create celestial objects in the star system
@@ -109,7 +109,7 @@ fn create_procyon_sectors<T: spacetimedsl::WriteContext>(
         system_id: procyon.get_id(),
         name: "Alpha Sector".to_string(),
         description: None,
-        controlling_faction_id: faction_id.value(),
+        controlling_faction_id: faction_id.clone(),
         security_level: 5,
         sunlight: 0.9,
         anomalous: 0.1,
@@ -125,7 +125,7 @@ fn create_procyon_sectors<T: spacetimedsl::WriteContext>(
         system_id: procyon.get_id(),
         name: "Beta Sector".to_string(),
         description: None,
-        controlling_faction_id: faction_id.value(),
+        controlling_faction_id: faction_id.clone(),
         security_level: 9,
         sunlight: 0.9,
         anomalous: 0.1,
@@ -141,7 +141,7 @@ fn create_procyon_sectors<T: spacetimedsl::WriteContext>(
         system_id: procyon.get_id(),
         name: "Homeworld Sector".to_string(),
         description: None,
-        controlling_faction_id: faction_id.value(),
+        controlling_faction_id: faction_id.clone(),
         security_level: 10,
         sunlight: 0.9,
         anomalous: 0.1,
@@ -174,14 +174,14 @@ fn populate_sectors_with_asteroids<T: spacetimedsl::WriteContext>(
     beta: &Sector,
 ) -> Result<(), String> {
     dsl.create_asteroid_sector(CreateAsteroidSector {
-        id: alpha.get_id().value(),
+        id: alpha.get_id(),
         sparseness: 1,
         rarity: 25,
         cluster_extent: 3000.0,
         cluster_inner: Some(1000.0),
     })?;
     dsl.create_asteroid_sector(CreateAsteroidSector {
-        id: beta.get_id().value(),
+        id: beta.get_id(),
         sparseness: 5,
         rarity: 0,
         cluster_extent: 5000.0,
@@ -192,7 +192,7 @@ fn populate_sectors_with_asteroids<T: spacetimedsl::WriteContext>(
 }
 
 /// Creates stations in each sector with appropriate modules
-fn create_sector_stations<T: spacetimedsl::WriteContext>(
+fn create_sector_stations<T: spacetimedsl::WriteContext + 'static>(
     dsl: &DSL<T>,
     alpha: &Sector,
     beta: &Sector,
@@ -206,7 +206,7 @@ fn create_sector_stations<T: spacetimedsl::WriteContext>(
 }
 
 /// Creates the trading station in Beta sector
-fn create_beta_trading_station<T: spacetimedsl::WriteContext>(
+fn create_beta_trading_station<T: spacetimedsl::WriteContext + 'static>(
     dsl: &DSL<T>,
     beta: &Sector,
     faction_id: &FactionId,
@@ -230,7 +230,7 @@ fn create_beta_trading_station<T: spacetimedsl::WriteContext>(
 }
 
 /// Creates the refinery station in Alpha sector
-fn create_alpha_refinery_station<T: spacetimedsl::WriteContext>(
+fn create_alpha_refinery_station<T: spacetimedsl::WriteContext + 'static>(
     dsl: &DSL<T>,
     alpha: &Sector,
     faction_id: &FactionId,
@@ -257,8 +257,8 @@ fn create_alpha_refinery_station<T: spacetimedsl::WriteContext>(
     Ok(())
 }
 
-/// Creates the capital station in Gamma sector
-fn create_gamma_capital_station<T: spacetimedsl::WriteContext>(
+/// Creates the Gamma capital station
+fn create_gamma_capital_station<T: spacetimedsl::WriteContext + 'static>(
     dsl: &DSL<T>,
     gamma: &Sector,
     faction_id: &FactionId,

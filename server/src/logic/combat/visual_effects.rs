@@ -921,19 +921,24 @@ fn create_visual_effect<T: spacetimedsl::WriteContext>(
     sector_id: u64,
 ) -> Result<(), CombatError> {
     // Create visual effect
-    let visual_effect = dsl.create_visual_effect(
-        SectorId::new(sector_id),
-        source_pos.into(),
-        target_pos.into(),
+    // Create visual effect
+    let visual_effect = dsl.create_visual_effect(CreateVisualEffect {
+        sector_id: SectorId::new(sector_id),
+        source: source_pos.into(),
+        target: target_pos.into(),
         effect_type,
-    )?;
+    })?;
 
     // Schedule cleanup after 10 milliseconds
     let cleanup_time = spacetimedb::ScheduleAt::Time(Timestamp::from_micros_since_unix_epoch(
         dsl.ctx().timestamp().to_micros_since_unix_epoch() + 10_000,
     ));
 
-    dsl.create_visual_effect_timer(visual_effect.get_id(), cleanup_time)?;
+    dsl.create_visual_effect_timer(CreateVisualEffectTimer {
+        effect_id: visual_effect.get_id(), // get_id() returns u64? Or wrapper?
+        // In visual_effects.rs table definition: effect_id: u64.
+        scheduled_at: cleanup_time,
+    })?;
 
     Ok(())
 }

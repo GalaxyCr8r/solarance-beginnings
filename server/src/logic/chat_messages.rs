@@ -54,7 +54,7 @@ pub fn send_sector_chat(
     info!("SectorChat #{} [{}]: {}", sector_id, username, chat_message);
 
     dsl.create_sector_chat_message(CreateSectorChatMessage {
-        player_id: sender.get_id(),
+        player_id: sender,
         sector_id: SectorId::new(sector_id),
         message: chat_message,
     })?;

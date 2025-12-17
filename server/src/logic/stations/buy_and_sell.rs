@@ -135,6 +135,7 @@ pub fn buy_item_from_station_module(
     }
 
     if let Err(cargo_err) = attempt_to_load_cargo_into_ship(
+        ctx,
         &dsl,
         &mut dsl.get_ship_status_by_id(&ship_id)?,
         &ship_id,

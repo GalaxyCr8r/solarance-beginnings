@@ -1,7 +1,7 @@
 use std::u8;
 
 use log::info;
-use spacetimedb::ReducerContext;
+use spacetimedb::SpacetimeType;
 use spacetimedsl::*;
 
 use crate::{
@@ -87,7 +87,9 @@ fn calculate_basic_module_cost(max_hp: u32, relative_complexity: u8) -> Vec<Reso
     ]
 }
 
-fn basic_station_module_blueprints<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
+fn basic_station_module_blueprints<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+) -> Result<(), String> {
     dsl.create_station_module_blueprint(CreateStationModuleBlueprint {
         id: MODULE_TRADING_BAZAAR,
         name: "Trading Bazaar".to_string(),
@@ -322,7 +324,8 @@ fn basic_station_module_blueprints<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) 
     dsl.create_station_module_blueprint(CreateStationModuleBlueprint {
         id: MODULE_FARM_ADVANCED,
         name: "Advanced Farm".to_string(),
-        description: "A high-tech agricultural facility with optimized growing conditions.".to_string(),
+        description: "A high-tech agricultural facility with optimized growing conditions."
+            .to_string(),
         category: StationModuleCategory::ResourceProductionAndRefining,
         specific_type: StationModuleSpecificType::FarmStandard,
         build_cost_resources: calculate_basic_module_cost(40_000, 2),
@@ -342,7 +345,8 @@ fn basic_station_module_blueprints<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) 
     dsl.create_station_module_blueprint(CreateStationModuleBlueprint {
         id: MODULE_FARM_LUXURY,
         name: "Luxury Farm".to_string(),
-        description: "A premium agricultural facility producing high-quality luxury foods.".to_string(),
+        description: "A premium agricultural facility producing high-quality luxury foods."
+            .to_string(),
         category: StationModuleCategory::ResourceProductionAndRefining,
         specific_type: StationModuleSpecificType::FarmLuxury,
         build_cost_resources: calculate_basic_module_cost(60_000, 3),
@@ -365,7 +369,8 @@ fn basic_station_module_blueprints<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) 
     dsl.create_station_module_blueprint(CreateStationModuleBlueprint {
         id: MODULE_LABORATORY_BASIC,
         name: "Basic Laboratory".to_string(),
-        description: "A research facility for basic scientific studies and development.".to_string(),
+        description: "A research facility for basic scientific studies and development."
+            .to_string(),
         category: StationModuleCategory::ResearchAndDevelopment,
         specific_type: StationModuleSpecificType::Laboratory,
         build_cost_resources: calculate_basic_module_cost(35_000, 1),
@@ -385,7 +390,8 @@ fn basic_station_module_blueprints<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) 
     dsl.create_station_module_blueprint(CreateStationModuleBlueprint {
         id: MODULE_LABORATORY_ADVANCED,
         name: "Advanced Laboratory".to_string(),
-        description: "A sophisticated research facility with advanced equipment and capabilities.".to_string(),
+        description: "A sophisticated research facility with advanced equipment and capabilities."
+            .to_string(),
         category: StationModuleCategory::ResearchAndDevelopment,
         specific_type: StationModuleSpecificType::Laboratory,
         build_cost_resources: calculate_basic_module_cost(70_000, 2),
@@ -405,7 +411,9 @@ fn basic_station_module_blueprints<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) 
     dsl.create_station_module_blueprint(CreateStationModuleBlueprint {
         id: MODULE_LABORATORY_EXOTIC,
         name: "Exotic Research Laboratory".to_string(),
-        description: "A cutting-edge research facility for studying exotic materials and phenomena.".to_string(),
+        description:
+            "A cutting-edge research facility for studying exotic materials and phenomena."
+                .to_string(),
         category: StationModuleCategory::ResearchAndDevelopment,
         specific_type: StationModuleSpecificType::Laboratory,
         build_cost_resources: calculate_basic_module_cost(120_000, 4),
@@ -428,7 +436,8 @@ fn basic_station_module_blueprints<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) 
     dsl.create_station_module_blueprint(CreateStationModuleBlueprint {
         id: MODULE_MANUFACTURING_FACTORY,
         name: "Basic Factory".to_string(),
-        description: "A manufacturing facility for producing basic components and goods.".to_string(),
+        description: "A manufacturing facility for producing basic components and goods."
+            .to_string(),
         category: StationModuleCategory::ManufacturingAndAssembly,
         specific_type: StationModuleSpecificType::FactoryBasicComponents,
         build_cost_resources: calculate_basic_module_cost(45_000, 1),
@@ -448,7 +457,8 @@ fn basic_station_module_blueprints<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) 
     dsl.create_station_module_blueprint(CreateStationModuleBlueprint {
         id: MODULE_MANUFACTURING_FACTORY_ADVANCED,
         name: "Advanced Factory".to_string(),
-        description: "A high-tech manufacturing facility with automated production lines.".to_string(),
+        description: "A high-tech manufacturing facility with automated production lines."
+            .to_string(),
         category: StationModuleCategory::ManufacturingAndAssembly,
         specific_type: StationModuleSpecificType::FactoryAdvancedComponents,
         build_cost_resources: calculate_basic_module_cost(80_000, 2),
@@ -468,7 +478,8 @@ fn basic_station_module_blueprints<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) 
     dsl.create_station_module_blueprint(CreateStationModuleBlueprint {
         id: MODULE_MANUFACTURING_ASSEMBLER,
         name: "Component Assembler".to_string(),
-        description: "A specialized facility for assembling complex components from basic parts.".to_string(),
+        description: "A specialized facility for assembling complex components from basic parts."
+            .to_string(),
         category: StationModuleCategory::ManufacturingAndAssembly,
         specific_type: StationModuleSpecificType::ComponentAssembler,
         build_cost_resources: calculate_basic_module_cost(60_000, 2),
@@ -488,7 +499,8 @@ fn basic_station_module_blueprints<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) 
     dsl.create_station_module_blueprint(CreateStationModuleBlueprint {
         id: MODULE_MANUFACTURING_SHIPYARD,
         name: "Shipyard Fabrication".to_string(),
-        description: "A massive facility capable of constructing and repairing spacecraft.".to_string(),
+        description: "A massive facility capable of constructing and repairing spacecraft."
+            .to_string(),
         category: StationModuleCategory::ManufacturingAndAssembly,
         specific_type: StationModuleSpecificType::ShipyardFabrication,
         build_cost_resources: calculate_basic_module_cost(150_000, 4),
@@ -551,7 +563,8 @@ fn basic_station_module_blueprints<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) 
     dsl.create_station_module_blueprint(CreateStationModuleBlueprint {
         id: MODULE_SOLAR_ARRAY_LARGE,
         name: "Large Solar Array".to_string(),
-        description: "A large-scale solar power installation for industrial energy requirements.".to_string(),
+        description: "A large-scale solar power installation for industrial energy requirements."
+            .to_string(),
         category: StationModuleCategory::ResourceProductionAndRefining,
         specific_type: StationModuleSpecificType::SolarArray,
         build_cost_resources: calculate_basic_module_cost(60_000, 2),

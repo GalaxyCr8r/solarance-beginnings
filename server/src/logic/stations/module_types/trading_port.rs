@@ -1,4 +1,4 @@
-use spacetimedb::{table, Identity, SpacetimeType, Timestamp};
+use spacetimedb::{table, ReducerContext};
 use spacetimedsl::*;
 
 use crate::definitions::item_types::*;
@@ -61,44 +61,51 @@ pub fn create_trading_port_with_items<T: spacetimedsl::WriteContext>(
     let blueprint: StationModuleBlueprint =
         dsl.get_station_module_blueprint_by_id(StationModuleBlueprintId::new(trading_type))?;
 
-    let module = dsl.create_station_module(
-        station.get_id(),
-        blueprint.get_id(),
-        module_name,
-        true,
-        None,
-        dsl.ctx().timestamp(),
-    )?;
+    let module = dsl.create_station_module(CreateStationModule {
+        station_id: StationId::new(station.get_id()), // Assuming StationId wrapper needed or direct u64 if wrapper implies it. Wait, verify StationId usage. StationId wraps u64. station.get_id() is u64.
+        blueprint: StationModuleBlueprintId::new(blueprint.get_id()),
+        station_slot_identifier: module_name.to_string(),
+        is_operational: true,
+        built_at_timestamp: None,
+        last_status_update_timestamp: dsl.ctx().timestamp(),
+    })?;
 
-    dsl.create_trading_port_module(module.get_id())?;
+    dsl.create_trading_port_module(CreateTradingPortModule {
+        id: module.get_id(),
+    })?;
 
     // Create trading port listings for each configured item
     for item_config in items {
         // Calculate and set initial cached current price
         if let Ok(item_def) =
-            dsl.get_item_definition_by_id(ItemDefinitionId::new(item_config.item_id))
+            dsl.get_item_definition_by_id(&ItemDefinitionId::new(item_config.item_id))
         {
-            let mut item = dsl.create_station_module_inventory_item(
-                module.get_id(),
-                ItemDefinitionId::new(item_config.item_id),
-                item_config.starting_quantity,
-                blueprint
-                    .get_max_internal_storage_volume_per_slot_m3()
-                    .unwrap()
-                    / *item_def.get_volume_per_unit() as u32,
-                format!("{};{};trading", module.get_id(), item_config.item_id).as_str(),
-                0, // Initial cached price, will be updated immediately
-            )?;
+            let mut item =
+                dsl.create_station_module_inventory_item(CreateStationModuleInventoryItem {
+                    module_id: StationModuleId::new(module.get_id()),
+                    resource_item_id: ItemDefinitionId::new(item_config.item_id),
+                    quantity: item_config.starting_quantity,
+                    max_quantity: blueprint
+                        .get_max_internal_storage_volume_per_slot_m3()
+                        .unwrap()
+                        / *item_def.get_volume_per_unit() as u32,
+                    storage_purpose_tag: format!(
+                        "{};{};trading",
+                        module.get_id(),
+                        item_config.item_id
+                    ),
+                    cached_price: 0, // Initial cached price, will be updated immediately
+                })?;
 
             let initial_price = item.calculate_current_price(&item_def);
             item.set_cached_price(initial_price);
             dsl.update_station_module_inventory_item_by_id(item.clone())?;
 
-            dsl.create_trading_port_listing(
-                item.get_id(),
-                item_config.buying_margin,
-                item_config.selling_margin,
-            )?;
+            dsl.create_trading_port_listing(CreateTradingPortListing {
+                id: StationModuleInventoryItemId::new(item.get_id()),
+                buying_margin: item_config.buying_margin,
+                selling_margin: item_config.selling_margin,
+            })?;
         }
     }
 

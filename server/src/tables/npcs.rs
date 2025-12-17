@@ -1,4 +1,4 @@
-use spacetimedb::{table, SpacetimeType, Identity, Timestamp};
+use spacetimedb::{table, SpacetimeType};
 use spacetimedsl::*;
 
 use crate::tables::items::*;

@@ -3,7 +3,7 @@ use spacetimedb::{table, Identity, SpacetimeType, TimeDuration};
 use spacetimedsl::*;
 
 use crate::{
-    logic::factions::CreateFactionShipReactionTimerRow,
+    logic::factions::{CreateFactionShipReactionTimer, CreateFactionShipReactionTimerRow},
     tables::{sectors::*, ships::*, stations::*},
 };
 
@@ -252,14 +252,14 @@ pub fn handle_faction_ship_destroyed<T: spacetimedsl::WriteContext>(
 
     // Only react if it's a faction ship (not player-owned)
     if destroyed_ship.get_player_id().value() == Identity::ONE {
-        let _ = dsl.create_faction_ship_reaction_timer(
-            spacetimedb::ScheduleAt::Interval(TimeDuration::from_micros(1000)),
-            &faction_id,
-            aggressor_faction_id.cloned(),
-            &destroyed_ship.get_shiptype_id(),
-            destruction_sector_id,
-            dsl.ctx().timestamp(),
-        );
+        let _ = dsl.create_faction_ship_reaction_timer(CreateFactionShipReactionTimer {
+            scheduled_at: spacetimedb::ScheduleAt::Interval(TimeDuration::from_micros(1000).into()),
+            faction_id: faction_id.clone(),
+            aggressor_faction_id: aggressor_faction_id.cloned(),
+            destroyed_ship_type_id: destroyed_ship.get_shiptype_id(),
+            destruction_sector_id: destruction_sector_id.clone(),
+            destruction_timestamp: dsl.ctx().timestamp(),
+        });
 
         info!(
             "Faction {} will react to the destruction of their {} in sector #{}",

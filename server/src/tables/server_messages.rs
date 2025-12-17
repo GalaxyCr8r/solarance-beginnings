@@ -120,20 +120,20 @@ pub fn send_server_message_to_player<T: spacetimedsl::WriteContext>(
     sender_context: Option<String>,
 ) -> Result<(), String> {
     // Create the server message
-    let server_message = dsl.create_server_message(
-        &message,
-        message_type,
-        None, // No group name for individual messages
-        sender_context,
-    )?;
+    let server_message = dsl.create_server_message(CreateServerMessage {
+        message: message.clone(),
+        message_type: message_type.clone(),
+        group_name: None, // No group name for individual messages
+        sender_context: sender_context.clone(),
+    })?;
 
     // Create recipient record
-    dsl.create_server_message_recipient(
-        ServerMessageId::new(server_message.id),
-        player_id.clone(),
-        None, // read_at starts as None
-        dsl.ctx().timestamp(),
-    )?;
+    dsl.create_server_message_recipient(CreateServerMessageRecipient {
+        server_message_id: ServerMessageId::new(server_message.id),
+        player_id: player_id.clone(),
+        read_at: None, // read_at starts as None
+        delivered_at: dsl.ctx().timestamp(),
+    })?;
 
     Ok(())
 }
@@ -152,17 +152,21 @@ pub fn send_server_message_to_group<T: spacetimedsl::WriteContext>(
     }
 
     // Create the server message
-    let server_message =
-        dsl.create_server_message(&message, message_type, group_name, sender_context)?;
+    let server_message = dsl.create_server_message(CreateServerMessage {
+        message: message.clone(),
+        message_type: message_type.clone(),
+        group_name: group_name.clone(),
+        sender_context: sender_context.clone(),
+    })?;
 
     // Create recipient records for each player
     for player_id in player_ids {
-        dsl.create_server_message_recipient(
-            ServerMessageId::new(server_message.id),
-            player_id,
-            None, // read_at starts as None
-            dsl.ctx().timestamp(),
-        )?;
+        dsl.create_server_message_recipient(CreateServerMessageRecipient {
+            server_message_id: ServerMessageId::new(server_message.id),
+            player_id: player_id,
+            read_at: None, // read_at starts as None
+            delivered_at: dsl.ctx().timestamp(),
+        })?;
     }
 
     Ok(())

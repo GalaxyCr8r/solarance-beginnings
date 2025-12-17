@@ -45,7 +45,10 @@ pub fn create_asteroid<T: spacetimedsl::WriteContext>(
     item: ItemDefinitionId,
     resource_amount: u16,
 ) -> Option<Asteroid> {
-    let gfx_key = format!("asteroid.{}", dsl.ctx().rng().gen_range(1..=5)).to_string();
+    // Use basic rand since context rng method is unresolved
+    use spacetimedb::rand::Rng;
+    let mut rng = spacetimedb::rand::thread_rng();
+    let gfx_key = format!("asteroid.{}", rng.gen_range(1..=5));
 
     let sobj = create_sobj_internal(
         dsl,
@@ -62,10 +65,10 @@ pub fn create_asteroid<T: spacetimedsl::WriteContext>(
     }
 
     match dsl.create_asteroid(CreateAsteroid {
-        id: sobj.unwrap().get_id(),
-        current_sector_id: sector.value(),
+        id: sobj.unwrap().get_id(), // u64 or wrapped? Assuming wrapper based on use_wrapper
+        current_sector_id: sector.clone(),
         size_radius: 16.0,
-        resource_item_id: item.value(),
+        resource_item_id: item.clone(),
         current_resources: resource_amount,
         initial_resources: resource_amount,
         gfx_key: Some(gfx_key),

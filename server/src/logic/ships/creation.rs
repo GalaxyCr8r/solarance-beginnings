@@ -67,6 +67,7 @@ pub fn create_player_controlled_ship(
             create_ship_from_sobj(&dsl, &ship_type, &player_id, &faction_id, &sobj)?;
 
         attempt_to_load_cargo_into_ship(
+            dsl.ctx(),
             &dsl,
             &mut status,
             &ship.get_id(),
@@ -75,6 +76,7 @@ pub fn create_player_controlled_ship(
             false,
         )?;
         attempt_to_load_cargo_into_ship(
+            dsl.ctx(),
             &dsl,
             &mut status,
             &ship.get_id(),
@@ -84,17 +86,17 @@ pub fn create_player_controlled_ship(
         )?;
 
         dsl.create_ship_equipment_slot(CreateShipEquipmentSlot {
-            ship_id: ship.get_id().value(),
+            ship_id: ship.get_id(),
             slot_type: EquipmentSlotType::MiningLaser,
             slot_index: 0,
-            item_id: ItemDefinitionId::new(SMOD_BASIC_MINING_LASER).value(),
+            item_id: ItemDefinitionId::new(SMOD_BASIC_MINING_LASER),
         })?;
 
         dsl.create_ship_equipment_slot(CreateShipEquipmentSlot {
-            ship_id: ship.get_id().value(),
+            ship_id: ship.get_id(),
             slot_type: EquipmentSlotType::Weapon,
             slot_index: 0,
-            item_id: ItemDefinitionId::new(SMOD_IONIC_BLASTER).value(),
+            item_id: ItemDefinitionId::new(SMOD_IONIC_BLASTER),
         })?;
 
         info!("Successfully created ship!");
@@ -127,31 +129,31 @@ pub fn create_ship_from_sobj<T: spacetimedsl::WriteContext>(
     faction_id: &FactionId,
     sobj: &StellarObject,
 ) -> Result<(Ship, ShipStatus), String> {
-    let ship = dsl.create_ship(
-        ship_type.get_id(),
-        ShipLocation::Sector,
-        sobj,
-        StationId::new(0),
-        sobj.get_sector_id(),
-        player_id,
-        faction_id,
-    )?;
+    let ship = dsl.create_ship(CreateShip {
+        shiptype_id: ship_type.get_id(),
+        location: ShipLocation::Sector,
+        sobj_id: sobj.get_id(),
+        station_id: StationId::new(0), // Sentinel for None
+        sector_id: sobj.get_sector_id(),
+        player_id: *player_id,
+        faction_id: faction_id.clone(),
+    })?;
 
     create_status_timer_for_ship(dsl, &ship.get_id(), &ship_type.get_id())?;
 
-    let ship_status = dsl.create_ship_status(
-        &ship,
-        sobj.get_sector_id(),
-        player_id,
-        *ship_type.get_max_health() as f32,
-        *ship_type.get_max_shields() as f32,
-        *ship_type.get_max_energy() as f32,
-        0, // weapon_cooldown_ms
-        0, // missile_cooldown_ms
-        0, // used_cargo_capacity
-        *ship_type.get_cargo_capacity(),
-        None,
-    )?;
+    let ship_status = dsl.create_ship_status(CreateShipStatus {
+        id: ship.get_id(),
+        sector_id: sobj.get_sector_id(),
+        player_id: *player_id,
+        health: *ship_type.get_max_health() as f32,
+        shields: *ship_type.get_max_shields() as f32,
+        energy: *ship_type.get_max_energy() as f32,
+        weapon_cooldown_ms: 0,
+        missile_cooldown_ms: 0,
+        used_cargo_capacity: 0,
+        max_cargo_capacity: *ship_type.get_cargo_capacity(),
+        ai_state: None,
+    })?;
 
     return Ok((ship, ship_status));
 }
@@ -164,31 +166,31 @@ pub fn create_ship_docked_at_station<T: spacetimedsl::WriteContext>(
     faction_id: &FactionId,
     station: Station,
 ) -> Result<(Ship, ShipStatus), String> {
-    let ship = dsl.create_ship(
-        ship_type.get_id(),
-        ShipLocation::Station,
-        station.get_sobj_id(),
-        &station,
-        station.get_sector_id(),
-        player_id,
-        faction_id,
-    )?;
+    let ship = dsl.create_ship(CreateShip {
+        shiptype_id: ship_type.get_id(),
+        location: ShipLocation::Station,
+        sobj_id: station.get_sobj_id(),
+        station_id: station.get_id(),
+        sector_id: station.get_sector_id(),
+        player_id: *player_id,
+        faction_id: faction_id.clone(),
+    })?;
 
     create_status_timer_for_ship(dsl, &ship.get_id(), &ship_type.get_id())?;
 
-    let ship_status = dsl.create_ship_status(
-        &ship,
-        station.get_sector_id(),
-        player_id,
-        *ship_type.get_max_health() as f32,
-        *ship_type.get_max_shields() as f32,
-        *ship_type.get_max_energy() as f32,
-        0, // weapon_cooldown_ms
-        0, // missile_cooldown_ms
-        0, // used_cargo_capacity
-        *ship_type.get_cargo_capacity(),
-        None,
-    )?;
+    let ship_status = dsl.create_ship_status(CreateShipStatus {
+        id: ship.get_id(),
+        sector_id: station.get_sector_id(),
+        player_id: *player_id,
+        health: *ship_type.get_max_health() as f32,
+        shields: *ship_type.get_max_shields() as f32,
+        energy: *ship_type.get_max_energy() as f32,
+        weapon_cooldown_ms: 0,
+        missile_cooldown_ms: 0,
+        used_cargo_capacity: 0,
+        max_cargo_capacity: *ship_type.get_cargo_capacity(),
+        ai_state: None,
+    })?;
 
     return Ok((ship, ship_status));
 }

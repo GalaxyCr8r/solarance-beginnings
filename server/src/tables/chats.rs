@@ -1,4 +1,4 @@
-use spacetimedb::{table, SpacetimeType, Identity, Timestamp};
+use spacetimedb::{table, Identity, Timestamp};
 use spacetimedsl::*;
 
 #[dsl(plural_name = global_chat_messages, method(update = true))]

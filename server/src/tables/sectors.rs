@@ -1,8 +1,8 @@
-use spacetimedb::{table, Identity, SpacetimeType, Timestamp};
+use spacetimedb::table;
 use spacetimedsl::*;
 
 use crate::{
-    admin::creation::create_jumpgate_in_sector,
+    admin::creation::create_jumpgate_internal,
     tables::{factions::*, star_system::*},
 };
 
@@ -114,23 +114,11 @@ pub fn connect_sectors_with_warpgates<T: spacetimedsl::WriteContext>(
     let b_wp_pos = glam::Vec2::from_angle(b_angle) * 5000.0;
     //info!("Sector WP Pos: A{} B{}", a_wp_pos, b_wp_pos);
 
-    create_jumpgate_in_sector(
-        dsl.ctx(),
-        a.id,
-        a_wp_pos.x,
-        a_wp_pos.y,
-        b.id,
-        b_wp_pos.x,
-        b_wp_pos.y,
+    create_jumpgate_internal(
+        dsl, a.id, a_wp_pos.x, a_wp_pos.y, b.id, b_wp_pos.x, b_wp_pos.y,
     )?;
-    create_jumpgate_in_sector(
-        dsl.ctx(),
-        b.id,
-        b_wp_pos.x,
-        b_wp_pos.y,
-        a.id,
-        a_wp_pos.x,
-        a_wp_pos.y,
+    create_jumpgate_internal(
+        dsl, b.id, b_wp_pos.x, b_wp_pos.y, a.id, a_wp_pos.x, a_wp_pos.y,
     )?;
 
     Ok(())

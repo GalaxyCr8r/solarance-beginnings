@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use spacetimedb::{table, Identity, ReducerContext, SpacetimeType, Timestamp};
+use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 
 use crate::{tables::ships::*, utility::try_server_only};
@@ -29,11 +29,11 @@ pub fn create_status_timer_for_ship<T: spacetimedsl::WriteContext>(
     ship_id: &ShipId,
     type_id: &ShipTypeDefinitionId,
 ) -> Result<ShipStatusTimer, String> {
-    let timer = dsl.create_ship_status_timer(
-        spacetimedb::ScheduleAt::Interval(Duration::from_millis(500).into()),
-        ship_id,
-        type_id,
-    )?;
+    let timer = dsl.create_ship_status_timer(CreateShipStatusTimer {
+        scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_millis(500).into()),
+        ship_id: ship_id.clone(),
+        ship_type_id: type_id.clone(),
+    })?;
 
     Ok(timer)
 }
