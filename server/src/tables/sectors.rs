@@ -23,7 +23,7 @@ pub struct Sector {
     id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = StarSystemId)]
+    #[use_wrapper(StarSystemId)]
     #[foreign_key(path = crate::tables::star_system, table = star_system, column = id, on_delete = Error)]
     /// FK to StarSystem
     pub system_id: u32,
@@ -32,7 +32,7 @@ pub struct Sector {
     pub description: Option<String>,
 
     #[index(btree)]
-    #[use_wrapper(path = FactionId)]
+    #[use_wrapper(FactionId)]
     #[foreign_key(path = crate::tables::factions, table = faction, column = id, on_delete = Error)]
     /// FK to Faction, can change
     pub controlling_faction_id: u32,
@@ -70,7 +70,7 @@ pub struct Sector {
 #[table(name = asteroid_sector)]
 pub struct AsteroidSector {
     #[primary_key] // NOT Auto-inc so it can be reloaded as-is
-    #[use_wrapper(path = SectorId)]
+    #[use_wrapper(SectorId)]
     #[foreign_key(path = crate::tables::sectors, table = sector, column = id, on_delete = Delete)]
     id: u64,
 

@@ -10,7 +10,7 @@ use crate::tables::stations::*;
 #[table(name = trading_port_module, public)]
 pub struct TradingPort {
     #[primary_key]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     /// FK to StationModule
     id: u64,
     // Configuration for item capacity is better in StationModuleBlueprint (max_internal_storage_slots/volume)
@@ -24,7 +24,7 @@ pub struct TradingPort {
 #[table(name = trading_port_listing, public)]
 pub struct TradingPortListing {
     #[primary_key]
-    #[use_wrapper(path = StationModuleInventoryItemId)]
+    #[use_wrapper(StationModuleInventoryItemId)]
     /// FK to StationModuleInventoryItem
     id: u64,
 

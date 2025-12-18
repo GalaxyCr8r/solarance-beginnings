@@ -5,7 +5,7 @@ use crate::tables::ships;
 #[table(name = capital_dock_module, public)]
 pub struct CapitalDock {
     #[primary_key]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     /// FK to StationModule
     id: u64,
 
@@ -17,11 +17,11 @@ pub struct CapitalDock {
 #[table(name = docked_capital_ship_at_module, public)]
 pub struct DockedCapitalShipAt {
     #[primary_key]
-    #[use_wrapper(path = ships::ShipId)]
+    #[use_wrapper(ships::ShipId)]
     id: u64, // FK to Ship (must be a capital ship)
 
     #[index(btree)]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     pub capital_dock_module_id: u64, // FK to StationModuleInstance (a CapitalDock)
 
     pub docked_at_timestamp: Timestamp,

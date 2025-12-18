@@ -21,11 +21,11 @@ pub struct ShipAddCargoTimer {
     scheduled_at: spacetimedb::ScheduleAt,
 
     #[index(btree)]
-    #[use_wrapper(path = ShipId)]
+    #[use_wrapper(ShipId)]
     /// FK to Ship
     pub ship_id: u64,
 
-    #[use_wrapper(path = ItemDefinitionId)]
+    #[use_wrapper(ItemDefinitionId)]
     /// FK to Item Definition
     pub item_id: u32,
 

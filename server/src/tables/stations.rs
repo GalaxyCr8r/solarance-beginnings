@@ -119,14 +119,14 @@ pub struct StationModule {
     id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = StationId)]
+    #[use_wrapper(StationId)]
     #[foreign_key(path = crate::tables::stations, table = station, column = id, on_delete = Delete)]
     /// FK to SpaceStation
     pub station_id: u64,
 
     /// FK to StationModuleBlueprint
     #[index(btree)]
-    #[use_wrapper(path = StationModuleBlueprintId)]
+    #[use_wrapper(StationModuleBlueprintId)]
     #[foreign_key(path = crate::tables::stations, table = station_module_blueprint, column = id, on_delete = Error)]
     pub blueprint: u32,
 
@@ -141,7 +141,7 @@ pub struct StationModule {
 #[table(name = station_under_construction, public)]
 pub struct StationUnderConstruction {
     #[primary_key]
-    #[use_wrapper(path = StationId)]
+    #[use_wrapper(StationId)]
     #[foreign_key(path = crate::tables::stations, table = station, column = id, on_delete = Delete)]
     /// FK to SpaceStation
     id: u64,
@@ -154,7 +154,7 @@ pub struct StationUnderConstruction {
 #[table(name = station_module_under_construction, public)]
 pub struct StationModuleUnderConstruction {
     #[primary_key]
-    #[use_wrapper(path = StationId)]
+    #[use_wrapper(StationId)]
     #[foreign_key(path = crate::tables::stations, table = station, column = id, on_delete = Delete)]
     /// FK to SpaceStation
     id: u64,
@@ -173,13 +173,13 @@ pub struct StationModuleInventoryItem {
     id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     #[foreign_key(path = crate::tables::stations, table = station_module, column = id, on_delete = Delete)]
     /// FK to StationModule
     pub module_id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     #[foreign_key(path = crate::tables::items, table = item_definition, column = id, on_delete = Error)]
     /// FK to ItemDefinition
     pub resource_item_id: u32,
@@ -211,19 +211,19 @@ pub struct Station {
     pub size: StationSize,
 
     #[index(btree)]
-    #[use_wrapper(path = sectors::SectorId)]
+    #[use_wrapper(sectors::SectorId)]
     #[foreign_key(path = crate::tables::sectors, table = sector, column = id, on_delete = Error)]
     /// FK to Sector.id
     pub sector_id: u64,
 
     #[unique]
-    #[use_wrapper(path = stellarobjects::StellarObjectId)]
+    #[use_wrapper(stellarobjects::StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     /// FK to StellarObject
     pub sobj_id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = factions::FactionId)]
+    #[use_wrapper(factions::FactionId)]
     #[foreign_key(path = crate::tables::factions, table = faction, column = id, on_delete = Error)]
     /// FK to FactionDefinition
     pub owner_faction_id: u32,
@@ -238,7 +238,7 @@ pub struct Station {
 #[table(name = station_status, public)]
 pub struct StationStatus {
     #[primary_key]
-    #[use_wrapper(path = StationId)]
+    #[use_wrapper(StationId)]
     #[foreign_key(path = crate::tables::stations, table = station, column = id, on_delete = Delete)]
     /// FK to Station
     id: u64,

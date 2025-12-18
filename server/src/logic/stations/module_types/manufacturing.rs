@@ -21,7 +21,7 @@ pub struct ProductionRecipeDefinition {
 
     pub input_resources: Vec<ResourceAmount>,
 
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub output_resource_id: u32, // FK to ResourceDefinition
 
@@ -37,11 +37,11 @@ pub struct ProductionRecipeDefinition {
 #[table(name = manufacturing_module, public)]
 pub struct Manufacturing {
     #[primary_key]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     /// FK to StationModule
     id: u64,
 
-    #[use_wrapper(path = ProductionRecipeDefinitionId)]
+    #[use_wrapper(ProductionRecipeDefinitionId)]
     /// The recipe this specific module instance is currently configured to produce. FK to ProductionRecipeDefinition
     pub current_recipe_id: Option<u32>,
 

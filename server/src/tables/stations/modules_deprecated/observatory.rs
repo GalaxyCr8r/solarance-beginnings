@@ -4,7 +4,7 @@ use super::*;
 #[table(name = observatory_module, public)]
 pub struct Observatory {
     #[primary_key]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     /// FK to StationModule
     id: u64,
 
@@ -13,7 +13,7 @@ pub struct Observatory {
     pub current_efficiency_modifier: f32, // Default 1.0
 
     /// Input resource ID (e.g., "Advanced Sensor Crystal")
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub primary_input_resource_id: u32,
     pub primary_input_consumption_rate: Option<f32>, // units per hour of operation

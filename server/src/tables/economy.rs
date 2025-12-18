@@ -2,7 +2,7 @@ use spacetimedb::SpacetimeType;
 
 #[derive(SpacetimeType, Debug, Clone)]
 pub struct ResourceAmount {
-    //#[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    //#[use_wrapper(crate::tables::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub resource_item_id: u32,
 

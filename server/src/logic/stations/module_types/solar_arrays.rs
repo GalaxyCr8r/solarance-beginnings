@@ -23,11 +23,11 @@ pub const MODULE_SOLAR_ARRAY_INDUSTRIAL: u32 = 7_003;
 #[table(name = solar_array_module, public)]
 pub struct SolarArray {
     #[primary_key]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     /// FK to StationModule
     id: u64,
 
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub output_energy_cell_resource_id: u32, // FK to ResourceDefinition
 

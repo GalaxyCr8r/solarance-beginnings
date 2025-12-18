@@ -66,13 +66,13 @@ pub struct FactionStanding {
     id: u64,
 
     #[index(btree)] // To find all players with standing for a faction
-    #[use_wrapper(path = FactionId)]
+    #[use_wrapper(FactionId)]
     #[foreign_key(path = crate::tables::factions, table = faction, column = id, on_delete = Error)]
     /// FK to FactionDefinition
     pub faction_one_id: u32,
 
     #[index(btree)] // To find all players with standing for a faction
-    #[use_wrapper(path = FactionId)]
+    #[use_wrapper(FactionId)]
     #[foreign_key(path = crate::tables::factions, table = faction, column = id, on_delete = Error)]
     /// FK to FactionDefinition
     pub faction_two_id: u32,
@@ -94,12 +94,12 @@ pub struct FactionStanding {
 //     id: u64,
 
 //     #[index(btree)] // To find all standings for a player
-//     #[use_wrapper(path = crate::players::PlayerId)]
+//     #[use_wrapper(crate::players::PlayerId)]
 //     #[foreign_key(path = crate::tables::players, table = player, column = id, on_delete = Delete)]
 //     pub player_identity: Identity,
 
 //     #[index(btree)] // To find all players with standing for a faction
-//     #[use_wrapper(path = FactionId)]
+//     #[use_wrapper(FactionId)]
 //     #[foreign_key(path = crate::tables::factions, table = faction, column = id, on_delete = Error)]
 //     /// FK to FactionDefinition
 //     pub faction_id: u32,

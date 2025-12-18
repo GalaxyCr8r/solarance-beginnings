@@ -9,11 +9,11 @@ pub struct EmbassyPresence {
     id: String,
 
     #[index(btree)]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     pub embassy_module_id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = FactionId)]
+    #[use_wrapper(FactionId)]
     pub representing_faction_id: u32,
 
     pub established_at_timestamp: Timestamp,
@@ -24,7 +24,7 @@ pub struct EmbassyPresence {
 #[table(name = embassy_module, public)]
 pub struct Embassy {
     #[primary_key]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     /// FK to StationModule
     id: u64,
     // Configuration for item capacity is better in StationModuleBlueprint (max_internal_storage_slots/volume)

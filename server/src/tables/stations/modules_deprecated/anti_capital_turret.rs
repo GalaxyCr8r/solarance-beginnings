@@ -5,15 +5,15 @@ use crate::tables::ships;
 #[table(name = anti_capital_turret_module, public)]
 pub struct AntiCapitalTurret {
     #[primary_key]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     /// FK to StationModule
     id: u64,
 
     /// FK to a ShipModuleBlueprint that defines the weapon's stats (damage, range, fire rate)
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     pub weapon_core_blueprint_id: u32,
 
-    #[use_wrapper(path = ships::ShipId)]
+    #[use_wrapper(ships::ShipId)]
     pub current_target_ship_id: Option<u64>, // FK to ShipInstance
 
     pub can_launch_fighters: bool,

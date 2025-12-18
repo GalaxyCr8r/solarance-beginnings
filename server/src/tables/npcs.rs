@@ -46,7 +46,7 @@ pub struct NpcShipController {
     id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     pub stellar_object_id: u64,
 

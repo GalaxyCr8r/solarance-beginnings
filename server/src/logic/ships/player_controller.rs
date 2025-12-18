@@ -20,16 +20,19 @@ use crate::{
 
 /// Main Table
 
-#[dsl(plural_name = player_ship_controllers)]
+#[dsl(
+    plural_name = player_ship_controllers,
+    method(delete = true)
+)]
 #[table(name = player_ship_controller, public)]
 pub struct PlayerShipController {
     #[primary_key]
-    #[use_wrapper(path = PlayerId)]
+    #[use_wrapper(PlayerId)]
     #[foreign_key(path = crate::tables::players, table = player, column = id, on_delete = Delete)]
     id: Identity,
 
     #[index(btree)]
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     pub stellar_object_id: u64,
 
@@ -222,7 +225,7 @@ pub struct PlayerControllerMovementTimer {
     id: u64,
     scheduled_at: spacetimedb::ScheduleAt,
 
-    #[use_wrapper(path = crate::players::PlayerId)]
+    #[use_wrapper(crate::players::PlayerId)]
     pub player: Identity,
 }
 
@@ -240,7 +243,7 @@ pub struct PlayerControllerInteractionTimer {
     id: u64,
     scheduled_at: spacetimedb::ScheduleAt,
 
-    #[use_wrapper(path = crate::players::PlayerId)]
+    #[use_wrapper(crate::players::PlayerId)]
     pub player: Identity,
 }
 

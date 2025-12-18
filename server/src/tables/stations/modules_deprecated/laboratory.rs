@@ -7,17 +7,17 @@ pub mod timers;
 #[table(name = laboratory_module, public)]
 pub struct Laboratory {
     #[primary_key]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     /// FK to StationModule
     id: u64,
 
     pub base_research_points_per_hour: u32,
 
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     /// Input resource ID (e.g., "Analyzed Data Cache") FK to ItemDefinition
     pub primary_input_resource_id: u32,
 
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     /// Input resource ID (e.g., "Rare Crystal Sample") FK to ItemDefinition
     pub secondary_input_resource_id: Option<u32>,
 

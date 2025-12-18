@@ -109,16 +109,16 @@ impl ShipTypeDefinition {
 /// The status of a ship agnostic of where it is physically.
 pub struct ShipStatus {
     #[primary_key]
-    #[use_wrapper(path = ShipId)]
+    #[use_wrapper(ShipId)]
     id: u64,
 
     #[index(btree)] // To easily find ships in a given sector
-    #[use_wrapper(path = SectorId)]
+    #[use_wrapper(SectorId)]
     /// FK to Sector.id // Needs to be kept in sync with StellarObject.sector_id
     pub sector_id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = crate::players::PlayerId)]
+    #[use_wrapper(crate::players::PlayerId)]
     /// FK to player.id // You should only be able to see your ship, or other ships in your sector.
     pub player_id: Identity,
 
@@ -181,7 +181,7 @@ pub struct Ship {
     id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = ShipTypeDefinitionId)]
+    #[use_wrapper(ShipTypeDefinitionId)]
     #[foreign_key(path = crate::tables::ships, table = ship_type_definition, column = id, on_delete = Error)]
     /// FK to ShipTypeDefinition.id
     pub shiptype_id: u32,
@@ -191,30 +191,30 @@ pub struct Ship {
     pub location: ShipLocation,
 
     #[index(btree)] // Can't be unique anymore because docked ships now have a sobj_id of 0
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Ignore)]
     pub sobj_id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = StationId)]
+    #[use_wrapper(StationId)]
     #[foreign_key(path = crate::tables::stations, table = station, column = id, on_delete = SetZero)]
     /// TODO - STDSL doesn't allow this to be `pub station_id: Option<u64>,` due to STDB not allowing optional indexes.
     /// Therefore we'll use 0 as the sentinel value for None.
     pub station_id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = crate::tables::sectors::SectorId)]
+    #[use_wrapper(crate::tables::sectors::SectorId)]
     #[foreign_key(path = crate::tables::sectors, table = sector, column = id, on_delete = Error)]
     /// Only because actually referencing the player's stellar object would require three table hits.
     pub sector_id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = crate::players::PlayerId)]
+    #[use_wrapper(crate::players::PlayerId)]
     #[foreign_key(path = crate::players, table = player, column = id, on_delete = Error)]
     pub player_id: Identity,
 
     #[index(btree)]
-    #[use_wrapper(path = crate::tables::factions::FactionId)]
+    #[use_wrapper(crate::tables::factions::FactionId)]
     #[foreign_key(path = crate::tables::factions, table = faction, column = id, on_delete = Error)]
     pub faction_id: u32,
 }
@@ -228,13 +228,13 @@ pub struct ShipCargoItem {
     id: u64,
 
     #[index(btree)] // To query all cargo for a specific ship
-    #[use_wrapper(path = ShipId)]
+    #[use_wrapper(ShipId)]
     #[foreign_key(path = crate::tables::ships, table = ship, column = id, on_delete = Delete)]
     /// FK to Ship
     pub ship_id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     #[foreign_key(path = crate::tables::items, table = item_definition, column = id, on_delete = Error)]
     /// FK to ItemDefinition
     pub item_id: u32,
@@ -252,7 +252,7 @@ pub struct ShipEquipmentSlot {
     id: u64,
 
     #[index(btree)] // To query all equipment for a specific ship
-    #[use_wrapper(path = ShipId)]
+    #[use_wrapper(ShipId)]
     #[foreign_key(path = crate::tables::ships, table = ship, column = id, on_delete = Delete)]
     /// FK to Ship
     pub ship_id: u64,
@@ -261,7 +261,7 @@ pub struct ShipEquipmentSlot {
     pub slot_index: u8, // E.g., Weapon Slot 0, Weapon Slot 1 within its type
 
     #[index(btree)]
-    #[use_wrapper(path = ItemDefinitionId)]
+    #[use_wrapper(ItemDefinitionId)]
     #[foreign_key(path = crate::tables::items, table = item_definition, column = id, on_delete = Error)]
     /// FK to ItemDefinition
     pub item_id: u32,

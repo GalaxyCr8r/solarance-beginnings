@@ -37,7 +37,7 @@ pub struct StellarObject {
     pub kind: StellarObjectKinds,
 
     #[index(btree)]
-    #[use_wrapper(path = crate::tables::sectors::SectorId)]
+    #[use_wrapper(crate::tables::sectors::SectorId)]
     #[foreign_key(path = crate::tables::sectors, table = sector, column = id, on_delete = Delete)]
     /// FK to SectorLocation
     pub sector_id: u64,
@@ -49,7 +49,7 @@ pub struct StellarObject {
 #[derive(Default)]
 pub struct StellarObjectVelocity {
     #[primary_key]
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     /// FK to StellarObject
     id: u64,
@@ -67,7 +67,7 @@ pub struct StellarObjectVelocity {
 #[derive(Default)]
 pub struct StellarObjectTransformInternal {
     #[primary_key]
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     /// FK to StellarObject
     id: u64,
@@ -83,7 +83,7 @@ pub struct StellarObjectTransformInternal {
 #[derive(Default)]
 pub struct StellarObjectTransformHiRes {
     #[primary_key]
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     /// FK to StellarObject
     id: u64,
@@ -98,7 +98,7 @@ pub struct StellarObjectTransformHiRes {
 #[derive(Default)]
 pub struct StellarObjectTransformLowRes {
     #[primary_key]
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     /// FK to StellarObject
     id: u64,
@@ -112,7 +112,7 @@ pub struct StellarObjectTransformLowRes {
 #[table(name = sobj_turn_left_controller)]
 pub struct StellarObjectControllerTurnLeft {
     #[primary_key]
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     /// FK to StellarObject
     id: u64,
@@ -128,12 +128,12 @@ impl StellarObjectControllerTurnLeft {
 #[table(name = sobj_player_window, public)]
 pub struct StellarObjectPlayerWindow {
     #[primary_key]
-    #[use_wrapper(path = crate::players::PlayerId)]
+    #[use_wrapper(crate::players::PlayerId)]
     #[foreign_key(path = crate::players, table = player, column = id, on_delete = Delete)]
     id: Identity,
 
     #[unique]
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     /// FK to StellarObject
     pub sobj_id: u64,

@@ -52,7 +52,7 @@ pub struct StarSystem {
     pub luminosity: u8,
 
     #[index(btree)]
-    #[use_wrapper(path = FactionId)]
+    #[use_wrapper(FactionId)]
     #[foreign_key(path = crate::tables::factions, table = faction, column = id, on_delete = Error)]
     /// FK to Faction, can change
     pub controlling_faction_id: u32,
@@ -68,7 +68,7 @@ pub struct StarSystemObject {
     id: u32,
 
     #[index(btree)]
-    #[use_wrapper(path = StarSystemId)]
+    #[use_wrapper(StarSystemId)]
     #[foreign_key(path = crate::tables::star_system, table = star_system, column = id, on_delete = Delete)]
     /// FK to StarSystem
     pub system_id: u32,

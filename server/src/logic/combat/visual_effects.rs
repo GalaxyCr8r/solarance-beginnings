@@ -16,7 +16,7 @@ pub struct VisualEffectTimer {
     id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = VisualEffectId)]
+    #[use_wrapper(VisualEffectId)]
     #[foreign_key(
         path = crate::tables::combat,
         table = visual_effect,

@@ -4,7 +4,7 @@ use super::*;
 #[table(name = residential_module, public)]
 pub struct Residential {
     #[primary_key]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     /// FK to StationModule
     id: u64,
 

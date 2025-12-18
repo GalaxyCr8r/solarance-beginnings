@@ -26,7 +26,7 @@ pub struct FactionStationCheckTimer {
     scheduled_at: spacetimedb::ScheduleAt,
 
     #[unique]
-    #[use_wrapper(path = FactionId)]
+    #[use_wrapper(FactionId)]
     /// FK to Faction
     pub faction_id: u32,
 
@@ -61,20 +61,20 @@ pub struct FactionShipReactionTimer {
     id: u64,
     scheduled_at: spacetimedb::ScheduleAt,
 
-    #[use_wrapper(path = FactionId)]
+    #[use_wrapper(FactionId)]
     /// FK to Faction - the faction that lost the ship
     pub faction_id: u32,
 
-    #[use_wrapper(path = FactionId)]
+    #[use_wrapper(FactionId)]
     /// FK to Faction - the faction that destroyed the ship (if known)
     pub aggressor_faction_id: Option<u32>,
 
-    #[use_wrapper(path = ShipTypeDefinitionId)]
+    #[use_wrapper(ShipTypeDefinitionId)]
     /// The type of ship that was destroyed
     pub destroyed_ship_type_id: u32,
 
     /// Location where the ship was destroyed (sector ID)
-    #[use_wrapper(path = SectorId)]
+    #[use_wrapper(SectorId)]
     pub destruction_sector_id: u64,
 
     /// Timestamp when the ship was destroyed

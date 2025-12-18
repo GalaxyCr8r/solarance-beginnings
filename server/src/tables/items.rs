@@ -152,19 +152,19 @@ pub struct CargoCrate {
     #[create_wrapper]
     id: u64,
 
-    #[use_wrapper(path = crate::tables::sectors::SectorId)]
+    #[use_wrapper(crate::tables::sectors::SectorId)]
     #[index(btree)] // To find crates in a specific sector
     #[foreign_key(path = crate::tables::sectors, table = sector, column = id, on_delete = Delete)]
     /// FK to Sector.id
     pub current_sector_id: u64,
 
     #[unique]
-    #[use_wrapper(path = crate::tables::stellarobjects::StellarObjectId)]
+    #[use_wrapper(crate::tables::stellarobjects::StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     /// FK to StellarObject
     pub sobj_id: u64,
 
-    #[use_wrapper(path = ItemDefinitionId)]
+    #[use_wrapper(ItemDefinitionId)]
     #[index(btree)]
     #[foreign_key(path = crate::tables::items, table = item_definition, column = id, on_delete = Delete)]
     /// FK to ItemDefinition

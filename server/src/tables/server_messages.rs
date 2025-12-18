@@ -71,12 +71,12 @@ pub struct ServerMessageRecipient {
     id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = crate::tables::server_messages::ServerMessageId)]
+    #[use_wrapper(crate::tables::server_messages::ServerMessageId)]
     #[foreign_key(path = crate::tables::server_messages, table = server_message, column = id, on_delete = Delete)]
     pub server_message_id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = crate::tables::players::PlayerId)]
+    #[use_wrapper(crate::tables::players::PlayerId)]
     #[foreign_key(path = crate::tables::players, table = player, column = id, on_delete = Delete)]
     pub player_id: Identity,
 

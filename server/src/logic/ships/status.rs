@@ -15,11 +15,11 @@ pub struct ShipStatusTimer {
     scheduled_at: spacetimedb::ScheduleAt,
 
     #[unique]
-    #[use_wrapper(path = ShipId)]
+    #[use_wrapper(ShipId)]
     /// FK to Ship
     pub ship_id: u64,
 
-    #[use_wrapper(path = ShipTypeDefinitionId)]
+    #[use_wrapper(ShipTypeDefinitionId)]
     /// FK to Ship Type
     pub ship_type_id: u32,
 }

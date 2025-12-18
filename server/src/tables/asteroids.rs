@@ -10,20 +10,20 @@ use crate::tables::{items::ItemDefinitionId, sectors::SectorId, stellarobjects::
 #[table(name = asteroid, public)]
 pub struct Asteroid {
     #[primary_key]
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     /// FK to StellarObject
     id: u64,
 
     #[index(btree)] // To find asteroids in a specific sector
-    #[use_wrapper(path = crate::tables::sectors::SectorId)]
+    #[use_wrapper(crate::tables::sectors::SectorId)]
     #[foreign_key(path = crate::tables::sectors, table = sector, column = id, on_delete = Delete)]
     /// FK to Sector.id // Because asteroid_sector.id exists, this can't be named sector_id.
     pub current_sector_id: u64,
 
     pub size_radius: f32, // For collision
 
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     #[index(btree)]
     #[foreign_key(path = crate::tables::items, table = item_definition, column = id, on_delete = Delete)]
     /// FK to ItemDefinition (e.g., Iron Ore, Silicon)

@@ -20,11 +20,11 @@ pub struct ShipMiningTimer {
     scheduled_at: spacetimedb::ScheduleAt,
 
     #[index(btree)]
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     /// FK to StellarObject
     pub ship_sobj_id: u64,
 
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     /// FK to StellarObject
     pub asteroid_sobj_id: u64,
 
