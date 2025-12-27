@@ -56,7 +56,14 @@ pub fn asteroid_sector_upkeep<T: spacetimedsl::WriteContext>(
 
         let amount = ctx.rng().gen_range(500..2000);
 
-        create_asteroid(dsl, pos, sector_id.into(), item, amount);
+        create_asteroid(
+            dsl,
+            pos,
+            sector_id.into(),
+            format!("asteroid.{}", ctx.rng().gen_range(1..=5)),
+            item,
+            amount,
+        );
     }
 
     Ok(())

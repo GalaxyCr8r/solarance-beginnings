@@ -5,9 +5,7 @@ use spacetimedsl::*;
 use crate::{
     logic::{
         ships::{player_controller::*, status::*},
-        stellarobjects::{
-            player_windows::create_sobj_player_window_for, stellar_object_creation::*,
-        },
+        stellarobjects::{player_windows::*, stellar_object_creation::*},
     },
     tables::{
         players::PlayerId, server_messages::send_info_message, ships::*, stations::*,
@@ -117,7 +115,7 @@ pub fn undock_from_station<T: spacetimedsl::WriteContext>(
 
     if docked.get_player_id().value() != Identity::ONE {
         // There is a real player controlling this ship, so create the necessary helpers.
-        create_sobj_player_window_for(dsl.ctx(), docked.get_player_id().value(), sobj.get_id())?;
+        create_sobj_player_window_from_dsl(dsl, docked.get_player_id().value(), sobj.get_id())?;
         let _ = initialize_player_controller(dsl, &docked.get_player_id(), &sobj);
     // Should this error really be suppressed?
     } else {

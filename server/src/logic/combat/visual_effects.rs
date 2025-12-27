@@ -1,13 +1,11 @@
-use spacetimedb::{table, Identity, ReducerContext, ScheduleAt, SpacetimeType, Timestamp};
+use spacetimedb::*;
 use spacetimedsl::*;
 
 use crate::tables::{combat::*, items::*, sectors::SectorId, ships::*, stellarobjects::*};
 
-use crate::tables::combat::{
-    CombatError, CreateVisualEffectRow, MissileType, VisualEffectType, WeaponType,
-};
-
-#[dsl(plural_name = visual_effect_timers, method(update = true))]
+#[dsl(plural_name = visual_effect_timers,
+    method(update = false, delete = true)
+)]
 #[spacetimedb::table(name = visual_effect_timer, scheduled(cleanup_visual_effect))]
 pub struct VisualEffectTimer {
     #[primary_key]
@@ -23,9 +21,9 @@ pub struct VisualEffectTimer {
         column = id,
         on_delete = Delete
     )]
-    pub effect_id: u64,
+    effect_id: u64,
 
-    pub scheduled_at: ScheduleAt,
+    scheduled_at: ScheduleAt,
 }
 
 #[spacetimedb::reducer]
@@ -930,9 +928,10 @@ fn create_visual_effect<T: spacetimedsl::WriteContext>(
     })?;
 
     // Schedule cleanup after 10 milliseconds
-    let cleanup_time = spacetimedb::ScheduleAt::Time(Timestamp::from_micros_since_unix_epoch(
-        dsl.ctx().timestamp().to_micros_since_unix_epoch() + 10_000,
-    ));
+    let cleanup_time =
+        spacetimedb::ScheduleAt::Time(spacetimedb::Timestamp::from_micros_since_unix_epoch(
+            dsl.ctx().timestamp().to_micros_since_unix_epoch() + 10_000,
+        ));
 
     dsl.create_visual_effect_timer(CreateVisualEffectTimer {
         effect_id: visual_effect.get_id(), // get_id() returns u64? Or wrapper?

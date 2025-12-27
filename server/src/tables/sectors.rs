@@ -26,9 +26,9 @@ pub struct Sector {
     #[use_wrapper(StarSystemId)]
     #[foreign_key(path = crate::tables::star_system, table = star_system, column = id, on_delete = Error)]
     /// FK to StarSystem
-    pub system_id: u32,
+    system_id: u32,
 
-    pub name: String,
+    name: String,
     pub description: Option<String>,
 
     #[index(btree)]
@@ -45,28 +45,28 @@ pub struct Sector {
     /// From 1.0 being in orbit around the sun, to 0.0 being outside a solar system.
     /// Most sectors will have 0.9 - 0.5 depending on how far from the center of the solar system it is.
     /// Solar power plants want to be in sectors of 0.5+
-    pub sunlight: f32,
+    sunlight: f32,
     /// How much weird stuff the current sector has going on.
     /// From 1.0 being inside the middle of eye of chaos, to 0.0 being a normal solar system.
     /// Most sectors will have 0.0 - 0.1, research stations want to be in sectors of 0.5+
-    pub anomalous: f32,
+    anomalous: f32,
     /// How much gas/dust the current sector has.
     /// From 1.0 being so thick you can't use your sensors, to 0.0 being a clear space.
     /// Most sectors will have 0.0 - 0.1, pirate stations want to be in sectors of 0.5+
-    pub nebula: f32,
+    nebula: f32,
     /// How likely rare ore is to appear in the current sector.
     /// From 1.0 being ONLY rare ore, to 0.0 being only iron.
     /// Most sectors will have 0.0 - 0.1, refinery stations want to be in sectors of 0.5+
-    pub rare_ore: f32,
+    rare_ore: f32,
 
     // Sector's star system position
-    pub x: f32,
-    pub y: f32,
+    x: f32,
+    y: f32,
 
-    pub background_gfx_key: Option<String>, // Key for client to look up background image
+    background_gfx_key: Option<String>, // Key for client to look up background image
 }
 
-#[dsl(plural_name = asteroid_sectors, method(update = true))]
+#[dsl(plural_name = asteroid_sectors, method(update = false))]
 #[table(name = asteroid_sector)]
 pub struct AsteroidSector {
     #[primary_key] // NOT Auto-inc so it can be reloaded as-is
@@ -74,10 +74,10 @@ pub struct AsteroidSector {
     #[foreign_key(path = crate::tables::sectors, table = sector, column = id, on_delete = Delete)]
     id: u64,
 
-    pub sparseness: u8,             // Relative amount of asteroids to spawn
-    pub rarity: u8,                 // Skews the amount of spawned asteroids with high rarity ores
-    pub cluster_extent: f32,        // How far from 0,0 can asteroids spawn
-    pub cluster_inner: Option<f32>, // How far from 0,0 can asteroids NOT spawn
+    sparseness: u8,             // Relative amount of asteroids to spawn
+    rarity: u8,                 // Skews the amount of spawned asteroids with high rarity ores
+    cluster_extent: f32,        // How far from 0,0 can asteroids spawn
+    cluster_inner: Option<f32>, // How far from 0,0 can asteroids NOT spawn
 }
 
 //////////////////////////////////////////////////////////////

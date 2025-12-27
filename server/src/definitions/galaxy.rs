@@ -1,5 +1,5 @@
 use log::info;
-use spacetimedb::SpacetimeType;
+use spacetimedb::*;
 use spacetimedsl::*;
 
 use crate::{

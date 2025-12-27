@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use log::info;
-use spacetimedb::{table, ReducerContext};
+use spacetimedb::*;
 use spacetimedsl::*;
 
 use crate::{
@@ -11,7 +11,7 @@ use crate::{
 };
 
 /// Adds a cargo item to a ship's cargo after a delay. If there isn't room, it creates a cargo crate instead.
-#[dsl(plural_name = ship_add_cargo_timers, method(update = true))]
+#[dsl(plural_name = ship_add_cargo_timers, method(update = false))]
 #[spacetimedb::table(name = ship_add_cargo_timer, scheduled(ship_add_cargo_timer_reducer))]
 pub struct ShipAddCargoTimer {
     #[primary_key]
@@ -23,13 +23,13 @@ pub struct ShipAddCargoTimer {
     #[index(btree)]
     #[use_wrapper(ShipId)]
     /// FK to Ship
-    pub ship_id: u64,
+    ship_id: u64,
 
     #[use_wrapper(ItemDefinitionId)]
     /// FK to Item Definition
-    pub item_id: u32,
+    item_id: u32,
 
-    pub amount: u16,
+    amount: u16,
 }
 
 //////////////////////////////////////////////////////////////

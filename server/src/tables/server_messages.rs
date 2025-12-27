@@ -25,7 +25,7 @@ impl ServerMessageType {
     }
 }
 
-#[dsl(plural_name = server_messages, method(update = true))]
+#[dsl(plural_name = server_messages, method(update = false))]
 #[table(name = server_message, public)]
 pub struct ServerMessage {
     #[primary_key]
@@ -34,10 +34,10 @@ pub struct ServerMessage {
     #[referenced_by(path = crate::tables::server_messages, table = server_message_recipient)]
     id: u64,
 
-    pub message: String,
-    pub message_type: ServerMessageType,
-    pub group_name: Option<String>,     // For group messages
-    pub sender_context: Option<String>, // Context about what action triggered this
+    message: String,
+    message_type: ServerMessageType,
+    group_name: Option<String>,     // For group messages
+    sender_context: Option<String>, // Context about what action triggered this
 
     created_at: Timestamp,
 }

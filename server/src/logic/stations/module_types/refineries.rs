@@ -1,11 +1,12 @@
 use log::info;
-use spacetimedb::{table, ReducerContext};
+use spacetimedb::*;
 use spacetimedsl::*;
 
 use crate::definitions::station_module_types::*;
 use crate::tables::items::*;
 use crate::tables::stations::*;
 
+/// An instance of a refinery module
 #[dsl(plural_name = refinery_modules, method(update = true))]
 #[table(name = refinery_module, public)]
 pub struct Refinery {
@@ -77,9 +78,9 @@ pub fn create_basic_refinery_module<T: spacetimedsl::WriteContext>(
     // Submodule
     let iron_ref = dsl.create_refinery_module(CreateRefineryModule {
         id: module.get_id(), // FK to module
-        input_ore_resource_id: input_resource,
-        output_ingot_resource_id: output_resource,
-        waste_resource_id: waste_resource, // Option<ItemDefinitionId>
+        input_ore_resource_id: input_resource.clone(),
+        output_ingot_resource_id: output_resource.clone(),
+        waste_resource_id: waste_resource.clone(), // Option<ItemDefinitionId>
         ore_to_ingot_ratio: 5,
         waste_per_ingot_ratio: 0,
         base_ingots_produced_per_hour: 30,

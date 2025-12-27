@@ -41,7 +41,7 @@ pub struct Faction {
     pub parent_id: Option<FactionId>,
 
     pub name: String,
-    pub short_name: String,
+    short_name: String,
     pub description: String,
 
     /// The tier/size of this faction.
@@ -69,13 +69,13 @@ pub struct FactionStanding {
     #[use_wrapper(FactionId)]
     #[foreign_key(path = crate::tables::factions, table = faction, column = id, on_delete = Error)]
     /// FK to FactionDefinition
-    pub faction_one_id: u32,
+    faction_one_id: u32,
 
     #[index(btree)] // To find all players with standing for a faction
     #[use_wrapper(FactionId)]
     #[foreign_key(path = crate::tables::factions, table = faction, column = id, on_delete = Error)]
     /// FK to FactionDefinition
-    pub faction_two_id: u32,
+    faction_two_id: u32,
 
     /// How the two factions regard each other.
     /// -100 is hated enemies.

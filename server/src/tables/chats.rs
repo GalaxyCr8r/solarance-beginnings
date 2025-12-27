@@ -1,7 +1,7 @@
 use spacetimedb::{table, Identity, Timestamp};
 use spacetimedsl::*;
 
-#[dsl(plural_name = global_chat_messages, method(update = true))]
+#[dsl(plural_name = global_chat_messages, method(update = false))]
 #[table(name = global_chat_message, public)]
 pub struct GlobalChatMessage {
     #[primary_key]
@@ -13,14 +13,14 @@ pub struct GlobalChatMessage {
     #[use_wrapper(crate::players::PlayerId)]
     #[foreign_key(path = crate::players, table = player, column = id, on_delete = Delete)]
     /// FK to Player
-    pub player_id: Identity,
+    player_id: Identity,
 
-    pub message: String,
+    message: String,
 
     created_at: Timestamp,
 }
 
-#[dsl(plural_name = sector_chat_messages, method(update = true))]
+#[dsl(plural_name = sector_chat_messages, method(update = false))]
 #[table(name = sector_chat_message, public)]
 pub struct SectorChatMessage {
     #[primary_key]
@@ -32,20 +32,20 @@ pub struct SectorChatMessage {
     #[use_wrapper(crate::players::PlayerId)]
     #[foreign_key(path = crate::players, table = player, column = id, on_delete = Delete)]
     /// FK to Player
-    pub player_id: Identity,
+    player_id: Identity,
 
     #[index(btree)] // To find asteroids in a specific sector
     #[use_wrapper(crate::tables::sectors::SectorId)]
     #[foreign_key(path = crate::tables::sectors, table = sector, column = id, on_delete = Delete)]
     /// FK to Sector.id
-    pub sector_id: u64,
+    sector_id: u64,
 
-    pub message: String,
+    message: String,
 
     created_at: Timestamp,
 }
 
-#[dsl(plural_name = faction_chat_messages, method(update = true))]
+#[dsl(plural_name = faction_chat_messages, method(update = false))]
 #[table(name = faction_chat_message, public)]
 pub struct FactionChatMessage {
     #[primary_key]
@@ -57,15 +57,15 @@ pub struct FactionChatMessage {
     #[use_wrapper(crate::players::PlayerId)]
     #[foreign_key(path = crate::players, table = player, column = id, on_delete = Delete)]
     /// FK to Player
-    pub player_id: Identity,
+    player_id: Identity,
 
     #[index(btree)]
     #[use_wrapper(crate::tables::factions::FactionId)]
     #[foreign_key(path = crate::tables::factions, table = faction, column = id, on_delete = Error)]
     /// FK to FactionDefinition
-    pub faction_id: u32,
+    faction_id: u32,
 
-    pub message: String,
+    message: String,
 
     created_at: Timestamp,
 }

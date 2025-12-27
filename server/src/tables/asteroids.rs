@@ -1,5 +1,6 @@
 use glam::Vec2;
 use log::info;
+use spacetimedb::ReducerContext;
 use spacetimedb::{rand::Rng, table};
 use spacetimedsl::*;
 
@@ -19,20 +20,20 @@ pub struct Asteroid {
     #[use_wrapper(crate::tables::sectors::SectorId)]
     #[foreign_key(path = crate::tables::sectors, table = sector, column = id, on_delete = Delete)]
     /// FK to Sector.id // Because asteroid_sector.id exists, this can't be named sector_id.
-    pub current_sector_id: u64,
+    current_sector_id: u64,
 
-    pub size_radius: f32, // For collision
+    size_radius: f32, // For collision
 
     #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     #[index(btree)]
     #[foreign_key(path = crate::tables::items, table = item_definition, column = id, on_delete = Delete)]
     /// FK to ItemDefinition (e.g., Iron Ore, Silicon)
-    pub resource_item_id: u32,
+    resource_item_id: u32,
 
     pub current_resources: u16, // Amount of resources left
-    pub initial_resources: u16, // Original amount, for reference or respawn logic
+    initial_resources: u16,     // Original amount, for reference or respawn logic
 
-    pub gfx_key: Option<String>, // For client side
+    gfx_key: Option<String>, // For client side
 }
 
 /////////////////////////////////////////
@@ -42,16 +43,12 @@ pub fn create_asteroid<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     position: Vec2,
     sector: SectorId,
+    gfx_key: String,
     item: ItemDefinitionId,
     resource_amount: u16,
 ) -> Option<Asteroid> {
-    // Use basic rand since context rng method is unresolved
-    use spacetimedb::rand::Rng;
-    let mut rng = spacetimedb::rand::thread_rng();
-    let gfx_key = format!("asteroid.{}", rng.gen_range(1..=5));
-
     let sobj = create_sobj_internal(
-        dsl,
+        &dsl,
         StellarObjectKinds::Asteroid,
         &sector,
         StellarObjectTransformInternal::default().from_vec2(position),

@@ -1,11 +1,13 @@
 use log::info;
-use spacetimedb::ReducerContext;
+use spacetimedb::*;
 use spacetimedsl::*;
 
 use crate::{
-    logic::ships::{mining::*, station_interactions::dock_to_station},
+    logic::ships::{
+        mining::*, player_controller::PlayerShipController, station_interactions::dock_to_station,
+    },
     tables::{
-        common_types::Vec2, jumpgates::*, players::*, sectors::GetSectorRowOptionById,
+        common_types::Vec2, jumpgates::*, players::*, sectors::*,
         server_messages::send_info_message, ships::*, stations::*, stellarobjects::*,
     },
 };

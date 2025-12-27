@@ -1,9 +1,9 @@
 use spacetimedb::{table, SpacetimeType, Timestamp};
 use spacetimedsl::*;
 
+use crate::logic::ships::player_controller::PlayerShipController;
 use crate::tables::common_types::Vec2;
 use crate::tables::npcs::NpcShipController;
-use crate::tables::players::PlayerShipController;
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
 pub enum VisualEffectType {
@@ -128,7 +128,7 @@ impl ShipController {
     }
 }
 
-#[dsl(plural_name = visual_effects, method(update = true))]
+#[dsl(plural_name = visual_effects, method(update = false))]
 #[table(name = visual_effect, public)]
 pub struct VisualEffect {
     #[primary_key]
@@ -140,11 +140,11 @@ pub struct VisualEffect {
     #[index(btree)]
     #[use_wrapper(crate::tables::sectors::SectorId)]
     #[foreign_key(path = crate::tables::sectors, table = sector, column = id, on_delete = Delete)]
-    pub sector_id: u64,
+    sector_id: u64,
 
-    pub source: Vec2,
-    pub target: Vec2,
+    source: Vec2,
+    target: Vec2,
 
-    pub effect_type: VisualEffectType,
+    effect_type: VisualEffectType,
     created_at: Timestamp,
 }

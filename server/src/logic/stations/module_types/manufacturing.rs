@@ -1,5 +1,5 @@
 use log::info;
-use spacetimedb::{table, ReducerContext};
+use spacetimedb::*;
 use spacetimedsl::*;
 
 use crate::definitions::item_types::*;
@@ -8,7 +8,7 @@ use crate::tables::items::*;
 use crate::tables::stations::*;
 
 /// Defines a recipe that a manufacturing module can use.
-#[dsl(plural_name = production_recipe_definitions, method(update = true))]
+#[dsl(plural_name = production_recipe_definitions, method(update = false))]
 #[table(name = production_recipe_definition, public)]
 pub struct ProductionRecipeDefinition {
     #[primary_key]
@@ -17,19 +17,19 @@ pub struct ProductionRecipeDefinition {
     id: u32,
 
     #[unique]
-    pub name: String, // e.g., "Basic Hull Plating", "Mk1 Laser Cannon Assembly"
+    name: String, // e.g., "Basic Hull Plating", "Mk1 Laser Cannon Assembly"
 
-    pub input_resources: Vec<ResourceAmount>,
+    input_resources: Vec<ResourceAmount>,
 
     #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     /// FK to ItemDefinition
-    pub output_resource_id: u32, // FK to ResourceDefinition
+    output_resource_id: u32, // FK to ResourceDefinition
 
-    pub output_quantity: u32,
-    pub base_production_time_seconds: u32,
+    output_quantity: u32,
+    base_production_time_seconds: u32,
     /// Which type of module can use this recipe (e.g., Factory, Assembler)
-    pub required_module_specific_type: StationModuleSpecificType,
-    pub required_tech_id_to_unlock: Option<u32>, // FK to TechnologyTreeNode
+    required_module_specific_type: StationModuleSpecificType,
+    required_tech_id_to_unlock: Option<u32>, // FK to TechnologyTreeNode
 }
 
 /// Data for a generic manufacturing module instance (Factory, Assembler, Fabricator).

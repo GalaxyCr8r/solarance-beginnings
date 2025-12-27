@@ -28,7 +28,7 @@ pub struct FactionStationCheckTimer {
     #[unique]
     #[use_wrapper(FactionId)]
     /// FK to Faction
-    pub faction_id: u32,
+    faction_id: u32,
 
     /// Last check timestamp for tracking
     pub last_check_timestamp: Timestamp,
@@ -49,7 +49,7 @@ pub struct FactionManagementTimer {
 }
 
 /// Timer for faction ship destruction reactions - runs after a delay when ships are destroyed
-#[dsl(plural_name = faction_ship_reaction_timers, method(update = true))]
+#[dsl(plural_name = faction_ship_reaction_timers, method(update = false))]
 #[spacetimedb::table(
     name = faction_ship_reaction_timer,
     scheduled(faction_ship_reaction_timer_reducer)
@@ -63,22 +63,22 @@ pub struct FactionShipReactionTimer {
 
     #[use_wrapper(FactionId)]
     /// FK to Faction - the faction that lost the ship
-    pub faction_id: u32,
+    faction_id: u32,
 
     #[use_wrapper(FactionId)]
     /// FK to Faction - the faction that destroyed the ship (if known)
-    pub aggressor_faction_id: Option<u32>,
+    aggressor_faction_id: Option<u32>,
 
     #[use_wrapper(ShipTypeDefinitionId)]
     /// The type of ship that was destroyed
-    pub destroyed_ship_type_id: u32,
+    destroyed_ship_type_id: u32,
 
     /// Location where the ship was destroyed (sector ID)
     #[use_wrapper(SectorId)]
-    pub destruction_sector_id: u64,
+    destruction_sector_id: u64,
 
     /// Timestamp when the ship was destroyed
-    pub destruction_timestamp: Timestamp,
+    destruction_timestamp: Timestamp,
 }
 
 ///////////////////////////////////////////////////////////////

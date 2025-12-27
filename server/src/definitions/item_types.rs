@@ -3,7 +3,7 @@ use std::f32::consts::PI;
 use log::info;
 use spacetimedsl::*;
 
-use crate::tables::{combat::WeaponType, items::*};
+use crate::tables::{combat::*, items::*};
 
 // # Ship modules
 // ## Ship Engines

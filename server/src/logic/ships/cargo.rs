@@ -363,7 +363,7 @@ pub fn create_cargo_crate_nearby_ship<T: spacetimedsl::WriteContext>(
         ctx,
         dsl,
         StellarObjectKinds::CargoCrate,
-        sobj.get_sector_id(),
+        &sobj.get_sector_id(),
         pos.x,
         pos.y,
         1.0,

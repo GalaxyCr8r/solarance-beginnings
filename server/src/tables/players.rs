@@ -5,9 +5,6 @@ use crate::tables::factions::FactionId;
 
 use super::stellarobjects::*;
 
-// Re-export PlayerShipController for referenced_by attributes
-pub use crate::logic::ships::player_controller::PlayerShipController;
-
 #[dsl(plural_name = players, method(update = true))]
 #[table(name = player, public)]
 pub struct Player {

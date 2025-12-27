@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use log::info;
-use spacetimedb::{table, ReducerContext};
+use spacetimedb::*;
 use spacetimedsl::*;
 
 use crate::{
@@ -22,11 +22,11 @@ pub struct ShipMiningTimer {
     #[index(btree)]
     #[use_wrapper(StellarObjectId)]
     /// FK to StellarObject
-    pub ship_sobj_id: u64,
+    ship_sobj_id: u64,
 
     #[use_wrapper(StellarObjectId)]
     /// FK to StellarObject
-    pub asteroid_sobj_id: u64,
+    asteroid_sobj_id: u64,
 
     pub mining_progress: f32, // How much of the asteroid has been mined (0 to 1.0)
 }

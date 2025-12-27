@@ -156,24 +156,24 @@ pub struct CargoCrate {
     #[index(btree)] // To find crates in a specific sector
     #[foreign_key(path = crate::tables::sectors, table = sector, column = id, on_delete = Delete)]
     /// FK to Sector.id
-    pub current_sector_id: u64,
+    current_sector_id: u64,
 
     #[unique]
     #[use_wrapper(crate::tables::stellarobjects::StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     /// FK to StellarObject
-    pub sobj_id: u64,
+    sobj_id: u64,
 
     #[use_wrapper(ItemDefinitionId)]
     #[index(btree)]
     #[foreign_key(path = crate::tables::items, table = item_definition, column = id, on_delete = Delete)]
     /// FK to ItemDefinition
-    pub item_id: u32,
+    item_id: u32,
     pub quantity: u16,
 
-    pub despawn_ts: Option<Timestamp>, // When the crate should disappear if not collected
+    despawn_ts: Option<Timestamp>, // When the crate should disappear if not collected
 
-    pub gfx_key: Option<String>,
+    gfx_key: Option<String>,
 }
 
 //////////////////////////////////////////////////////////////

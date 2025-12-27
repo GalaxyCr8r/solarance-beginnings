@@ -1,4 +1,4 @@
-use spacetimedb::{table, ReducerContext};
+use spacetimedb::*;
 use spacetimedsl::*;
 
 use crate::definitions::item_types::*;
@@ -62,8 +62,8 @@ pub fn create_trading_port_with_items<T: spacetimedsl::WriteContext>(
         dsl.get_station_module_blueprint_by_id(StationModuleBlueprintId::new(trading_type))?;
 
     let module = dsl.create_station_module(CreateStationModule {
-        station_id: StationId::new(station.get_id()), // Assuming StationId wrapper needed or direct u64 if wrapper implies it. Wait, verify StationId usage. StationId wraps u64. station.get_id() is u64.
-        blueprint: StationModuleBlueprintId::new(blueprint.get_id()),
+        station_id: station.get_id(), // Assuming StationId wrapper needed or direct u64 if wrapper implies it. Wait, verify StationId usage. StationId wraps u64. station.get_id() is u64.
+        blueprint: blueprint.get_id(),
         station_slot_identifier: module_name.to_string(),
         is_operational: true,
         built_at_timestamp: None,
@@ -82,7 +82,7 @@ pub fn create_trading_port_with_items<T: spacetimedsl::WriteContext>(
         {
             let mut item =
                 dsl.create_station_module_inventory_item(CreateStationModuleInventoryItem {
-                    module_id: StationModuleId::new(module.get_id()),
+                    module_id: module.get_id(),
                     resource_item_id: ItemDefinitionId::new(item_config.item_id),
                     quantity: item_config.starting_quantity,
                     max_quantity: blueprint
@@ -102,7 +102,7 @@ pub fn create_trading_port_with_items<T: spacetimedsl::WriteContext>(
             dsl.update_station_module_inventory_item_by_id(item.clone())?;
 
             dsl.create_trading_port_listing(CreateTradingPortListing {
-                id: StationModuleInventoryItemId::new(item.get_id()),
+                id: item.get_id(),
                 buying_margin: item_config.buying_margin,
                 selling_margin: item_config.selling_margin,
             })?;

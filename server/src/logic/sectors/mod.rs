@@ -9,7 +9,7 @@ pub mod asteroid_fields;
 /// Timers
 ///
 
-#[dsl(plural_name = sector_upkeep_timers, method(update = true))]
+#[dsl(plural_name = sector_upkeep_timers, method(update = false))]
 #[spacetimedb::table(name = sector_upkeep_timer, scheduled(sector_upkeep))]
 pub struct SectorUpkeepTimer {
     #[primary_key]

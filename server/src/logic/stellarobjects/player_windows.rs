@@ -1,13 +1,13 @@
 use crate::{tables::players::PlayerId, utility::try_server_only};
 use log::info;
-use spacetimedb::{table, Identity, ReducerContext, SpacetimeType, Timestamp};
+use spacetimedb::*;
 use spacetimedsl::*;
 
 use crate::tables::global_config::*;
 use crate::tables::ships::*;
 use crate::tables::stellarobjects::{CreateSobjPlayerWindow, *};
 
-#[dsl(plural_name = player_windows_timers, method(update = true))]
+#[dsl(plural_name = player_windows_timers, method(update = false))]
 #[spacetimedb::table(name = player_windows_timer, scheduled(recalculate_player_windows))]
 pub struct PlayerWindowsTimer {
     #[primary_key]
@@ -25,7 +25,14 @@ pub fn create_sobj_player_window_for(
     identity: Identity,
     sobj_id: StellarObjectId,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
+    create_sobj_player_window_from_dsl(&dsl(ctx), identity, sobj_id)
+}
+
+pub fn create_sobj_player_window_from_dsl<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    identity: Identity,
+    sobj_id: StellarObjectId,
+) -> Result<(), String> {
     let pid = PlayerId::new(identity);
 
     if dsl.get_sobj_player_window_by_id(&pid).is_ok() {

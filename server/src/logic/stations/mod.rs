@@ -138,8 +138,8 @@ pub fn create_station_with_modules<T: spacetimedsl::WriteContext>(
     // Create the station
     let station = dsl.create_station(CreateStation {
         size: size,
-        sector_id: SectorId::new(sector.get_id()),
-        sobj_id: StellarObjectId::new(sobj.get_id()), // Assuming StellarObjectId::new exists or wrapping needed
+        sector_id: sector.get_id(),
+        sobj_id: sobj.get_id(),
         owner_faction_id: FactionId::new(owner_faction_id.value()), // check wrapper
         name: name.to_string(),
         gfx_key: None,
@@ -152,20 +152,19 @@ pub fn create_station_with_modules<T: spacetimedsl::WriteContext>(
 
     // Set up station production schedule (every 30 seconds) TODO Tie this to GlobalConfig
     dsl.create_station_production_schedule(CreateStationProductionSchedule {
-        id: StationId::new(station.get_id()),
+        id: station.get_id(),
         scheduled_at: ScheduleAt::Interval(Duration::from_secs(30).into()),
         last_processed_timestamp: dsl.ctx().timestamp(),
     })?;
 
     // Set up station status schedule (every 60 seconds) TODO Tie this to GlobalConfig
     dsl.create_station_status_schedule(CreateStationStatusSchedule {
-        id: StationId::new(station.get_id()),
+        id: station.get_id(),
         scheduled_at: ScheduleAt::Interval(Duration::from_secs(10).into()),
         last_processed_timestamp: dsl.ctx().timestamp(),
     })?;
 
     // Verify station invariants
-    verify(dsl, station.clone())?;
     verify(dsl, &station)?;
 
     Ok(station)

@@ -135,7 +135,7 @@ pub fn create_ship_from_sobj<T: spacetimedsl::WriteContext>(
         sobj_id: sobj.get_id(),
         station_id: StationId::new(0), // Sentinel for None
         sector_id: sobj.get_sector_id(),
-        player_id: *player_id,
+        player_id: player_id.clone(),
         faction_id: faction_id.clone(),
     })?;
 
@@ -144,7 +144,7 @@ pub fn create_ship_from_sobj<T: spacetimedsl::WriteContext>(
     let ship_status = dsl.create_ship_status(CreateShipStatus {
         id: ship.get_id(),
         sector_id: sobj.get_sector_id(),
-        player_id: *player_id,
+        player_id: player_id.clone(),
         health: *ship_type.get_max_health() as f32,
         shields: *ship_type.get_max_shields() as f32,
         energy: *ship_type.get_max_energy() as f32,
@@ -172,7 +172,7 @@ pub fn create_ship_docked_at_station<T: spacetimedsl::WriteContext>(
         sobj_id: station.get_sobj_id(),
         station_id: station.get_id(),
         sector_id: station.get_sector_id(),
-        player_id: *player_id,
+        player_id: player_id.clone(),
         faction_id: faction_id.clone(),
     })?;
 
@@ -181,7 +181,7 @@ pub fn create_ship_docked_at_station<T: spacetimedsl::WriteContext>(
     let ship_status = dsl.create_ship_status(CreateShipStatus {
         id: ship.get_id(),
         sector_id: station.get_sector_id(),
-        player_id: *player_id,
+        player_id: player_id.clone(),
         health: *ship_type.get_max_health() as f32,
         shields: *ship_type.get_max_shields() as f32,
         energy: *ship_type.get_max_energy() as f32,

@@ -2,7 +2,9 @@ use crate::tables::ships::*;
 use spacetimedb::{ReducerContext, ScheduleAt};
 use spacetimedsl::*;
 
-#[dsl(plural_name = combat_cooldown_timers, method(update = true))]
+#[dsl(plural_name = combat_cooldown_timers,
+    method(update = false, delete = true)
+)]
 #[spacetimedb::table(name = combat_cooldown_timer, scheduled(update_combat_cooldowns))]
 pub struct CombatCooldownTimer {
     #[primary_key]
@@ -10,7 +12,7 @@ pub struct CombatCooldownTimer {
     #[create_wrapper]
     id: u64,
 
-    pub scheduled_at: ScheduleAt,
+    scheduled_at: ScheduleAt,
 }
 
 /// Scheduled reducer to update weapon and missile cooldowns for all ships

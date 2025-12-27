@@ -66,7 +66,7 @@ pub fn initialize_player_controller<T: spacetimedsl::WriteContext>(
     sobj: &StellarObject,
 ) -> Result<(), String> {
     dsl.create_player_ship_controller(CreatePlayerShipController {
-        id: *player,
+        id: player.clone(),
         stellar_object_id: sobj.get_id(),
         up: false,
         down: false,
@@ -84,13 +84,13 @@ pub fn initialize_player_controller<T: spacetimedsl::WriteContext>(
         fire_missles: false,
         targetted_sobj_id: None,
     })?;
-    dsl.create_player_ship_controller_update_timer(CreatePlayerControllerMovementTimer {
+    dsl.create_player_ship_controller_update_timer(CreatePlayerShipControllerUpdateTimer {
         scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 20).into()),
-        player: *player,
+        player: player.clone(),
     })?;
-    dsl.create_player_ship_controller_logic_timer(CreatePlayerControllerInteractionTimer {
+    dsl.create_player_ship_controller_logic_timer(CreatePlayerShipControllerLogicTimer {
         scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 2).into()),
-        player: *player,
+        player: player.clone(),
     })?;
     Ok(())
 }

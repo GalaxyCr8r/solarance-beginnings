@@ -40,7 +40,7 @@ pub enum EquipmentSlotType {
     CargoExpansion,
 }
 
-#[dsl(plural_name = ship_type_definitions, method(update = true))]
+#[dsl(plural_name = ship_type_definitions, method(update = true))] // One could argue that this should be false. idk atm - Karl
 #[table(name = ship_type_definition, public)]
 pub struct ShipTypeDefinition {
     #[primary_key] // NOT Auto-inc so it can be reloaded as-is

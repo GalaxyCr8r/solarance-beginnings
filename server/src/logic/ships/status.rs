@@ -1,11 +1,11 @@
 use std::time::Duration;
 
-use spacetimedb::ReducerContext;
+use spacetimedb::*;
 use spacetimedsl::*;
 
 use crate::{tables::ships::*, utility::try_server_only};
 
-#[dsl(plural_name = ship_status_timers, method(update = true))]
+#[dsl(plural_name = ship_status_timers, method(update = false))]
 #[spacetimedb::table(name = ship_status_timer, scheduled(ship_status_timer_reducer))]
 pub struct ShipStatusTimer {
     #[primary_key]
@@ -17,11 +17,11 @@ pub struct ShipStatusTimer {
     #[unique]
     #[use_wrapper(ShipId)]
     /// FK to Ship
-    pub ship_id: u64,
+    ship_id: u64,
 
     #[use_wrapper(ShipTypeDefinitionId)]
     /// FK to Ship Type
-    pub ship_type_id: u32,
+    ship_type_id: u32,
 }
 
 pub fn create_status_timer_for_ship<T: spacetimedsl::WriteContext>(

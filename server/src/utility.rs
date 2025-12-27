@@ -11,9 +11,6 @@ const IS_SERVER_OR_OWNER_ERROR: &str =
 
 /// Checks if the context sender is the server. ONLY for spacetimedb reducer functions!
 pub fn try_server_only<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
-    // For now, always allow server operations - this needs proper server identity check
-    return Ok(());
-
     let sender = dsl.ctx().sender().to_string();
     if sender.contains("c2009ba0980240569a0be51")
         || sender.contains("000000000000000000000000000000000000000000000000000000000000dcba")

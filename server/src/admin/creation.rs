@@ -3,10 +3,7 @@ use spacetimedsl::*;
 
 use crate::logic::stellarobjects::stellar_object_creation::create_sobj_vec2;
 use crate::tables::{
-    common_types::Vec2,
-    jumpgates::{CreateJumpGate, CreateJumpGateRow},
-    sectors::SectorId,
-    stellarobjects::StellarObjectKinds,
+    common_types::Vec2, jumpgates::*, sectors::SectorId, stellarobjects::StellarObjectKinds,
 };
 use crate::utility::try_server_only;
 
