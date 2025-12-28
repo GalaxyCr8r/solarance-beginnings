@@ -121,6 +121,13 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
         WHERE r.player_id = '{}'",
         ctx.identity()
     );
+    let visual_effect = format!(
+        "SELECT v.* 
+        FROM visual_effect v 
+        JOIN ship s ON s.sector_id = v.sector_id 
+        WHERE s.player_id = '{}'",
+        ctx.identity()
+    );
 
     ctx.subscription_builder()
         .on_applied(on_sub_applied)
@@ -152,22 +159,22 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
             "SELECT * FROM ship_equipment_slot",
             "SELECT * FROM trading_port_module",
             "SELECT * FROM trading_port_listing",
-            "SELECT * FROM storage_depot_module",
-            "SELECT * FROM embassy_presence",
-            "SELECT * FROM embassy_module",
-            "SELECT * FROM farm_module",
-            "SELECT * FROM observatory_module",
+            // "SELECT * FROM storage_depot_module",
+            // "SELECT * FROM embassy_presence",
+            // "SELECT * FROM embassy_module",
+            // "SELECT * FROM farm_module",
+            // "SELECT * FROM observatory_module",
             "SELECT * FROM refinery_module",
             "SELECT * FROM solar_array_module",
-            "SELECT * FROM synthesizer_module",
-            "SELECT * FROM production_recipe_definition",
-            "SELECT * FROM manufacturing_module",
-            "SELECT * FROM laboratory_module",
-            "SELECT * FROM capital_dock_module",
-            "SELECT * FROM docked_capital_ship_at_module",
-            "SELECT * FROM anti_capital_turret_module",
-            "SELECT * FROM residential_module",
-            "SELECT * FROM hospital_module",
+            // "SELECT * FROM synthesizer_module",
+            // "SELECT * FROM production_recipe_definition",
+            // "SELECT * FROM manufacturing_module",
+            // "SELECT * FROM laboratory_module",
+            // "SELECT * FROM capital_dock_module",
+            // "SELECT * FROM docked_capital_ship_at_module",
+            // "SELECT * FROM anti_capital_turret_module",
+            // "SELECT * FROM residential_module",
+            // "SELECT * FROM hospital_module",
             "SELECT * FROM station_module_blueprint",
             "SELECT * FROM station_module",
             "SELECT * FROM station_module_inventory_item",
@@ -178,6 +185,7 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
             sobj_hi_res_transform.as_str(),
             sobj_low_res_transform.as_str(),
             sobj_player_window.as_str(),
+            visual_effect.as_str(),
         ]);
 }
 

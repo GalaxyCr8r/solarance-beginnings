@@ -1,0 +1,100 @@
+use crate::*;
+use spacetimedb::{log::info, table, ReducerContext, ScheduleAt, Timestamp};
+
+use super::*;
+
+#[dsl(plural_name = station_production_schedules, method(update = false))]
+#[table(name = station_production_schedule, scheduled(process_station_production_tick))]
+pub struct StationProductionSchedule {
+    #[primary_key]
+    #[use_wrapper(StationId)]
+    /// FK to SpaceStation
+    id: u64,
+    scheduled_at: ScheduleAt, // Periodic (e.g., every minute or 5 minutes)
+
+    last_processed_timestamp: Timestamp,
+}
+
+//////////////////////////////////////////////////////////////
+
+/// Scheduled reducer that processes production for all modules in a station.
+/// Handles resource production, manufacturing, logistics, and other station module operations.
+#[spacetimedb::reducer]
+pub fn process_station_production_tick(
+    ctx: &ReducerContext,
+    timer: StationProductionSchedule,
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
+
+    // Get the station
+    let station = dsl.get_station_by_id(timer.get_id())?;
+    let modules: Vec<_> = dsl
+        .get_station_modules_by_station_id(timer.get_id())
+        .collect();
+
+    // info!(
+    //     "Processing production tick for station #{}: {}",
+    //     timer.id, station.name
+    // );
+    // info!(
+    //     "Station {} has {} modules to process",
+    //     timer.id,
+    //     modules.len()
+    // );
+
+    // Iterate through each station's modules
+    for module in modules {
+        let wrapped_blueprint = dsl.get_station_module_blueprint_by_id(&module.get_blueprint());
+        if wrapped_blueprint.is_err() {
+            info!(
+                "WARNING Station Module Blueprint #{} does not exist. Station #{} is looking for it.",
+                module.get_blueprint(),
+                timer.get_id()
+            );
+            continue;
+        }
+        let blueprint = wrapped_blueprint.unwrap();
+
+        info!(
+            "Processing module {} of type {:?}",
+            module.get_id(),
+            blueprint.get_category()
+        );
+
+        let result = match blueprint.get_category() {
+            StationModuleCategory::LogisticsAndStorage => {
+                update_logistics_and_storage(&dsl, &station, &module, &blueprint)
+            }
+            StationModuleCategory::ResourceProductionAndRefining => {
+                update_resource_production_and_refining(&dsl, &station, &module, &blueprint)
+            }
+            StationModuleCategory::ManufacturingAndAssembly => {
+                update_manufacturing_and_assembly(&dsl, &station, &module, &blueprint)
+            }
+            StationModuleCategory::ResearchAndDevelopment => {
+                update_research_and_development(&dsl, &station, &module, &blueprint)
+            }
+            StationModuleCategory::CivilianAndSupportServices => {
+                update_civilian_and_support_services(&dsl, &station, &module, &blueprint)
+            }
+            StationModuleCategory::DiplomacyAndFaction => {
+                update_diplomacy_and_faction(&dsl, &station, &module, &blueprint)
+            }
+            StationModuleCategory::DefenseAndMilitary => {
+                update_defense_and_military(&dsl, &station, &module, &blueprint)
+            }
+        };
+
+        if let Err(e) = result {
+            info!("Error processing module {}: {}", module.get_id(), e);
+        }
+    }
+
+    info!(
+        "Completed production tick for station #{}: {} (Sector ID#:{})",
+        timer.get_id(),
+        station.get_name(),
+        station.get_sector_id()
+    );
+    Ok(())
+}
