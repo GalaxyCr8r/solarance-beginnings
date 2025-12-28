@@ -1,4 +1,4 @@
-use crate::tables::global_config::*;
+use crate::{tables::global_config::*, timers::initialize_timers};
 use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 use tables::*;
@@ -15,6 +15,7 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     let dsl = dsl(ctx);
 
     definitions::init(&dsl)?;
+    initialize_timers(&dsl)?;
 
     // Create a Global Config row, or reinitalize the one if it exists.
     if dsl.get_all_global_configurations().count() == 0 {

@@ -21,8 +21,8 @@ fn window_conf() -> Conf {
     }
     #[cfg(target_os = "macos")]
     {
-        let _exe_directory = get_exe_path();
-        if get_exe_path().join("../Resources/.env").exists() {
+        let exe_directory = get_exe_path();
+        if exe_directory.join("../Resources/.env").exists() {
             let env_path = get_exe_path().join("../Resources/.env");
             dotenv::from_path(env_path.clone()).ok();
             info!("Env Path: {:?}", env_path.clone().to_str().unwrap());
@@ -79,8 +79,8 @@ async fn main() -> Result<(), macroquad::Error> {
     #[cfg(target_os = "macos")]
     {
         let exe_directory = get_exe_path();
-        if get_exe_path().join("../Resources/.env").exists() {
-            let env_path = get_exe_path().join("../Resources/.env");
+        if exe_directory.join("../Resources/.env").exists() {
+            let env_path = exe_directory.join("../Resources/.env");
             dotenv::from_path(env_path.clone()).ok();
 
             info!(
