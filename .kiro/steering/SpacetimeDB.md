@@ -115,7 +115,7 @@ pub fn create_entity(ctx: &ReducerContext, params: Type) -> Result<(), String> {
 For reducers that should only be callable by the server (not by clients), use the `try_server_only` function:
 
 ```rust
-use crate::types::common::utility::try_server_only;
+use crate::tables::common::utility::try_server_only;
 
 #[spacetimedb::reducer]
 pub fn server_only_operation(ctx: &ReducerContext, params: Type) -> Result<(), String> {

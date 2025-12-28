@@ -38,7 +38,9 @@ graph TD
 #### VisualEffect Table
 
 ```rust
-#[dsl(plural_name = visual_effects)]
+#[dsl(plural_name = visual_effects,
+    method(update = false, delete = false)
+)]
 #[table(name = visual_effect, public)]
 pub struct VisualEffect {
     #[primary_key]

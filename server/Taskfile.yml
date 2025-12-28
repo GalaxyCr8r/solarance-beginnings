@@ -10,32 +10,32 @@ tasks:
   publish:
     desc: "Server: Publish to Local ST (Keeps DB)"
     cmds:
-      - spacetime publish solarance-beginnings
+      - spacetime publish --server local solarance-beginnings
 
   publish-clear:
     desc: "Server: Publish to Local ST & Clears DB"
     cmds:
-      - spacetime publish -c solarance-beginnings -y
+      - spacetime publish --server local -c solarance-beginnings -y
 
   publish-mc:
     desc: "Server: Publish to Maincloud ST (Keeps DB)"
     cmds:
-      - spacetime publish -s maincloud solarance-beginnings -y
+      - spacetime publish solarance-beginnings -y
 
   publish-clear-mc:
     desc: "Server: Publish to Local ST & Clears DB"
     cmds:
-      - spacetime publish -s maincloud -c solarance-beginnings -y
+      - spacetime publish -c solarance-beginnings -y
 
   delete-mc:
     desc: "Server: Delete Maincloud ST"
     cmds:
-      - spacetime delete -s maincloud solarance-beginnings
+      - spacetime delete solarance-beginnings
 
   clear:
     desc: "Server: Clear ST Database"
     cmds:
-      - spacetime publish solarance-beginnings --delete-data
+      - spacetime publish --server local solarance-beginnings --delete-data
 
   tables:
     desc: "Generate Table Names File for Easier Subscriptions"

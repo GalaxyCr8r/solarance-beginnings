@@ -65,7 +65,7 @@ pub struct ServerMessageRecipient {
     id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = crate::types::server_messages::ServerMessageId)]
+    #[use_wrapper(path = crate::tables::server_messages::ServerMessageId)]
     pub server_message_id: u64,
 
     #[index(btree)]

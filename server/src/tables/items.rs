@@ -1,0 +1,187 @@
+use spacetimedb::{table, SpacetimeType, Timestamp};
+use spacetimedsl::*;
+
+use crate::tables::{
+    combat::{MissileType, WeaponType},
+    ships::*,
+};
+
+#[derive(SpacetimeType, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum ResourceCategory {
+    RawOre,
+    RefinedIngot,
+    StoredEnergy,
+    ManufacturedComponentBasic,
+    ManufacturedComponentAdvanced,
+    BiomatterRaw,
+    BiomatterProcessedFood,   // Basic food
+    BiomatterProcessedLuxury, // Luxury food
+    ConsumableShipAmmo,
+    ConsumableShipFuel,
+    ExoticMatter,          // For high-tier research/construction
+    ResearchDataFragments, // Gathered from anomalies/ruins
+    FinishedGoods,         // For trade, NPC requests
+}
+
+#[derive(SpacetimeType, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum OreType {
+    NickelIron,
+    Silicon,
+    Ice,
+    Platinum,
+    Tungsten,
+    Carbon,
+}
+
+#[derive(SpacetimeType, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum ShipModuleType {
+    Engine,
+    ShieldGenerator,
+    WeaponKinetic,
+    WeaponEnergy,
+    WeaponMissile,
+    MiningLaserBasic,
+    MiningLaserAdvanced,
+    CargoExpander,
+    ScannerBasic,
+    ScannerAdvanced,
+    TractorBeam,
+    CloakingDevice,
+    RepairSystem,
+    WarpDrive,
+    JumpDrive, // For inter-system travel
+}
+
+// Enum for different categories of items
+#[derive(SpacetimeType, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum ItemCategory {
+    ShipModule(ShipModuleType),
+    Resource(ResourceCategory),
+}
+
+/// Enum for different effects for items/modules
+#[derive(SpacetimeType, Clone, Debug, PartialEq)]
+pub enum ItemMetadata {
+    // Weapon Module Types
+    /// This item is a type of weapon
+    Weapon(WeaponType),
+    /// This item is a type of missile launcher
+    MissileLauncher(MissileType),
+
+    /// Base damage damage others modify
+    BaseDamage(f32),
+    /// The multipler modifier for damage done to hull
+    KineticDamageMod(f32),
+    /// The multipler modifier for damage done to shields
+    ShieldDamageMod(f32),
+    /// A flat boost to BaseDamage
+    BaseDamageBoost(f32),
+
+    /// How far is the maximum range for this weapon/missile launcher
+    MaximumRange(f32),
+    /// How long between firing for weapon/missile launchers/special ship module types in milliseconds
+    CooldownMs(u32),
+    /// Is the half-angle that determines if your ship is pointing close enough to the target.
+    /// Relevant for Weapons, Missiles, and Mining Beams
+    LockOnAngleBoundRads(f32),
+
+    /// How big of an effect does this item have
+    AreaOfEffect(f32),
+    /// Fall off of effects, lower is smaller. e.g. 0.5=linear, 0.25=cubic, etc.
+    FallOff(f32),
+
+    /// A flat boost to the ship's shield output
+    ShieldBoost(f32),
+    /// Adds additional cargo capacity
+    CargoCapacityBoost(u16),
+    /// From 0.001 to 10.0
+    MiningSpeedMultiplier(f32),
+
+    /// How much energy this item consumes per second or usage.
+    EnergyConsumption(f32),
+    /// Some other special effect
+    SpecialEffect(String),
+
+    /// How many of this item can exist in a single stack
+    Stacks(u8),
+    /// This item cannot be stacked in ship cargo
+    NoStacking,
+    /// This item cannot be traded
+    NoTrade,
+    /// This item cannot be sold
+    NoSell,
+    /// Cannot be dropped from inventory
+    NoDrop,
+    /// Quality of the item, 0-100
+    Quality(u8),
+}
+
+#[dsl(plural_name = item_definitions, method(update = true))]
+#[table(name = item_definition, public)]
+pub struct ItemDefinition {
+    #[primary_key]
+    #[create_wrapper]
+    #[referenced_by(path = crate::tables::asteroids, table = asteroid)]
+    #[referenced_by(path = crate::tables::ships, table = ship_cargo_item)]
+    #[referenced_by(path = crate::tables::ships, table = ship_equipment_slot)]
+    #[referenced_by(path = crate::tables::stations, table = station_module_inventory_item)]
+    #[referenced_by(path = crate::tables::items, table = cargo_crate)]
+    id: u32,
+
+    pub name: String, // E.g., "Iron Ore", "Laser Cannon Mk2", "Energy Cells"
+    pub description: Option<String>,
+
+    pub category: ItemCategory,
+
+    pub base_value: u32,       // Base monetary value
+    pub margin_percentage: u8, // Default margin e.g. 10%
+    pub volume_per_unit: u16,  // How much cargo space one unit takes
+    pub units_per_stack: u8,   // How units can be stacked in cargo slot
+    // For equipment, additional stats might be here or in a linked table:
+    // E.g., damage: Option<u32>, shield_boost: Option<u32>, etc.
+    pub metadata: Vec<ItemMetadata>,
+
+    pub gfx_key: Option<String>, // For items that have a visual representation
+}
+
+#[dsl(plural_name = cargo_crates, method(update = true))]
+#[table(name = cargo_crate, public)]
+pub struct CargoCrate {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]
+    id: u64,
+
+    #[use_wrapper(crate::tables::sectors::SectorId)]
+    #[index(btree)] // To find crates in a specific sector
+    #[foreign_key(path = crate::tables::sectors, table = sector, column = id, on_delete = Delete)]
+    /// FK to Sector.id
+    current_sector_id: u64,
+
+    #[unique]
+    #[use_wrapper(crate::tables::stellarobjects::StellarObjectId)]
+    #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
+    /// FK to StellarObject
+    sobj_id: u64,
+
+    #[use_wrapper(ItemDefinitionId)]
+    #[index(btree)]
+    #[foreign_key(path = crate::tables::items, table = item_definition, column = id, on_delete = Delete)]
+    /// FK to ItemDefinition
+    item_id: u32,
+    pub quantity: u16,
+
+    despawn_ts: Option<Timestamp>, // When the crate should disappear if not collected
+
+    gfx_key: Option<String>,
+}
+
+//////////////////////////////////////////////////////////////
+// Impls
+//////////////////////////////////////////////////////////////
+
+impl ItemDefinition {
+    pub fn can_any_of_this_fit_inside_this_ship(&self, ship_status: &ShipStatus) -> bool {
+        (ship_status.get_remaining_cargo_space() / self.volume_per_unit) > 0
+    }
+}
