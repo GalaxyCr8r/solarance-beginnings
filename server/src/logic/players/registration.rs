@@ -24,7 +24,7 @@ pub fn register_playername(
 
     // TODO: Check if the identity already has a player!!!!
 
-    if dsl.get_player_by_id(PlayerId::new(identity)).is_err() {
+    if dsl.get_player_by_id(PlayerId::new(identity)).is_ok() {
         return Err("Player Already Registered.".to_string());
     }
 

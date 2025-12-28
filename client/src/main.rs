@@ -21,7 +21,7 @@ fn window_conf() -> Conf {
     }
     #[cfg(target_os = "macos")]
     {
-        let exe_directory = get_exe_path();
+        let _exe_directory = get_exe_path();
         if get_exe_path().join("../Resources/.env").exists() {
             let env_path = get_exe_path().join("../Resources/.env");
             dotenv::from_path(env_path.clone()).ok();

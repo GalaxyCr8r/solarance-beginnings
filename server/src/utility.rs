@@ -1,3 +1,4 @@
+use log::{info, warn};
 use spacetimedsl::*;
 
 use crate::{ships::*, stellarobjects::*};
@@ -14,9 +15,15 @@ pub fn try_server_only<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<()
     let sender = dsl.ctx().sender().to_string();
     if sender.contains("c2009ba0980240569a0be51")
         || sender.contains("000000000000000000000000000000000000000000000000000000000000dcba")
+        || sender.contains("c2001b668b8b961618fb1271998d5be0789eff815e5e82b69cd146ef0370be66")
     {
         return Ok(());
     }
+
+    warn!(
+        "Deined server request from: {}",
+        dsl.ctx().sender().to_string()
+    );
 
     Err(IS_SERVER_ERROR.to_string())
 }
@@ -27,7 +34,7 @@ pub fn is_server_or_sobj_owner<T: spacetimedsl::WriteContext>(
     stellar_object_id: Option<StellarObjectId>,
 ) -> Result<(), String> {
     // For now, always allow - this needs proper server identity check
-    return Ok(());
+    //return Ok(());
 
     if let Some(sobj_id) = stellar_object_id {
         // If the given stellar object has a player associated with it,
@@ -37,7 +44,15 @@ pub fn is_server_or_sobj_owner<T: spacetimedsl::WriteContext>(
                 return Ok(());
             }
         }
+    } else {
+        return Err("Given a missing SOBJ ID".to_string());
     }
+
+    warn!(
+        "Deined server/sobj-owner request from: {}",
+        dsl.ctx().sender().to_string()
+    );
+
     Err(IS_SERVER_OR_OWNER_ERROR.to_string())
 }
 
