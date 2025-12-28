@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use glam::Vec2;
 use log::info;
-use spacetimedb::*;
+use spacetimedb::{table, Identity, ReducerContext};
 use spacetimedsl::*;
 
 use crate::{
@@ -20,16 +20,16 @@ use crate::{
 
 /// Main Table
 
-#[dsl(plural_name = player_ship_controllers)]
+#[dsl(plural_name = player_ship_controllers, method(update = true))]
 #[table(name = player_ship_controller, public)]
 pub struct PlayerShipController {
     #[primary_key]
-    #[use_wrapper(path = PlayerId)]
+    #[use_wrapper(PlayerId)]
     #[foreign_key(path = crate::tables::players, table = player, column = id, on_delete = Delete)]
     id: Identity,
 
     #[index(btree)]
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     pub stellar_object_id: u64,
 
@@ -60,38 +60,38 @@ pub struct PlayerShipController {
     pub targetted_sobj_id: Option<u64>,
 }
 
-pub fn initialize_player_controller(
-    dsl: &DSL,
+pub fn initialize_player_controller<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     player: &PlayerId,
     sobj: &StellarObject,
 ) -> Result<(), String> {
-    dsl.create_player_ship_controller(
-        player,
-        sobj.get_id(),
-        false,
-        false,
-        false,
-        false,
-        CurrentAction::Idle,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        None,
-    )?;
-    dsl.create_player_ship_controller_update_timer(
-        spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 20).into()),
-        player,
-    )?;
-    dsl.create_player_ship_controller_logic_timer(
-        spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 2).into()),
-        player,
-    )?;
+    dsl.create_player_ship_controller(CreatePlayerShipController {
+        id: player.clone(),
+        stellar_object_id: sobj.get_id(),
+        up: false,
+        down: false,
+        left: false,
+        right: false,
+        current_action: CurrentAction::Idle,
+        activate_jump_drive: false,
+        tractor_beam_on: false,
+        mining_laser_on: false,
+        cargo_bay_open: false,
+        dock: false,
+        undock: false,
+        shield_boost: false,
+        fire_weapons: false,
+        fire_missles: false,
+        targetted_sobj_id: None,
+    })?;
+    dsl.create_player_ship_controller_update_timer(CreatePlayerShipControllerUpdateTimer {
+        scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 20).into()),
+        player: player.clone(),
+    })?;
+    dsl.create_player_ship_controller_logic_timer(CreatePlayerShipControllerLogicTimer {
+        scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 2).into()),
+        player: player.clone(),
+    })?;
     Ok(())
 }
 
@@ -210,8 +210,8 @@ pub fn update_player_controller(
 
 /// Scheduled reducer that updates player ship movement controls and physics.
 /// Runs at 20 FPS to handle ship acceleration, rotation, and velocity damping based on player input.
-#[dsl(plural_name = player_ship_controller_update_timers)]
-#[spacetimedb::table(
+#[dsl(plural_name = player_ship_controller_update_timers, method(update = true))]
+#[table(
     name = player_ship_controller_update_timer,
     scheduled(timer_player_controller_movement_update)
 )]
@@ -222,14 +222,14 @@ pub struct PlayerControllerMovementTimer {
     id: u64,
     scheduled_at: spacetimedb::ScheduleAt,
 
-    #[use_wrapper(path = crate::players::PlayerId)]
+    #[use_wrapper(crate::players::PlayerId)]
     pub player: Identity,
 }
 
 /// Scheduled reducer that handles player ship logic operations like mining, docking, and cargo pickup.
 /// Runs at 2 FPS to process less time-sensitive actions based on player targets and proximity.
-#[dsl(plural_name = player_ship_controller_logic_timers)]
-#[spacetimedb::table(
+#[dsl(plural_name = player_ship_controller_logic_timers, method(update = true))]
+#[table(
     name = player_ship_controller_logic_timer,
     scheduled(timer_player_controller_interaction_update)
 )]
@@ -240,7 +240,7 @@ pub struct PlayerControllerInteractionTimer {
     id: u64,
     scheduled_at: spacetimedb::ScheduleAt,
 
-    #[use_wrapper(path = crate::players::PlayerId)]
+    #[use_wrapper(crate::players::PlayerId)]
     pub player: Identity,
 }
 
@@ -423,8 +423,8 @@ pub fn timer_player_controller_interaction_update(
 }
 
 /// Verifies the controller's targetted stellar object exists and retrieves it.
-pub fn get_targetted_sobj(
-    dsl: &DSL,
+pub fn get_targetted_sobj<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     controller: &PlayerShipController,
     player_sobj: &StellarObject,
 ) -> Result<StellarObject, String> {
@@ -444,8 +444,8 @@ pub fn get_targetted_sobj(
     }
 }
 
-pub fn try_update_ship_velocity(
-    dsl: &DSL,
+pub fn try_update_ship_velocity<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     velocity: &mut StellarObjectVelocity,
     controller: &PlayerShipController,
     ship_object: &Ship,
@@ -482,8 +482,8 @@ pub fn try_update_ship_velocity(
     Ok(())
 }
 
-pub fn remove_old_timers(
-    dsl: &DSL,
+pub fn remove_old_timers<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     controller: &PlayerShipController,
     ship_object: &Ship,
 ) -> Result<(), String> {

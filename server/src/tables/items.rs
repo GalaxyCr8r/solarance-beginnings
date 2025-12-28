@@ -1,4 +1,4 @@
-use spacetimedb::*;
+use spacetimedb::{table, SpacetimeType, Timestamp};
 use spacetimedsl::*;
 
 use crate::tables::{
@@ -116,7 +116,7 @@ pub enum ItemMetadata {
     Quality(u8),
 }
 
-#[dsl(plural_name = item_definitions)]
+#[dsl(plural_name = item_definitions, method(update = true))]
 #[table(name = item_definition, public)]
 pub struct ItemDefinition {
     #[primary_key]
@@ -144,7 +144,7 @@ pub struct ItemDefinition {
     pub gfx_key: Option<String>, // For items that have a visual representation
 }
 
-#[dsl(plural_name = cargo_crates)]
+#[dsl(plural_name = cargo_crates, method(update = true))]
 #[table(name = cargo_crate, public)]
 pub struct CargoCrate {
     #[primary_key]
@@ -152,28 +152,28 @@ pub struct CargoCrate {
     #[create_wrapper]
     id: u64,
 
-    #[use_wrapper(path = crate::tables::sectors::SectorId)]
+    #[use_wrapper(crate::tables::sectors::SectorId)]
     #[index(btree)] // To find crates in a specific sector
     #[foreign_key(path = crate::tables::sectors, table = sector, column = id, on_delete = Delete)]
     /// FK to Sector.id
-    pub current_sector_id: u64,
+    current_sector_id: u64,
 
     #[unique]
-    #[use_wrapper(path = crate::tables::stellarobjects::StellarObjectId)]
+    #[use_wrapper(crate::tables::stellarobjects::StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     /// FK to StellarObject
-    pub sobj_id: u64,
+    sobj_id: u64,
 
-    #[use_wrapper(path = ItemDefinitionId)]
+    #[use_wrapper(ItemDefinitionId)]
     #[index(btree)]
     #[foreign_key(path = crate::tables::items, table = item_definition, column = id, on_delete = Delete)]
     /// FK to ItemDefinition
-    pub item_id: u32,
+    item_id: u32,
     pub quantity: u16,
 
-    pub despawn_ts: Option<Timestamp>, // When the crate should disappear if not collected
+    despawn_ts: Option<Timestamp>, // When the crate should disappear if not collected
 
-    pub gfx_key: Option<String>,
+    gfx_key: Option<String>,
 }
 
 //////////////////////////////////////////////////////////////

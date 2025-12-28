@@ -3,16 +3,16 @@ use spacetimedb::{log::info, table, ReducerContext, ScheduleAt, Timestamp};
 
 use super::*;
 
-#[dsl(plural_name = station_production_schedules)]
+#[dsl(plural_name = station_production_schedules, method(update = false))]
 #[table(name = station_production_schedule, scheduled(process_station_production_tick))]
 pub struct StationProductionSchedule {
     #[primary_key]
-    #[use_wrapper(path = StationId)]
+    #[use_wrapper(StationId)]
     /// FK to SpaceStation
     id: u64,
-    pub scheduled_at: ScheduleAt, // Periodic (e.g., every minute or 5 minutes)
+    scheduled_at: ScheduleAt, // Periodic (e.g., every minute or 5 minutes)
 
-    pub last_processed_timestamp: Timestamp,
+    last_processed_timestamp: Timestamp,
 }
 
 //////////////////////////////////////////////////////////////

@@ -3,9 +3,11 @@ use spacetimedb::*;
 use spacetimedsl::*;
 
 use crate::{
-    logic::ships::{mining::*, station_interactions::dock_to_station},
+    logic::ships::{
+        mining::*, player_controller::PlayerShipController, station_interactions::dock_to_station,
+    },
     tables::{
-        common_types::Vec2, jumpgates::*, players::*, sectors::GetSectorRowOptionById,
+        common_types::Vec2, jumpgates::*, players::*, sectors::*,
         server_messages::send_info_message, ships::*, stations::*, stellarobjects::*,
     },
 };
@@ -13,8 +15,8 @@ use crate::{
 /////////////////////////////////////////
 /// Object-type Logic
 
-pub fn try_mining_asteroid(
-    dsl: &DSL,
+pub fn try_mining_asteroid<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     controller: &PlayerShipController,
     ship_object: &Ship,
     ship_sobj: &StellarObject,
@@ -61,8 +63,8 @@ pub fn try_mining_asteroid(
     Ok(())
 }
 
-pub fn try_to_dock_to_station(
-    dsl: &DSL,
+pub fn try_to_dock_to_station<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     player_ship_obj: &Ship,
     ship_sobj: &StellarObject,
     station: &Station,
@@ -77,8 +79,8 @@ pub fn try_to_dock_to_station(
     Ok(())
 }
 
-pub fn try_to_use_jumpgate(
-    dsl: &DSL,
+pub fn try_to_use_jumpgate<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     player_ship_obj: &Ship,
     jumpgate: &JumpGate,
 ) -> Result<(), String> {

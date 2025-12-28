@@ -1,10 +1,10 @@
 use super::*;
 
-#[dsl(plural_name = storage_depot_modules)]
+#[dsl(plural_name = storage_depot_modules, method(update = true))]
 #[table(name = storage_depot_module, public)]
 pub struct StorageDepot {
     #[primary_key]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     /// FK to StationModule
     id: u64,
     // Configuration for item capacity is better in StationModuleBlueprint (max_internal_storage_slots/volume)

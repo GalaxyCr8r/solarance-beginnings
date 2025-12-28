@@ -1,14 +1,11 @@
-use spacetimedb::*;
+use spacetimedb::{table, Identity, Timestamp};
 use spacetimedsl::*;
 
 use crate::tables::factions::FactionId;
 
 use super::stellarobjects::*;
 
-// Re-export PlayerShipController for referenced_by attributes
-pub use crate::logic::ships::player_controller::PlayerShipController;
-
-#[dsl(plural_name = players)]
+#[dsl(plural_name = players, method(update = true))]
 #[table(name = player, public)]
 pub struct Player {
     #[primary_key]
@@ -34,7 +31,7 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn get_ship_id(&self, dsl: &DSL) -> Option<u64> {
+    pub fn get_ship_id<T: spacetimedsl::WriteContext>(&self, dsl: &DSL<T>) -> Option<u64> {
         if let Ok(window) = dsl.get_sobj_player_window_by_id(&self.get_id()) {
             Some(window.get_sobj_id().value())
         } else {
@@ -47,18 +44,15 @@ impl Player {
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init(_dsl: &DSL) -> Result<(), String> {
+pub fn init<T: spacetimedsl::WriteContext>(_dsl: &DSL<T>) -> Result<(), String> {
     Ok(())
 }
 
-pub fn get_username(dsl: &DSL, id: Identity) -> String {
+pub fn get_username<T: spacetimedsl::WriteContext>(dsl: &DSL<T>, id: Identity) -> String {
     if let Some(player) = dsl.get_player_by_id(&PlayerId::new(id)).ok() {
         player.username
     } else {
-        if dsl.ctx().sender == dsl.ctx().identity() {
-            "SERVER".to_string()
-        } else {
-            id.to_abbreviated_hex().to_string()
-        }
+        // TODO: Check if sender is server
+        id.to_abbreviated_hex().to_string()
     }
 }

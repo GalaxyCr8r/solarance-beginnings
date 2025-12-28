@@ -25,7 +25,7 @@ impl ServerMessageType {
     }
 }
 
-#[dsl(plural_name = server_messages)]
+#[dsl(plural_name = server_messages, method(update = false))]
 #[table(name = server_message, public)]
 pub struct ServerMessage {
     #[primary_key]
@@ -34,10 +34,10 @@ pub struct ServerMessage {
     #[referenced_by(path = crate::tables::server_messages, table = server_message_recipient)]
     id: u64,
 
-    pub message: String,
-    pub message_type: ServerMessageType,
-    pub group_name: Option<String>,     // For group messages
-    pub sender_context: Option<String>, // Context about what action triggered this
+    message: String,
+    message_type: ServerMessageType,
+    group_name: Option<String>,     // For group messages
+    sender_context: Option<String>, // Context about what action triggered this
 
     created_at: Timestamp,
 }
@@ -62,7 +62,7 @@ impl ServerMessage {
     }
 }
 
-#[dsl(plural_name = server_message_recipients)]
+#[dsl(plural_name = server_message_recipients, method(update = true))]
 #[table(name = server_message_recipient, public)]
 pub struct ServerMessageRecipient {
     #[primary_key]
@@ -71,12 +71,12 @@ pub struct ServerMessageRecipient {
     id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = crate::tables::server_messages::ServerMessageId)]
+    #[use_wrapper(crate::tables::server_messages::ServerMessageId)]
     #[foreign_key(path = crate::tables::server_messages, table = server_message, column = id, on_delete = Delete)]
     pub server_message_id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = crate::tables::players::PlayerId)]
+    #[use_wrapper(crate::tables::players::PlayerId)]
     #[foreign_key(path = crate::tables::players, table = player, column = id, on_delete = Delete)]
     pub player_id: Identity,
 
@@ -112,35 +112,35 @@ impl ServerMessageRecipient {
 ///
 
 /// Send message to individual player (server-only)
-pub fn send_server_message_to_player(
-    dsl: &DSL,
+pub fn send_server_message_to_player<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     player_id: &PlayerId,
     message: String,
     message_type: ServerMessageType,
     sender_context: Option<String>,
 ) -> Result<(), String> {
     // Create the server message
-    let server_message = dsl.create_server_message(
-        &message,
-        message_type,
-        None, // No group name for individual messages
-        sender_context,
-    )?;
+    let server_message = dsl.create_server_message(CreateServerMessage {
+        message: message.clone(),
+        message_type: message_type.clone(),
+        group_name: None, // No group name for individual messages
+        sender_context: sender_context.clone(),
+    })?;
 
     // Create recipient record
-    dsl.create_server_message_recipient(
-        ServerMessageId::new(server_message.id),
-        player_id.clone(),
-        None, // read_at starts as None
-        dsl.ctx().timestamp,
-    )?;
+    dsl.create_server_message_recipient(CreateServerMessageRecipient {
+        server_message_id: ServerMessageId::new(server_message.id),
+        player_id: player_id.clone(),
+        read_at: None, // read_at starts as None
+        delivered_at: dsl.ctx().timestamp(),
+    })?;
 
     Ok(())
 }
 
 /// Send message to multiple players with optional group name (server-only)
-pub fn send_server_message_to_group(
-    dsl: &DSL,
+pub fn send_server_message_to_group<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     player_ids: Vec<PlayerId>,
     message: String,
     message_type: ServerMessageType,
@@ -152,25 +152,29 @@ pub fn send_server_message_to_group(
     }
 
     // Create the server message
-    let server_message =
-        dsl.create_server_message(&message, message_type, group_name, sender_context)?;
+    let server_message = dsl.create_server_message(CreateServerMessage {
+        message: message.clone(),
+        message_type: message_type.clone(),
+        group_name: group_name.clone(),
+        sender_context: sender_context.clone(),
+    })?;
 
     // Create recipient records for each player
     for player_id in player_ids {
-        dsl.create_server_message_recipient(
-            ServerMessageId::new(server_message.id),
-            player_id,
-            None, // read_at starts as None
-            dsl.ctx().timestamp,
-        )?;
+        dsl.create_server_message_recipient(CreateServerMessageRecipient {
+            server_message_id: ServerMessageId::new(server_message.id),
+            player_id: player_id,
+            read_at: None, // read_at starts as None
+            delivered_at: dsl.ctx().timestamp(),
+        })?;
     }
 
     Ok(())
 }
 
 /// Convenience function for error messages from reducers (server-only)
-pub fn send_error_message(
-    dsl: &DSL,
+pub fn send_error_message<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     player_id: &PlayerId,
     message: String,
     action_context: Option<&str>,
@@ -185,8 +189,8 @@ pub fn send_error_message(
 }
 
 /// Convenience function for info messages from reducers (server-only)
-pub fn send_info_message(
-    dsl: &DSL,
+pub fn send_info_message<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     player_id: &PlayerId,
     message: String,
     action_context: Option<&str>,
@@ -201,8 +205,8 @@ pub fn send_info_message(
 }
 
 /// Convenience function for warning messages from reducers (server-only)
-pub fn send_warning_message(
-    dsl: &DSL,
+pub fn send_warning_message<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     player_id: &PlayerId,
     message: String,
     action_context: Option<&str>,
@@ -217,8 +221,8 @@ pub fn send_warning_message(
 }
 
 /// Convenience function for admin messages from reducers (server-only)
-pub fn send_admin_message(
-    dsl: &DSL,
+pub fn send_admin_message<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     player_id: &PlayerId,
     message: String,
     action_context: Option<&str>,
@@ -233,15 +237,18 @@ pub fn send_admin_message(
 }
 
 /// Get unread message count for a player
-pub fn get_unread_message_count(dsl: &DSL, player_id: &PlayerId) -> u64 {
+pub fn get_unread_message_count<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    player_id: &PlayerId,
+) -> u64 {
     dsl.get_server_message_recipients_by_player_id(player_id)
         .filter(|recipient| recipient.read_at.is_none())
         .count() as u64
 }
 
 /// Get all unread messages for a player
-pub fn get_unread_messages_for_player(
-    dsl: &DSL,
+pub fn get_unread_messages_for_player<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     player_id: &PlayerId,
 ) -> Result<Vec<(ServerMessage, ServerMessageRecipient)>, String> {
     let unread_recipients: Vec<ServerMessageRecipient> = dsl
@@ -267,8 +274,8 @@ pub fn get_unread_messages_for_player(
 }
 
 /// Mark a message as read for a specific player
-pub fn mark_message_as_read(
-    dsl: &DSL,
+pub fn mark_message_as_read<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     player_id: &PlayerId,
     server_message_id: u64,
 ) -> Result<(), String> {
@@ -278,7 +285,7 @@ pub fn mark_message_as_read(
         .find(|r| r.server_message_id == server_message_id);
 
     if let Some(mut recipient) = recipient_opt {
-        recipient.read_at = Some(dsl.ctx().timestamp);
+        recipient.read_at = Some(dsl.ctx().timestamp());
         dsl.update_server_message_recipient_by_id(recipient)?;
         Ok(())
     } else {

@@ -1,4 +1,4 @@
-use spacetimedb::*;
+use spacetimedb::table;
 use spacetimedsl::*;
 
 use crate::tables::sectors::*;
@@ -19,19 +19,19 @@ pub const MODULE_SOLAR_ARRAY_MEDIUM: u32 = 7_001;
 pub const MODULE_SOLAR_ARRAY_LARGE: u32 = 7_002;
 pub const MODULE_SOLAR_ARRAY_INDUSTRIAL: u32 = 7_003;
 
-#[dsl(plural_name = solar_array_modules)]
+#[dsl(plural_name = solar_array_modules, method(update = true))]
 #[table(name = solar_array_module, public)]
 pub struct SolarArray {
     #[primary_key]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     /// FK to StationModule
     id: u64,
 
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     /// FK to ItemDefinition
-    pub output_energy_cell_resource_id: u32, // FK to ResourceDefinition
+    output_energy_cell_resource_id: u32, // FK to ResourceDefinition
 
-    pub base_energy_cells_produced_per_hour: u32,
+    base_energy_cells_produced_per_hour: u32,
     /// Efficiency based on sector's sunlight_percentage and module health/upgrades.
     pub current_efficiency_modifier: f32, // Default 1.0
 }
@@ -47,8 +47,8 @@ pub struct SolarArrayProductionResult {
 ////////////////////////////////////
 /// Create Module
 
-pub fn create_simple_solar_array_module(
-    dsl: &DSL,
+pub fn create_simple_solar_array_module<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     station: &Station,
     under_construction: bool,
     array_size: SolarArraySize,
@@ -68,34 +68,34 @@ pub fn create_simple_solar_array_module(
         dsl.get_station_module_blueprint_by_id(StationModuleBlueprintId::new(blueprint_id))?;
     let identifier = format!("{:?} Solar Array", array_size);
 
-    let module = dsl.create_station_module(
-        station.get_id(),
-        blueprint.get_id(),
-        identifier.as_str(),
-        true,
-        None,
-        dsl.ctx().timestamp,
-    )?;
+    let module = dsl.create_station_module(CreateStationModule {
+        station_id: station.get_id(),
+        blueprint: blueprint.get_id(),
+        station_slot_identifier: identifier.as_str().to_string(),
+        is_operational: true,
+        built_at_timestamp: None,
+        last_status_update_timestamp: dsl.ctx().timestamp(),
+    })?;
 
     // Create solar array submodule
-    let solar_array = dsl.create_solar_array_module(
-        module.get_id(),
-        ItemDefinitionId::new(ITEM_ENERGY_CELL), // Always produces energy cells
-        base_production,
-        1.0, // Default efficiency modifier
-    )?;
+    let solar_array = dsl.create_solar_array_module(CreateSolarArrayModule {
+        id: module.get_id(),
+        output_energy_cell_resource_id: ItemDefinitionId::new(ITEM_ENERGY_CELL),
+        base_energy_cells_produced_per_hour: base_production,
+        current_efficiency_modifier: 1.0,
+    })?;
 
     // Create output inventory for energy cells
-    let mut item = dsl.create_station_module_inventory_item(
-        module.get_id(),
-        ItemDefinitionId::new(ITEM_ENERGY_CELL),
-        0,
-        blueprint
+    let mut item = dsl.create_station_module_inventory_item(CreateStationModuleInventoryItem {
+        module_id: module.get_id(),
+        resource_item_id: ItemDefinitionId::new(ITEM_ENERGY_CELL),
+        quantity: 0,
+        max_quantity: blueprint
             .get_max_internal_storage_volume_per_slot_m3()
             .unwrap(),
-        format!("{};{};output", module.get_id().value(), solar_array.id).as_str(),
-        0,
-    )?;
+        storage_purpose_tag: format!("{};{};output", module.get_id().value(), solar_array.id),
+        cached_price: 0,
+    })?;
 
     if let Ok(item_def) = dsl.get_item_definition_by_id(ItemDefinitionId::new(ITEM_ENERGY_CELL)) {
         let initial_price = item.calculate_current_price(&item_def);
@@ -110,8 +110,8 @@ pub fn create_simple_solar_array_module(
 /// Utilities
 
 /// Calculate the energy production for a solar array module
-pub fn calculate_solar_array_production(
-    dsl: &DSL,
+pub fn calculate_solar_array_production<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     solar_array: &SolarArray,
     time_elapsed_hours: f32,
 ) -> Result<SolarArrayProductionResult, String> {
@@ -186,17 +186,20 @@ fn calculate_sunlight_efficiency(sector: &Sector) -> f32 {
 }
 
 /// Calculate station health modifier for efficiency
-fn calculate_station_health_modifier(dsl: &DSL, station: &Station) -> Result<f32, String> {
+pub fn calculate_station_health_modifier<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    station: &Station,
+) -> Result<f32, String> {
     if let Ok(station_status) = dsl.get_station_status_by_id(station.get_id()) {
-        Ok((station_status.get_health() / 100.0).max(0.1))
+        Ok((station_status.health / 100.0).max(0.1))
     } else {
         Ok(1.0) // Default to full health if status not found
     }
 }
 
 /// Apply the calculated production results to the solar array's inventory
-pub fn apply_solar_array_production(
-    dsl: &DSL,
+pub fn apply_solar_array_production<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     solar_array: &SolarArray,
     production_result: &SolarArrayProductionResult,
 ) -> Result<(), String> {
@@ -210,13 +213,13 @@ pub fn apply_solar_array_production(
     if let Some(mut output_inventory) = dsl
         .get_all_station_module_inventory_items()
         .into_iter()
-        .find(|item| {
+        .find(|item: &StationModuleInventoryItem| {
             item.get_module_id() == station_module.get_id()
                 && item.get_resource_item_id() == solar_array.get_output_energy_cell_resource_id()
         })
     {
         let cells_to_add = production_result.energy_cells_produced;
-        output_inventory.set_quantity(output_inventory.get_quantity() + cells_to_add);
+        output_inventory.quantity = output_inventory.quantity + cells_to_add;
         dsl.update_station_module_inventory_item_by_id(output_inventory)?;
     }
 
@@ -224,8 +227,8 @@ pub fn apply_solar_array_production(
 }
 
 /// Calculate and update efficiency modifiers for solar array
-pub fn calculate_solar_array_efficiency(
-    dsl: &DSL,
+pub fn calculate_solar_array_efficiency<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     solar_array: &SolarArray,
 ) -> Result<f32, String> {
     let station_module = dsl.get_station_module_by_id(solar_array.get_id())?;

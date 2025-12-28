@@ -1,4 +1,4 @@
-use spacetimedb::*;
+use spacetimedb::{table, SpacetimeType};
 use spacetimedsl::*;
 
 use crate::tables::items::*;
@@ -37,7 +37,7 @@ pub enum OrderType {
     DefendSector(u64),   // sector_id
 }
 
-#[dsl(plural_name = npc_ship_controllers)]
+#[dsl(plural_name = npc_ship_controllers, method(update = true))]
 #[table(name = npc_ship_controller, public)]
 pub struct NpcShipController {
     #[primary_key]
@@ -46,7 +46,7 @@ pub struct NpcShipController {
     id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
     pub stellar_object_id: u64,
 

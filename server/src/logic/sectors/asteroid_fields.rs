@@ -12,8 +12,12 @@ use crate::{
 
 /// Function that maintains asteroid populations in sectors.
 /// Creates new asteroids when the count falls below the sector's sparseness threshold.
-pub fn asteroid_sector_upkeep(dsl: &DSL, sector_id: &SectorId) -> Result<(), String> {
-    let ctx = dsl.ctx();
+pub fn asteroid_sector_upkeep<T: spacetimedsl::WriteContext>(
+    ctx: &spacetimedb::ReducerContext,
+    dsl: &DSL<T>,
+    sector_id: &SectorId,
+) -> Result<(), String> {
+    // let ctx = dsl.ctx(); // No longer needed as passed explicitly
     try_server_only(dsl)?;
 
     let asteroid_sector = dsl.get_asteroid_sector_by_id(sector_id)?;
@@ -52,7 +56,14 @@ pub fn asteroid_sector_upkeep(dsl: &DSL, sector_id: &SectorId) -> Result<(), Str
 
         let amount = ctx.rng().gen_range(500..2000);
 
-        create_asteroid(dsl, pos, sector_id.into(), item, amount);
+        create_asteroid(
+            dsl,
+            pos,
+            sector_id.into(),
+            format!("asteroid.{}", ctx.rng().gen_range(1..=5)),
+            item,
+            amount,
+        );
     }
 
     Ok(())

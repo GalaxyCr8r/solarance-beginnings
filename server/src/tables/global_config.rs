@@ -1,8 +1,7 @@
-
-use spacetimedb::*;
+use spacetimedb::{table, Timestamp};
 use spacetimedsl::*;
 
-#[dsl(plural_name = global_configurations)]
+#[dsl(plural_name = global_configurations, method(update = true))]
 #[table(name = global_config)]
 pub struct GlobalConfig {
     #[primary_key]
@@ -21,7 +20,7 @@ pub struct GlobalConfig {
 // Utility
 ///////////////////////////////////////////////////////////
 
-pub fn global_config_any_active_players(dsl: &DSL) -> bool {
+pub fn global_config_any_active_players<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> bool {
     match dsl.get_global_config_by_id(GlobalConfigId::new(0)) {
         Ok(config) => {
             if config.active_players == 0 {

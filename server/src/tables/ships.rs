@@ -1,5 +1,5 @@
 use log::info;
-use spacetimedb::*;
+use spacetimedb::{table, Identity, SpacetimeType};
 use spacetimedsl::*;
 
 use crate::tables::{common_types::*, items::*, sectors::*, stations::*, stellarobjects::*};
@@ -40,7 +40,7 @@ pub enum EquipmentSlotType {
     CargoExpansion,
 }
 
-#[dsl(plural_name = ship_type_definitions)]
+#[dsl(plural_name = ship_type_definitions, method(update = true))] // One could argue that this should be false. idk atm - Karl
 #[table(name = ship_type_definition, public)]
 pub struct ShipTypeDefinition {
     #[primary_key] // NOT Auto-inc so it can be reloaded as-is
@@ -104,21 +104,21 @@ impl ShipTypeDefinition {
     }
 }
 
-#[dsl(plural_name = ship_statuses)]
+#[dsl(plural_name = ship_statuses, method(update = true))]
 #[table(name = ship_status, public)]
 /// The status of a ship agnostic of where it is physically.
 pub struct ShipStatus {
     #[primary_key]
-    #[use_wrapper(path = ShipId)]
+    #[use_wrapper(ShipId)]
     id: u64,
 
     #[index(btree)] // To easily find ships in a given sector
-    #[use_wrapper(path = SectorId)]
+    #[use_wrapper(SectorId)]
     /// FK to Sector.id // Needs to be kept in sync with StellarObject.sector_id
     pub sector_id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = crate::players::PlayerId)]
+    #[use_wrapper(crate::players::PlayerId)]
     /// FK to player.id // You should only be able to see your ship, or other ships in your sector.
     pub player_id: Identity,
 
@@ -140,8 +140,8 @@ impl ShipStatus {
         self.get_max_cargo_capacity() - self.get_used_cargo_capacity()
     }
 
-    pub fn calculate_used_cargo_space(&self, dsl: &DSL) -> u16 {
-        let mut used_cargo_space = 0;
+    pub fn calculate_used_cargo_space<T: spacetimedsl::WriteContext>(&self, dsl: &DSL<T>) -> u16 {
+        let mut used_cargo_space: u16 = 0;
 
         info!(
             "Calculating cargo space usage for ship #{}. (Max cargo {}v)",
@@ -149,9 +149,9 @@ impl ShipStatus {
         );
 
         // Collect all the ship items and calculate their volume usage
-        for item in dsl.get_ship_cargo_items_by_ship_id(self.get_id()) {
-            if let Ok(item_def) = dsl.get_item_definition_by_id(item.get_item_id()) {
-                let volume_usage = item.quantity * item_def.get_volume_per_unit();
+        for item in dsl.get_ship_cargo_items_by_ship_id(&self.get_id()) {
+            if let Ok(item_def) = dsl.get_item_definition_by_id(&item.get_item_id()) {
+                let volume_usage: u16 = item.quantity * item_def.get_volume_per_unit();
                 info!(
                     "     Stack of {}x {}: {} volume used",
                     item.quantity,
@@ -170,7 +170,7 @@ impl ShipStatus {
     }
 }
 
-#[dsl(plural_name = ships)]
+#[dsl(plural_name = ships, method(update = true))]
 #[table(name = ship, public)]
 pub struct Ship {
     #[primary_key]
@@ -181,7 +181,7 @@ pub struct Ship {
     id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = ShipTypeDefinitionId)]
+    #[use_wrapper(ShipTypeDefinitionId)]
     #[foreign_key(path = crate::tables::ships, table = ship_type_definition, column = id, on_delete = Error)]
     /// FK to ShipTypeDefinition.id
     pub shiptype_id: u32,
@@ -191,35 +191,35 @@ pub struct Ship {
     pub location: ShipLocation,
 
     #[index(btree)] // Can't be unique anymore because docked ships now have a sobj_id of 0
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Ignore)]
     pub sobj_id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = StationId)]
+    #[use_wrapper(StationId)]
     #[foreign_key(path = crate::tables::stations, table = station, column = id, on_delete = SetZero)]
     /// TODO - STDSL doesn't allow this to be `pub station_id: Option<u64>,` due to STDB not allowing optional indexes.
     /// Therefore we'll use 0 as the sentinel value for None.
     pub station_id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = crate::tables::sectors::SectorId)]
+    #[use_wrapper(crate::tables::sectors::SectorId)]
     #[foreign_key(path = crate::tables::sectors, table = sector, column = id, on_delete = Error)]
     /// Only because actually referencing the player's stellar object would require three table hits.
     pub sector_id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = crate::players::PlayerId)]
+    #[use_wrapper(crate::players::PlayerId)]
     #[foreign_key(path = crate::players, table = player, column = id, on_delete = Error)]
     pub player_id: Identity,
 
     #[index(btree)]
-    #[use_wrapper(path = crate::tables::factions::FactionId)]
+    #[use_wrapper(crate::tables::factions::FactionId)]
     #[foreign_key(path = crate::tables::factions, table = faction, column = id, on_delete = Error)]
     pub faction_id: u32,
 }
 
-#[dsl(plural_name = ship_cargo_items)]
+#[dsl(plural_name = ship_cargo_items, method(update = true))]
 #[table(name = ship_cargo_item, public)]
 pub struct ShipCargoItem {
     #[primary_key]
@@ -228,13 +228,13 @@ pub struct ShipCargoItem {
     id: u64,
 
     #[index(btree)] // To query all cargo for a specific ship
-    #[use_wrapper(path = ShipId)]
+    #[use_wrapper(ShipId)]
     #[foreign_key(path = crate::tables::ships, table = ship, column = id, on_delete = Delete)]
     /// FK to Ship
     pub ship_id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     #[foreign_key(path = crate::tables::items, table = item_definition, column = id, on_delete = Error)]
     /// FK to ItemDefinition
     pub item_id: u32,
@@ -243,7 +243,7 @@ pub struct ShipCargoItem {
                        //pub stack_size: u8, // TODO: Do we keep this value here to save query time?
 }
 
-#[dsl(plural_name = ship_equipment_slots)]
+#[dsl(plural_name = ship_equipment_slots, method(update = true))]
 #[table(name = ship_equipment_slot, public)]
 pub struct ShipEquipmentSlot {
     #[primary_key]
@@ -252,7 +252,7 @@ pub struct ShipEquipmentSlot {
     id: u64,
 
     #[index(btree)] // To query all equipment for a specific ship
-    #[use_wrapper(path = ShipId)]
+    #[use_wrapper(ShipId)]
     #[foreign_key(path = crate::tables::ships, table = ship, column = id, on_delete = Delete)]
     /// FK to Ship
     pub ship_id: u64,
@@ -261,7 +261,7 @@ pub struct ShipEquipmentSlot {
     pub slot_index: u8, // E.g., Weapon Slot 0, Weapon Slot 1 within its type
 
     #[index(btree)]
-    #[use_wrapper(path = ItemDefinitionId)]
+    #[use_wrapper(ItemDefinitionId)]
     #[foreign_key(path = crate::tables::items, table = item_definition, column = id, on_delete = Error)]
     /// FK to ItemDefinition
     pub item_id: u32,

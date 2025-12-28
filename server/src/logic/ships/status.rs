@@ -5,7 +5,7 @@ use spacetimedsl::*;
 
 use crate::{tables::ships::*, utility::try_server_only};
 
-#[dsl(plural_name = ship_status_timers)]
+#[dsl(plural_name = ship_status_timers, method(update = false))]
 #[spacetimedb::table(name = ship_status_timer, scheduled(ship_status_timer_reducer))]
 pub struct ShipStatusTimer {
     #[primary_key]
@@ -15,25 +15,25 @@ pub struct ShipStatusTimer {
     scheduled_at: spacetimedb::ScheduleAt,
 
     #[unique]
-    #[use_wrapper(path = ShipId)]
+    #[use_wrapper(ShipId)]
     /// FK to Ship
-    pub ship_id: u64,
+    ship_id: u64,
 
-    #[use_wrapper(path = ShipTypeDefinitionId)]
+    #[use_wrapper(ShipTypeDefinitionId)]
     /// FK to Ship Type
-    pub ship_type_id: u32,
+    ship_type_id: u32,
 }
 
-pub fn create_status_timer_for_ship(
-    dsl: &DSL,
+pub fn create_status_timer_for_ship<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     ship_id: &ShipId,
     type_id: &ShipTypeDefinitionId,
 ) -> Result<ShipStatusTimer, String> {
-    let timer = dsl.create_ship_status_timer(
-        spacetimedb::ScheduleAt::Interval(Duration::from_millis(500).into()),
-        ship_id,
-        type_id,
-    )?;
+    let timer = dsl.create_ship_status_timer(CreateShipStatusTimer {
+        scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_millis(500).into()),
+        ship_id: ship_id.clone(),
+        ship_type_id: type_id.clone(),
+    })?;
 
     Ok(timer)
 }

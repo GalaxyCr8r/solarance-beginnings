@@ -8,7 +8,7 @@ use crate::tables::items::*;
 use crate::tables::stations::*;
 
 /// Defines a recipe that a manufacturing module can use.
-#[dsl(plural_name = production_recipe_definitions)]
+#[dsl(plural_name = production_recipe_definitions, method(update = false))]
 #[table(name = production_recipe_definition, public)]
 pub struct ProductionRecipeDefinition {
     #[primary_key]
@@ -17,31 +17,31 @@ pub struct ProductionRecipeDefinition {
     id: u32,
 
     #[unique]
-    pub name: String, // e.g., "Basic Hull Plating", "Mk1 Laser Cannon Assembly"
+    name: String, // e.g., "Basic Hull Plating", "Mk1 Laser Cannon Assembly"
 
-    pub input_resources: Vec<ResourceAmount>,
+    input_resources: Vec<ResourceAmount>,
 
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     /// FK to ItemDefinition
-    pub output_resource_id: u32, // FK to ResourceDefinition
+    output_resource_id: u32, // FK to ResourceDefinition
 
-    pub output_quantity: u32,
-    pub base_production_time_seconds: u32,
+    output_quantity: u32,
+    base_production_time_seconds: u32,
     /// Which type of module can use this recipe (e.g., Factory, Assembler)
-    pub required_module_specific_type: StationModuleSpecificType,
-    pub required_tech_id_to_unlock: Option<u32>, // FK to TechnologyTreeNode
+    required_module_specific_type: StationModuleSpecificType,
+    required_tech_id_to_unlock: Option<u32>, // FK to TechnologyTreeNode
 }
 
 /// Data for a generic manufacturing module instance (Factory, Assembler, Fabricator).
-#[dsl(plural_name = manufacturing_modules)]
+#[dsl(plural_name = manufacturing_modules, method(update = true))]
 #[table(name = manufacturing_module, public)]
 pub struct Manufacturing {
     #[primary_key]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     /// FK to StationModule
     id: u64,
 
-    #[use_wrapper(path = ProductionRecipeDefinitionId)]
+    #[use_wrapper(ProductionRecipeDefinitionId)]
     /// The recipe this specific module instance is currently configured to produce. FK to ProductionRecipeDefinition
     pub current_recipe_id: Option<u32>,
 
@@ -77,8 +77,8 @@ pub struct ManufacturingProductionResult {
 /////////////////////////////////////////////////////////////////
 /// Create Module
 
-pub fn create_basic_manufacturing_module(
-    dsl: &DSL,
+pub fn create_basic_manufacturing_module<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     station: &Station,
     under_construction: bool,
     manufacturing_type: ManufacturingType,
@@ -97,24 +97,24 @@ pub fn create_basic_manufacturing_module(
     let blueprint =
         dsl.get_station_module_blueprint_by_id(StationModuleBlueprintId::new(blueprint_id))?;
 
-    let module = dsl.create_station_module(
-        station.get_id(),
-        blueprint.get_id(),
-        "Manufacturing",
-        true,
-        None,
-        dsl.ctx().timestamp,
-    )?;
+    let module = dsl.create_station_module(CreateStationModule {
+        station_id: station.get_id(),
+        blueprint: blueprint.get_id(),
+        station_slot_identifier: "Manufacturing".to_string(),
+        is_operational: true,
+        built_at_timestamp: None,
+        last_status_update_timestamp: dsl.ctx().timestamp(),
+    })?;
 
     // Create manufacturing submodule
-    let _manufacturing = dsl.create_manufacturing_module(
-        module.get_id(),
-        None, // No recipe selected initially
-        true, // Attempt producing initially
-        0,    // No items queued
-        0.0,  // No progress
-        1.0,  // Default speed modifier
-    )?;
+    let _manufacturing = dsl.create_manufacturing_module(CreateManufacturingModule {
+        id: module.get_id(),
+        current_recipe_id: None,
+        is_producing: true,
+        production_queue_count: 0,
+        current_production_progress_seconds: 0.0,
+        production_speed_modifier: 1.0,
+    })?;
 
     // Create basic inventory slots for common materials
     create_manufacturing_inventory_slot(&dsl, &module, &blueprint, ITEM_IRON_INGOT, "iron_ingot")?;
@@ -214,8 +214,8 @@ pub fn create_basic_manufacturing_module(
 }
 
 /// Generic function to create a manufacturing module with a specific recipe
-pub fn create_manufacturing_module_and_recipe(
-    dsl: &DSL,
+pub fn create_manufacturing_module_and_recipe<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     station: &Station,
     module_name: &str,
     recipe_name: &str,
@@ -233,35 +233,35 @@ pub fn create_manufacturing_module_and_recipe(
         MODULE_MANUFACTURING_FACTORY,
     ))?;
 
-    let module = dsl.create_station_module(
-        station.get_id(),
-        blueprint.get_id(),
-        module_name,
-        true,
-        None,
-        dsl.ctx().timestamp,
-    )?;
+    let module = dsl.create_station_module(CreateStationModule {
+        station_id: station.get_id(),
+        blueprint: blueprint.get_id(),
+        station_slot_identifier: module_name.to_string(),
+        is_operational: true,
+        built_at_timestamp: None,
+        last_status_update_timestamp: dsl.ctx().timestamp(),
+    })?;
 
     // Create the recipe
-    let recipe = dsl.create_production_recipe_definition(
-        recipe_name,
-        input_resources.clone(),
-        ItemDefinitionId::new(output_resource_id),
+    let recipe = dsl.create_production_recipe_definition(CreateProductionRecipeDefinition {
+        name: recipe_name.to_string(),
+        input_resources: input_resources.clone(),
+        output_resource_id: ItemDefinitionId::new(output_resource_id),
         output_quantity,
-        production_time_seconds,
-        StationModuleSpecificType::FactoryBasicComponents,
-        None, // No tech requirement
-    )?;
+        base_production_time_seconds: production_time_seconds,
+        required_module_specific_type: StationModuleSpecificType::FactoryBasicComponents,
+        required_tech_id_to_unlock: None, // No tech requirement
+    })?;
 
     // Create manufacturing submodule with the recipe
-    dsl.create_manufacturing_module(
-        module.get_id(),
-        Some(recipe.get_id()), // Set the recipe
-        true,                  // Start producing
-        0,                     // No items queued initially
-        0.0,                   // No progress
-        1.0,                   // Default speed modifier
-    )?;
+    dsl.create_manufacturing_module(CreateManufacturingModule {
+        id: module.get_id(),
+        current_recipe_id: Some(recipe.get_id()), // Set the recipe
+        is_producing: true,                       // Start producing
+        production_queue_count: 0,                // No items queued initially
+        current_production_progress_seconds: 0.0, // No progress
+        production_speed_modifier: 1.0,           // Default speed modifier
+    })?;
 
     // Create inventory slots for all input resources
     for input_resource in &input_resources {
@@ -287,8 +287,8 @@ pub fn create_manufacturing_module_and_recipe(
 }
 
 /// Create a basic manufacturing module that turns iron ingots and energy cells into metal plates
-pub fn create_metal_plate_module(
-    dsl: &DSL,
+pub fn create_metal_plate_module<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     station: &Station,
     under_construction: bool,
 ) -> Result<(), String> {
@@ -310,23 +310,23 @@ pub fn create_metal_plate_module(
     )
 }
 
-fn create_manufacturing_inventory_slot(
-    dsl: &DSL,
+fn create_manufacturing_inventory_slot<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     module: &StationModule,
     blueprint: &StationModuleBlueprint,
     item_id: u32,
     slot_name: &str,
 ) -> Result<(), String> {
-    let mut item = dsl.create_station_module_inventory_item(
-        module.get_id(),
-        ItemDefinitionId::new(item_id),
-        0,
-        blueprint
+    let mut item = dsl.create_station_module_inventory_item(CreateStationModuleInventoryItem {
+        module_id: module.get_id(),
+        resource_item_id: ItemDefinitionId::new(item_id),
+        quantity: 0,
+        max_quantity: blueprint
             .get_max_internal_storage_volume_per_slot_m3()
             .unwrap(),
-        format!("{};{};{}", module.get_id(), item_id, slot_name).as_str(),
-        0,
-    )?;
+        storage_purpose_tag: format!("{};{};{}", module.get_id(), item_id, slot_name),
+        cached_price: 0,
+    })?;
 
     if let Ok(item_def) = dsl.get_item_definition_by_id(ItemDefinitionId::new(item_id)) {
         let initial_price = item.calculate_current_price(&item_def);
@@ -341,8 +341,8 @@ fn create_manufacturing_inventory_slot(
 /// Utility
 
 /// Calculate the manufacturing production for a manufacturing module
-pub fn calculate_manufacturing_production(
-    dsl: &DSL,
+pub fn calculate_manufacturing_production<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     manufacturing: &Manufacturing,
     time_elapsed_seconds: f32,
 ) -> Result<ManufacturingProductionResult, String> {
@@ -397,8 +397,8 @@ pub fn calculate_manufacturing_production(
 }
 
 /// Check input availability and calculate what can actually be produced
-fn check_and_consume_inputs(
-    dsl: &DSL,
+fn check_and_consume_inputs<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     station_module: &StationModule,
     recipe: &ProductionRecipeDefinition,
     desired_items: u32,
@@ -415,9 +415,9 @@ fn check_and_consume_inputs(
         if let Some(inventory) = dsl
             .get_all_station_module_inventory_items()
             .into_iter()
-            .find(|item| {
-                item.get_module_id() == station_module.get_id()
-                    && item.get_resource_item_id().value() == input_resource.resource_item_id
+            .find(|item: &StationModuleInventoryItem| {
+                item.module_id == station_module.get_id().value()
+                    && item.resource_item_id == input_resource.resource_item_id
             })
         {
             let available_items = inventory.get_quantity() / input_resource.quantity;
@@ -442,8 +442,8 @@ fn check_and_consume_inputs(
 }
 
 /// Apply the calculated production results to the manufacturing module's inventory
-pub fn apply_manufacturing_production(
-    dsl: &DSL,
+pub fn apply_manufacturing_production<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     manufacturing: &Manufacturing,
     production_result: &ManufacturingProductionResult,
 ) -> Result<(), String> {
@@ -470,13 +470,13 @@ pub fn apply_manufacturing_production(
         if let Some(mut inventory) = dsl
             .get_all_station_module_inventory_items()
             .into_iter()
-            .find(|item| {
-                item.get_module_id() == station_module.get_id()
-                    && item.get_resource_item_id().value() == *resource_id
+            .find(|item: &StationModuleInventoryItem| {
+                item.module_id == station_module.get_id().value()
+                    && item.resource_item_id == *resource_id
             })
         {
-            if *inventory.get_quantity() >= *quantity_consumed {
-                inventory.set_quantity(inventory.get_quantity() - quantity_consumed);
+            if inventory.quantity >= *quantity_consumed {
+                inventory.quantity = inventory.quantity - quantity_consumed;
                 dsl.update_station_module_inventory_item_by_id(inventory)?;
             }
         }
@@ -486,13 +486,13 @@ pub fn apply_manufacturing_production(
     if let Some(mut output_inventory) = dsl
         .get_all_station_module_inventory_items()
         .into_iter()
-        .find(|item| {
-            item.get_module_id() == station_module.get_id()
-                && item.get_resource_item_id().value() == recipe.output_resource_id
+        .find(|item: &StationModuleInventoryItem| {
+            item.module_id == station_module.get_id().value()
+                && item.resource_item_id == recipe.output_resource_id
         })
     {
         let items_to_add = production_result.items_completed * recipe.output_quantity;
-        output_inventory.set_quantity(output_inventory.get_quantity() + items_to_add);
+        output_inventory.quantity = output_inventory.quantity + items_to_add;
         dsl.update_station_module_inventory_item_by_id(output_inventory)?;
     }
 
@@ -520,8 +520,8 @@ pub fn apply_manufacturing_production(
 }
 
 /// Calculate efficiency modifiers for manufacturing production
-pub fn calculate_manufacturing_efficiency(
-    dsl: &DSL,
+pub fn calculate_manufacturing_efficiency<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     manufacturing: &Manufacturing,
 ) -> Result<f32, String> {
     let station_module = dsl.get_station_module_by_id(manufacturing.get_id())?;

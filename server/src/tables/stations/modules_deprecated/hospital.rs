@@ -1,10 +1,10 @@
 use super::*;
 
-#[dsl(plural_name = hospital_modules)]
+#[dsl(plural_name = hospital_modules, method(update = true))]
 #[table(name = hospital_module, public)]
 pub struct Hospital {
     #[primary_key]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     /// FK to StationModule
     id: u64,
 

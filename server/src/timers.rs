@@ -12,36 +12,38 @@
 use std::time::Duration;
 
 use log::info;
-use spacetimedb::*;
 use spacetimedsl::*;
 
 use crate::{
     logic::{
-        combat::combat_cooldown::CreateCombatCooldownTimerRow,
+        combat::combat_cooldown::{CreateCombatCooldownTimer, CreateCombatCooldownTimerRow},
         factions::{
-            create_station_check_timer_for_faction, CreateFactionManagementTimerRow,
-            GetFactionStationCheckTimerRowOptionByFactionId,
+            create_station_check_timer_for_faction, CreateFactionManagementTimer,
+            CreateFactionManagementTimerRow, GetFactionStationCheckTimerRowOptionByFactionId,
         },
-        sectors::*,
-        stellarobjects::{player_windows::*, transforms::*},
+        sectors::{CreateSectorUpkeepTimer, CreateSectorUpkeepTimerRow},
+        stellarobjects::{
+            player_windows::{CreatePlayerWindowsTimer, CreatePlayerWindowsTimerRow},
+            transforms::{CreateAllTransformsTimer, CreateAllTransformsTimerRow},
+        },
     },
     tables::factions::{FactionTier, GetAllFactionRows},
 };
 
-pub fn initialize_timers(dsl: &DSL) -> Result<(), String> {
+pub fn initialize_timers<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     // Stellar Objects
-    dsl.create_all_transforms_timer(
-        spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 20).into()),
-        0,
-    )?;
-    dsl.create_player_windows_timer(spacetimedb::ScheduleAt::Interval(
-        Duration::from_millis(750).into(),
-    ))?;
+    dsl.create_all_transforms_timer(CreateAllTransformsTimer {
+        scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 20).into()),
+        current_update: 0,
+    })?;
+    dsl.create_player_windows_timer(CreatePlayerWindowsTimer {
+        scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_millis(750).into()),
+    })?;
 
     // Sectors
-    dsl.create_sector_upkeep_timer(spacetimedb::ScheduleAt::Interval(
-        Duration::from_secs(60).into(), // Every Minute
-    ))?;
+    dsl.create_sector_upkeep_timer(CreateSectorUpkeepTimer {
+        scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_secs(60).into()), // Every Minute
+    })?;
 
     // Factions
     for faction in dsl.get_all_factions() {
@@ -63,16 +65,16 @@ pub fn initialize_timers(dsl: &DSL) -> Result<(), String> {
     }
 
     // Factions
-    let _timer = dsl.create_faction_management_timer(
-        spacetimedb::ScheduleAt::Interval(Duration::from_secs(12 * 60 * 60).into()), // 12 hours
-        dsl.ctx().timestamp,
-    )?;
+    let _timer = dsl.create_faction_management_timer(CreateFactionManagementTimer {
+        scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_secs(12 * 60 * 60).into()), // 12 hours
+        last_management_timestamp: spacetimedb::Timestamp::UNIX_EPOCH,
+    })?;
 
     // Combat
     // Schedule the cooldown update timer to run every 100ms
-    let cooldown_timer = dsl.create_combat_cooldown_timer(spacetimedb::ScheduleAt::Interval(
-        TimeDuration::from_micros(100_000), // 100ms = 100,000 microseconds
-    ))?;
+    let cooldown_timer = dsl.create_combat_cooldown_timer(CreateCombatCooldownTimer {
+        scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_micros(100_000).into()), // 100ms = 100,000 microseconds
+    })?;
 
     Ok(())
 }

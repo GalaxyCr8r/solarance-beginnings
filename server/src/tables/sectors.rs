@@ -1,12 +1,12 @@
-use spacetimedb::*;
+use spacetimedb::table;
 use spacetimedsl::*;
 
 use crate::{
-    admin::creation::create_jumpgate_in_sector,
+    admin::creation::create_jumpgate_internal,
     tables::{factions::*, star_system::*},
 };
 
-#[dsl(plural_name = sectors)]
+#[dsl(plural_name = sectors, method(update = true))]
 #[table(name = sector, public)]
 pub struct Sector {
     #[primary_key] // NOT Auto-inc so it can be reloaded as-is
@@ -23,16 +23,16 @@ pub struct Sector {
     id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = StarSystemId)]
+    #[use_wrapper(StarSystemId)]
     #[foreign_key(path = crate::tables::star_system, table = star_system, column = id, on_delete = Error)]
     /// FK to StarSystem
-    pub system_id: u32,
+    system_id: u32,
 
-    pub name: String,
+    name: String,
     pub description: Option<String>,
 
     #[index(btree)]
-    #[use_wrapper(path = FactionId)]
+    #[use_wrapper(FactionId)]
     #[foreign_key(path = crate::tables::factions, table = faction, column = id, on_delete = Error)]
     /// FK to Faction, can change
     pub controlling_faction_id: u32,
@@ -45,39 +45,39 @@ pub struct Sector {
     /// From 1.0 being in orbit around the sun, to 0.0 being outside a solar system.
     /// Most sectors will have 0.9 - 0.5 depending on how far from the center of the solar system it is.
     /// Solar power plants want to be in sectors of 0.5+
-    pub sunlight: f32,
+    sunlight: f32,
     /// How much weird stuff the current sector has going on.
     /// From 1.0 being inside the middle of eye of chaos, to 0.0 being a normal solar system.
     /// Most sectors will have 0.0 - 0.1, research stations want to be in sectors of 0.5+
-    pub anomalous: f32,
+    anomalous: f32,
     /// How much gas/dust the current sector has.
     /// From 1.0 being so thick you can't use your sensors, to 0.0 being a clear space.
     /// Most sectors will have 0.0 - 0.1, pirate stations want to be in sectors of 0.5+
-    pub nebula: f32,
+    nebula: f32,
     /// How likely rare ore is to appear in the current sector.
     /// From 1.0 being ONLY rare ore, to 0.0 being only iron.
     /// Most sectors will have 0.0 - 0.1, refinery stations want to be in sectors of 0.5+
-    pub rare_ore: f32,
+    rare_ore: f32,
 
     // Sector's star system position
-    pub x: f32,
-    pub y: f32,
+    x: f32,
+    y: f32,
 
-    pub background_gfx_key: Option<String>, // Key for client to look up background image
+    background_gfx_key: Option<String>, // Key for client to look up background image
 }
 
-#[dsl(plural_name = asteroid_sectors)]
+#[dsl(plural_name = asteroid_sectors, method(update = false))]
 #[table(name = asteroid_sector)]
 pub struct AsteroidSector {
     #[primary_key] // NOT Auto-inc so it can be reloaded as-is
-    #[use_wrapper(path = SectorId)]
+    #[use_wrapper(SectorId)]
     #[foreign_key(path = crate::tables::sectors, table = sector, column = id, on_delete = Delete)]
     id: u64,
 
-    pub sparseness: u8,             // Relative amount of asteroids to spawn
-    pub rarity: u8,                 // Skews the amount of spawned asteroids with high rarity ores
-    pub cluster_extent: f32,        // How far from 0,0 can asteroids spawn
-    pub cluster_inner: Option<f32>, // How far from 0,0 can asteroids NOT spawn
+    sparseness: u8,             // Relative amount of asteroids to spawn
+    rarity: u8,                 // Skews the amount of spawned asteroids with high rarity ores
+    cluster_extent: f32,        // How far from 0,0 can asteroids spawn
+    cluster_inner: Option<f32>, // How far from 0,0 can asteroids NOT spawn
 }
 
 //////////////////////////////////////////////////////////////
@@ -85,7 +85,10 @@ pub struct AsteroidSector {
 //////////////////////////////////////////////////////////////
 
 impl Sector {
-    pub fn get(dsl: &DSL, id: &SectorId) -> Result<Sector, String> {
+    pub fn get<T: spacetimedsl::WriteContext>(
+        dsl: &DSL<T>,
+        id: &SectorId,
+    ) -> Result<Sector, String> {
         Ok(dsl.get_sector_by_id(id)?)
     }
 }
@@ -94,7 +97,11 @@ impl Sector {
 // Utilities
 
 /// Creates a jumpgate in each sector, using the direction of the each other sector's position
-pub fn connect_sectors_with_warpgates(dsl: &DSL, a: &Sector, b: &Sector) -> Result<(), String> {
+pub fn connect_sectors_with_warpgates<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    a: &Sector,
+    b: &Sector,
+) -> Result<(), String> {
     let a_pos = glam::Vec2::new(a.x, a.y);
     let b_pos = glam::Vec2::new(b.x, b.y);
     //info!("Sector Positions: A{} B{}", a_pos, b_pos);
@@ -107,23 +114,11 @@ pub fn connect_sectors_with_warpgates(dsl: &DSL, a: &Sector, b: &Sector) -> Resu
     let b_wp_pos = glam::Vec2::from_angle(b_angle) * 5000.0;
     //info!("Sector WP Pos: A{} B{}", a_wp_pos, b_wp_pos);
 
-    create_jumpgate_in_sector(
-        dsl.ctx(),
-        a.id,
-        a_wp_pos.x,
-        a_wp_pos.y,
-        b.id,
-        b_wp_pos.x,
-        b_wp_pos.y,
+    create_jumpgate_internal(
+        dsl, a.id, a_wp_pos.x, a_wp_pos.y, b.id, b_wp_pos.x, b_wp_pos.y,
     )?;
-    create_jumpgate_in_sector(
-        dsl.ctx(),
-        b.id,
-        b_wp_pos.x,
-        b_wp_pos.y,
-        a.id,
-        a_wp_pos.x,
-        a_wp_pos.y,
+    create_jumpgate_internal(
+        dsl, b.id, b_wp_pos.x, b_wp_pos.y, a.id, a_wp_pos.x, a_wp_pos.y,
     )?;
 
     Ok(())

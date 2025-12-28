@@ -2,7 +2,7 @@ use super::*;
 
 /// Calculate the production output for a farm module based on available input resources
 pub fn calculate_farm_production(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     farm: &Farm,
     time_elapsed_hours: f32,
 ) -> Result<FarmProductionResult, String> {
@@ -100,7 +100,7 @@ pub fn calculate_farm_production(
 
 /// Apply the calculated production results to the farm's inventory
 pub fn apply_farm_production(
-    dsl: &DSL,
+    dsl: &DSL<T>,
     farm: &Farm,
     production_result: &FarmProductionResult,
 ) -> Result<(), String> {
@@ -162,7 +162,7 @@ pub fn apply_farm_production(
 }
 
 /// Calculate efficiency modifiers for farm production
-pub fn calculate_farm_efficiency(dsl: &DSL, farm: &Farm) -> Result<f32, String> {
+pub fn calculate_farm_efficiency(dsl: &DSL<T>, farm: &Farm) -> Result<f32, String> {
     let station_module = dsl.get_station_module_by_id(farm.get_id())?;
     let station = dsl.get_station_by_id(StationId::new(station_module.station_id))?;
 

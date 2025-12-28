@@ -10,7 +10,7 @@ use crate::{
     utility::try_server_only,
 };
 
-#[dsl(plural_name = ship_mining_timers)]
+#[dsl(plural_name = ship_mining_timers, method(update = true))]
 #[spacetimedb::table(name = ship_mining_timer, scheduled(ship_mining_timer_reducer))]
 pub struct ShipMiningTimer {
     #[primary_key]
@@ -20,19 +20,19 @@ pub struct ShipMiningTimer {
     scheduled_at: spacetimedb::ScheduleAt,
 
     #[index(btree)]
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     /// FK to StellarObject
-    pub ship_sobj_id: u64,
+    ship_sobj_id: u64,
 
-    #[use_wrapper(path = StellarObjectId)]
+    #[use_wrapper(StellarObjectId)]
     /// FK to StellarObject
-    pub asteroid_sobj_id: u64,
+    asteroid_sobj_id: u64,
 
     pub mining_progress: f32, // How much of the asteroid has been mined (0 to 1.0)
 }
 
-pub fn create_mining_timer_for_ship(
-    dsl: &DSL,
+pub fn create_mining_timer_for_ship<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     ship_sobj_id: &StellarObjectId,
     asteroid_sobj_id: &StellarObjectId,
 ) -> Result<ShipMiningTimer, String> {
@@ -50,12 +50,12 @@ pub fn create_mining_timer_for_ship(
         ));
     }
 
-    Ok(dsl.create_ship_mining_timer(
-        spacetimedb::ScheduleAt::Interval(Duration::from_secs(3).into()),
-        ship_sobj_id,
-        asteroid_sobj_id,
-        0.0,
-    )?)
+    Ok(dsl.create_ship_mining_timer(CreateShipMiningTimer {
+        scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_secs(3).into()),
+        ship_sobj_id: ship_sobj_id.clone(),
+        asteroid_sobj_id: asteroid_sobj_id.clone(),
+        mining_progress: 0.0,
+    })?)
 }
 
 /// Scheduled reducer that processes ship mining operations against asteroids.

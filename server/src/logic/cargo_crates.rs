@@ -5,8 +5,8 @@ use crate::{
     tables::{items::*, ships::*, stellarobjects::*},
 };
 
-pub fn attempt_to_pickup_cargo_crate(
-    dsl: &DSL,
+pub fn attempt_to_pickup_cargo_crate<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     player_ship_obj: &Ship,
     crate_sobj: &StellarObject,
 ) -> Result<(), String> {

@@ -2,15 +2,15 @@ use crate::{
     definitions::item_types::*,
     logic::stations::{
         module_types::{manufacturing::*, refineries::*, solar_arrays::*, trading_port},
-        production::*,
-        status::*,
+        production::{CreateStationProductionSchedule, *},
+        status::{CreateStationStatusSchedule, *},
     },
     tables::{factions::*, items::*, sectors::*, stations::*, stellarobjects::*},
     utility::try_server_only,
 };
 
 use log::info;
-use spacetimedb::*;
+use spacetimedb::{ReducerContext, ScheduleAt};
 use spacetimedsl::*;
 use std::time::Duration;
 
@@ -44,11 +44,11 @@ pub fn add_station_timers(ctx: &ReducerContext, station_id: u64) -> Result<(), S
         );
     } else {
         // Set up station production schedule (every 30 seconds)
-        dsl.create_station_production_schedule(
-            &station_id,
-            ScheduleAt::Interval(Duration::from_secs(30).into()), // TODO: Make this dependant on a GlobalConfig value
-            ctx.timestamp,
-        )?;
+        dsl.create_station_production_schedule(CreateStationProductionSchedule {
+            id: station_id.clone(),
+            scheduled_at: ScheduleAt::Interval(Duration::from_secs(30).into()), // TODO: Make this dependant on a GlobalConfig value
+            last_processed_timestamp: ctx.timestamp(),
+        })?;
     }
 
     // Check if status schedule already exists
@@ -59,28 +59,29 @@ pub fn add_station_timers(ctx: &ReducerContext, station_id: u64) -> Result<(), S
         );
     } else {
         // Set up station status schedule (every 10 seconds)
-        dsl.create_station_status_schedule(
-            &station_id,
-            ScheduleAt::Interval(Duration::from_secs(10).into()), // TODO: Make this dependant on a GlobalConfig value
-            ctx.timestamp,
-        )?;
+        dsl.create_station_status_schedule(CreateStationStatusSchedule {
+            id: station_id.clone(),
+            scheduled_at: ScheduleAt::Interval(Duration::from_secs(10).into()), // TODO: Make this dependant on a GlobalConfig value
+            last_processed_timestamp: ctx.timestamp(),
+        })?;
     }
 
-    info!("Created station timers for station {}", station_id);
+    info!("Created station timers for station {}", station_id.clone());
 
     Ok(())
 }
 
 /// Type alias for module creation functions
-pub type ModuleCreationFn = Box<dyn Fn(&DSL, &Station) -> Result<(), String>>;
+pub type ModuleCreationFn<T> = Box<dyn Fn(&DSL<T>, &Station) -> Result<(), String>>;
 
 /// Helper function to create a basic trading module
-pub fn create_trading_module() -> ModuleCreationFn {
+pub fn create_trading_module<T: spacetimedsl::WriteContext + 'static>() -> ModuleCreationFn<T> {
     Box::new(|dsl, station| trading_port::create_basic_bazaar(dsl, station, false))
 }
 
 /// Helper function to create a basic refinery module for iron ore
-pub fn create_iron_refinery_module() -> ModuleCreationFn {
+pub fn create_iron_refinery_module<T: spacetimedsl::WriteContext + 'static>() -> ModuleCreationFn<T>
+{
     Box::new(|dsl, station| {
         create_basic_refinery_module(
             dsl,
@@ -94,7 +95,8 @@ pub fn create_iron_refinery_module() -> ModuleCreationFn {
 }
 
 /// Helper function to create a basic refinery module for ice ore
-pub fn create_ice_refinery_module() -> ModuleCreationFn {
+pub fn create_ice_refinery_module<T: spacetimedsl::WriteContext + 'static>() -> ModuleCreationFn<T>
+{
     Box::new(|dsl, station| {
         create_basic_refinery_module(
             dsl,
@@ -108,7 +110,8 @@ pub fn create_ice_refinery_module() -> ModuleCreationFn {
 }
 
 /// Helper function to create a basic refinery module for silicon ore
-pub fn create_silicon_refinery_module() -> ModuleCreationFn {
+pub fn create_silicon_refinery_module<T: spacetimedsl::WriteContext + 'static>(
+) -> ModuleCreationFn<T> {
     Box::new(|dsl, station| {
         create_basic_refinery_module(
             dsl,
@@ -122,18 +125,25 @@ pub fn create_silicon_refinery_module() -> ModuleCreationFn {
 }
 
 /// Helper function to create a station with modules and automatically set up schedules
-pub fn create_station_with_modules(
-    dsl: &DSL,
+pub fn create_station_with_modules<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     size: StationSize,
     sector: &Sector,
     sobj: &StellarObject,
     owner_faction_id: FactionId,
     name: &str,
     description: Option<String>,
-    module_creators: Vec<ModuleCreationFn>,
+    module_creators: Vec<ModuleCreationFn<T>>,
 ) -> Result<Station, String> {
     // Create the station
-    let station = dsl.create_station(size, sector, sobj, owner_faction_id, name, description)?;
+    let station = dsl.create_station(CreateStation {
+        size: size,
+        sector_id: sector.get_id(),
+        sobj_id: sobj.get_id(),
+        owner_faction_id: FactionId::new(owner_faction_id.value()), // check wrapper
+        name: name.to_string(),
+        gfx_key: None,
+    })?;
 
     // Create all modules
     for module_creator in module_creators {
@@ -141,28 +151,31 @@ pub fn create_station_with_modules(
     }
 
     // Set up station production schedule (every 30 seconds) TODO Tie this to GlobalConfig
-    dsl.create_station_production_schedule(
-        station.get_id(),
-        ScheduleAt::Interval(Duration::from_secs(30).into()),
-        dsl.ctx().timestamp,
-    )?;
+    dsl.create_station_production_schedule(CreateStationProductionSchedule {
+        id: station.get_id(),
+        scheduled_at: ScheduleAt::Interval(Duration::from_secs(30).into()),
+        last_processed_timestamp: dsl.ctx().timestamp(),
+    })?;
 
     // Set up station status schedule (every 60 seconds) TODO Tie this to GlobalConfig
-    dsl.create_station_status_schedule(
-        station.get_id(),
-        ScheduleAt::Interval(Duration::from_secs(10).into()),
-        dsl.ctx().timestamp,
-    )?;
+    dsl.create_station_status_schedule(CreateStationStatusSchedule {
+        id: station.get_id(),
+        scheduled_at: ScheduleAt::Interval(Duration::from_secs(10).into()),
+        last_processed_timestamp: dsl.ctx().timestamp(),
+    })?;
 
     // Verify station invariants
-    verify(dsl, station.clone())?;
+    verify(dsl, &station)?;
 
     Ok(station)
 }
 
 /// Verify the invariants of this class that Rust cannot guarantee due to the database limitations.
 /// Should be called after modifying a station.
-pub fn verify(dsl: &DSL, station: Station) -> Result<(), String> {
+pub fn verify<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    station: &Station,
+) -> Result<(), String> {
     // Verify the station does not have more modules than it should.
     let current_module_count = dsl
         .get_station_modules_by_station_id(station.get_id())
@@ -182,15 +195,17 @@ pub fn verify(dsl: &DSL, station: Station) -> Result<(), String> {
 }
 
 /// LogisticsAndStorage,
-pub fn update_logistics_and_storage(
-    dsl: &DSL,
+pub fn update_logistics_and_storage<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     _station: &Station,
     module: &StationModule,
     _blueprint: &StationModuleBlueprint,
 ) -> Result<(), String> {
     // Update cached prices for all inventory items in this module
     for mut inventory_item in dsl.get_station_module_inventory_items_by_module_id(module.get_id()) {
-        if let Ok(item_def) = dsl.get_item_definition_by_id(inventory_item.get_resource_item_id()) {
+        if let Ok(item_def) =
+            dsl.get_item_definition_by_id(ItemDefinitionId::new(inventory_item.resource_item_id))
+        {
             let current_price = inventory_item.calculate_current_price(&item_def);
             //info!("    Old Value : {}c", inventory_item.cached_price);
             inventory_item.set_cached_price(current_price);
@@ -202,8 +217,8 @@ pub fn update_logistics_and_storage(
 }
 
 /// ResourceProductionAndRefining,
-pub fn update_resource_production_and_refining(
-    dsl: &DSL,
+pub fn update_resource_production_and_refining<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     _station: &Station,
     module: &StationModule,
     blueprint: &StationModuleBlueprint,
@@ -268,8 +283,8 @@ pub fn update_resource_production_and_refining(
 }
 
 /// ManufacturingAndAssembly,
-pub fn update_manufacturing_and_assembly(
-    dsl: &DSL,
+pub fn update_manufacturing_and_assembly<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     _station: &Station,
     module: &StationModule,
     blueprint: &StationModuleBlueprint,
@@ -314,8 +329,8 @@ pub fn update_manufacturing_and_assembly(
 }
 
 /// ResearchAndDevelopment,
-pub fn update_research_and_development(
-    _dsl: &DSL,
+pub fn update_research_and_development<T: spacetimedsl::WriteContext>(
+    _dsl: &DSL<T>,
     _station: &Station,
     _module: &StationModule,
     blueprint: &StationModuleBlueprint,
@@ -359,8 +374,8 @@ pub fn update_research_and_development(
 }
 
 /// CivilianAndSupportServices,
-pub fn update_civilian_and_support_services(
-    _dsl: &DSL,
+pub fn update_civilian_and_support_services<T: spacetimedsl::WriteContext>(
+    _dsl: &DSL<T>,
     _station: &Station,
     _module: &StationModule,
     _blueprint: &StationModuleBlueprint,
@@ -370,8 +385,8 @@ pub fn update_civilian_and_support_services(
 }
 
 /// DiplomacyAndFaction,
-pub fn update_diplomacy_and_faction(
-    _dsl: &DSL,
+pub fn update_diplomacy_and_faction<T: spacetimedsl::WriteContext>(
+    _dsl: &DSL<T>,
     _station: &Station,
     _module: &StationModule,
     _blueprint: &StationModuleBlueprint,
@@ -381,8 +396,8 @@ pub fn update_diplomacy_and_faction(
 }
 
 /// DefenseAndMilitary,
-pub fn update_defense_and_military(
-    _dsl: &DSL,
+pub fn update_defense_and_military<T: spacetimedsl::WriteContext>(
+    _dsl: &DSL<T>,
     _station: &Station,
     _module: &StationModule,
     _blueprint: &StationModuleBlueprint,
@@ -441,34 +456,39 @@ pub fn update_defense_and_military(
 // }
 
 /// Helper function to create a basic manufacturing module
-pub fn create_basic_manufacturing_module_fn() -> ModuleCreationFn {
+pub fn create_basic_manufacturing_module_fn<T: spacetimedsl::WriteContext + 'static>(
+) -> ModuleCreationFn<T> {
     Box::new(|dsl, station| {
         create_basic_manufacturing_module(dsl, station, false, ManufacturingType::BasicFactory)
     })
 }
 
 /// Helper function to create an advanced manufacturing module
-pub fn create_advanced_manufacturing_module() -> ModuleCreationFn {
+pub fn create_advanced_manufacturing_module<T: spacetimedsl::WriteContext + 'static>(
+) -> ModuleCreationFn<T> {
     Box::new(|dsl, station| {
         create_basic_manufacturing_module(dsl, station, false, ManufacturingType::AdvancedFactory)
     })
 }
 
 /// Helper function to create a small solar array module
-pub fn create_small_solar_array_module() -> ModuleCreationFn {
+pub fn create_small_solar_array_module<T: spacetimedsl::WriteContext + 'static>(
+) -> ModuleCreationFn<T> {
     Box::new(|dsl, station| {
         create_simple_solar_array_module(dsl, station, false, SolarArraySize::Small)
     })
 }
 
 /// Helper function to create a large solar array module
-pub fn create_large_solar_array_module() -> ModuleCreationFn {
+pub fn create_large_solar_array_module<T: spacetimedsl::WriteContext + 'static>(
+) -> ModuleCreationFn<T> {
     Box::new(|dsl, station| {
         create_simple_solar_array_module(dsl, station, false, SolarArraySize::Large)
     })
 }
 
 /// Helper function to create a metal plate manufacturing module
-pub fn create_metal_plate_module_fn() -> ModuleCreationFn {
+pub fn create_metal_plate_module_fn<T: spacetimedsl::WriteContext + 'static>() -> ModuleCreationFn<T>
+{
     Box::new(|dsl, station| create_metal_plate_module(dsl, station, false))
 }

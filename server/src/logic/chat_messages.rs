@@ -1,5 +1,8 @@
+use crate::tables::chats::{
+    CreateFactionChatMessage, CreateGlobalChatMessage, CreateSectorChatMessage,
+};
 use log::info;
-use spacetimedb::*;
+use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 
 use crate::tables::{chats::*, factions::FactionId, players::*, sectors::SectorId, ships::*};
@@ -17,7 +20,10 @@ pub fn send_global_chat(ctx: &ReducerContext, chat_message: String) -> Result<()
         chat_message
     );
 
-    dsl.create_global_chat_message(PlayerId::new(ctx.sender), &chat_message)?;
+    dsl.create_global_chat_message(CreateGlobalChatMessage {
+        player_id: PlayerId::new(ctx.sender()),
+        message: chat_message,
+    })?;
     Ok(())
 }
 
@@ -47,7 +53,11 @@ pub fn send_sector_chat(
     // If ctx.sender is a valid, unbanned, unmuted player
     info!("SectorChat #{} [{}]: {}", sector_id, username, chat_message);
 
-    dsl.create_sector_chat_message(sender, SectorId::new(sector_id), &chat_message)?;
+    dsl.create_sector_chat_message(CreateSectorChatMessage {
+        player_id: sender,
+        sector_id: SectorId::new(sector_id),
+        message: chat_message,
+    })?;
     Ok(())
 }
 
@@ -85,6 +95,10 @@ pub fn send_faction_chat(
         chat_message
     );
 
-    dsl.create_faction_chat_message(PlayerId::new(ctx.sender), faction_id, &chat_message)?;
+    dsl.create_faction_chat_message(CreateFactionChatMessage {
+        player_id: PlayerId::new(ctx.sender()),
+        faction_id: faction_id,
+        message: chat_message,
+    })?;
     Ok(())
 }

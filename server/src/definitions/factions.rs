@@ -1,5 +1,5 @@
 use log::info;
-use spacetimedb::*;
+
 use spacetimedsl::*;
 
 use crate::tables::factions::*;
@@ -25,7 +25,7 @@ pub const REPUTATION_ALLIED: i32 = 75;
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init(dsl: &DSL) -> Result<(), String> {
+pub fn init<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     factions(dsl)?;
     faction_standings(dsl)?;
 
@@ -37,97 +37,97 @@ pub fn init(dsl: &DSL) -> Result<(), String> {
 // Utility
 //////////////////////////////////////////////////////////////
 
-fn factions(dsl: &DSL) -> Result<(), String> {
+fn factions<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     let pc = Some(FactionId::new(FACTION_ALLIANCE_PROCYON));
 
     // Factionless - neutral faction for players who want no faction affiliation
-    dsl.create_faction(
-        FACTION_FACTIONLESS,
-        None, // This is a standalone faction
-        "Factionless",
-        "FX",
-        "Independent operators who have chosen to remain neutral in galactic politics. Factionless individuals trade freely with all factions but receive no protection or special privileges from any government. They must rely on their own skills and resources to survive in the galaxy.",
-        FactionTier::Galactic,
-        true, // joinable
-        None,
-    )?;
+    dsl.create_faction(CreateFaction {
+        id: FACTION_FACTIONLESS,
+        parent_id: None,
+        name: "Factionless".to_string(),
+        short_name: "FX".to_string(),
+        description: "Independent operators who have chosen to remain neutral in galactic politics. Factionless individuals trade freely with all factions but receive no protection or special privileges from any government. They must rely on their own skills and resources to survive in the galaxy.".to_string(),
+        tier: FactionTier::Galactic,
+        joinable: true,
+        capital_station_id: None,
+    })?;
 
     // Lrak Combine - disliked by all other factions (Galactic tier, joinable)
-    dsl.create_faction(
-        FACTION_LRAK_COMBINE,
-        pc.clone(), // This is a standalone faction that has joined the Proycon Compact
-        "Lrak Combine",
-        "LC",
-        "A militaristic faction known for their aggressive expansion and authoritarian rule dependent on their control of humanity's homeworld. The Lrak Combine seeks to dominate through superior firepower and strict hierarchical control.",
-        FactionTier::Galactic, // tier
-        true, // joinable
-        None,
-    )?;
+    dsl.create_faction(CreateFaction {
+        id: FACTION_LRAK_COMBINE,
+        parent_id: pc.clone(),
+        name: "Lrak Combine".to_string(),
+        short_name: "LC".to_string(),
+        description: "A militaristic faction known for their aggressive expansion and authoritarian rule dependent on their control of humanity's homeworld. The Lrak Combine seeks to dominate through superior firepower and strict hierarchical control.".to_string(),
+        tier: FactionTier::Galactic,
+        joinable: true,
+        capital_station_id: None,
+    })?;
 
     // Independent Worlds Alliance - disliked by Lrak and FTU, neutral to others (Galactic tier, joinable)
-    dsl.create_faction(
-        FACTION_INDEPENDENT_WORLDS_ALLIANCE,
-        pc.clone(), // This is a standalone faction that has joined the Proycon Compact
-        "Independent Worlds Alliance",
-        "IWA",
-        "A loose confederation of independent star systems that value autonomy and self-governance. The IWA formed as a defensive alliance against larger, more aggressive factions.",
-        FactionTier::Galactic, // tier
-        true, // joinable
-        None,
-    )?;
+    dsl.create_faction(CreateFaction {
+        id: FACTION_INDEPENDENT_WORLDS_ALLIANCE,
+        parent_id: pc.clone(),
+        name: "Independent Worlds Alliance".to_string(),
+        short_name: "IWA".to_string(),
+        description: "A loose confederation of independent star systems that value autonomy and self-governance. The IWA formed as a defensive alliance against larger, more aggressive factions.".to_string(),
+        tier: FactionTier::Galactic,
+        joinable: true,
+        capital_station_id: None,
+    })?;
 
     // Free Trade Union - disliked by everybody (Galactic tier, joinable)
-    dsl.create_faction(
-        FACTION_FREE_TRADE_UNION,
-        None, // This is a standalone faction
-        "Free Trade Union",
-        "FTU",
-        "A corporate-dominated faction that prioritizes profit above all else. The FTU's ruthless business practices and exploitation of resources has earned them enemies across the galaxy.",
-        FactionTier::Galactic, // tier
-        true, // joinable
-        None,
-    )?;
+    dsl.create_faction(CreateFaction {
+        id: FACTION_FREE_TRADE_UNION,
+        parent_id: None,
+        name: "Free Trade Union".to_string(),
+        short_name: "FTU".to_string(),
+        description: "A corporate-dominated faction that prioritizes profit above all else. The FTU's ruthless business practices and exploitation of resources has earned them enemies across the galaxy.".to_string(),
+        tier: FactionTier::Galactic,
+        joinable: true,
+        capital_station_id: None,
+    })?;
 
     // Rediar Federation - neutral to IWA, disliked by everyone else (Galactic tier, joinable)
-    dsl.create_faction(
-        FACTION_REDIAR_FEDERATION,
-        pc.clone(), // This is a standalone faction that has joined the Proycon Compact
-        "Rediar Federation",
-        "RF",
-        "A technocratic republic that values scientific advancement and technological superiority. The Rediar Federation's elitist attitudes and secretive research programs create tension with other factions.",
-        FactionTier::Galactic, // tier
-        true, // joinable
-        None,
-    )?;
+    dsl.create_faction(CreateFaction {
+        id: FACTION_REDIAR_FEDERATION,
+        parent_id: pc.clone(),
+        name: "Rediar Federation".to_string(),
+        short_name: "RF".to_string(),
+        description: "A technocratic republic that values scientific advancement and technological superiority. The Rediar Federation's elitist attitudes and secretive research programs create tension with other factions.".to_string(),
+        tier: FactionTier::Galactic,
+        joinable: true,
+        capital_station_id: None,
+    })?;
 
     // Vancellan - enemies to everyone (Galactic tier, NOT joinable - antagonistic faction)
-    dsl.create_faction(
-        FACTION_VANCELLAN,
-        None, // This is a standalone faction
-        "Vancellan",
-        "VCN",
-        "A mysterious and hostile faction of unknown origin. The Vancellan are xenophobic extremists who view all other factions as threats to be eliminated. Their advanced biotechnology and ruthless tactics make them feared throughout the galaxy.",
-        FactionTier::Galactic, // tier
-        false, // NOT joinable - main antagonistic force
-        None,
-    )?;
+    dsl.create_faction(CreateFaction {
+        id: FACTION_VANCELLAN,
+        parent_id: None,
+        name: "Vancellan".to_string(),
+        short_name: "VCN".to_string(),
+        description: "A mysterious and hostile faction of unknown origin. The Vancellan are xenophobic extremists who view all other factions as threats to be eliminated. Their advanced biotechnology and ruthless tactics make them feared throughout the galaxy.".to_string(),
+        tier: FactionTier::Galactic,
+        joinable: false,
+        capital_station_id: None,
+    })?;
 
     // The alliance formed at Procyon - An affliation of factions who are coordinating the counter-attack against the Vancellans.
-    dsl.create_faction(
-        FACTION_ALLIANCE_PROCYON,
-        None, // This is a standalone faction
-        "Procyon Compact",
-        "PC",
-        "The alliance formed at Procyon - An affliation of factions who are coordinating the counter-attack against the Vancellans.",
-        FactionTier::Alliance,
-        false, // joinable
-        None,
-    )?;
+    dsl.create_faction(CreateFaction {
+        id: FACTION_ALLIANCE_PROCYON,
+        parent_id: None,
+        name: "Procyon Compact".to_string(),
+        short_name: "PC".to_string(),
+        description: "The alliance formed at Procyon - An affliation of factions who are coordinating the counter-attack against the Vancellans.".to_string(),
+        tier: FactionTier::Alliance,
+        joinable: false,
+        capital_station_id: None,
+    })?;
 
     Ok(())
 }
 
-fn faction_standings(dsl: &DSL) -> Result<(), String> {
+fn faction_standings<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     // Factionless relationships (neutral with everyone except hostile to Vancellan)
     create_mutual_standing(
         dsl,
@@ -232,25 +232,25 @@ fn faction_standings(dsl: &DSL) -> Result<(), String> {
 }
 
 /// Helper function to create mutual faction standings (both directions)
-fn create_mutual_standing(
-    dsl: &DSL,
+fn create_mutual_standing<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     faction_one: u32,
     faction_two: u32,
     reputation: i32,
 ) -> Result<(), String> {
     // Create standing from faction_one to faction_two
-    dsl.create_faction_standing(
-        FactionId::new(faction_one),
-        FactionId::new(faction_two),
-        reputation,
-    )?;
+    dsl.create_faction_standing(CreateFactionStanding {
+        faction_one_id: FactionId::new(faction_one),
+        faction_two_id: FactionId::new(faction_two),
+        reputation_score: reputation,
+    })?;
 
     // Create standing from faction_two to faction_one (mutual)
-    dsl.create_faction_standing(
-        FactionId::new(faction_two),
-        FactionId::new(faction_one),
-        reputation,
-    )?;
+    dsl.create_faction_standing(CreateFactionStanding {
+        faction_one_id: FactionId::new(faction_two),
+        faction_two_id: FactionId::new(faction_one),
+        reputation_score: reputation,
+    })?;
 
     Ok(())
 }

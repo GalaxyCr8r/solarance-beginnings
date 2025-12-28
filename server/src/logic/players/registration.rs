@@ -5,6 +5,7 @@ use crate::definitions::factions::FACTION_FACTIONLESS;
 use crate::tables::{chats::*, factions::FactionId, server_messages::send_error_message};
 
 use crate::players::*;
+use crate::tables::players::{CreatePlayer, PlayerId};
 
 //////////////////////////////////////////////////////////////
 // Reducers ///
@@ -23,7 +24,7 @@ pub fn register_playername(
 
     // TODO: Check if the identity already has a player!!!!
 
-    if dsl.get_player_by_id(PlayerId::new(identity)).is_err() {
+    if dsl.get_player_by_id(PlayerId::new(identity)).is_ok() {
         return Err("Player Already Registered.".to_string());
     }
 
@@ -57,8 +58,18 @@ pub fn register_playername(
         faction_id
     });
 
-    let player = dsl.create_player(identity, &username, 1000, true, final_faction.clone())?;
-    let _ = dsl.create_faction_chat_message(&player, final_faction, "- has joined the faction!");
+    let player = dsl.create_player(CreatePlayer {
+        id: identity,
+        username,
+        credits: 1000,
+        logged_in: true,
+        faction_id: final_faction.clone(),
+    })?;
+    let _ = dsl.create_faction_chat_message(CreateFactionChatMessage {
+        player_id: PlayerId::new(identity),
+        faction_id: final_faction,
+        message: "- has joined the faction!".to_string(),
+    });
 
     Ok(())
 }

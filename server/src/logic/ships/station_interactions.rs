@@ -1,13 +1,11 @@
 use log::info;
-use spacetimedb::*;
+use spacetimedb::{Identity, ReducerContext};
 use spacetimedsl::*;
 
 use crate::{
     logic::{
         ships::{player_controller::*, status::*},
-        stellarobjects::{
-            player_windows::create_sobj_player_window_for, stellar_object_creation::*,
-        },
+        stellarobjects::{player_windows::*, stellar_object_creation::*},
     },
     tables::{
         players::PlayerId, server_messages::send_info_message, ships::*, stations::*,
@@ -53,8 +51,8 @@ pub fn undock_ship(ctx: &ReducerContext, ship: Ship) -> Result<(), String> {
 ///  Utilities
 
 /// Creates the Ship object plus removes the Ship and StellarObject but keeps the cargo, health, etc.
-pub fn dock_to_station(
-    dsl: &DSL,
+pub fn dock_to_station<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     ship: &Ship,
     ship_sobj: &StellarObject,
     station: &Station,
@@ -84,7 +82,10 @@ pub fn dock_to_station(
     Ok(docked.clone())
 }
 
-pub fn undock_from_station(dsl: &DSL, docked: &Ship) -> Result<Ship, String> {
+pub fn undock_from_station<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    docked: &Ship,
+) -> Result<Ship, String> {
     let station = dsl.get_station_by_id(docked.get_station_id())?;
     let station_transform = dsl.get_sobj_internal_transform_by_id(station.get_sobj_id())?;
     let ship_type = dsl.get_ship_type_definition_by_id(docked.get_shiptype_id())?;
@@ -114,7 +115,7 @@ pub fn undock_from_station(dsl: &DSL, docked: &Ship) -> Result<Ship, String> {
 
     if docked.get_player_id().value() != Identity::ONE {
         // There is a real player controlling this ship, so create the necessary helpers.
-        create_sobj_player_window_for(dsl.ctx(), docked.get_player_id().value(), sobj.get_id())?;
+        create_sobj_player_window_from_dsl(dsl, docked.get_player_id().value(), sobj.get_id())?;
         let _ = initialize_player_controller(dsl, &docked.get_player_id(), &sobj);
     // Should this error really be suppressed?
     } else {

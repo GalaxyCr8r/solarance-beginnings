@@ -6,23 +6,24 @@ use crate::definitions::station_module_types::*;
 use crate::tables::items::*;
 use crate::tables::stations::*;
 
-#[dsl(plural_name = refinery_modules)]
+/// An instance of a refinery module
+#[dsl(plural_name = refinery_modules, method(update = true))]
 #[table(name = refinery_module, public)]
 pub struct Refinery {
     #[primary_key]
-    #[use_wrapper(path = StationModuleId)]
+    #[use_wrapper(StationModuleId)]
     /// FK to StationModule
     id: u64,
 
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub input_ore_resource_id: u32, // FK to ResourceDefinition
 
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub output_ingot_resource_id: u32, // FK to ResourceDefinition
 
-    #[use_wrapper(path = crate::tables::items::ItemDefinitionId)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     /// FK to ItemDefinition
     pub waste_resource_id: Option<u32>, // FK to ResourceDefinition
 
@@ -47,8 +48,8 @@ pub struct RefineryProductionResult {
 /// Create Module
 ///
 
-pub fn create_basic_refinery_module(
-    dsl: &DSL,
+pub fn create_basic_refinery_module<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     station: &Station,
     under_construction: bool,
     input_resource: ItemDefinitionId,
@@ -65,37 +66,37 @@ pub fn create_basic_refinery_module(
     let output_item_def = dsl.get_item_definition_by_id(&output_resource)?;
     let identifier = format!("{} Refinery", output_item_def.get_name());
 
-    let module = dsl.create_station_module(
-        station.get_id(),
-        blueprint.get_id(),
-        identifier.as_str(), // TODO: Do we even need this field?
-        true,
-        None,
-        dsl.ctx().timestamp,
-    )?;
+    let module = dsl.create_station_module(CreateStationModule {
+        station_id: station.get_id(),
+        blueprint: blueprint.get_id(),
+        station_slot_identifier: identifier.to_string(),
+        is_operational: true,
+        built_at_timestamp: None,
+        last_status_update_timestamp: dsl.ctx().timestamp(),
+    })?;
 
     // Submodule
-    let iron_ref = dsl.create_refinery_module(
-        module.get_id(),
-        &input_resource,
-        &output_resource,
-        None,
-        5,
-        0,
-        30,
-        1.0,
-    )?;
+    let iron_ref = dsl.create_refinery_module(CreateRefineryModule {
+        id: module.get_id(), // FK to module
+        input_ore_resource_id: input_resource.clone(),
+        output_ingot_resource_id: output_resource.clone(),
+        waste_resource_id: waste_resource.clone(), // Option<ItemDefinitionId>
+        ore_to_ingot_ratio: 5,
+        waste_per_ingot_ratio: 0,
+        base_ingots_produced_per_hour: 30,
+        current_efficiency_modifier: 1.0,
+    })?;
 
-    let mut item = dsl.create_station_module_inventory_item(
-        module.get_id(),
-        &input_resource,
-        0,
-        blueprint
+    let mut item = dsl.create_station_module_inventory_item(CreateStationModuleInventoryItem {
+        module_id: module.get_id(),
+        resource_item_id: input_resource.clone(),
+        quantity: 0,
+        max_quantity: blueprint
             .get_max_internal_storage_volume_per_slot_m3()
             .unwrap(),
-        format!("{};{};input", module.get_id(), iron_ref.get_id()).as_str(),
-        0, // Initial cached price, will be updated immediately
-    )?;
+        storage_purpose_tag: format!("{};{};input", module.get_id(), iron_ref.get_id()),
+        cached_price: 0, // Initial cached price, will be updated immediately
+    })?;
     // Calculate and set initial cached current price
     if let Ok(item_def) = dsl.get_item_definition_by_id(&input_resource) {
         let initial_price = item.calculate_current_price(&item_def);
@@ -103,32 +104,33 @@ pub fn create_basic_refinery_module(
         dsl.update_station_module_inventory_item_by_id(item)?;
     }
 
-    let mut item = dsl.create_station_module_inventory_item(
-        module.get_id(),
-        &output_resource,
-        0,
-        blueprint
+    let mut item = dsl.create_station_module_inventory_item(CreateStationModuleInventoryItem {
+        module_id: module.get_id(),
+        resource_item_id: output_resource.clone(),
+        quantity: 0,
+        max_quantity: blueprint
             .get_max_internal_storage_volume_per_slot_m3()
             .unwrap(),
-        format!("{};{};output", module.get_id(), iron_ref.get_id()).as_str(),
-        0, // Initial cached price, will be updated immediately
-    )?;
+        storage_purpose_tag: format!("{};{};output", module.get_id(), iron_ref.get_id()),
+        cached_price: 0, // Initial cached price, will be updated immediately
+    })?;
     // Calculate and set initial cached current price
     let initial_price = item.calculate_current_price(&output_item_def);
     item.set_cached_price(initial_price);
     dsl.update_station_module_inventory_item_by_id(item)?;
 
     if let Some(waste) = waste_resource {
-        let mut item = dsl.create_station_module_inventory_item(
-            module.get_id(),
-            &waste,
-            0,
-            blueprint
-                .get_max_internal_storage_volume_per_slot_m3()
-                .unwrap(),
-            format!("{};{};waste", module.get_id(), iron_ref.get_id()).as_str(),
-            0, // Initial cached price, will be updated immediately
-        )?;
+        let mut item =
+            dsl.create_station_module_inventory_item(CreateStationModuleInventoryItem {
+                module_id: module.get_id(),
+                resource_item_id: waste.clone(),
+                quantity: 0,
+                max_quantity: blueprint
+                    .get_max_internal_storage_volume_per_slot_m3()
+                    .unwrap(),
+                storage_purpose_tag: format!("{};{};waste", module.get_id(), iron_ref.get_id()),
+                cached_price: 0, // Initial cached price, will be updated immediately
+            })?;
         // Calculate and set initial cached current price
         if let Ok(item_def) = dsl.get_item_definition_by_id(&waste) {
             let initial_price = item.calculate_current_price(&item_def);
@@ -145,8 +147,8 @@ pub fn create_basic_refinery_module(
 
 /// Calculate the production output for a refinery module based on available input resources
 /// and current efficiency modifiers. Only produces whole units of output.
-pub fn calculate_refinery_production(
-    dsl: &DSL,
+pub fn calculate_refinery_production<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     refinery: &Refinery,
     _time_elapsed_hours: f32,
 ) -> Result<RefineryProductionResult, String> {
@@ -156,7 +158,9 @@ pub fn calculate_refinery_production(
     // Find input ore inventory item
     let input_inventory = dsl
         .get_station_module_inventory_items_by_module_id(refinery.get_id())
-        .find(|item| item.get_resource_item_id() == refinery.get_input_ore_resource_id())
+        .find(|item: &StationModuleInventoryItem| {
+            item.resource_item_id == refinery.input_ore_resource_id
+        })
         .ok_or("Input ore inventory not found")?;
 
     // info!(
@@ -245,8 +249,8 @@ pub fn calculate_refinery_production(
 }
 
 /// Apply the calculated production results to the refinery's inventory
-pub fn apply_refinery_production(
-    dsl: &DSL,
+pub fn apply_refinery_production<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     refinery: &Refinery,
     production_result: &RefineryProductionResult,
 ) -> Result<(), String> {
@@ -363,7 +367,10 @@ pub fn apply_refinery_production(
 }
 
 /// Calculate efficiency modifiers based on station conditions, upgrades, etc.
-pub fn calculate_refinery_efficiency(dsl: &DSL, refinery: &Refinery) -> Result<f32, String> {
+pub fn calculate_refinery_efficiency<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    refinery: &Refinery,
+) -> Result<f32, String> {
     // Get the station module to check conditions
     let station_module = dsl.get_station_module_by_id(refinery.get_id())?;
     let station = dsl.get_station_by_id(station_module.get_station_id())?;

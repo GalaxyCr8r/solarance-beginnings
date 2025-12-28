@@ -3,11 +3,9 @@ use spacetimedsl::*;
 
 use crate::tables::{combat::*, items::*, sectors::SectorId, ships::*, stellarobjects::*};
 
-use crate::tables::combat::{
-    CombatError, CreateVisualEffectRow, MissileType, VisualEffectType, WeaponType,
-};
-
-#[dsl(plural_name = visual_effect_timers)]
+#[dsl(plural_name = visual_effect_timers,
+    method(update = false, delete = true)
+)]
 #[spacetimedb::table(name = visual_effect_timer, scheduled(cleanup_visual_effect))]
 pub struct VisualEffectTimer {
     #[primary_key]
@@ -16,16 +14,16 @@ pub struct VisualEffectTimer {
     id: u64,
 
     #[index(btree)]
-    #[use_wrapper(path = VisualEffectId)]
+    #[use_wrapper(VisualEffectId)]
     #[foreign_key(
         path = crate::tables::combat,
         table = visual_effect,
         column = id,
         on_delete = Delete
     )]
-    pub effect_id: u64,
+    effect_id: u64,
 
-    pub scheduled_at: ScheduleAt,
+    scheduled_at: ScheduleAt,
 }
 
 #[spacetimedb::reducer]
@@ -50,8 +48,8 @@ pub fn cleanup_visual_effect(ctx: &ReducerContext, timer: VisualEffectTimer) -> 
 
 /// Comprehensive server-side validation for combat actions
 /// This function performs all necessary checks before allowing combat
-pub fn validate_combat_action(
-    dsl: &DSL,
+pub fn validate_combat_action<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     source_sobj_id: u64,
     target_sobj_id: u64,
     is_missile: bool,
@@ -159,8 +157,8 @@ pub fn has_sufficient_energy_for_action(
 }
 
 /// Validate weapon equipment and return equipped weapons
-pub fn get_equipped_weapons(
-    dsl: &DSL,
+pub fn get_equipped_weapons<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     ship_id: ShipId,
 ) -> Result<Vec<ShipEquipmentSlot>, CombatError> {
     let weapon_slots: Vec<ShipEquipmentSlot> = dsl
@@ -176,8 +174,8 @@ pub fn get_equipped_weapons(
 }
 
 /// Validate missile equipment and return equipped missiles
-pub fn get_equipped_missiles(
-    dsl: &DSL,
+pub fn get_equipped_missiles<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     ship_id: ShipId,
 ) -> Result<Vec<ShipEquipmentSlot>, CombatError> {
     let missile_slots: Vec<ShipEquipmentSlot> = dsl
@@ -219,8 +217,8 @@ pub fn log_combat_error(
 
 /// Test function to validate combat error handling
 /// This function can be used to test different error conditions
-pub fn test_combat_validation(
-    dsl: &DSL,
+pub fn test_combat_validation<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     source_sobj_id: u64,
     target_sobj_id: u64,
     is_missile: bool,
@@ -321,8 +319,8 @@ impl DamageCalculation {
 
 /// Process weapon fire with hitscan damage calculation
 /// This function handles instant damage application for hitscan weapons
-pub fn process_weapon_fire(
-    dsl: &DSL,
+pub fn process_weapon_fire<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     source_sobj_id: u64,
     target_sobj_id: u64,
     actual_location: glam::Vec2, // Where exactly did the projectile explode, used for AoE weapons
@@ -510,8 +508,8 @@ pub fn process_weapon_fire(
 
 /// Process missile fire as placeholder for future missile system
 /// This function will be expanded when the missile system is implemented
-pub fn process_missile_fire(
-    dsl: &DSL,
+pub fn process_missile_fire<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     source_sobj_id: u64,
     target_sobj_id: u64,
     actual_location: glam::Vec2, // Where exactly did the missile explode, used for AoE missiles
@@ -595,8 +593,8 @@ pub fn process_missile_fire(
 
 /// Apply calculated damage to a ship and handle destruction
 /// Returns true if the target was destroyed
-pub fn apply_damage_to_ship(
-    dsl: &DSL,
+pub fn apply_damage_to_ship<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     target_ship_status: &mut ShipStatus,
     damage_calc: &DamageCalculation,
 ) -> Result<bool, CombatError> {
@@ -635,7 +633,10 @@ pub fn apply_damage_to_ship(
 }
 
 /// Handle ship destruction when hull health reaches zero
-fn handle_ship_destruction(_dsl: &DSL, ship_status: &ShipStatus) -> Result<(), CombatError> {
+fn handle_ship_destruction<T: spacetimedsl::WriteContext>(
+    _dsl: &DSL<T>,
+    ship_status: &ShipStatus,
+) -> Result<(), CombatError> {
     spacetimedb::log::info!("Ship {} destroyed in combat", ship_status.get_id().value());
 
     // TODO: Implement full ship destruction logic in future tasks:
@@ -910,27 +911,33 @@ pub fn is_target_in_range(
 }
 
 /// Create a visual effect and schedule its cleanup
-fn create_visual_effect(
-    dsl: &DSL,
+fn create_visual_effect<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
     source_pos: glam::Vec2,
     target_pos: glam::Vec2,
     effect_type: VisualEffectType,
     sector_id: u64,
 ) -> Result<(), CombatError> {
     // Create visual effect
-    let visual_effect = dsl.create_visual_effect(
-        SectorId::new(sector_id),
-        source_pos.into(),
-        target_pos.into(),
+    // Create visual effect
+    let visual_effect = dsl.create_visual_effect(CreateVisualEffect {
+        sector_id: SectorId::new(sector_id),
+        source: source_pos.into(),
+        target: target_pos.into(),
         effect_type,
-    )?;
+    })?;
 
     // Schedule cleanup after 10 milliseconds
-    let cleanup_time = spacetimedb::ScheduleAt::Time(Timestamp::from_micros_since_unix_epoch(
-        dsl.ctx().timestamp.to_micros_since_unix_epoch() + 10_000,
-    ));
+    let cleanup_time =
+        spacetimedb::ScheduleAt::Time(spacetimedb::Timestamp::from_micros_since_unix_epoch(
+            dsl.ctx().timestamp().to_micros_since_unix_epoch() + 10_000,
+        ));
 
-    dsl.create_visual_effect_timer(visual_effect.get_id(), cleanup_time)?;
+    dsl.create_visual_effect_timer(CreateVisualEffectTimer {
+        effect_id: visual_effect.get_id(), // get_id() returns u64? Or wrapper?
+        // In visual_effects.rs table definition: effect_id: u64.
+        scheduled_at: cleanup_time,
+    })?;
 
     Ok(())
 }
