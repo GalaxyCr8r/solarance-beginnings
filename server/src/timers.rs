@@ -30,7 +30,7 @@ use crate::{
     tables::factions::{FactionTier, GetAllFactionRows},
 };
 
-pub fn initialize_timers<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
+pub fn initialize<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     // Stellar Objects
     dsl.create_all_transforms_timer(CreateAllTransformsTimer {
         scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 20).into()),
