@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use log::info;
+use log::{info, warn};
 use spacetimedb::*;
 use spacetimedsl::*;
 
@@ -223,6 +223,8 @@ pub fn try_mining_asteroid(
             .get_ship_mining_timers_by_ship_sobj_id(&ship_object.get_sobj_id())
             .any(|timer| timer.get_asteroid_sobj_id().value() == asteroid_sobj.get_id().value())
         {
+            // TODO: Start 'mining asteroid' effect
+
             // Only add if there is no mining timer for this ship and asteroid.
             let _ = send_info_message(
                 &dsl,
@@ -247,4 +249,25 @@ pub fn try_mining_asteroid(
     } else {
         Err("Asteroid is outside mining range!".to_string())
     }
+}
+
+/// Tries to stop mining any asteroid. Uses the `ctx.sender` to try to find the player ship.
+#[reducer]
+pub fn stop_mining_asteroid(ctx: &ReducerContext) -> Result<(), String> {
+    let dsl = dsl(ctx);
+
+    let player_id = PlayerId::new(ctx.sender);
+    let (_, ship_sobj) = get_player_ship_and_sobj(&dsl, &player_id)?;
+
+    let mining_timers = dsl.get_ship_mining_timers_by_ship_sobj_id(&ship_sobj);
+
+    for timer in mining_timers {
+        if let Err(e) = dsl.delete_ship_mining_timer_by_id(&timer) {
+            warn!("Couldn't delete ShipMiningTimer: {}", e);
+        }
+    }
+
+    // TODO: Remove asteroid mining effect
+
+    Ok(())
 }
