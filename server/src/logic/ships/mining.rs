@@ -6,7 +6,7 @@ use spacetimedsl::*;
 
 use crate::{
     logic::ships::add_cargo_timer::*,
-    tables::{asteroids::*, items::*, server_messages::*, ships::*, stellarobjects::*},
+    tables::{asteroids::*, items::*, players::*, server_messages::*, ships::*, stellarobjects::*},
     utility::try_server_only,
 };
 
@@ -194,4 +194,57 @@ pub fn ship_mining_timer_reducer(
     dsl.update_ship_status_by_id(ship_status)?;
     dsl.update_ship_mining_timer_by_id(timer)?;
     Ok(())
+}
+
+/// Tries to begin mining the given asteroid. Uses the `ctx.sender` to try to find the player ship.
+#[reducer]
+pub fn try_mining_asteroid(
+    ctx: &ReducerContext,
+    asteroid_sobj_id: StellarObjectId,
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
+
+    // Find the player's ship by assuming they have a movement controller on their current ship
+    let player_id = PlayerId::new(ctx.sender);
+    let (ship_object, ship_sobj) = get_player_ship_and_sobj(&dsl, &player_id)?;
+
+    // TODO: Check if the player ship has a mining laser installed.
+
+    let asteroid_sobj = dsl.get_stellar_object_by_id(asteroid_sobj_id)?;
+
+    // If the player is trying to mine and is targetting an asteroid, create a mining timer.
+    if ship_sobj
+        .distance_squared(&dsl, &asteroid_sobj)
+        .is_ok_and(|d| d < (300.0_f32).powi(2))
+    // TODO: Make mining range a config const
+    {
+        // Check if the player is already mining this asteroid
+        if !dsl
+            .get_ship_mining_timers_by_ship_sobj_id(&ship_object.get_sobj_id())
+            .any(|timer| timer.get_asteroid_sobj_id().value() == asteroid_sobj.get_id().value())
+        {
+            // Only add if there is no mining timer for this ship and asteroid.
+            let _ = send_info_message(
+                &dsl,
+                &player_id,
+                format!(
+                    "Player {} started mining asteroid #{}!",
+                    get_username(&dsl, player_id.value()),
+                    asteroid_sobj.get_id().value()
+                ),
+                Some("mining"),
+            ); // Should this Error really be suppressed?
+            info!(
+                "Player {} started mining asteroid #{}!",
+                get_username(&dsl, player_id.value()),
+                asteroid_sobj.get_id().value()
+            );
+            let _ =
+                create_mining_timer_for_ship(&dsl, &ship_sobj.get_id(), &asteroid_sobj.get_id())?;
+        }
+
+        Ok(())
+    } else {
+        Err("Asteroid is outside mining range!".to_string())
+    }
 }

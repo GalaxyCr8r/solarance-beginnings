@@ -6,7 +6,7 @@ use crate::{
     definitions::item_types::*,
     logic::{
         chat_messages::send_global_chat,
-        ships::{cargo::*, player_controller::*, status::*},
+        ships::{cargo::*, movement_controllers::initialize_controller_for_player, status::*},
         stellarobjects::{player_windows::*, stellar_object_creation::*},
     },
     tables::{
@@ -55,11 +55,11 @@ pub fn create_player_controlled_ship(
     if let Ok(sobj) = create_sobj_internal(
         &dsl,
         StellarObjectKinds::Ship,
-        &SectorId::new(0), // TODO: Make this the proper sector id!
+        &SectorId::new(0), // TODO: Make this the proper sector id! Needs to be picked based on the joinable faction's home station.
         StellarObjectTransformInternal::default().from_xy(64.0, 64.0),
     ) {
         let _ = create_sobj_player_window_for(dsl.ctx(), identity, sobj.get_id())?;
-        initialize_player_controller(&dsl, &player_id, &sobj)?;
+        initialize_controller_for_player(&dsl, &player_id, &sobj)?;
 
         let ship_type = dsl.get_ship_type_definition_by_id(ShipTypeDefinitionId::new(1001))?;
         let faction_id = player.get_faction_id().clone();

@@ -3,12 +3,14 @@ use std::time::Duration;
 use glam::Vec2;
 use log::info;
 use spacetimedb::rand::Rng;
-use spacetimedb::ReducerContext;
-use spacetimedb::TimeDuration;
+use spacetimedb::*;
 use spacetimedsl::*;
 
+use crate::logic::cargo_crates::attempt_to_pickup_cargo_crate;
 use crate::logic::stellarobjects::stellar_object_creation::create_sobj_with_random_velocity;
 use crate::tables::items::*;
+use crate::tables::players::get_player_ship_and_sobj;
+use crate::tables::players::PlayerId;
 use crate::tables::server_messages::*;
 use crate::tables::ships::*;
 use crate::tables::stellarobjects::*;
@@ -17,6 +19,23 @@ use crate::utility::*;
 ///////////////////////////////////////////////////////////
 /// Reducers
 ///
+
+/// Allows a player to attempt to pickup cargo into their ship. Defaults to finding the sender's current ship.
+#[spacetimedb::reducer]
+pub fn try_to_pickup_crate(
+    ctx: &ReducerContext,
+    cargo_crate_id: CargoCrateId,
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
+    let player_id = PlayerId::new(ctx.sender);
+    let (ship_object, _) = get_player_ship_and_sobj(&dsl, &player_id)?;
+    let cargo_crate = dsl.get_cargo_crate_by_id(cargo_crate_id)?;
+
+    let item_def: ItemDefinition = dsl.get_item_definition_by_id(cargo_crate.get_item_id())?;
+    let status: ShipStatus = dsl.get_ship_status_by_id(&ship_object)?;
+
+    attempt_to_pickup_cargo_crate(&dsl, &cargo_crate, &item_def, &status)
+}
 
 /// Allows a player to jettison cargo from their ship into space as a cargo crate.
 /// Validates ship ownership and cargo availability before creating the crate.

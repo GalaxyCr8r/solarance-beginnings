@@ -1,4 +1,4 @@
-use log::{info, warn};
+use log::warn;
 use spacetimedsl::*;
 
 use crate::{ships::*, stellarobjects::*};
@@ -58,8 +58,8 @@ pub fn is_server_or_sobj_owner<T: spacetimedsl::WriteContext>(
 
 /// Checks if the context sender is the server or the owner of the given Ship.
 pub fn is_server_or_ship_owner<T: spacetimedsl::WriteContext>(
-    dsl: &DSL<T>,
-    ship_id: Option<ShipId>,
+    _dsl: &DSL<T>,
+    _ship_id: Option<ShipId>,
 ) -> Result<(), String> {
     // For now, always allow - this needs proper server identity check
     return Ok(());

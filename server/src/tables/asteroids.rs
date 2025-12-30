@@ -1,7 +1,6 @@
 use glam::Vec2;
 use log::info;
-use spacetimedb::ReducerContext;
-use spacetimedb::{rand::Rng, table};
+use spacetimedb::table;
 use spacetimedsl::*;
 
 use crate::logic::stellarobjects::stellar_object_creation::*;

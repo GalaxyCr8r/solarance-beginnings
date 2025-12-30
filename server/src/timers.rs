@@ -72,7 +72,7 @@ pub fn initialize_timers<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<
 
     // Combat
     // Schedule the cooldown update timer to run every 100ms
-    let cooldown_timer = dsl.create_combat_cooldown_timer(CreateCombatCooldownTimer {
+    let _cooldown_timer = dsl.create_combat_cooldown_timer(CreateCombatCooldownTimer {
         scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_micros(100_000).into()), // 100ms = 100,000 microseconds
     })?;
 

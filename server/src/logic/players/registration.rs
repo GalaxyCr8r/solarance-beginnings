@@ -58,7 +58,7 @@ pub fn register_playername(
         faction_id
     });
 
-    let player = dsl.create_player(CreatePlayer {
+    let _player = dsl.create_player(CreatePlayer {
         id: identity,
         username,
         credits: 1000,

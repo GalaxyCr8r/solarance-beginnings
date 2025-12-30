@@ -321,16 +321,16 @@ impl DamageCalculation {
 /// This function handles instant damage application for hitscan weapons
 pub fn process_weapon_fire<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
-    source_sobj_id: u64,
-    target_sobj_id: u64,
+    source_sobj_id: &StellarObjectId,
+    target_sobj_id: &StellarObjectId,
     actual_location: glam::Vec2, // Where exactly did the projectile explode, used for AoE weapons
     _weapon_type: WeaponType,
     weapon_item_def: ItemDefinition, // To get specific combat-related metadata
 ) -> Result<(), CombatError> {
     // Get source and target stellar objects
-    let source_sobj = dsl.get_stellar_object_by_id(StellarObjectId::new(source_sobj_id))?;
+    let source_sobj = dsl.get_stellar_object_by_id(source_sobj_id)?;
 
-    let target_sobj = dsl.get_stellar_object_by_id(StellarObjectId::new(target_sobj_id))?;
+    let target_sobj = dsl.get_stellar_object_by_id(target_sobj_id)?;
 
     // Validate target is a valid Ship or Station class
     match target_sobj.get_kind() {
@@ -344,7 +344,7 @@ pub fn process_weapon_fire<T: spacetimedsl::WriteContext>(
 
     // Get source ship to validate energy and get weapon configuration
     let source_ship = dsl
-        .get_ships_by_sobj_id(StellarObjectId::new(source_sobj_id))
+        .get_ships_by_sobj_id(source_sobj_id)
         .next()
         .ok_or(CombatError::InvalidTarget)?;
 
@@ -375,10 +375,7 @@ pub fn process_weapon_fire<T: spacetimedsl::WriteContext>(
     // Get target ship dimensions for accurate collision detection
     let (target_width, target_height, target_orientation) =
         if target_sobj.get_kind() == &StellarObjectKinds::Ship {
-            if let Some(target_ship) = dsl
-                .get_ships_by_sobj_id(StellarObjectId::new(target_sobj_id))
-                .next()
-            {
+            if let Some(target_ship) = dsl.get_ships_by_sobj_id(target_sobj_id).next() {
                 let target_ship_def =
                     dsl.get_ship_type_definition_by_id(target_ship.get_shiptype_id())?;
                 (
@@ -455,10 +452,7 @@ pub fn process_weapon_fire<T: spacetimedsl::WriteContext>(
 
     // Apply damage to target if it's a ship
     if target_sobj.get_kind() == &StellarObjectKinds::Ship {
-        if let Some(target_ship) = dsl
-            .get_ships_by_sobj_id(StellarObjectId::new(target_sobj_id))
-            .next()
-        {
+        if let Some(target_ship) = dsl.get_ships_by_sobj_id(target_sobj_id).next() {
             let mut target_ship_status =
                 dsl.get_ship_status_by_id(ShipId::new(target_ship.get_id().value()))?;
 
@@ -497,8 +491,8 @@ pub fn process_weapon_fire<T: spacetimedsl::WriteContext>(
 
     spacetimedb::log::info!(
         "Weapon fired: {} -> {} (damage: {}, energy cost: {})",
-        source_sobj_id,
-        target_sobj_id,
+        &source_sobj_id,
+        &target_sobj_id,
         damage_calc.base_damage,
         damage_calc.energy_cost
     );
@@ -510,21 +504,21 @@ pub fn process_weapon_fire<T: spacetimedsl::WriteContext>(
 /// This function will be expanded when the missile system is implemented
 pub fn process_missile_fire<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
-    source_sobj_id: u64,
-    target_sobj_id: u64,
+    source_sobj_id: &StellarObjectId,
+    target_sobj_id: &StellarObjectId,
     actual_location: glam::Vec2, // Where exactly did the missile explode, used for AoE missiles
     missile_type: MissileType,
     missile_item_def: ItemDefinition, // To get specific combat-related metadata
 ) -> Result<(), CombatError> {
     // Get source stellar object for position
-    let source_sobj = dsl.get_stellar_object_by_id(StellarObjectId::new(source_sobj_id))?;
+    let source_sobj = dsl.get_stellar_object_by_id(source_sobj_id)?;
 
     // Validate target exists (even though we're not implementing full missile logic yet)
-    let _target_sobj = dsl.get_stellar_object_by_id(StellarObjectId::new(target_sobj_id))?;
+    let _target_sobj = dsl.get_stellar_object_by_id(target_sobj_id)?;
 
     // Get source ship to validate energy
     let source_ship = dsl
-        .get_ships_by_sobj_id(StellarObjectId::new(source_sobj_id))
+        .get_ships_by_sobj_id(source_sobj_id)
         .next()
         .ok_or(CombatError::InvalidTarget)?;
 

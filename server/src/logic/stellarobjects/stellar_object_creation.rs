@@ -1,5 +1,5 @@
 use crate::tables::stellarobjects::*;
-use crate::tables::{sectors::SectorId, stellarobjects::*};
+use crate::tables::sectors::SectorId;
 use crate::utility::try_server_only;
 use glam::Vec2;
 use spacetimedb::{rand::Rng, *};

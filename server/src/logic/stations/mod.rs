@@ -132,7 +132,7 @@ pub fn create_station_with_modules<T: spacetimedsl::WriteContext>(
     sobj: &StellarObject,
     owner_faction_id: FactionId,
     name: &str,
-    description: Option<String>,
+    _description: Option<String>,
     module_creators: Vec<ModuleCreationFn<T>>,
 ) -> Result<Station, String> {
     // Create the station

@@ -2,7 +2,9 @@ use log::info;
 use spacetimedb::{table, Identity, SpacetimeType};
 use spacetimedsl::*;
 
-use crate::tables::{common_types::*, items::*, sectors::*, stations::*, stellarobjects::*};
+use crate::tables::{
+    common_types::*, items::*, players::PlayerId, sectors::*, stations::*, stellarobjects::*,
+};
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
 pub enum ShipClass {
@@ -168,6 +170,25 @@ impl ShipStatus {
 
         used_cargo_space
     }
+}
+
+#[dsl(plural_name = ship_movement_controllers, method(update = true))]
+#[table(name = ship_movement_controller, public)]
+pub struct ShipMovementController {
+    #[primary_key]
+    #[use_wrapper(PlayerId)]
+    #[foreign_key(path = crate::tables::players, table = player, column = id, on_delete = Delete)]
+    id: Identity,
+
+    #[index(btree)]
+    #[use_wrapper(StellarObjectId)]
+    #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
+    stellar_object_id: u64,
+
+    pub forward: bool,
+    pub backward: bool,
+    pub left: bool,
+    pub right: bool,
 }
 
 #[dsl(plural_name = ships, method(update = true))]
