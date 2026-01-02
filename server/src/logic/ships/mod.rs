@@ -1,6 +1,7 @@
 pub mod add_cargo_timer;
 pub mod cargo;
 pub mod creation;
+pub mod lifecycle;
 pub mod mining;
 pub mod movement;
 pub mod movement_controllers;
