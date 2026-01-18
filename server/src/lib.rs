@@ -5,7 +5,6 @@ pub mod admin;
 pub mod definitions;
 pub mod logic;
 pub mod tables;
-pub mod timers;
 pub mod utility;
 
 pub mod lifecycle;

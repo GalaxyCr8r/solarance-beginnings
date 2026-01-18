@@ -1,7 +1,9 @@
 use spacetimedb::*;
 use spacetimedsl::*;
 
-use crate::{definitions, tables::global_config::*, timers};
+use crate::{definitions, tables::global_config::*};
+
+use super::timers;
 
 #[spacetimedb::reducer(init)]
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {

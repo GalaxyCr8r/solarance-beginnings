@@ -27,6 +27,21 @@ However I expect this to be unsustainable in the long term, and in fact, not pre
 especially for keeping track of the MANY NPC entities that I want to be moving throughout
 the universe all the time.
 
+## MVP
+
+The initial goal for this project is to achieve the basic loops of the following gameplay columns:
+
+- Trade
+  - Buy low, search to sell highest.
+- Mining
+  - Scan asteroid sectors for minerals you want, scan individual asteroids for their type. Mine and sell to refineries.
+- Combat
+  - Destory enemy ships and their spawners (Pirate bases, Vancellan nests) & collect rare items to sell (and/or use?)
+- Exploration
+  - Jump to new systems. Scan from sectors with high scientific value or mineral contents.
+- Building
+  - Build space stations of various sizes. NPCs will begin visiting them.
+
 ## Running the Game
 
 ### Prerequisites

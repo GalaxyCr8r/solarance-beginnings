@@ -1,7 +1,7 @@
 use spacetimedb::*;
 use spacetimedsl::*;
 
-use crate::tables::global_config::*;
+use crate::tables::{global_config::*, players::*};
 
 #[spacetimedb::reducer(client_connected)]
 pub fn identity_connected(ctx: &ReducerContext) -> Result<(), String> {
@@ -9,6 +9,10 @@ pub fn identity_connected(ctx: &ReducerContext) -> Result<(), String> {
     // Called everytime a new client connects
 
     // TODO: When someone logs in set their player to online
+
+    if let Ok(_player) = dsl.get_player_by_id(PlayerId::new(ctx.sender)) {
+        // Add back timers and etc.
+    }
 
     if let Some(mut config) = dsl.get_all_global_configurations().next() {
         config.set_active_players(config.get_active_players() + 1);
