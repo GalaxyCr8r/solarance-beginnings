@@ -30,9 +30,9 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
         WHERE o.player_id = '{}'",
         ctx.identity()
     );
-    let npc_ship_controller = format!(
+    let player_ship_controller = format!(
         "SELECT c.* 
-        FROM npc_ship_controller c
+        FROM ship_movement_controller c
         WHERE c.id = '{}'",
         ctx.identity()
     );
@@ -145,7 +145,7 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
             cargo_crate.as_str(),
             jump_gate.as_str(),
             "SELECT * FROM player",
-            npc_ship_controller.as_str(),
+            player_ship_controller.as_str(),
             "SELECT * FROM star_system",
             "SELECT * FROM star_system_object",
             "SELECT * FROM sector",

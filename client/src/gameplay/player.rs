@@ -12,94 +12,20 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
         return Ok(());
     }
 
-    let id = &ctx.identity();
-    let mut changed = false; // ONLY request an update if there's actually been a change!
-    if let Some(mut controller) = ctx.db().npc_ship_controller().id().find(id) {
-        // Synchronize the controller with the game state.
-        game_state.current_target_sobj = match controller.targetted_sobj_id {
-            Some(id) => ctx.db().stellar_object().id().find(&id),
-            None => None,
-        };
+    // Combat mode toggle
+    if is_key_pressed(KeyCode::Q) {
+        game_state.combat_mode = !game_state.combat_mode;
+    }
 
-        if is_key_down(KeyCode::Right) || is_key_down(KeyCode::D) {
-            controller.right = true;
-            controller.left = false;
-            changed = true;
-        } else {
-            if controller.right {
-                controller.right = false;
-                changed = true;
-            }
-        }
-        if is_key_down(KeyCode::Left) || is_key_down(KeyCode::A) {
-            controller.right = false;
-            controller.left = true;
-            changed = true;
-        } else {
-            if controller.left {
-                controller.left = false;
-                changed = true;
-            }
-        }
-        if is_key_down(KeyCode::Down) || is_key_down(KeyCode::S) {
-            controller.up = false;
-            controller.down = true;
-            changed = true;
-        } else {
-            if controller.down {
-                controller.down = false;
-                changed = true;
-            }
-        }
-        if is_key_down(KeyCode::Up) || is_key_down(KeyCode::W) {
-            controller.up = true;
-            controller.down = false;
-            changed = true;
-        } else {
-            if controller.up {
-                controller.up = false;
-                changed = true;
-            }
-        }
+    let forward  = is_key_down(KeyCode::W) || is_key_down(KeyCode::Up);
+    let backward = is_key_down(KeyCode::S) || is_key_down(KeyCode::Down);
+    let left     = is_key_down(KeyCode::A) || is_key_down(KeyCode::Left);
+    let right    = is_key_down(KeyCode::D) || is_key_down(KeyCode::Right);
 
-        // Combat mode toggle
-        if is_key_pressed(KeyCode::Q) {
-            game_state.combat_mode = !game_state.combat_mode;
-        }
-
-        // Combat mode controls - only allow weapon firing in combat mode
-        if game_state.combat_mode {
-            if is_key_pressed(KeyCode::Space) {
-                controller.fire_weapons = true;
-                changed = true;
-            }
-            if is_key_pressed(KeyCode::LeftControl) {
-                controller.fire_missles = true;
-                changed = true;
-            }
-        }
-
-        // Utility mode controls - only allow utility actions when NOT in combat mode
-        if !game_state.combat_mode {
-            if is_key_pressed(KeyCode::Z) {
-                controller.cargo_bay_open = !controller.cargo_bay_open;
-                changed = true;
-            }
-            if is_key_pressed(KeyCode::X) {
-                controller.mining_laser_on = !controller.mining_laser_on;
-                changed = true;
-            }
-            if is_key_pressed(KeyCode::C) {
-                controller.dock = !controller.dock;
-                changed = true;
-            }
-        }
-
-        if changed {
-            ctx.reducers
-                .update_npc_controller(controller)
-                .or_else(|err| Err(err.to_string()))?;
-        }
+    let new_flags = (forward, backward, left, right);
+    if game_state.movement_flags != new_flags {
+        game_state.movement_flags = new_flags;
+        let _ = ctx.reducers.update_ship_movement_controller(forward, backward, left, right);
     }
 
     Ok(())

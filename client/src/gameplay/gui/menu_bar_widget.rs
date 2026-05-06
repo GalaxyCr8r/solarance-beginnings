@@ -18,7 +18,7 @@ impl State {
     }
 }
 
-pub fn draw(egui_ctx: &Context, ctx: &DbConnection, game_state: &mut GameState) -> Option<egui::InnerResponse<Option<()>>> {
+pub fn draw(egui_ctx: &Context, _ctx: &DbConnection, game_state: &mut GameState) -> Option<egui::InnerResponse<Option<()>>> {
     egui::Window
         ::new("Menu Bar")
         .title_bar(false)

@@ -7,6 +7,27 @@ use spacetimedsl::*;
 
 use crate::tables::{players::*, ships::*, stellarobjects::*};
 
+#[spacetimedb::reducer]
+pub fn update_ship_movement_controller(
+    ctx: &ReducerContext,
+    forward: bool,
+    backward: bool,
+    left: bool,
+    right: bool,
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
+    let player_id = PlayerId::new(ctx.sender());
+    let mut controller = dsl
+        .get_ship_movement_controller_by_id(&player_id)
+        .ok_or("No movement controller for player")?;
+    controller.forward = forward;
+    controller.backward = backward;
+    controller.left = left;
+    controller.right = right;
+    dsl.update_ship_movement_controller_by_id(controller)?;
+    Ok(())
+}
+
 pub fn initialize_controller_for_player<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     player: &PlayerId,
