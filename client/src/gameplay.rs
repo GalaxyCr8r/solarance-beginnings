@@ -233,7 +233,7 @@ pub async fn gameplay(connection: Option<DbConnection>) {
             if is_key_pressed(KeyCode::E) {
                 if let Ok(target) = player::target_closest_stellar_object(&ctx, &mut game_state) {
                     if let Some(mut controller) =
-                        ctx.db.player_ship_controller().id().find(&ctx.identity())
+                        ctx.db.npc_ship_controller().id().find(&ctx.identity())
                     {
                         // Deselect target if it's already selected
                         if controller.targetted_sobj_id.is_some()
@@ -245,7 +245,7 @@ pub async fn gameplay(connection: Option<DbConnection>) {
                             controller.targetted_sobj_id = Some(target.id);
                             game_state.current_target_sobj = Some(target);
                         }
-                        let _ = ctx.reducers.update_player_controller(controller);
+                        let _ = ctx.reducers.update_npc_controller(controller);
                         // TODO Alert player of error
                     }
                 }

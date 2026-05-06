@@ -26,7 +26,7 @@ tasks:
   generate:
     desc: "Client: Generate Bindings"
     cmds:
-      - spacetime generate --lang rust --out-dir src/module_bindings --project-path ../server -y
+      - spacetime generate --lang rust --out-dir src/module_bindings --module-path ../server -y
 
   run-full:
     desc: "Generate bindings, build, and run client"

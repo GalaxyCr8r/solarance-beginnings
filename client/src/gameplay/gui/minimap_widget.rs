@@ -27,7 +27,7 @@ pub fn draw(
                     ui.separator();
 
                     if let Some(mut controller) =
-                        ctx.db().player_ship_controller().id().find(&ctx.identity())
+                        ctx.db().npc_ship_controller().id().find(&ctx.identity())
                     {
                         let _ = list_sector_objects(
                             game_state,
@@ -102,7 +102,7 @@ fn list_sector_objects(
                                 controller.targetted_sobj_id = Some(sobj.id);
                                 game_state.current_target_sobj = Some(sobj.clone());
                             }
-                            let _ = ctx.reducers.update_player_controller(controller.clone());
+                            let _ = ctx.reducers.update_npc_controller(controller.clone());
                         }
 
                         // Object type

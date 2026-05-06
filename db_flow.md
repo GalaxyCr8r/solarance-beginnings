@@ -12,7 +12,7 @@ item_definition[ItemDefinition<br>---<br>id - PK<br>name<br>description<br>categ
 jump_gate[JumpGate<br>---<br>id - PK FK<br>current_sector_id - FK<br>target_sector_id - FK<br>target_gate_arrival_pos<br>gfx_key<br>is_active]
 player[Player<br>---<br>id - PK<br>username<br>credits<br>logged_in<br>faction_id - FK?<br>created_at<br>modified_at]
 player_faction_standing[PlayerFactionStanding<br>---<br>id - PK<br>player_identity - FK<br>faction_id - FK<br>reputation_score<br>]
-player_ship_controller[PlayerShipController<br>---<br>id - PK FK<br>stellar_object_id - FK<br>up<br>down<br>left<br>right<br>current_action<br>activate_jump_drive<br>tractor_beam_on<br>mining_laser_on<br>cargo_bay_open<br>dock<br>undock<br>shield_boost<br>fire_weapons<br>fire_missle<br>targetted_sobj_id - FK?]
+npc_ship_controller[PlayerShipController<br>---<br>id - PK FK<br>stellar_object_id - FK<br>up<br>down<br>left<br>right<br>current_action<br>activate_jump_drive<br>tractor_beam_on<br>mining_laser_on<br>cargo_bay_open<br>dock<br>undock<br>shield_boost<br>fire_weapons<br>fire_missle<br>targetted_sobj_id - FK?]
 sector[Sector<br>---<br>id - PK<br>system_id - FK<br>name<br>description<br>controlling_faction_id - FK<br>security_level<br>sunlight<br>anomalous<br>nebula<br>rare_ore<br>x<br>y<br>background_gfx_key]
 sector_chat_message[SectorChatMessage<br>---<br>id - PK<br>player_id - FK<br>sector_id - FK<br>message<br>created_at]
 server_message[ServerMessage<br>---<br>id - PK<br>message<br>message_type<br>group_name<br>sender_context<br>created_at]
@@ -56,7 +56,7 @@ player --> docked_ship
 player --> faction_chat_message
 player --> global_chat_message
 player --> player_faction_standing
-player --> player_ship_controller
+player --> npc_ship_controller
 player --> sector_chat_message
 player --> server_message_recipient
 player --> ship
@@ -89,7 +89,7 @@ star_system --> star_system_object
 stellar_object --> asteroid
 stellar_object --> cargo_crate
 stellar_object --> jump_gate
-stellar_object --> player_ship_controller
+stellar_object --> npc_ship_controller
 stellar_object --> ship
 stellar_object --> sobj_hi_res_transform
 stellar_object --> sobj_internal_transform

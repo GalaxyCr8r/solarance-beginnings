@@ -101,7 +101,7 @@ fn ship_function_status(ctx: &DbConnection, ui: &mut Ui, game_state: &GameState)
         // Combat mode indicator
         combat_mode_indicator(ui, game_state);
 
-        if let Some(mut controller) = ctx.db().player_ship_controller().id().find(&ctx.identity()) {
+        if let Some(mut controller) = ctx.db().npc_ship_controller().id().find(&ctx.identity()) {
             let changed = cargo_bay_button(ui, &mut controller, game_state)
                 || mining_beam_button(ui, &mut controller, game_state)
                 || autodocking_button(ui, &mut controller, game_state)
@@ -109,7 +109,7 @@ fn ship_function_status(ctx: &DbConnection, ui: &mut Ui, game_state: &GameState)
                 || fire_missiles_button(ui, &mut controller, game_state);
 
             if changed {
-                let _ = ctx.reducers.update_player_controller(controller);
+                let _ = ctx.reducers.update_npc_controller(controller);
             }
         }
     });

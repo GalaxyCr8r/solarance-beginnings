@@ -87,7 +87,7 @@ fn connect_to_db(host: String, jwt_token: Option<String>) -> Result<DbConnection
         // so we can re-authenticate as the same `Identity`.
         .with_token(jwt_token)
         // Set the database name we chose when we called `spacetime publish`.
-        .with_module_name(DB_NAME)
+        .with_database_name(DB_NAME)
         // Set the URI of the SpacetimeDB host that's running our database.
         .with_uri(host)
         // Finalize configuration and connect!

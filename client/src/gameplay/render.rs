@@ -86,7 +86,7 @@ pub fn sector(game_state: &mut GameState) {
     }
 
     if let Some(controller) = db
-        .player_ship_controller()
+        .npc_ship_controller()
         .id()
         .find(&game_state.ctx.identity())
     {
