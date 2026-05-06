@@ -6,7 +6,7 @@ use crate::tables::{factions::FactionId, ships::*};
 use super::stellarobjects::*;
 
 #[dsl(plural_name = players, method(update = true))]
-#[table(name = player, public)]
+#[table(accessor = player, public)]
 pub struct Player {
     #[primary_key]
     #[create_wrapper]

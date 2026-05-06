@@ -24,7 +24,7 @@ pub enum FactionTier {
 }
 
 #[dsl(plural_name = factions, method(update = true))]
-#[table(name = faction, public)]
+#[table(accessor = faction, public)]
 pub struct Faction {
     #[primary_key]
     #[create_wrapper]
@@ -58,7 +58,7 @@ pub struct Faction {
 }
 
 #[dsl(plural_name = faction_standings, method(update = true))]
-#[table(name = faction_standing, public)]
+#[table(accessor = faction_standing, public)]
 pub struct FactionStanding {
     #[primary_key]
     #[auto_inc]
@@ -86,7 +86,7 @@ pub struct FactionStanding {
 // We are ignoring player-level faction standings at the moment.
 
 // #[dsl(plural_name = player_faction_standings, method(update = true))]
-// #[table(name = player_faction_standing, public)]
+// #[table(accessor = player_faction_standing, public)]
 // pub struct PlayerFactionStanding {
 //     #[primary_key]
 //     #[auto_inc]
@@ -258,7 +258,7 @@ pub fn handle_faction_ship_destroyed<T: spacetimedsl::WriteContext>(
             aggressor_faction_id: aggressor_faction_id.cloned(),
             destroyed_ship_type_id: destroyed_ship.get_shiptype_id(),
             destruction_sector_id: destruction_sector_id.clone(),
-            destruction_timestamp: dsl.ctx().timestamp(),
+            destruction_timestamp: dsl.ctx().timestamp()?,
         });
 
         info!(

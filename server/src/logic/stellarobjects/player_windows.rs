@@ -8,7 +8,7 @@ use crate::tables::ships::*;
 use crate::tables::stellarobjects::{CreateSobjPlayerWindow, *};
 
 #[dsl(plural_name = player_windows_timers, method(update = false))]
-#[spacetimedb::table(name = player_windows_timer, scheduled(recalculate_player_windows))]
+#[spacetimedb::table(accessor = player_windows_timer, scheduled(recalculate_player_windows))]
 pub struct PlayerWindowsTimer {
     #[primary_key]
     #[auto_inc]

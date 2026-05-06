@@ -10,7 +10,7 @@ pub fn identity_connected(ctx: &ReducerContext) -> Result<(), String> {
 
     // TODO: When someone logs in set their player to online
 
-    if let Ok(_player) = dsl.get_player_by_id(PlayerId::new(ctx.sender)) {
+    if let Ok(_player) = dsl.get_player_by_id(PlayerId::new(ctx.sender())) {
         // Add back timers and etc.
     }
 

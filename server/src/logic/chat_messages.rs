@@ -13,10 +13,10 @@ use crate::tables::{chats::*, factions::FactionId, players::*, sectors::SectorId
 pub fn send_global_chat(ctx: &ReducerContext, chat_message: String) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    // If ctx.sender is a valid, unbanned, unmuted player
+    // If ctx.sender() is a valid, unbanned, unmuted player
     info!(
         "GlobalChat [{}]: {}",
-        get_username(&dsl, ctx.sender),
+        get_username(&dsl, ctx.sender()),
         chat_message
     );
 
@@ -36,8 +36,8 @@ pub fn send_sector_chat(
     sector_id: u64,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
-    let sender = PlayerId::new(ctx.sender);
-    let username = get_username(&dsl, ctx.sender);
+    let sender = PlayerId::new(ctx.sender());
+    let username = get_username(&dsl, ctx.sender());
 
     if let Some(player) = dsl.get_ships_by_player_id(&sender).next() {
         if player.get_sector_id().value() != sector_id {
@@ -50,7 +50,7 @@ pub fn send_sector_chat(
         return Err(format!("Player {} does not have a ship object", username));
     }
 
-    // If ctx.sender is a valid, unbanned, unmuted player
+    // If ctx.sender() is a valid, unbanned, unmuted player
     info!("SectorChat #{} [{}]: {}", sector_id, username, chat_message);
 
     dsl.create_sector_chat_message(CreateSectorChatMessage {
@@ -70,8 +70,8 @@ pub fn send_faction_chat(
     faction_id: FactionId,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
-    let sender = PlayerId::new(ctx.sender);
-    let username = get_username(&dsl, ctx.sender);
+    let sender = PlayerId::new(ctx.sender());
+    let username = get_username(&dsl, ctx.sender());
 
     if let Ok(player) = dsl.get_player_by_id(&sender) {
         if player.get_faction_id().value() != faction_id.value() {
@@ -87,11 +87,11 @@ pub fn send_faction_chat(
         ));
     }
 
-    // If ctx.sender is a valid, unbanned, unmuted player
+    // If ctx.sender() is a valid, unbanned, unmuted player
     info!(
         "FactionChat #{} [{}]: {}",
         faction_id.value(),
-        get_username(&dsl, ctx.sender),
+        get_username(&dsl, ctx.sender()),
         chat_message
     );
 

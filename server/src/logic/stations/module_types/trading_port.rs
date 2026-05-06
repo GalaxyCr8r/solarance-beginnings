@@ -7,7 +7,7 @@ use crate::tables::items::*;
 use crate::tables::stations::*;
 
 #[dsl(plural_name = trading_port_modules, method(update = true))]
-#[table(name = trading_port_module, public)]
+#[table(accessor = trading_port_module, public)]
 pub struct TradingPort {
     #[primary_key]
     #[use_wrapper(StationModuleId)]
@@ -21,7 +21,7 @@ pub struct TradingPort {
 /// Represents items the Trading Port module is actively buying or selling.
 /// This is distinct from general market orders placed by players at a station.
 #[dsl(plural_name = trading_port_listings, method(update = true))]
-#[table(name = trading_port_listing, public)]
+#[table(accessor = trading_port_listing, public)]
 pub struct TradingPortListing {
     #[primary_key]
     #[use_wrapper(StationModuleInventoryItemId)]
@@ -67,7 +67,7 @@ pub fn create_trading_port_with_items<T: spacetimedsl::WriteContext>(
         station_slot_identifier: module_name.to_string(),
         is_operational: true,
         built_at_timestamp: None,
-        last_status_update_timestamp: dsl.ctx().timestamp(),
+        last_status_update_timestamp: dsl.ctx().timestamp()?,
     })?;
 
     dsl.create_trading_port_module(CreateTradingPortModule {

@@ -117,7 +117,7 @@ pub enum ItemMetadata {
 }
 
 #[dsl(plural_name = item_definitions, method(update = true))]
-#[table(name = item_definition, public)]
+#[table(accessor = item_definition, public)]
 pub struct ItemDefinition {
     #[primary_key]
     #[create_wrapper]
@@ -145,7 +145,7 @@ pub struct ItemDefinition {
 }
 
 #[dsl(plural_name = cargo_crates, method(update = true))]
-#[table(name = cargo_crate, public)]
+#[table(accessor = cargo_crate, public)]
 pub struct CargoCrate {
     #[primary_key]
     #[auto_inc]

@@ -26,7 +26,7 @@ use crate::{
 /// Tries to dock to station using the player's current ship.
 pub fn try_to_dock_to_station(ctx: &ReducerContext, station: &Station) -> Result<(), String> {
     let dsl = dsl(ctx);
-    let (ship_object, ship_sobj) = get_player_ship_and_sobj(&dsl, &PlayerId::new(ctx.sender))?;
+    let (ship_object, ship_sobj) = get_player_ship_and_sobj(&dsl, &PlayerId::new(ctx.sender()))?;
 
     // TODO: Check if same faction
 
@@ -47,7 +47,7 @@ pub fn undock_ship(ctx: &ReducerContext, ship: Ship) -> Result<(), String> {
 
     // Exit early if the player is already controlling a ship
     if dsl
-        .get_sobj_player_window_by_id(PlayerId::new(ctx.sender))
+        .get_sobj_player_window_by_id(PlayerId::new(ctx.sender()))
         .is_ok()
     {
         return Err(
@@ -70,7 +70,7 @@ pub fn undock_ship(ctx: &ReducerContext, ship: Ship) -> Result<(), String> {
 
 pub fn try_to_use_jumpgate(ctx: &ReducerContext, jumpgate: &JumpGate) -> Result<(), String> {
     let dsl = dsl(ctx);
-    let (mut ship_object, _) = get_player_ship_and_sobj(&dsl, &PlayerId::new(ctx.sender))?;
+    let (mut ship_object, _) = get_player_ship_and_sobj(&dsl, &PlayerId::new(ctx.sender()))?;
     let mut ship_status = dsl.get_ship_status_by_id(ship_object.get_id())?;
 
     // Jump once they have more than 100 energy

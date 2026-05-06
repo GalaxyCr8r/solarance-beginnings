@@ -4,6 +4,24 @@ use spacetimedsl::*;
 
 use super::*;
 
+#[dsl(plural_name = station_production_schedules, method(update = true))]
+#[spacetimedb::table(accessor = station_production_schedule, scheduled(station_production_schedule_reducer))]
+pub struct StationProductionSchedule {
+    #[primary_key]
+    #[use_wrapper(StationId)]
+    id: u64,
+    pub scheduled_at: spacetimedb::ScheduleAt,
+    pub last_processed_timestamp: spacetimedb::Timestamp,
+}
+
+#[spacetimedb::reducer]
+pub fn station_production_schedule_reducer(ctx: &ReducerContext, timer: StationProductionSchedule) {
+    let dsl = dsl(ctx);
+    if let Err(e) = process_station_production_tick(&dsl, timer.get_id()) {
+        spacetimedb::log::error!("Station production tick failed for station {}: {}", timer.get_id(), e);
+    }
+}
+
 //////////////////////////////////////////////////////////////
 
 /// Processes production for all modules in a station.

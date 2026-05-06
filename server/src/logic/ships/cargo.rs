@@ -27,7 +27,7 @@ pub fn try_to_pickup_crate(
     cargo_crate_id: CargoCrateId,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
-    let player_id = PlayerId::new(ctx.sender);
+    let player_id = PlayerId::new(ctx.sender());
     let (ship_object, _) = get_player_ship_and_sobj(&dsl, &player_id)?;
     let cargo_crate = dsl.get_cargo_crate_by_id(cargo_crate_id)?;
 
@@ -396,7 +396,7 @@ pub fn create_cargo_crate_nearby_ship<T: spacetimedsl::WriteContext>(
         quantity,
         despawn_ts: Some(
             dsl.ctx()
-                .timestamp()
+                .timestamp()?
                 .checked_add(TimeDuration::from_duration(Duration::from_secs(
                     /*D* /24 * /*H*/60 * */ /*M*/ 60,
                 )))

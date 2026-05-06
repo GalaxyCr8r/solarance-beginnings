@@ -127,7 +127,7 @@ impl From<spacetimedsl::SpacetimeDSLError> for CombatError {
 // }
 
 #[dsl(plural_name = visual_effects, method(update = false))]
-#[table(name = visual_effect, public)]
+#[table(accessor = visual_effect, public)]
 pub struct VisualEffect {
     #[primary_key]
     #[auto_inc]

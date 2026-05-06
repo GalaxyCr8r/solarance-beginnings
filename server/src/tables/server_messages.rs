@@ -26,7 +26,7 @@ impl ServerMessageType {
 }
 
 #[dsl(plural_name = server_messages, method(update = false))]
-#[table(name = server_message, public)]
+#[table(accessor = server_message, public)]
 pub struct ServerMessage {
     #[primary_key]
     #[auto_inc]
@@ -63,7 +63,7 @@ impl ServerMessage {
 }
 
 #[dsl(plural_name = server_message_recipients, method(update = true))]
-#[table(name = server_message_recipient, public)]
+#[table(accessor = server_message_recipient, public)]
 pub struct ServerMessageRecipient {
     #[primary_key]
     #[auto_inc]
@@ -132,7 +132,7 @@ pub fn send_server_message_to_player<T: spacetimedsl::WriteContext>(
         server_message_id: ServerMessageId::new(server_message.id),
         player_id: player_id.clone(),
         read_at: None, // read_at starts as None
-        delivered_at: dsl.ctx().timestamp(),
+        delivered_at: dsl.ctx().timestamp()?,
     })?;
 
     Ok(())
@@ -165,7 +165,7 @@ pub fn send_server_message_to_group<T: spacetimedsl::WriteContext>(
             server_message_id: ServerMessageId::new(server_message.id),
             player_id: player_id,
             read_at: None, // read_at starts as None
-            delivered_at: dsl.ctx().timestamp(),
+            delivered_at: dsl.ctx().timestamp()?,
         })?;
     }
 
@@ -285,7 +285,7 @@ pub fn mark_message_as_read<T: spacetimedsl::WriteContext>(
         .find(|r| r.server_message_id == server_message_id);
 
     if let Some(mut recipient) = recipient_opt {
-        recipient.read_at = Some(dsl.ctx().timestamp());
+        recipient.read_at = Some(dsl.ctx().timestamp()?);
         dsl.update_server_message_recipient_by_id(recipient)?;
         Ok(())
     } else {

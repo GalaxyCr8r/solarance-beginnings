@@ -34,7 +34,7 @@ pub enum StarSystemObjectKind {
 }
 
 #[dsl(plural_name = star_systems, method(update = true))] // Keeping it true in case we want to edit the galaxy
-#[table(name = star_system, public)]
+#[table(accessor = star_system, public)]
 pub struct StarSystem {
     #[primary_key]
     #[auto_inc]
@@ -60,7 +60,7 @@ pub struct StarSystem {
 }
 
 #[dsl(plural_name = star_system_objects, method(update = true))] // Keeping it true in case we want to edit the galaxy
-#[table(name = star_system_object, public)]
+#[table(accessor = star_system_object, public)]
 pub struct StarSystemObject {
     #[primary_key]
     #[auto_inc]

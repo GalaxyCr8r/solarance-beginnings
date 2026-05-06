@@ -38,7 +38,7 @@ pub enum OrderType {
 }
 
 #[dsl(plural_name = npc_ship_controllers, method(update = true))]
-#[table(name = npc_ship_controller, public)]
+#[table(accessor = npc_ship_controller, public)]
 pub struct NpcShipController {
     #[primary_key]
     #[auto_inc]

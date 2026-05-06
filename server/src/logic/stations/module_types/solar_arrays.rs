@@ -20,7 +20,7 @@ pub const MODULE_SOLAR_ARRAY_LARGE: u32 = 7_002;
 pub const MODULE_SOLAR_ARRAY_INDUSTRIAL: u32 = 7_003;
 
 #[dsl(plural_name = solar_array_modules, method(update = true))]
-#[table(name = solar_array_module, public)]
+#[table(accessor = solar_array_module, public)]
 pub struct SolarArray {
     #[primary_key]
     #[use_wrapper(StationModuleId)]
@@ -74,7 +74,7 @@ pub fn create_simple_solar_array_module<T: spacetimedsl::WriteContext>(
         station_slot_identifier: identifier.as_str().to_string(),
         is_operational: true,
         built_at_timestamp: None,
-        last_status_update_timestamp: dsl.ctx().timestamp(),
+        last_status_update_timestamp: dsl.ctx().timestamp()?,
     })?;
 
     // Create solar array submodule

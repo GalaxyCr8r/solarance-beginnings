@@ -13,7 +13,7 @@ pub enum StellarObjectKinds {
 
 /// An object that exists inside a sector.
 #[dsl(plural_name = stellar_objects, method(update = true))]
-#[table(name = stellar_object, public)]
+#[table(accessor = stellar_object, public)]
 pub struct StellarObject {
     #[primary_key]
     #[auto_inc]
@@ -45,7 +45,7 @@ pub struct StellarObject {
 
 /// The current velocity of a stellar object.
 #[dsl(plural_name = sobj_velocities, method(update = true))]
-#[table(name = sobj_velocity, public)]
+#[table(accessor = sobj_velocity, public)]
 #[derive(Default)]
 pub struct StellarObjectVelocity {
     #[primary_key]
@@ -63,7 +63,7 @@ pub struct StellarObjectVelocity {
 
 /// The current exact transform of a stellar object. Used to populate low/high resolution tables.
 #[dsl(plural_name = sobj_internal_transforms, method(update = true))]
-#[table(name = sobj_internal_transform)]
+#[table(accessor = sobj_internal_transform)]
 #[derive(Default)]
 pub struct StellarObjectTransformInternal {
     #[primary_key]
@@ -79,7 +79,7 @@ pub struct StellarObjectTransformInternal {
 
 /// The position of a stellar object that has a high rate of updates
 #[dsl(plural_name = sobj_hi_res_transforms, method(update = true))]
-#[table(name = sobj_hi_res_transform, public)]
+#[table(accessor = sobj_hi_res_transform, public)]
 #[derive(Default)]
 pub struct StellarObjectTransformHiRes {
     #[primary_key]
@@ -94,7 +94,7 @@ pub struct StellarObjectTransformHiRes {
 }
 
 #[dsl(plural_name = sobj_low_res_transforms, method(update = true))]
-#[table(name = sobj_low_res_transform, public)]
+#[table(accessor = sobj_low_res_transform, public)]
 #[derive(Default)]
 pub struct StellarObjectTransformLowRes {
     #[primary_key]
@@ -109,7 +109,7 @@ pub struct StellarObjectTransformLowRes {
 }
 
 #[dsl(plural_name = sobj_turn_left_controllers, method(update = true))]
-#[table(name = sobj_turn_left_controller)]
+#[table(accessor = sobj_turn_left_controller)]
 pub struct StellarObjectControllerTurnLeft {
     #[primary_key]
     #[use_wrapper(StellarObjectId)]
@@ -125,7 +125,7 @@ impl StellarObjectControllerTurnLeft {
 }
 
 #[dsl(plural_name = sobj_player_windows, method(update = true))]
-#[table(name = sobj_player_window, public)]
+#[table(accessor = sobj_player_window, public)]
 pub struct StellarObjectPlayerWindow {
     #[primary_key]
     #[use_wrapper(crate::players::PlayerId)]

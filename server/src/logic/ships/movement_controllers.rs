@@ -31,7 +31,7 @@ pub fn initialize_controller_for_player<T: spacetimedsl::WriteContext>(
 /// Runs at 20 FPS to handle ship acceleration, rotation, and velocity damping based on player input.
 #[dsl(plural_name = create_update_ship_movement_controllers_timers, method(update = false))]
 #[table(
-    name = create_update_ship_movement_controllers_timer,
+    accessor = create_update_ship_movement_controllers_timer,
     scheduled(timer_update_all_ship_movement_controllers)
 )]
 pub struct UpdateShipMovementControllers {

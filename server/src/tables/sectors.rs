@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[dsl(plural_name = sectors, method(update = true))]
-#[table(name = sector, public)]
+#[table(accessor = sector, public)]
 pub struct Sector {
     #[primary_key] // NOT Auto-inc so it can be reloaded as-is
     #[create_wrapper]
@@ -67,7 +67,7 @@ pub struct Sector {
 }
 
 #[dsl(plural_name = asteroid_sectors, method(update = false))]
-#[table(name = asteroid_sector)]
+#[table(accessor = asteroid_sector)]
 pub struct AsteroidSector {
     #[primary_key] // NOT Auto-inc so it can be reloaded as-is
     #[use_wrapper(SectorId)]

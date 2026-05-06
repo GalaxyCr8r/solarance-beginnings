@@ -105,14 +105,14 @@ pub fn create_station_with_modules<T: spacetimedsl::WriteContext>(
     dsl.create_station_production_schedule(CreateStationProductionSchedule {
         id: station.get_id(),
         scheduled_at: ScheduleAt::Interval(Duration::from_secs(30).into()),
-        last_processed_timestamp: dsl.ctx().timestamp(),
+        last_processed_timestamp: dsl.ctx().timestamp()?,
     })?;
 
     // Set up station status schedule (every 60 seconds) TODO Tie this to GlobalConfig
     dsl.create_station_status_schedule(CreateStationStatusSchedule {
         id: station.get_id(),
         scheduled_at: ScheduleAt::Interval(Duration::from_secs(10).into()),
-        last_processed_timestamp: dsl.ctx().timestamp(),
+        last_processed_timestamp: dsl.ctx().timestamp()?,
     })?;
 
     // Verify station invariants

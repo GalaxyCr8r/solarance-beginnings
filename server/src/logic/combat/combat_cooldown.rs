@@ -5,7 +5,7 @@ use spacetimedsl::*;
 #[dsl(plural_name = combat_cooldown_timers,
     method(update = false, delete = true)
 )]
-#[spacetimedb::table(name = combat_cooldown_timer, scheduled(update_combat_cooldowns))]
+#[spacetimedb::table(accessor = combat_cooldown_timer, scheduled(update_combat_cooldowns))]
 pub struct CombatCooldownTimer {
     #[primary_key]
     #[auto_inc]

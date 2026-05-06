@@ -11,7 +11,7 @@ use crate::{
 };
 
 #[dsl(plural_name = ship_mining_timers, method(update = true))]
-#[spacetimedb::table(name = ship_mining_timer, scheduled(ship_mining_timer_reducer))]
+#[spacetimedb::table(accessor = ship_mining_timer, scheduled(ship_mining_timer_reducer))]
 pub struct ShipMiningTimer {
     #[primary_key]
     #[auto_inc]
@@ -196,7 +196,7 @@ pub fn ship_mining_timer_reducer(
     Ok(())
 }
 
-/// Tries to begin mining the given asteroid. Uses the `ctx.sender` to try to find the player ship.
+/// Tries to begin mining the given asteroid. Uses the `ctx.sender()` to try to find the player ship.
 #[reducer]
 pub fn try_mining_asteroid(
     ctx: &ReducerContext,
@@ -205,7 +205,7 @@ pub fn try_mining_asteroid(
     let dsl = dsl(ctx);
 
     // Find the player's ship by assuming they have a movement controller on their current ship
-    let player_id = PlayerId::new(ctx.sender);
+    let player_id = PlayerId::new(ctx.sender());
     let (ship_object, ship_sobj) = get_player_ship_and_sobj(&dsl, &player_id)?;
 
     // TODO: Check if the player ship has a mining laser installed.
@@ -251,12 +251,12 @@ pub fn try_mining_asteroid(
     }
 }
 
-/// Tries to stop mining any asteroid. Uses the `ctx.sender` to try to find the player ship.
+/// Tries to stop mining any asteroid. Uses the `ctx.sender()` to try to find the player ship.
 #[reducer]
 pub fn stop_mining_asteroid(ctx: &ReducerContext) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    let player_id = PlayerId::new(ctx.sender);
+    let player_id = PlayerId::new(ctx.sender());
     let (_, ship_sobj) = get_player_ship_and_sobj(&dsl, &player_id)?;
 
     let mining_timers = dsl.get_ship_mining_timers_by_ship_sobj_id(&ship_sobj);

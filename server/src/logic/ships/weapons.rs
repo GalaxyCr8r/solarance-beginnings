@@ -16,17 +16,17 @@ pub fn fire_weapons(ctx: &ReducerContext, target_sobj_id: u64) -> Result<(), Str
     let dsl = dsl(ctx);
 
     let ship = dsl
-        .get_ships_by_player_id(PlayerId::new(ctx.sender))
+        .get_ships_by_player_id(PlayerId::new(ctx.sender()))
         .next()
         .ok_or(format!(
             "Ship couldn't be found for playerId:: {}",
-            ctx.sender
+            ctx.sender()
         ))?;
 
     let target_sobj = dsl.get_stellar_object_by_id(StellarObjectId::new(target_sobj_id))?;
 
     // Currently every path prints the username, so just grab it here
-    let username = get_username(&dsl, ctx.sender);
+    let username = get_username(&dsl, ctx.sender());
 
     if ship.get_sector_id() != target_sobj.get_sector_id() {
         return Err(format!(

@@ -6,7 +6,7 @@ use crate::tables::{combat::*, items::*, sectors::SectorId, ships::*, stellarobj
 #[dsl(plural_name = visual_effect_timers,
     method(update = false, delete = true)
 )]
-#[spacetimedb::table(name = visual_effect_timer, scheduled(cleanup_visual_effect))]
+#[spacetimedb::table(accessor = visual_effect_timer, scheduled(cleanup_visual_effect))]
 pub struct VisualEffectTimer {
     #[primary_key]
     #[auto_inc]
@@ -924,7 +924,7 @@ fn create_visual_effect<T: spacetimedsl::WriteContext>(
     // Schedule cleanup after 10 milliseconds
     let cleanup_time =
         spacetimedb::ScheduleAt::Time(spacetimedb::Timestamp::from_micros_since_unix_epoch(
-            dsl.ctx().timestamp().to_micros_since_unix_epoch() + 10_000,
+            dsl.ctx().timestamp()?.to_micros_since_unix_epoch() + 10_000,
         ));
 
     dsl.create_visual_effect_timer(CreateVisualEffectTimer {
