@@ -1,6 +1,102 @@
+# Software Design Principles
+
+> Read this first. Everything else in this file is mechanics. This is philosophy.
+
+---
+
+## The Mental Model
+
+The server is built around one invariant: **state lives in tables, transitions live in reducers.**
+
+Every bug in production manifests as "the wrong thing is in a table" or "the wrong reducer ran." That's it. If you keep that model sharp, you can diagnose anything from `spacetime logs` alone.
+
+There are three layers and they must stay separate:
+
+```
+tables/     — What exists. Pure schema. No logic.
+logic/      — What happens. Reducers + helper functions.
+definitions/ — What starts as true. Seed data for init.
+```
+
+Don't let logic leak into table definitions. Don't let schema decisions be made inside reducers. When you find yourself writing a method on a table struct that calls back into the DSL — stop and ask whether that belongs in `logic/` instead.
+
+---
+
+## Deep Modules
+
+This codebase is organised around **deep modules** (Ousterhout, *A Philosophy of Software Design*): each module should have a **simple interface and a complex implementation**. The interface is the public contract. The implementation is the mess you're paid to hide.
+
+A shallow module has an interface almost as complex as its body — it adds a layer without adding abstraction. A deep module genuinely simplifies the caller's world.
+
+**Measure depth by this ratio: how much does the caller need to know vs. how much is hidden?**
+
+The `spacetimedsl` crate is a perfect example of a deep module. A caller writes `dsl.get_player_by_id(&id)?` and has no idea that SpacetimeDB index access, row deserialization, and error normalisation just happened. That complexity is paid once, hidden forever.
+
+Write your logic functions the same way:
+
+```
+// Shallow — caller must orchestrate the whole operation
+pub fn get_ship_type(dsl, ship_id) -> ShipTypeDefinition
+pub fn get_ship_status(dsl, ship_id) -> ShipStatus
+pub fn compute_new_velocity(status, type, controller) -> Vec2
+pub fn save_velocity(dsl, sobj_id, velocity)
+
+// Deep — caller states intent, not steps
+pub fn apply_movement_tick(dsl, controller) -> Result<(), String>
+```
+
+If a caller has to call three of your functions in the right order to do one logical thing, your module is shallow. Pull that sequencing downward.
+
+---
+
+## The Debugging Contract
+
+In production you have exactly one tool: `spacetime logs`. Design everything to make those logs useful.
+
+**Every reducer is an audit trail entry.** Each state change has exactly one reducer that caused it. When something goes wrong in the live game, you will grep the logs for a reducer name and a row ID. That grep must find the answer.
+
+This means:
+
+1. **Reducers must be narrow.** One reducer = one conceptual operation. If a reducer does three unrelated things, a log line doesn't tell you which thing failed.
+
+2. **Errors must carry context.** `"Ship not found"` is useless. `"Ship not found (likely docked), removing update timer for player ID: {id}"` is a diagnosis. Every `Err(...)` string should answer: *what* failed, *where*, and *why the code took that branch*.
+
+3. **Timer reducers are the heartbeat.** `timer_update_all_ship_movement_controllers`, `station_production_schedule_reducer`, and their kin fire constantly. When something drifts, it drifted on a tick. Log the station ID, the sector, the ship — not just "tick completed".
+
+4. **Helper functions propagate errors, they don't swallow them.** Use `?` and let the reducer surface the failure. A helper that returns `Ok(())` after silently catching an error breaks the audit trail.
+
+---
+
+## Information Hiding
+
+Every decision you make inside a module that a caller doesn't need to know about is good engineering. Every detail that leaks across a module boundary is future maintenance debt.
+
+**Concretely:**
+
+- The `stations/production.rs` dispatcher (`match blueprint.get_category() { ... }`) is internal to the production tick. Callers don't know it exists. They call `process_station_production_tick`. Good.
+- The `CreateShipMovementController` struct is an implementation detail of ship creation. Callers in `logic/ships/creation.rs` construct it, but nothing outside `logic/ships/` should need to know its fields. If it does, you've leaked a detail.
+- `get_player_ship_and_sobj` in `players.rs` hides a two-step lookup (controller → sobj → ship). Any code that re-implements those two steps inline is a missed opportunity for this function.
+
+Before adding a parameter to a function, ask: *is there a way to hide this inside the function instead?* Before making a type public, ask: *who outside this module actually needs to name this type?*
+
+---
+
+## The Three Rules for New Code
+
+**1. Make the interface smaller than the implementation.**
+If your public function count grows at the same rate as your line count, you're writing shallow modules. Group related operations and hide the sequencing.
+
+**2. Errors are documentation.**
+Every `Err(string)` will eventually be the only clue you have when the game is live and a player files a bug report at 2am. Write it for that person.
+
+**3. The DSL is the database. Don't re-abstract it.**
+Don't create helper functions that are thin wrappers around `dsl.get_x_by_id`. If the DSL already does it, call it directly. New abstractions earn their place by hiding *multi-step* operations or *domain logic*, not by renaming a single DSL call.
+
+---
+
 # SpacetimeDB Rules (All Languages)
 
-> **Last updated:** 2026-01-06
+> **Last updated:** 2026-05-07
 
 ## Language-Specific Rules
 
@@ -611,3 +707,218 @@ spacetime logs <module-name>
 5. **Reducers must be deterministic** — no filesystem, network, timers, or external RNG
 6. **Use `ctx.rng`** — not `rand` crate for random numbers
 7. **Add `public` flag** — if clients need to subscribe to a table
+
+---
+
+# SpacetimeDSL — Project-Specific Layer
+
+> This project uses a **custom `spacetimedsl` crate** built on top of SpacetimeDB.
+> All server-side code (`server/src/`) must use the DSL patterns below.
+> **Last updated:** 2026-05-07
+
+---
+
+## Overview
+
+`spacetimedsl` is a code-generation layer. It wraps standard SpacetimeDB table/reducer macros and generates:
+- Strongly-typed ID wrapper structs (e.g., `PlayerId`, `SectorId`)
+- `Create<Table>` structs for insertion
+- Getter/setter methods on table rows
+- CRUD methods on a `DSL<T>` context object
+
+---
+
+## Imports
+
+```rust
+use spacetimedsl::*;        // Always — pulls in DSL, dsl(), WriteContext, etc.
+use spacetimedb::*;         // For ReducerContext, ScheduleAt, etc.
+```
+
+---
+
+## Table Definition
+
+Tables use `accessor =` (not `name =`) inside `#[table]`, paired with `#[dsl(...)]`:
+
+```rust
+#[dsl(plural_name = players, method(update = true))]
+#[table(accessor = player, public)]
+pub struct Player {
+    #[primary_key]
+    #[create_wrapper]           // Marks this field as the key in CreatePlayer wrapper
+    id: Identity,
+
+    pub username: String,
+    pub credits: u64,
+}
+```
+
+### `#[dsl(...)]` options
+
+| Attribute | Purpose |
+|-----------|---------|
+| `plural_name = <ident>` | Name for `get_all_<plural_name>()` iterator method |
+| `method(update = true)` | Generate `dsl.update_<table>_by_id()` method |
+| `method(update = false)` | Skip update method (e.g. insert-only timer tables) |
+
+### Extra field attributes
+
+| Attribute | Purpose |
+|-----------|---------|
+| `#[create_wrapper]` | Marks the field included in `Create<Table>` struct |
+| `#[referenced_by(path = crate::tables::ships, table = ship)]` | Documents foreign key relationships (informational) |
+
+---
+
+## Reducers
+
+Always use the full-path form `#[spacetimedb::reducer]` (project convention):
+
+```rust
+#[spacetimedb::reducer]
+pub fn update_ship_movement_controller(
+    ctx: &ReducerContext,
+    forward: bool,
+) -> Result<(), String> {
+    let dsl = dsl(ctx);   // Get the DSL handle
+    // ...
+    Ok(())
+}
+```
+
+---
+
+## Using the DSL
+
+Get a DSL handle inside a reducer with `dsl(ctx)`:
+
+```rust
+let dsl = dsl(ctx);
+```
+
+For helper functions outside reducers, accept a generic `DSL<T>`:
+
+```rust
+pub fn my_helper<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
+    // ...
+}
+```
+
+---
+
+## Generated CRUD Methods
+
+Given `#[dsl(plural_name = players, method(update = true))]` on `Player`:
+
+```rust
+// Read — by primary key (returns Result<Row, String>)
+let player = dsl.get_player_by_id(&PlayerId::new(identity))?;
+
+// Read — by indexed/unique column
+let players = dsl.get_players_by_faction_id(&faction_id);  // returns iterator
+
+// Read — full scan
+for player in dsl.get_all_players() { ... }
+
+// Create — uses CreatePlayer wrapper
+dsl.create_player(CreatePlayer { id: identity, username: "Alice".into(), credits: 0 })?;
+
+// Update (only if method(update = true))
+dsl.update_player_by_id(modified_player)?;
+
+// Delete
+dsl.delete_player_by_id(&player_id)?;
+```
+
+---
+
+## Generated Getters / Setters
+
+Private fields on table structs get generated accessors:
+
+```rust
+// Getter — returns reference or copy
+let id = player.get_id();               // returns &PlayerId or PlayerId
+let speed = ship_type.get_base_speed(); // returns &f32
+
+// Setter — mutates field in place
+velocity.set_rotation_radians(0.5f32);
+velocity.set_x(new_x);
+```
+
+---
+
+## ID Wrapper Types
+
+Each table gets a typed ID wrapper (e.g. `PlayerId`, `SectorId`):
+
+```rust
+// Construct from raw value
+let player_id = PlayerId::new(ctx.sender());
+
+// Get raw value
+let identity: Identity = player_id.value();
+```
+
+---
+
+## `Create<Table>` Structs
+
+Tables with `#[create_wrapper]` on a field get a `Create<Table>` struct:
+
+```rust
+dsl.create_ship_movement_controller(CreateShipMovementController {
+    id: player.clone(),
+    stellar_object_id: sobj.get_id(),
+    forward: false,
+    backward: false,
+    left: false,
+    right: false,
+})?;
+```
+
+---
+
+## Scheduled Timer Tables
+
+Timer tables use `#[dsl]` + `scheduled(reducer_name)` and typically set `method(update = false)`:
+
+```rust
+#[dsl(plural_name = create_update_ship_movement_controllers_timers, method(update = false))]
+#[table(
+    accessor = create_update_ship_movement_controllers_timer,
+    scheduled(timer_update_all_ship_movement_controllers)
+)]
+pub struct UpdateShipMovementControllers {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]
+    id: u64,
+    scheduled_at: spacetimedb::ScheduleAt,
+}
+
+#[spacetimedb::reducer]
+pub fn timer_update_all_ship_movement_controllers(
+    ctx: &ReducerContext,
+    _timer: UpdateShipMovementControllers,
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
+    for item in dsl.get_all_create_update_ship_movement_controllers_timers() {
+        // process...
+    }
+    Ok(())
+}
+```
+
+---
+
+## Hard Requirements (DSL)
+
+1. **Use `#[table(accessor = ...)]`** — not `name =` — in this codebase
+2. **Pair `#[dsl(...)]` with every `#[table]`** — defines plural name and update method
+3. **Use `#[spacetimedb::reducer]`** (full path) — project convention
+4. **Use `dsl(ctx)` inside reducers** — not `ctx.db` directly
+5. **Pass `&DSL<T>` to helper functions** — use `T: spacetimedsl::WriteContext` bound
+6. **Use generated CRUD methods** — don't call `ctx.db.*` for tables covered by DSL
+7. **Use ID wrappers** — `PlayerId::new(identity)`, not raw `Identity` where typed ID exists
