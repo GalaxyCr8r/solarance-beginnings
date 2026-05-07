@@ -21,6 +21,7 @@ use crate::{
         combat::combat_cooldown::*,
         factions::*,
         sectors::*,
+        ships::movement_controllers::*,
         stellarobjects::{player_windows::*, transforms::*},
     },
     tables::factions::*,
@@ -38,6 +39,15 @@ pub fn initialize<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), Str
 
     // Factions
     faction_timers(dsl)?;
+
+    // Ship Movement (~20 FPS)
+    dsl.create_create_update_ship_movement_controllers_timer(
+        CreateCreateUpdateShipMovementControllersTimer {
+            scheduled_at: spacetimedb::ScheduleAt::Interval(
+                Duration::from_millis(1000 / 20).into(),
+            ),
+        },
+    )?;
 
     // Combat
     // Schedule the cooldown update timer to run every 100ms
