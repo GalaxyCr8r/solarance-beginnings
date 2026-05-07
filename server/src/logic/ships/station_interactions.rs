@@ -39,6 +39,32 @@ pub fn try_to_dock_to_station(ctx: &ReducerContext, station: &Station) -> Result
 }
 
 /// Used by a player client.
+/// Requests to dock the player's current ship at the targeted station.
+/// Validates the target is a station and the ship is within docking range.
+#[spacetimedb::reducer]
+pub fn dock_ship(ctx: &ReducerContext, target_sobj_id: u64) -> Result<(), String> {
+    let dsl = dsl(ctx);
+    let station = dsl
+        .get_station_by_sobj_id(&StellarObjectId::new(target_sobj_id))
+        .map_err(|_| "Target is not a station".to_string())?;
+
+    let (_, ship_sobj) = get_player_ship_and_sobj(&dsl, &PlayerId::new(ctx.sender()))?;
+    let ship_transform = dsl.get_sobj_internal_transform_by_id(&ship_sobj.get_id())?;
+    let station_transform = dsl.get_sobj_internal_transform_by_id(station.get_sobj_id())?;
+
+    let dx = *ship_transform.get_x() - *station_transform.get_x();
+    let dy = *ship_transform.get_y() - *station_transform.get_y();
+    let dist = (dx * dx + dy * dy).sqrt();
+
+    const DOCK_RANGE: f32 = 500.0;
+    if dist > DOCK_RANGE {
+        return Err(format!("Too far to dock ({dist:.0} > {DOCK_RANGE})"));
+    }
+
+    try_to_dock_to_station(ctx, &station)
+}
+
+/// Used by a player client.
 /// Requests to undock the given Ship on top of the station it was docked at and returns the new Ship row.
 #[spacetimedb::reducer]
 pub fn undock_ship(ctx: &ReducerContext, ship: Ship) -> Result<(), String> {

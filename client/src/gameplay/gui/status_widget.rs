@@ -163,14 +163,39 @@ fn autodocking_button(ui: &mut Ui, ctx: &DbConnection, game_state: &GameState) {
     if game_state.combat_mode {
         return;
     }
+    let Some(identity) = ctx.try_identity() else {
+        return;
+    };
+    let Some(ship) = ctx.db().ship().iter().find(|s| s.player_id == identity) else {
+        return;
+    };
 
-    if let Some(ship) = get_player_ship(ctx) {
-        if ui
-            .button(RichText::new("[C] Undock").color(Color32::LIGHT_GRAY))
-            .clicked()
-        {
-            let _ = ctx.reducers.undock_ship(ship);
+    match ship.location {
+        ShipLocation::Station => {
+            if ui
+                .button(RichText::new("[C] Undock").color(Color32::LIGHT_GRAY))
+                .clicked()
+            {
+                let _ = ctx.reducers.undock_ship(ship);
+            }
         }
+        ShipLocation::Sector => {
+            let target_is_station = game_state
+                .current_target_sobj
+                .as_ref()
+                .map_or(false, |t| t.kind == StellarObjectKinds::Station);
+            ui.add_enabled_ui(target_is_station, |ui| {
+                if ui
+                    .button(RichText::new("[C] Dock").color(Color32::LIGHT_GRAY))
+                    .clicked()
+                {
+                    if let Some(target) = &game_state.current_target_sobj {
+                        let _ = ctx.reducers.dock_ship(target.id);
+                    }
+                }
+            });
+        }
+        _ => {}
     }
 }
 

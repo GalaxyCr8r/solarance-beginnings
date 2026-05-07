@@ -128,6 +128,7 @@ fn _update_ship_movement_controller(
         try_update_ship_velocity(&dsl, &mut velocity, &controller, &ship_object)?;
     }
 
+    dsl.update_sobj_velocity_by_id(velocity)?;
     Ok(controller)
 }
 
