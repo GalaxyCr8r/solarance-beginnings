@@ -14,7 +14,7 @@ const IS_SERVER_OR_OWNER_ERROR: &str =
 pub fn try_server_only<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     let sender = dsl.ctx().sender()?.to_string();
     if sender.contains("c2009ba0980240569a0be51")
-        || sender.contains("000000000000000000000000000000000000000000000000000000000000dcba")
+        || sender.contains("c20029638c4f24cb63494c49b28b533e")
         || sender.contains("c2001b668b8b961618fb1271998d5be0789eff815e5e82b69cd146ef0370be66")
     {
         return Ok(());

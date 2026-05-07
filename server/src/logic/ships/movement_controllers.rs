@@ -18,8 +18,7 @@ pub fn update_ship_movement_controller(
     let dsl = dsl(ctx);
     let player_id = PlayerId::new(ctx.sender());
     let mut controller = dsl
-        .get_ship_movement_controller_by_id(&player_id)
-        .ok_or("No movement controller for player")?;
+        .get_ship_movement_controller_by_id(&player_id)?;
     controller.forward = forward;
     controller.backward = backward;
     controller.left = left;
@@ -80,7 +79,7 @@ pub fn timer_update_all_ship_movement_controllers(
     //info!("Player con upkeep!");
 
     for controller in dsl.get_all_ship_movement_controllers() {
-        match update_ship_movement_controller(&dsl, controller) {
+        match _update_ship_movement_controller(&dsl, controller) {
             Ok(updated) => {
                 dsl.update_ship_movement_controller_by_id(updated)?;
             }
@@ -93,7 +92,7 @@ pub fn timer_update_all_ship_movement_controllers(
     Ok(())
 }
 
-fn update_ship_movement_controller(
+fn _update_ship_movement_controller(
     dsl: &DSL<ReducerContext>,
     controller: ShipMovementController,
 ) -> Result<ShipMovementController, String> {

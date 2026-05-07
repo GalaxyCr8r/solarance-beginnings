@@ -178,14 +178,17 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
             "SELECT * FROM station_module_blueprint",
             "SELECT * FROM station_module",
             "SELECT * FROM station_module_inventory_item",
+            "SELECT * FROM station_module_under_construction",
             "SELECT * FROM station",
             "SELECT * FROM station_status",
+            "SELECT * FROM station_under_construction",
             stellar_object.as_str(),
             "SELECT * FROM sobj_velocity",
             sobj_hi_res_transform.as_str(),
             sobj_low_res_transform.as_str(),
             sobj_player_window.as_str(),
             visual_effect.as_str(),
+            "SELECT * FROM npc_ship_controller",
         ]);
 }
 
