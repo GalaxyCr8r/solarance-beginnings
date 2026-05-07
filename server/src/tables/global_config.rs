@@ -2,7 +2,7 @@ use spacetimedb::{table, Timestamp};
 use spacetimedsl::*;
 
 #[dsl(plural_name = global_configurations, method(update = true))]
-#[table(name = global_config)]
+#[table(accessor = global_config)]
 pub struct GlobalConfig {
     #[primary_key]
     #[create_wrapper]

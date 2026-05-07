@@ -41,6 +41,8 @@ pub struct GameState<'a> {
     // Gameplay States
     pub current_target_sobj: Option<StellarObject>,
     pub combat_mode: bool,
+    pub mining_active: bool,
+    pub movement_flags: (bool, bool, bool, bool), // (forward, backward, left, right)
 
     // Visual Effects
     pub firing_effects: HashMap<u64, FiringEffect>,
@@ -80,6 +82,8 @@ pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
 
         current_target_sobj: None,
         combat_mode: false,
+        mining_active: false,
+        movement_flags: (false, false, false, false),
 
         firing_effects: HashMap::new(),
     }

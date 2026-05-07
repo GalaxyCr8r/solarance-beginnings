@@ -1,4 +1,4 @@
-use crate::{tables::players::PlayerId, utility::try_server_only};
+use crate::{tables::players::*, utility::try_server_only};
 use log::info;
 use spacetimedb::*;
 use spacetimedsl::*;
@@ -8,7 +8,7 @@ use crate::tables::ships::*;
 use crate::tables::stellarobjects::{CreateSobjPlayerWindow, *};
 
 #[dsl(plural_name = player_windows_timers, method(update = false))]
-#[spacetimedb::table(name = player_windows_timer, scheduled(recalculate_player_windows))]
+#[spacetimedb::table(accessor = player_windows_timer, scheduled(recalculate_player_windows))]
 pub struct PlayerWindowsTimer {
     #[primary_key]
     #[auto_inc]
@@ -75,6 +75,13 @@ pub fn recalculate_player_windows(
     }
 
     for window in dsl.get_all_sobj_player_windows() {
+        if let Ok(player) = dsl.get_player_by_id(window.get_id()) {
+            if !player.logged_in {
+                // Just ignore player windows of non-logged in players.
+                continue;
+            }
+        }
+
         if let Some(ship_obj) = dsl.get_ships_by_player_id(&window.get_id()).next() {
             let transform = dsl.get_sobj_internal_transform_by_id(&ship_obj.get_sobj_id())?;
             // Check to see if the player has moved too close to window's margin and recalculate the window if needed.

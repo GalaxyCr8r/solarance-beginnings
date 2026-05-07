@@ -116,7 +116,7 @@ pub fn draw(
                                     ));
                                 }
                                 if let Some(_controller) =
-                                    ctx.db().player_ship_controller().id().find(&player.id)
+                                    ctx.db().ship_movement_controller().id().find(&player.id)
                                 {
                                     ui.label("Has Controller");
                                 }

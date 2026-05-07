@@ -4,7 +4,7 @@ use spacetimedsl::*;
 use super::common_types::Vec2;
 
 #[dsl(plural_name = jump_gates, method(update = true))]
-#[table(name = jump_gate, public)]
+#[table(accessor = jump_gate, public)]
 pub struct JumpGate {
     #[primary_key]
     #[use_wrapper(crate::tables::stellarobjects::StellarObjectId)]
@@ -36,6 +36,6 @@ pub struct JumpGate {
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
+pub fn init<T: spacetimedsl::WriteContext>(_dsl: &DSL<T>) -> Result<(), String> {
     Ok(())
 }

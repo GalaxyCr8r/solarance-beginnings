@@ -1,16 +1,16 @@
 use spacetimedb::{table, Identity, Timestamp};
 use spacetimedsl::*;
 
-use crate::tables::factions::FactionId;
+use crate::tables::{factions::FactionId, ships::*};
 
 use super::stellarobjects::*;
 
 #[dsl(plural_name = players, method(update = true))]
-#[table(name = player, public)]
+#[table(accessor = player, public)]
 pub struct Player {
     #[primary_key]
     #[create_wrapper]
-    #[referenced_by(path = crate::logic::ships::player_controller, table = player_ship_controller)]
+    #[referenced_by(path = crate::tables::ships, table = ship_movement_controller)]
     #[referenced_by(path = crate::tables::ships, table = ship)]
     #[referenced_by(path = crate::tables::chats, table = global_chat_message)]
     #[referenced_by(path = crate::tables::chats, table = sector_chat_message)]
@@ -38,6 +38,26 @@ impl Player {
             None
         }
     }
+
+    pub fn get_player_objects<T: spacetimedsl::WriteContext>(
+        &self,
+        dsl: &DSL<T>,
+    ) -> Result<(Ship, StellarObject), String> {
+        let player_id = self.get_id();
+        let ship_sobj_id = dsl
+            .get_ship_movement_controller_by_id(&player_id)?
+            .get_stellar_object_id();
+        let ship_sobj = dsl.get_stellar_object_by_id(&ship_sobj_id)?;
+        let ship_object = dsl
+            .get_ships_by_sobj_id(&ship_sobj_id)
+            .next()
+            .ok_or(format!(
+            "Couldn't find a Ship of SOBJ_ID: {} - Even though it should've just found the SOBJ!!",
+            &ship_sobj_id
+        ))?;
+
+        Ok((ship_object, ship_sobj))
+    }
 }
 
 //////////////////////////////////////////////////////////////
@@ -55,4 +75,22 @@ pub fn get_username<T: spacetimedsl::WriteContext>(dsl: &DSL<T>, id: Identity) -
         // TODO: Check if sender is server
         id.to_abbreviated_hex().to_string()
     }
+}
+pub fn get_player_ship_and_sobj<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    player_id: &PlayerId,
+) -> Result<(Ship, StellarObject), String> {
+    let ship_sobj_id = dsl
+        .get_ship_movement_controller_by_id(player_id)?
+        .get_stellar_object_id();
+    let ship_sobj = dsl.get_stellar_object_by_id(&ship_sobj_id)?;
+    let ship_object = dsl
+        .get_ships_by_sobj_id(&ship_sobj_id)
+        .next()
+        .ok_or(format!(
+            "Couldn't find a Ship of SOBJ_ID: {} - Even though it should've just found the SOBJ!!",
+            &ship_sobj_id
+        ))?;
+
+    Ok((ship_object, ship_sobj))
 }

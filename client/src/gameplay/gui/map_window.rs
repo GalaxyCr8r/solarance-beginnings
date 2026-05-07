@@ -60,7 +60,7 @@ impl State {
             let zoom_px = 1.0;
             let sector_radius = 8.0;
 
-            for (i, object) in ctx.db().star_system_object().iter().enumerate() {
+            for (_i, object) in ctx.db().star_system_object().iter().enumerate() {
                 if object.system_id != current_sector.system_id {
                     continue;
                 }

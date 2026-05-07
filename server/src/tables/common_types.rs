@@ -1,6 +1,6 @@
 use std::hash::Hasher;
 
-use spacetimedb::{SpacetimeType, Timestamp};
+use spacetimedb::SpacetimeType;
 
 #[derive(SpacetimeType, Clone, Debug)]
 pub struct Vec2 {

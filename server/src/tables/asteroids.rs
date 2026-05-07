@@ -1,14 +1,13 @@
 use glam::Vec2;
 use log::info;
-use spacetimedb::ReducerContext;
-use spacetimedb::{rand::Rng, table};
+use spacetimedb::table;
 use spacetimedsl::*;
 
 use crate::logic::stellarobjects::stellar_object_creation::*;
 use crate::tables::{items::ItemDefinitionId, sectors::SectorId, stellarobjects::*};
 
 #[dsl(plural_name = asteroids, method(update = true))]
-#[table(name = asteroid, public)]
+#[table(accessor = asteroid, public)]
 pub struct Asteroid {
     #[primary_key]
     #[use_wrapper(StellarObjectId)]

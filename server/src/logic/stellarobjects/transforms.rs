@@ -9,7 +9,7 @@ use crate::tables::stellarobjects::{CreateSobjHiResTransform, CreateSobjLowResTr
 use crate::utility::*;
 
 #[dsl(plural_name = all_transforms_timers, method(update = true))]
-#[spacetimedb::table(name = all_transforms_timer, scheduled(recalculate_sobj_transforms))]
+#[spacetimedb::table(accessor = all_transforms_timer, scheduled(recalculate_sobj_transforms))]
 pub struct AllTransformsTimer {
     #[primary_key]
     #[auto_inc]
@@ -109,7 +109,7 @@ pub fn __move_stellar_object<T: spacetimedsl::WriteContext>(
     if *sobj.get_kind() == StellarObjectKinds::CargoCrate {
         let cargo_crate = dsl.get_cargo_crate_by_sobj_id(sobj.get_id())?;
         if let Some(despawn_ts) = cargo_crate.get_despawn_ts() {
-            if *despawn_ts < dsl.ctx().timestamp() {
+            if *despawn_ts < dsl.ctx().timestamp()? {
                 info!(
                     "Cargo Crate outlived its despawn timestamp. Deleting #{}!",
                     sobj.get_id()

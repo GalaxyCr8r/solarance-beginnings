@@ -14,11 +14,11 @@ use crate::{
 /// Process weapon firing for a specific ship and target
 pub fn process_weapon_combat_action<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
-    source_sobj_id: u64,
-    target_sobj_id: u64,
+    source_sobj_id: &StellarObjectId,
+    target_sobj_id: &StellarObjectId,
 ) -> Result<(), String> {
     // Validate target is valid Ship or Station class
-    let target_sobj = dsl.get_stellar_object_by_id(StellarObjectId::new(target_sobj_id))?;
+    let target_sobj = dsl.get_stellar_object_by_id(target_sobj_id)?;
     match target_sobj.get_kind() {
         StellarObjectKinds::Ship | StellarObjectKinds::Station => {
             // Valid target
@@ -33,7 +33,7 @@ pub fn process_weapon_combat_action<T: spacetimedsl::WriteContext>(
 
     // Get source ship to find equipped weapons
     let source_ship = dsl
-        .get_ships_by_sobj_id(StellarObjectId::new(source_sobj_id))
+        .get_ships_by_sobj_id(source_sobj_id)
         .next()
         .ok_or_else(|| {
             format!(
@@ -98,11 +98,11 @@ pub fn process_weapon_combat_action<T: spacetimedsl::WriteContext>(
 /// Process missile firing for a specific ship and target
 pub fn process_missile_combat_action<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
-    source_sobj_id: u64,
-    target_sobj_id: u64,
+    source_sobj_id: StellarObjectId,
+    target_sobj_id: StellarObjectId,
 ) -> Result<(), String> {
     // Validate target is valid Ship or Station class
-    let target_sobj = dsl.get_stellar_object_by_id(StellarObjectId::new(target_sobj_id))?;
+    let target_sobj = dsl.get_stellar_object_by_id(&target_sobj_id)?;
     match target_sobj.get_kind() {
         StellarObjectKinds::Ship | StellarObjectKinds::Station => {
             // Valid target
@@ -117,12 +117,12 @@ pub fn process_missile_combat_action<T: spacetimedsl::WriteContext>(
 
     // Get source ship to find equipped missiles
     let source_ship = dsl
-        .get_ships_by_sobj_id(StellarObjectId::new(source_sobj_id))
+        .get_ships_by_sobj_id(&source_sobj_id)
         .next()
         .ok_or_else(|| {
             format!(
                 "Source ship not found for stellar object {}",
-                source_sobj_id
+                &source_sobj_id
             )
         })?;
 
@@ -158,8 +158,8 @@ pub fn process_missile_combat_action<T: spacetimedsl::WriteContext>(
 
         match process_missile_fire(
             dsl,
-            source_sobj_id,
-            target_sobj_id,
+            &source_sobj_id,
+            &target_sobj_id,
             target_pos,
             missile_type,
             missile_def,

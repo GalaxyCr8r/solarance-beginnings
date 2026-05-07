@@ -96,22 +96,12 @@ fn ship_status(ui: &mut Ui, ship_type: ShipTypeDefinition, player_ship_status: S
     });
 }
 
-fn ship_function_status(ctx: &DbConnection, ui: &mut Ui, game_state: &GameState) {
+fn ship_function_status(ctx: &DbConnection, ui: &mut Ui, game_state: &mut GameState) {
     ui.vertical(|ui| {
-        // Combat mode indicator
         combat_mode_indicator(ui, game_state);
-
-        if let Some(mut controller) = ctx.db().player_ship_controller().id().find(&ctx.identity()) {
-            let changed = cargo_bay_button(ui, &mut controller, game_state)
-                || mining_beam_button(ui, &mut controller, game_state)
-                || autodocking_button(ui, &mut controller, game_state)
-                || fire_weapons_button(ui, &mut controller, game_state)
-                || fire_missiles_button(ui, &mut controller, game_state);
-
-            if changed {
-                let _ = ctx.reducers.update_player_controller(controller);
-            }
-        }
+        mining_beam_button(ui, ctx, game_state);
+        autodocking_button(ui, ctx, game_state);
+        fire_weapons_button(ui, ctx, game_state);
     });
 }
 
@@ -129,52 +119,12 @@ fn combat_mode_indicator(ui: &mut Ui, game_state: &GameState) {
     }
 }
 
-fn cargo_bay_button(
-    ui: &mut Ui,
-    controller: &mut PlayerShipController,
-    game_state: &GameState,
-) -> bool {
-    // Only allow cargo bay operations in utility mode
+fn mining_beam_button(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
     if game_state.combat_mode {
-        return false;
+        return;
     }
 
-    if controller.cargo_bay_open {
-        if ui
-            .button(RichText::new("[Z] Cargo Bay: Open").color({
-                if now() % 1.0 < 0.45 {
-                    Color32::YELLOW
-                } else {
-                    Color32::BLACK
-                }
-            }))
-            .clicked()
-        {
-            controller.cargo_bay_open = false;
-            return true;
-        }
-    } else {
-        if ui
-            .button(RichText::new("[Z] Cargo Bay: Closed").color(Color32::LIGHT_GRAY))
-            .clicked()
-        {
-            controller.cargo_bay_open = true;
-            return true;
-        }
-    }
-    return false;
-}
-fn mining_beam_button(
-    ui: &mut Ui,
-    controller: &mut PlayerShipController,
-    game_state: &GameState,
-) -> bool {
-    // Only allow mining beam operations in utility mode
-    if game_state.combat_mode {
-        return false;
-    }
-
-    if controller.mining_laser_on {
+    if game_state.mining_active {
         if ui
             .button(RichText::new("[X] Mining Beam: On").color({
                 if now() % 1.0 < 0.45 {
@@ -185,54 +135,68 @@ fn mining_beam_button(
             }))
             .clicked()
         {
-            controller.mining_laser_on = false;
-            return true;
+            let _ = ctx.reducers.stop_mining_asteroid();
+            game_state.mining_active = false;
         }
     } else {
-        if ui
-            .button(RichText::new("[X] Mining Beam: Off").color(Color32::LIGHT_GRAY))
-            .clicked()
-        {
-            controller.mining_laser_on = true;
-            return true;
-        }
-    }
-    return false;
-}
-fn autodocking_button(
-    ui: &mut Ui,
-    controller: &mut PlayerShipController,
-    game_state: &GameState,
-) -> bool {
-    // Only allow autodocking operations in utility mode
-    if game_state.combat_mode {
-        return false;
-    }
-
-    if controller.dock {
-        if ui
-            .button(RichText::new("[C] Autodocking: Ready").color({
-                if now() % 1.0 < 0.45 {
-                    Color32::LIGHT_BLUE
-                } else {
-                    Color32::BLACK
+        let enabled = game_state
+            .current_target_sobj
+            .as_ref()
+            .map_or(false, |t| t.kind == StellarObjectKinds::Asteroid);
+        ui.add_enabled_ui(enabled, |ui| {
+            if ui
+                .button(RichText::new("[X] Mining Beam: Off").color(Color32::LIGHT_GRAY))
+                .clicked()
+            {
+                if let Some(target) = &game_state.current_target_sobj {
+                    let _ = ctx
+                        .reducers
+                        .try_mining_asteroid(StellarObjectId { value: target.id });
+                    game_state.mining_active = true;
                 }
-            }))
-            .clicked()
-        {
-            controller.dock = false;
-            return true;
-        }
-    } else {
-        if ui
-            .button(RichText::new("[C] Autodocking: Off").color(Color32::LIGHT_GRAY))
-            .clicked()
-        {
-            controller.dock = true;
-            return true;
-        }
+            }
+        });
     }
-    return false;
+}
+
+fn autodocking_button(ui: &mut Ui, ctx: &DbConnection, game_state: &GameState) {
+    if game_state.combat_mode {
+        return;
+    }
+    let Some(identity) = ctx.try_identity() else {
+        return;
+    };
+    let Some(ship) = ctx.db().ship().iter().find(|s| s.player_id == identity) else {
+        return;
+    };
+
+    match ship.location {
+        ShipLocation::Station => {
+            if ui
+                .button(RichText::new("[C] Undock").color(Color32::LIGHT_GRAY))
+                .clicked()
+            {
+                let _ = ctx.reducers.undock_ship(ship);
+            }
+        }
+        ShipLocation::Sector => {
+            let target_is_station = game_state
+                .current_target_sobj
+                .as_ref()
+                .map_or(false, |t| t.kind == StellarObjectKinds::Station);
+            ui.add_enabled_ui(target_is_station, |ui| {
+                if ui
+                    .button(RichText::new("[C] Dock").color(Color32::LIGHT_GRAY))
+                    .clicked()
+                {
+                    if let Some(target) = &game_state.current_target_sobj {
+                        let _ = ctx.reducers.dock_ship(target.id);
+                    }
+                }
+            });
+        }
+        _ => {}
+    }
 }
 
 fn add_targeted_object_status(
@@ -387,62 +351,20 @@ fn add_status_bar(ui: &mut Ui, name: &str, max: f32, current: f32, color: Color3
     }
 }
 
-fn fire_weapons_button(
-    ui: &mut Ui,
-    controller: &mut PlayerShipController,
-    game_state: &GameState,
-) -> bool {
-    // Only allow weapon firing in combat mode
+fn fire_weapons_button(ui: &mut Ui, ctx: &DbConnection, game_state: &GameState) {
     if !game_state.combat_mode {
-        return false;
+        return;
     }
 
-    if ui
-        .button(RichText::new("[Space] Fire Weapons").color({
-            if controller.fire_weapons {
-                if now() % 1.0 < 0.45 {
-                    Color32::RED
-                } else {
-                    Color32::DARK_RED
-                }
-            } else {
-                Color32::LIGHT_GRAY
+    let enabled = game_state.current_target_sobj.is_some();
+    ui.add_enabled_ui(enabled, |ui| {
+        if ui
+            .button(RichText::new("[Space] Fire Weapons").color(Color32::LIGHT_GRAY))
+            .clicked()
+        {
+            if let Some(target) = &game_state.current_target_sobj {
+                let _ = ctx.reducers.fire_weapons(target.id);
             }
-        }))
-        .clicked()
-    {
-        controller.fire_weapons = true;
-        return true;
-    }
-    false
-}
-
-fn fire_missiles_button(
-    ui: &mut Ui,
-    controller: &mut PlayerShipController,
-    game_state: &GameState,
-) -> bool {
-    // Only allow missile firing in combat mode
-    if !game_state.combat_mode {
-        return false;
-    }
-
-    if ui
-        .button(RichText::new("[LCtrl] Fire Missiles").color({
-            if controller.fire_missles {
-                if now() % 1.0 < 0.45 {
-                    Color32::YELLOW
-                } else {
-                    Color32::DARK_GRAY
-                }
-            } else {
-                Color32::LIGHT_GRAY
-            }
-        }))
-        .clicked()
-    {
-        controller.fire_missles = true;
-        return true;
-    }
-    false
+        }
+    });
 }

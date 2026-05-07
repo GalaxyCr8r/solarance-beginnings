@@ -14,7 +14,7 @@ pub fn mark_server_message_as_read(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    let player_id = PlayerId::new(dsl.ctx().sender);
+    let player_id = PlayerId::new(ctx.sender());
 
     // Find the recipient record
     let recipient_opt = dsl

@@ -2,7 +2,9 @@ use log::info;
 use spacetimedb::{table, Identity, SpacetimeType};
 use spacetimedsl::*;
 
-use crate::tables::{common_types::*, items::*, sectors::*, stations::*, stellarobjects::*};
+use crate::tables::{
+    common_types::*, items::*, players::PlayerId, sectors::*, stations::*, stellarobjects::*,
+};
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
 pub enum ShipClass {
@@ -41,7 +43,7 @@ pub enum EquipmentSlotType {
 }
 
 #[dsl(plural_name = ship_type_definitions, method(update = true))] // One could argue that this should be false. idk atm - Karl
-#[table(name = ship_type_definition, public)]
+#[table(accessor = ship_type_definition, public)]
 pub struct ShipTypeDefinition {
     #[primary_key] // NOT Auto-inc so it can be reloaded as-is
     #[create_wrapper]
@@ -105,7 +107,7 @@ impl ShipTypeDefinition {
 }
 
 #[dsl(plural_name = ship_statuses, method(update = true))]
-#[table(name = ship_status, public)]
+#[table(accessor = ship_status, public)]
 /// The status of a ship agnostic of where it is physically.
 pub struct ShipStatus {
     #[primary_key]
@@ -170,8 +172,27 @@ impl ShipStatus {
     }
 }
 
+#[dsl(plural_name = ship_movement_controllers, method(update = true))]
+#[table(accessor = ship_movement_controller, public)]
+pub struct ShipMovementController {
+    #[primary_key]
+    #[use_wrapper(PlayerId)]
+    #[foreign_key(path = crate::tables::players, table = player, column = id, on_delete = Delete)]
+    id: Identity,
+
+    #[index(btree)]
+    #[use_wrapper(StellarObjectId)]
+    #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
+    stellar_object_id: u64,
+
+    pub forward: bool,
+    pub backward: bool,
+    pub left: bool,
+    pub right: bool,
+}
+
 #[dsl(plural_name = ships, method(update = true))]
-#[table(name = ship, public)]
+#[table(accessor = ship, public)]
 pub struct Ship {
     #[primary_key]
     #[auto_inc]
@@ -220,7 +241,7 @@ pub struct Ship {
 }
 
 #[dsl(plural_name = ship_cargo_items, method(update = true))]
-#[table(name = ship_cargo_item, public)]
+#[table(accessor = ship_cargo_item, public)]
 pub struct ShipCargoItem {
     #[primary_key]
     #[auto_inc]
@@ -244,7 +265,7 @@ pub struct ShipCargoItem {
 }
 
 #[dsl(plural_name = ship_equipment_slots, method(update = true))]
-#[table(name = ship_equipment_slot, public)]
+#[table(accessor = ship_equipment_slot, public)]
 pub struct ShipEquipmentSlot {
     #[primary_key]
     #[auto_inc]

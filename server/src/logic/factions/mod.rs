@@ -15,7 +15,7 @@ use crate::{
 /// Timer for periodic faction station checks - runs every 4 hours
 #[dsl(plural_name = faction_station_check_timers, method(update = true))]
 #[spacetimedb::table(
-    name = faction_station_check_timer,
+    accessor = faction_station_check_timer,
     scheduled(faction_station_check_timer_reducer)
 )]
 pub struct FactionStationCheckTimer {
@@ -36,7 +36,7 @@ pub struct FactionStationCheckTimer {
 
 /// Overall faction management timer - runs every 12 hours to maintain faction timers
 #[dsl(plural_name = faction_management_timers, method(update = true))]
-#[spacetimedb::table(name = faction_management_timer, scheduled(faction_management_timer_reducer))]
+#[spacetimedb::table(accessor = faction_management_timer, scheduled(faction_management_timer_reducer))]
 pub struct FactionManagementTimer {
     #[primary_key]
     #[auto_inc]
@@ -51,7 +51,7 @@ pub struct FactionManagementTimer {
 /// Timer for faction ship destruction reactions - runs after a delay when ships are destroyed
 #[dsl(plural_name = faction_ship_reaction_timers, method(update = false))]
 #[spacetimedb::table(
-    name = faction_ship_reaction_timer,
+    accessor = faction_ship_reaction_timer,
     scheduled(faction_ship_reaction_timer_reducer)
 )]
 pub struct FactionShipReactionTimer {
@@ -289,7 +289,7 @@ pub fn create_station_check_timer_for_faction<T: spacetimedsl::WriteContext>(
     let timer = dsl.create_faction_station_check_timer(CreateFactionStationCheckTimer {
         scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_secs(4 * 60 * 60).into()), // 4 hours
         faction_id: faction_id.clone(),
-        last_check_timestamp: dsl.ctx().timestamp(),
+        last_check_timestamp: dsl.ctx().timestamp()?,
     })?;
 
     info!(
@@ -313,7 +313,7 @@ pub fn create_ship_reaction_timer_for_faction<T: spacetimedsl::WriteContext>(
         aggressor_faction_id: aggressor_faction_id.cloned(),
         destroyed_ship_type_id: destroyed_ship_type_id.clone(),
         destruction_sector_id: destruction_sector_id.clone(),
-        destruction_timestamp: dsl.ctx().timestamp(),
+        destruction_timestamp: dsl.ctx().timestamp()?,
     })?;
 
     info!(

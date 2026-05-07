@@ -75,7 +75,7 @@ pub enum StationModuleSpecificType {
 // Tables
 
 #[dsl(plural_name = station_module_blueprints, method(update = true))]
-#[table(name = station_module_blueprint, public)]
+#[table(accessor = station_module_blueprint, public)]
 pub struct StationModuleBlueprint {
     #[primary_key]
     #[create_wrapper]
@@ -110,7 +110,7 @@ pub struct StationModuleBlueprint {
 }
 
 #[dsl(plural_name = station_modules, method(update = true))]
-#[table(name = station_module, public)]
+#[table(accessor = station_module, public)]
 pub struct StationModule {
     #[primary_key]
     #[auto_inc]
@@ -138,7 +138,7 @@ pub struct StationModule {
 }
 
 #[dsl(plural_name = stations_under_construction, method(update = true))]
-#[table(name = station_under_construction, public)]
+#[table(accessor = station_under_construction, public)]
 pub struct StationUnderConstruction {
     #[primary_key]
     #[use_wrapper(StationId)]
@@ -151,7 +151,7 @@ pub struct StationUnderConstruction {
 }
 
 #[dsl(plural_name = station_modules_under_construction, method(update = true))]
-#[table(name = station_module_under_construction, public)]
+#[table(accessor = station_module_under_construction, public)]
 pub struct StationModuleUnderConstruction {
     #[primary_key]
     #[use_wrapper(StationId)]
@@ -165,7 +165,7 @@ pub struct StationModuleUnderConstruction {
 
 /// Stores items used for a module's operation or as temporary input/output buffers.
 #[dsl(plural_name = station_module_inventory_items, method(update = true))]
-#[table(name = station_module_inventory_item, public)]
+#[table(accessor = station_module_inventory_item, public)]
 pub struct StationModuleInventoryItem {
     #[primary_key]
     #[auto_inc]
@@ -195,7 +195,7 @@ pub struct StationModuleInventoryItem {
 }
 
 #[dsl(plural_name = stations, method(update = true))]
-#[table(name = station, public)]
+#[table(accessor = station, public)]
 pub struct Station {
     #[primary_key]
     #[auto_inc]
@@ -235,7 +235,7 @@ pub struct Station {
 }
 
 #[dsl(plural_name = station_statuses, method(update = true))]
-#[table(name = station_status, public)]
+#[table(accessor = station_status, public)]
 pub struct StationStatus {
     #[primary_key]
     #[use_wrapper(StationId)]

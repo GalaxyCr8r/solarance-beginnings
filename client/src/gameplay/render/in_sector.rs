@@ -13,9 +13,8 @@ use crate::gameplay::{resources::Resources, state::GameState};
 pub fn draw_mining_laser(
     game_state: &mut GameState<'_>,
     actual_player_transform: &StellarObjectTransformHiRes,
-    controller: &PlayerShipController,
 ) {
-    if controller.mining_laser_on {
+    if game_state.mining_active {
         if let Some(target) = &game_state.current_target_sobj {
             // Draw a mining laser effect if the player is in range
             if target.kind == StellarObjectKinds::Asteroid {

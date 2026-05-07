@@ -4,11 +4,17 @@ use spacetimedsl::*;
 
 use crate::{
     logic::{
-        ships::{player_controller::*, status::*},
+        ships::{movement_controllers::initialize_controller_for_player, status::*},
         stellarobjects::{player_windows::*, stellar_object_creation::*},
     },
     tables::{
-        players::PlayerId, server_messages::send_info_message, ships::*, stations::*,
+        common_types::Vec2,
+        jumpgates::JumpGate,
+        players::{get_player_ship_and_sobj, PlayerId},
+        sectors::GetSectorRowOptionById,
+        server_messages::send_info_message,
+        ships::*,
+        stations::*,
         stellarobjects::*,
     },
     utility::is_server_or_ship_owner,
@@ -16,6 +22,47 @@ use crate::{
 
 ///////////////////////////////////////////////////////////////////////////////////
 ///  Reducers
+
+/// Tries to dock to station using the player's current ship.
+pub fn try_to_dock_to_station(ctx: &ReducerContext, station: &Station) -> Result<(), String> {
+    let dsl = dsl(ctx);
+    let (ship_object, ship_sobj) = get_player_ship_and_sobj(&dsl, &PlayerId::new(ctx.sender()))?;
+
+    // TODO: Check if same faction
+
+    // TODO: If not, check faction standing
+
+    info!("Trying to dock to station!");
+    dock_to_station(&dsl, &ship_object, &ship_sobj, station)?;
+
+    Ok(())
+}
+
+/// Used by a player client.
+/// Requests to dock the player's current ship at the targeted station.
+/// Validates the target is a station and the ship is within docking range.
+#[spacetimedb::reducer]
+pub fn dock_ship(ctx: &ReducerContext, target_sobj_id: u64) -> Result<(), String> {
+    let dsl = dsl(ctx);
+    let station = dsl
+        .get_station_by_sobj_id(&StellarObjectId::new(target_sobj_id))
+        .map_err(|_| "Target is not a station".to_string())?;
+
+    let (_, ship_sobj) = get_player_ship_and_sobj(&dsl, &PlayerId::new(ctx.sender()))?;
+    let ship_transform = dsl.get_sobj_internal_transform_by_id(&ship_sobj.get_id())?;
+    let station_transform = dsl.get_sobj_internal_transform_by_id(station.get_sobj_id())?;
+
+    let dx = *ship_transform.get_x() - *station_transform.get_x();
+    let dy = *ship_transform.get_y() - *station_transform.get_y();
+    let dist = (dx * dx + dy * dy).sqrt();
+
+    const DOCK_RANGE: f32 = 500.0;
+    if dist > DOCK_RANGE {
+        return Err(format!("Too far to dock ({dist:.0} > {DOCK_RANGE})"));
+    }
+
+    try_to_dock_to_station(ctx, &station)
+}
 
 /// Used by a player client.
 /// Requests to undock the given Ship on top of the station it was docked at and returns the new Ship row.
@@ -26,7 +73,7 @@ pub fn undock_ship(ctx: &ReducerContext, ship: Ship) -> Result<(), String> {
 
     // Exit early if the player is already controlling a ship
     if dsl
-        .get_sobj_player_window_by_id(PlayerId::new(ctx.sender))
+        .get_sobj_player_window_by_id(PlayerId::new(ctx.sender()))
         .is_ok()
     {
         return Err(
@@ -46,6 +93,50 @@ pub fn undock_ship(ctx: &ReducerContext, ship: Ship) -> Result<(), String> {
 
     Ok(())
 }
+
+pub fn try_to_use_jumpgate(ctx: &ReducerContext, jumpgate: &JumpGate) -> Result<(), String> {
+    let dsl = dsl(ctx);
+    let (mut ship_object, _) = get_player_ship_and_sobj(&dsl, &PlayerId::new(ctx.sender()))?;
+    let mut ship_status = dsl.get_ship_status_by_id(ship_object.get_id())?;
+
+    // Jump once they have more than 100 energy
+    if *ship_status.get_energy() > 100.0 {
+        let pos: &Vec2 = jumpgate.get_target_gate_arrival_pos();
+        let destination_sector = dsl.get_sector_by_id(jumpgate.get_target_sector_id())?;
+
+        ship_status.set_energy(ship_status.get_energy() - 100.0);
+        ship_status.set_sector_id(&destination_sector);
+
+        ship_object.set_sector_id(&destination_sector);
+
+        if let Ok(mut sobj) = dsl.get_stellar_object_by_id(&ship_object.get_sobj_id()) {
+            sobj.set_sector_id(&destination_sector);
+            if let Ok(mut transform) = dsl.get_sobj_internal_transform_by_id(&sobj.get_id()) {
+                transform.set_x(pos.x);
+                transform.set_y(pos.y);
+                dsl.update_sobj_internal_transform_by_id(transform)?;
+            }
+
+            dsl.update_stellar_object_by_id(sobj)?;
+        }
+
+        send_info_message(
+            &dsl,
+            &ship_object.get_player_id(),
+            format!(
+                "Jumped successfully via jumpgate to sector #{}: {}",
+                destination_sector.get_id().value(),
+                destination_sector.get_name()
+            ),
+            Some("status"),
+        )?;
+
+        dsl.update_ship_status_by_id(ship_status)?;
+        dsl.update_ship_by_id(ship_object)?;
+    }
+
+    Ok(())
+} // try_to_use_jumpgate
 
 /////////////////////////////////////////////////////////////////////////////
 ///  Utilities
@@ -116,7 +207,7 @@ pub fn undock_from_station<T: spacetimedsl::WriteContext>(
     if docked.get_player_id().value() != Identity::ONE {
         // There is a real player controlling this ship, so create the necessary helpers.
         create_sobj_player_window_from_dsl(dsl, docked.get_player_id().value(), sobj.get_id())?;
-        let _ = initialize_player_controller(dsl, &docked.get_player_id(), &sobj);
+        let _ = initialize_controller_for_player(dsl, &docked.get_player_id(), &sobj);
     // Should this error really be suppressed?
     } else {
         // There is NOT a real player controllering this ship, so error for now.

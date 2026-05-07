@@ -1,36 +1,38 @@
 use crate::*;
-use spacetimedb::{log::info, table, ReducerContext, ScheduleAt, Timestamp};
+use spacetimedb::{log::info, *};
+use spacetimedsl::*;
 
 use super::*;
 
-#[dsl(plural_name = station_production_schedules, method(update = false))]
-#[table(name = station_production_schedule, scheduled(process_station_production_tick))]
+#[dsl(plural_name = station_production_schedules, method(update = true))]
+#[spacetimedb::table(accessor = station_production_schedule, scheduled(station_production_schedule_reducer))]
 pub struct StationProductionSchedule {
     #[primary_key]
     #[use_wrapper(StationId)]
-    /// FK to SpaceStation
     id: u64,
-    scheduled_at: ScheduleAt, // Periodic (e.g., every minute or 5 minutes)
+    pub scheduled_at: spacetimedb::ScheduleAt,
+    pub last_processed_timestamp: spacetimedb::Timestamp,
+}
 
-    last_processed_timestamp: Timestamp,
+#[spacetimedb::reducer]
+pub fn station_production_schedule_reducer(ctx: &ReducerContext, timer: StationProductionSchedule) {
+    let dsl = dsl(ctx);
+    if let Err(e) = process_station_production_tick(&dsl, timer.get_id()) {
+        spacetimedb::log::error!("Station production tick failed for station {}: {}", timer.get_id(), e);
+    }
 }
 
 //////////////////////////////////////////////////////////////
 
-/// Scheduled reducer that processes production for all modules in a station.
+/// Processes production for all modules in a station.
 /// Handles resource production, manufacturing, logistics, and other station module operations.
-#[spacetimedb::reducer]
-pub fn process_station_production_tick(
-    ctx: &ReducerContext,
-    timer: StationProductionSchedule,
+pub fn process_station_production_tick<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    station_id: StationId,
 ) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
     // Get the station
-    let station = dsl.get_station_by_id(timer.get_id())?;
-    let modules: Vec<_> = dsl
-        .get_station_modules_by_station_id(timer.get_id())
-        .collect();
+    let station = dsl.get_station_by_id(&station_id)?;
+    let modules: Vec<_> = dsl.get_station_modules_by_station_id(&station_id).collect();
 
     // info!(
     //     "Processing production tick for station #{}: {}",
@@ -49,7 +51,7 @@ pub fn process_station_production_tick(
             info!(
                 "WARNING Station Module Blueprint #{} does not exist. Station #{} is looking for it.",
                 module.get_blueprint(),
-                timer.get_id()
+                &station_id
             );
             continue;
         }
@@ -92,7 +94,7 @@ pub fn process_station_production_tick(
 
     info!(
         "Completed production tick for station #{}: {} (Sector ID#:{})",
-        timer.get_id(),
+        &station_id,
         station.get_name(),
         station.get_sector_id()
     );

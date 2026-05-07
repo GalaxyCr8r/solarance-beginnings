@@ -8,7 +8,7 @@ use crate::tables::stations::*;
 
 /// An instance of a refinery module
 #[dsl(plural_name = refinery_modules, method(update = true))]
-#[table(name = refinery_module, public)]
+#[table(accessor = refinery_module, public)]
 pub struct Refinery {
     #[primary_key]
     #[use_wrapper(StationModuleId)]
@@ -72,7 +72,7 @@ pub fn create_basic_refinery_module<T: spacetimedsl::WriteContext>(
         station_slot_identifier: identifier.to_string(),
         is_operational: true,
         built_at_timestamp: None,
-        last_status_update_timestamp: dsl.ctx().timestamp(),
+        last_status_update_timestamp: dsl.ctx().timestamp()?,
     })?;
 
     // Submodule

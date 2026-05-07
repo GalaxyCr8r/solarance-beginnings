@@ -1,30 +1,33 @@
 use crate::tables::stations::StationId;
-use spacetimedb::{table, ReducerContext, ScheduleAt, Timestamp};
-use spacetimedsl::dsl;
+use spacetimedb::*;
+use spacetimedsl::*;
 
-#[dsl(plural_name = station_status_schedules, method(update = false))]
-#[table(name = station_status_schedule, scheduled(process_station_status_tick))]
+#[dsl(plural_name = station_status_schedules, method(update = true))]
+#[spacetimedb::table(accessor = station_status_schedule, scheduled(station_status_schedule_reducer))]
 pub struct StationStatusSchedule {
     #[primary_key]
     #[use_wrapper(StationId)]
-    /// FK to SpaceStation
     id: u64,
-    scheduled_at: ScheduleAt, // Periodic (e.g., every minute or 5 minutes)
+    pub scheduled_at: spacetimedb::ScheduleAt,
+    pub last_processed_timestamp: spacetimedb::Timestamp,
+}
 
-    last_processed_timestamp: Timestamp,
+#[spacetimedb::reducer]
+pub fn station_status_schedule_reducer(ctx: &ReducerContext, timer: StationStatusSchedule) {
+    let dsl = dsl(ctx);
+    if let Err(e) = process_station_status_tick(&dsl, timer.get_id()) {
+        spacetimedb::log::error!("Station status tick failed for station {}: {}", timer.get_id(), e);
+    }
 }
 
 //////////////////////////////////////////////////////////////
 
-/// Scheduled reducer that processes station status updates and maintenance.
+/// Processes station status updates and maintenance.
 /// Currently not implemented - placeholder for future station health/status monitoring.
-#[spacetimedb::reducer]
-pub fn process_station_status_tick(
-    ctx: &ReducerContext,
-    _timer: StationStatusSchedule,
+pub fn process_station_status_tick<T: spacetimedsl::WriteContext>(
+    _dsl: &DSL<T>,
+    _station_id: StationId,
 ) -> Result<(), String> {
-    let _dsl = dsl(ctx);
-
     // TODO: Implement station shields
     //Err("Not implemented".to_string())
 

@@ -6,7 +6,7 @@ use spacetimedsl::*;
 use crate::{tables::ships::*, utility::try_server_only};
 
 #[dsl(plural_name = ship_status_timers, method(update = false))]
-#[spacetimedb::table(name = ship_status_timer, scheduled(ship_status_timer_reducer))]
+#[spacetimedb::table(accessor = ship_status_timer, scheduled(ship_status_timer_reducer))]
 pub struct ShipStatusTimer {
     #[primary_key]
     #[auto_inc]

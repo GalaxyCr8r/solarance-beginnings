@@ -22,7 +22,7 @@ reqwest = { version = "0.12.15", features = [
     "blocking",
     "rustls-tls",
 ], default-features = false }
-spacetimedb-sdk = "1.11.1"
+spacetimedb-sdk = "2.2.0"
 url = "2.5.4"
 
 [features]

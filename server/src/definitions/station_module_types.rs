@@ -1,7 +1,6 @@
 use std::u8;
 
 use log::info;
-use spacetimedb::SpacetimeType;
 use spacetimedsl::*;
 
 use crate::{

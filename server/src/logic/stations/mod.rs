@@ -2,15 +2,15 @@ use crate::{
     definitions::item_types::*,
     logic::stations::{
         module_types::{manufacturing::*, refineries::*, solar_arrays::*, trading_port},
-        production::{CreateStationProductionSchedule, *},
-        status::{CreateStationStatusSchedule, *},
+        production::*,
+        status::*,
     },
     tables::{factions::*, items::*, sectors::*, stations::*, stellarobjects::*},
-    utility::try_server_only,
+    utility::*,
 };
 
 use log::info;
-use spacetimedb::{ReducerContext, ScheduleAt};
+use spacetimedb::*;
 use spacetimedsl::*;
 use std::time::Duration;
 
@@ -21,55 +21,6 @@ pub mod status;
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 /// Utilties
-
-/// Admin reducer to create station timers for the given station ID.
-/// Sets up both production and status schedules for the station.
-#[spacetimedb::reducer]
-pub fn add_station_timers(ctx: &ReducerContext, station_id: u64) -> Result<(), String> {
-    let dsl = dsl(ctx);
-    try_server_only(&dsl)?;
-    let station_id = StationId::new(station_id);
-
-    // Verify the station exists
-    let _station = dsl.get_station_by_id(&station_id)?;
-
-    // Check if production schedule already exists
-    if dsl
-        .get_station_production_schedule_by_id(&station_id)
-        .is_ok()
-    {
-        info!(
-            "Station production schedule already exists for station {}",
-            station_id
-        );
-    } else {
-        // Set up station production schedule (every 30 seconds)
-        dsl.create_station_production_schedule(CreateStationProductionSchedule {
-            id: station_id.clone(),
-            scheduled_at: ScheduleAt::Interval(Duration::from_secs(30).into()), // TODO: Make this dependant on a GlobalConfig value
-            last_processed_timestamp: ctx.timestamp(),
-        })?;
-    }
-
-    // Check if status schedule already exists
-    if dsl.get_station_status_schedule_by_id(&station_id).is_ok() {
-        info!(
-            "Station status schedule already exists for station {}",
-            station_id
-        );
-    } else {
-        // Set up station status schedule (every 10 seconds)
-        dsl.create_station_status_schedule(CreateStationStatusSchedule {
-            id: station_id.clone(),
-            scheduled_at: ScheduleAt::Interval(Duration::from_secs(10).into()), // TODO: Make this dependant on a GlobalConfig value
-            last_processed_timestamp: ctx.timestamp(),
-        })?;
-    }
-
-    info!("Created station timers for station {}", station_id.clone());
-
-    Ok(())
-}
 
 /// Type alias for module creation functions
 pub type ModuleCreationFn<T> = Box<dyn Fn(&DSL<T>, &Station) -> Result<(), String>>;
@@ -132,7 +83,7 @@ pub fn create_station_with_modules<T: spacetimedsl::WriteContext>(
     sobj: &StellarObject,
     owner_faction_id: FactionId,
     name: &str,
-    description: Option<String>,
+    _description: Option<String>,
     module_creators: Vec<ModuleCreationFn<T>>,
 ) -> Result<Station, String> {
     // Create the station
@@ -154,14 +105,14 @@ pub fn create_station_with_modules<T: spacetimedsl::WriteContext>(
     dsl.create_station_production_schedule(CreateStationProductionSchedule {
         id: station.get_id(),
         scheduled_at: ScheduleAt::Interval(Duration::from_secs(30).into()),
-        last_processed_timestamp: dsl.ctx().timestamp(),
+        last_processed_timestamp: dsl.ctx().timestamp()?,
     })?;
 
     // Set up station status schedule (every 60 seconds) TODO Tie this to GlobalConfig
     dsl.create_station_status_schedule(CreateStationStatusSchedule {
         id: station.get_id(),
         scheduled_at: ScheduleAt::Interval(Duration::from_secs(10).into()),
-        last_processed_timestamp: dsl.ctx().timestamp(),
+        last_processed_timestamp: dsl.ctx().timestamp()?,
     })?;
 
     // Verify station invariants

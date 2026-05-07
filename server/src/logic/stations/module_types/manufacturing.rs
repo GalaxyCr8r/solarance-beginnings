@@ -9,7 +9,7 @@ use crate::tables::stations::*;
 
 /// Defines a recipe that a manufacturing module can use.
 #[dsl(plural_name = production_recipe_definitions, method(update = false))]
-#[table(name = production_recipe_definition, public)]
+#[table(accessor = production_recipe_definition, public)]
 pub struct ProductionRecipeDefinition {
     #[primary_key]
     #[auto_inc]
@@ -34,7 +34,7 @@ pub struct ProductionRecipeDefinition {
 
 /// Data for a generic manufacturing module instance (Factory, Assembler, Fabricator).
 #[dsl(plural_name = manufacturing_modules, method(update = true))]
-#[table(name = manufacturing_module, public)]
+#[table(accessor = manufacturing_module, public)]
 pub struct Manufacturing {
     #[primary_key]
     #[use_wrapper(StationModuleId)]
@@ -103,7 +103,7 @@ pub fn create_basic_manufacturing_module<T: spacetimedsl::WriteContext>(
         station_slot_identifier: "Manufacturing".to_string(),
         is_operational: true,
         built_at_timestamp: None,
-        last_status_update_timestamp: dsl.ctx().timestamp(),
+        last_status_update_timestamp: dsl.ctx().timestamp()?,
     })?;
 
     // Create manufacturing submodule
@@ -239,7 +239,7 @@ pub fn create_manufacturing_module_and_recipe<T: spacetimedsl::WriteContext>(
         station_slot_identifier: module_name.to_string(),
         is_operational: true,
         built_at_timestamp: None,
-        last_status_update_timestamp: dsl.ctx().timestamp(),
+        last_status_update_timestamp: dsl.ctx().timestamp()?,
     })?;
 
     // Create the recipe

@@ -2,7 +2,7 @@ use spacetimedb::{table, Identity, Timestamp};
 use spacetimedsl::*;
 
 #[dsl(plural_name = global_chat_messages, method(update = false))]
-#[table(name = global_chat_message, public)]
+#[table(accessor = global_chat_message, public)]
 pub struct GlobalChatMessage {
     #[primary_key]
     #[auto_inc]
@@ -21,7 +21,7 @@ pub struct GlobalChatMessage {
 }
 
 #[dsl(plural_name = sector_chat_messages, method(update = false))]
-#[table(name = sector_chat_message, public)]
+#[table(accessor = sector_chat_message, public)]
 pub struct SectorChatMessage {
     #[primary_key]
     #[auto_inc]
@@ -46,7 +46,7 @@ pub struct SectorChatMessage {
 }
 
 #[dsl(plural_name = faction_chat_messages, method(update = false))]
-#[table(name = faction_chat_message, public)]
+#[table(accessor = faction_chat_message, public)]
 pub struct FactionChatMessage {
     #[primary_key]
     #[auto_inc]
@@ -82,7 +82,7 @@ impl GlobalChatMessage {
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
+pub fn init<T: spacetimedsl::WriteContext>(_dsl: &DSL<T>) -> Result<(), String> {
     Ok(())
 }
 

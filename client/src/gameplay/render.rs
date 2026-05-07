@@ -85,18 +85,11 @@ pub fn sector(game_state: &mut GameState) {
         draw_ship(&ship_object, &transform, &ship_type, game_state);
     }
 
-    if let Some(controller) = db
-        .player_ship_controller()
-        .id()
-        .find(&game_state.ctx.identity())
-    {
-        if player_transform.is_none() || player_ship_type.is_none() || player_ship.is_none() {
-            return;
-        }
+    if player_transform.is_some() && player_ship_type.is_some() && player_ship.is_some() {
         let actual_player_transform = player_transform.unwrap();
         let player_vec = actual_player_transform.to_vec2();
 
-        draw_mining_laser(game_state, &actual_player_transform, &controller);
+        draw_mining_laser(game_state, &actual_player_transform);
 
         // Draw the controlled ship so its always on top.
         draw_ship(
