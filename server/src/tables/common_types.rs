@@ -8,27 +8,6 @@ pub struct Vec2 {
     pub y: f32,
 }
 
-// pub struct TradeCommand {
-//     item_to_sell: ItemDefinitionId,
-//     station: StationId,
-// }
-
-// Enum for AI states or player commands, can be expanded
-#[derive(SpacetimeType, Clone, Debug, PartialEq, Hash)]
-pub enum CurrentAction {
-    Idle,
-    Patrolling(Vec<Vec2>),
-    MiningAsteroid(u64),  // target asteroid_id
-    AttackingTarget(u64), // target sobj_id
-    MovingToPosition(Vec2),
-    JumpingWithGate(u64),       // target gate_id
-    JumpingWithHyperdrive(u64), // target gate_id
-    Docking(u64),               // target station_id
-    Undocking(u64),             // target station_id
-    Fleeing(u64),               // target sobj_id
-    Trading(u64),               // target station_id
-}
-
 ///////////////////////////////////////////////////////////
 // Impl
 ///////////////////////////////////////////////////////////

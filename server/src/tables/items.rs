@@ -20,7 +20,7 @@ pub enum ResourceCategory {
     ConsumableShipFuel,
     ExoticMatter,          // For high-tier research/construction
     ResearchDataFragments, // Gathered from anomalies/ruins
-    FinishedGoods,         // For trade, NPC requests
+    FinishedGoods,         // For trade
 }
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq, Hash)]

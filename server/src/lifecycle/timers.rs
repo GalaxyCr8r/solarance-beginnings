@@ -60,7 +60,7 @@ pub fn initialize<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), Str
 
 fn faction_timers<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     for faction in dsl.get_all_factions() {
-        // Only create timers for Galactic-tier factions (the main NPC factions)
+        // Only create timers for Galactic-tier factions
         // Factionless is excluded as it's a player-only neutral faction
         if *faction.get_tier() == FactionTier::Galactic {
             // Check if timer already exists

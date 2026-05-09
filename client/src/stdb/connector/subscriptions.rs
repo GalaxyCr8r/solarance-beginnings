@@ -188,7 +188,6 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
             sobj_low_res_transform.as_str(),
             sobj_player_window.as_str(),
             visual_effect.as_str(),
-            "SELECT * FROM npc_ship_controller",
         ]);
 }
 

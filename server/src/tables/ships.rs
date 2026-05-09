@@ -133,8 +133,6 @@ pub struct ShipStatus {
 
     pub used_cargo_capacity: u16, // Needs to be manually maintained via ShipCargoItem
     pub max_cargo_capacity: u16,  // Needs to be manually maintained via ShipCargoItem
-
-    pub ai_state: Option<CurrentAction>, // Current high-level AI state or player command
 }
 
 impl ShipStatus {

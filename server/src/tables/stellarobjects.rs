@@ -30,7 +30,6 @@ pub struct StellarObject {
     #[referenced_by(path = crate::tables::jumpgates, table = jump_gate)]
     #[referenced_by(path = crate::tables::items, table = cargo_crate)]
     #[referenced_by(path = crate::tables::ships, table = ship_movement_controller)]
-    #[referenced_by(path = crate::tables::npcs, table = npc_ship_controller)]
     id: u64,
 
     #[index(btree)]

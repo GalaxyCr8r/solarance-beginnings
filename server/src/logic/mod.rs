@@ -4,7 +4,6 @@ pub mod combat;
 pub mod factions;
 pub mod game_loop;
 pub mod logic_utilities;
-pub mod npcs;
 pub mod players;
 pub mod sectors;
 pub mod ships;

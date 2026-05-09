@@ -95,7 +95,7 @@ pub const ITEM_BIOMATTER_COMPOST: u32 = 3_100;
 pub const ITEM_FOOD_RATIONS: u32 = 3_201;
 pub const ITEM_FOOD_AVERAGE: u32 = 3_202;
 pub const ITEM_FOOD_LUXURY: u32 = 3_203;
-// ### Specific Foodstuffs (Potentially for luxury npc needs?)
+// ### Specific Foodstuffs
 pub const ITEM_ALCOHOL: u32 = 3_502;
 
 // # Component Construction

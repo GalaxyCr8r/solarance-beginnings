@@ -9,7 +9,6 @@ pub mod factions;
 pub mod global_config;
 pub mod items;
 pub mod jumpgates;
-pub mod npcs;
 pub mod players;
 pub mod sectors;
 pub mod server_messages;

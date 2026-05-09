@@ -1,5 +1,5 @@
 use log::info;
-use spacetimedb::{Identity, ReducerContext};
+use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 
 use crate::{
@@ -204,15 +204,9 @@ pub fn undock_from_station<T: spacetimedsl::WriteContext>(
         // Should this error really be suppressed?
     }
 
-    if docked.get_player_id().value() != Identity::ONE {
-        // There is a real player controlling this ship, so create the necessary helpers.
-        create_sobj_player_window_from_dsl(dsl, docked.get_player_id().value(), sobj.get_id())?;
-        let _ = initialize_controller_for_player(dsl, &docked.get_player_id(), &sobj);
+    create_sobj_player_window_from_dsl(dsl, docked.get_player_id().value(), sobj.get_id())?;
+    let _ = initialize_controller_for_player(dsl, &docked.get_player_id(), &sobj);
     // Should this error really be suppressed?
-    } else {
-        // There is NOT a real player controllering this ship, so error for now.
-        return Err("Unsupported: There was an attempt to undock an NPC ship!".to_string());
-    }
 
     send_info_message(
         dsl,

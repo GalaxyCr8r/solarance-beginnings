@@ -5,7 +5,7 @@ use spacetimedb::{ReducerContext, Timestamp};
 use spacetimedsl::*;
 
 use crate::{
-    tables::{factions::*, sectors::*, ships::*, stations::*},
+    tables::{factions::*, stations::*},
     utility::try_server_only,
 };
 
@@ -46,39 +46,6 @@ pub struct FactionManagementTimer {
 
     /// Last management check timestamp
     pub last_management_timestamp: Timestamp,
-}
-
-/// Timer for faction ship destruction reactions - runs after a delay when ships are destroyed
-#[dsl(plural_name = faction_ship_reaction_timers, method(update = false))]
-#[spacetimedb::table(
-    accessor = faction_ship_reaction_timer,
-    scheduled(faction_ship_reaction_timer_reducer)
-)]
-pub struct FactionShipReactionTimer {
-    #[primary_key]
-    #[auto_inc]
-    #[create_wrapper]
-    id: u64,
-    scheduled_at: spacetimedb::ScheduleAt,
-
-    #[use_wrapper(FactionId)]
-    /// FK to Faction - the faction that lost the ship
-    faction_id: u32,
-
-    #[use_wrapper(FactionId)]
-    /// FK to Faction - the faction that destroyed the ship (if known)
-    aggressor_faction_id: Option<u32>,
-
-    #[use_wrapper(ShipTypeDefinitionId)]
-    /// The type of ship that was destroyed
-    destroyed_ship_type_id: u32,
-
-    /// Location where the ship was destroyed (sector ID)
-    #[use_wrapper(SectorId)]
-    destruction_sector_id: u64,
-
-    /// Timestamp when the ship was destroyed
-    destruction_timestamp: Timestamp,
 }
 
 ///////////////////////////////////////////////////////////////
@@ -142,62 +109,6 @@ pub fn faction_station_check_timer_reducer(
     Ok(())
 }
 
-/// Scheduled reducer that handles faction reactions to ship destruction
-/// Processes diplomatic consequences and potential retaliation
-#[spacetimedb::reducer]
-pub fn faction_ship_reaction_timer_reducer(
-    ctx: &ReducerContext,
-    timer: FactionShipReactionTimer,
-) -> Result<(), String> {
-    let dsl = dsl(ctx);
-    try_server_only(&dsl)?;
-
-    // Remove the timer as it's a one-time reaction
-    dsl.delete_faction_ship_reaction_timer_by_id(&timer)?;
-
-    info!(
-        "Processing ship destruction reaction for faction #{} - ship type #{} destroyed by faction #{:?}",
-        timer.get_faction_id(),
-        timer.get_destroyed_ship_type_id(),
-        timer.get_aggressor_faction_id()
-    );
-
-    // TODO: Implement faction reaction logic
-    // - Adjust faction standings based on the aggressor
-    // - Plan retaliatory actions if appropriate
-    // - Increase security in the affected sector
-    // - Send reinforcements if needed
-    // - Update faction AI priorities
-
-    if let Some(aggressor_id) = timer.get_aggressor_faction_id() {
-        info!(
-            "Faction #{} will remember that faction #{} destroyed their ship",
-            timer.get_faction_id(),
-            aggressor_id
-        );
-
-        // Placeholder for diplomatic consequences
-        // This could involve:
-        // - Reducing faction standing
-        // - Marking sectors as hostile
-        // - Planning counter-attacks
-        // - Alerting allied factions
-    } else {
-        info!(
-            "Faction #{} lost a ship to unknown causes (pirates, accidents, etc.)",
-            timer.get_faction_id()
-        );
-
-        // Placeholder for general security responses
-        // This could involve:
-        // - Increasing patrols in the area
-        // - Investigating the cause
-        // - Improving defenses
-    }
-
-    Ok(())
-}
-
 /// Scheduled reducer that manages faction timers every 12 hours
 /// Ensures all factions have their required timers and removes orphaned timers
 #[spacetimedb::reducer]
@@ -232,20 +143,6 @@ pub fn faction_management_timer_reducer(
             orphaned_timer.get_faction_id()
         );
         dsl.delete_faction_station_check_timer_by_id(&orphaned_timer)?;
-    }
-
-    // 3. Remove orphaned ship reaction timers for factions that no longer exist
-    let orphaned_reaction_timers: Vec<FactionShipReactionTimer> = dsl
-        .get_all_faction_ship_reaction_timers()
-        .filter(|timer| !faction_ids.contains(&timer.get_faction_id().value()))
-        .collect();
-
-    for orphaned_timer in orphaned_reaction_timers {
-        info!(
-            "Removing orphaned ship reaction timer for deleted faction #{}",
-            orphaned_timer.get_faction_id()
-        );
-        dsl.delete_faction_ship_reaction_timer_by_id(&orphaned_timer)?;
     }
 
     // Update the last management timestamp
@@ -295,32 +192,6 @@ pub fn create_station_check_timer_for_faction<T: spacetimedsl::WriteContext>(
     info!(
         "Created station check timer for faction #{}",
         faction_id.value()
-    );
-    Ok(timer)
-}
-
-/// Creates a ship reaction timer for when a faction ship is destroyed
-pub fn create_ship_reaction_timer_for_faction<T: spacetimedsl::WriteContext>(
-    dsl: &DSL<T>,
-    faction_id: &FactionId,
-    aggressor_faction_id: Option<&FactionId>,
-    destroyed_ship_type_id: &ShipTypeDefinitionId,
-    destruction_sector_id: &SectorId,
-) -> Result<FactionShipReactionTimer, String> {
-    let timer = dsl.create_faction_ship_reaction_timer(CreateFactionShipReactionTimer {
-        scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_secs(30).into()), // 30 second delay
-        faction_id: faction_id.clone(),
-        aggressor_faction_id: aggressor_faction_id.cloned(),
-        destroyed_ship_type_id: destroyed_ship_type_id.clone(),
-        destruction_sector_id: destruction_sector_id.clone(),
-        destruction_timestamp: dsl.ctx().timestamp()?,
-    })?;
-
-    info!(
-        "Created ship reaction timer for faction #{} - ship type #{} destroyed in sector #{}",
-        faction_id.value(),
-        destroyed_ship_type_id.value(),
-        destruction_sector_id.value()
     );
     Ok(timer)
 }

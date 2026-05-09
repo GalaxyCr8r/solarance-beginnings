@@ -1,11 +1,7 @@
-use log::info;
-use spacetimedb::{table, Identity, SpacetimeType, TimeDuration};
+use spacetimedb::{table, SpacetimeType};
 use spacetimedsl::*;
 
-use crate::{
-    logic::factions::{CreateFactionShipReactionTimer, CreateFactionShipReactionTimerRow},
-    tables::{sectors::*, ships::*, stations::*},
-};
+use crate::tables::{sectors::*, ships::*, stations::*};
 
 #[derive(SpacetimeType, Clone, Debug, PartialEq)]
 pub enum FactionTier {
@@ -239,37 +235,6 @@ pub fn get_faction_controlled_sectors<T: spacetimedsl::WriteContext>(
     // TODO: Could add sectors with faction-controlled jump gates
 
     controlled_sectors
-}
-
-/// Handles when a faction ship is destroyed - creates reaction timer
-pub fn handle_faction_ship_destroyed<T: spacetimedsl::WriteContext>(
-    dsl: &DSL<T>,
-    destroyed_ship: &Ship,
-    aggressor_faction_id: Option<&FactionId>,
-    destruction_sector_id: &SectorId,
-) -> Result<(), String> {
-    let faction_id = destroyed_ship.get_faction_id();
-
-    // Only react if it's a faction ship (not player-owned)
-    if destroyed_ship.get_player_id().value() == Identity::ONE {
-        let _ = dsl.create_faction_ship_reaction_timer(CreateFactionShipReactionTimer {
-            scheduled_at: spacetimedb::ScheduleAt::Interval(TimeDuration::from_micros(1000).into()),
-            faction_id: faction_id.clone(),
-            aggressor_faction_id: aggressor_faction_id.cloned(),
-            destroyed_ship_type_id: destroyed_ship.get_shiptype_id(),
-            destruction_sector_id: destruction_sector_id.clone(),
-            destruction_timestamp: dsl.ctx().timestamp()?,
-        });
-
-        info!(
-            "Faction {} will react to the destruction of their {} in sector #{}",
-            get_faction_name(dsl, &faction_id),
-            destroyed_ship.get_shiptype_id().value(),
-            destruction_sector_id.value()
-        );
-    }
-
-    Ok(())
 }
 
 /// Gets a list of all joinable factions for player selection

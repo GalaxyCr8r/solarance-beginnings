@@ -152,7 +152,6 @@ pub fn create_ship_from_sobj<T: spacetimedsl::WriteContext>(
         missile_cooldown_ms: 0,
         used_cargo_capacity: 0,
         max_cargo_capacity: *ship_type.get_cargo_capacity(),
-        ai_state: None,
     })?;
 
     return Ok((ship, ship_status));
@@ -189,7 +188,6 @@ pub fn create_ship_docked_at_station<T: spacetimedsl::WriteContext>(
         missile_cooldown_ms: 0,
         used_cargo_capacity: 0,
         max_cargo_capacity: *ship_type.get_cargo_capacity(),
-        ai_state: None,
     })?;
 
     return Ok((ship, ship_status));
