@@ -35,8 +35,16 @@ Strict hierarchical containers for the game world.
 *   **Offline Pause:** The rule that personal asset generation ceases when a player disconnects.
 *   **Worker Process:** The single server instance managing the MVP. (Do not use "Orchestrator" or "Server Mesh" for MVP tasks).
 
+### Movement & Position
+*   **Movement State:** The dead-reckoning physics snapshot stored as a column on every moving entity (`Ship`, `Cargo Crate`). Contains position, velocity, acceleration, rotation, angular velocity, angular acceleration, caps, damping flags, and `last_update_time`. Lives in `solarance-shared::physics::MovementState` so client and server share identical extrapolation. Replaces the old `sobj_velocity` / `sobj_internal_transform` / `sobj_hi_res_transform` / `sobj_low_res_transform` tables.
+*   **Predict Movement:** The pure function `predict_movement(state, current_time)` in `solarance-shared` that extrapolates a `MovementState` forward to a target time. Called by both client (every frame) and server (before any read or write of position).
+*   **Snapshot Read:** `get_*_movement_snapshot(dsl, id)` — predict to `ctx.timestamp` without writing. Used for range checks (dock proximity, mining range, jumpgate proximity).
+*   **Snapshot Write:** `write_*_movement_snapshot(dsl, id, |state| { ... })` — predict, mutate via closure, write. Used by movement input, dock/undock, jumpgate transit, jettison.
+*   **Server Offset:** Client-side estimator that aligns the local clock to the server's clock so `predict_movement` doesn't see negative deltas (frozen ship) or oversized deltas (snap-forward). Computed as a maximum aggregator over recent snapshots; surfaced in the debug widget.
+*   **Static Position:** Non-moving entities (`Asteroid`, `Station`, `Jumpgate`) carry `(x, y)` (and `rotation` for stations and jumpgates) as direct table columns. They do not have a `MovementState`. Asteroid spin is pure client-side animation derived from `asteroid_id ⊕ time`.
+
 ## 5. Anti-Concepts (Banned Terminology)
-To prevent scope creep, these terms are explicitly banned from MVP code, PRs, and design discussions. If you see them, flag them for the `Future Vision` backlog:
+To prevent scope creep, these terms are explicitly banned from MVP code, PRs, and design discussions. Once the MVP is released, this list will be updated. If you see them, flag them for the `Future Vision` backlog:
 
 *   🚫 **Combat / Attack / Health (for ships) / Weapons** -> (Exterminate pillar is absent).
 *   🚫 **Markets / Economy / Buy / Sell / Trade (between players)** -> (Exchange collapses into "Haul" and "Contribute").
