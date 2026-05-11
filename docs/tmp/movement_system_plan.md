@@ -10,13 +10,15 @@ Replaces the 20 Hz `delete-all + recreate-all` `sobj_hi_res_transform` broadcast
 
 ## Phase 1 — `solarance-shared` housekeeping
 
-Make the shared crate consumable from server + client.
+Make the shared crate consumable from server + client. Establish a single canonical `Vec2` and `MovementState` on the server side.
 
 - Bump `solarance-shared/Cargo.toml`: `spacetimedb = "2.1.0"` → `"2.2.0"`.
-- Swap placeholder `Vec2 { x, y }` → `glam::Vec2` throughout `solarance-shared/src/physics/mod.rs`.
+- **Move `tables::common_types::Vec2` into `solarance-shared`** (whole module: struct, `SpacetimeType` derive, `PartialEq`/`Eq`/`Hash`, glam interop, math helpers). Delete `tables::common_types::Vec2` and update server imports (`JumpGate.target_gate_arrival_pos`, `ShipTypeDefinition::get_world_corners_at_position`, etc.) to point at `solarance_shared::Vec2`. The placeholder `Vec2 { x, y }` in `solarance-shared/src/physics/mod.rs` is *promoted* to this shared type — not replaced by `glam::Vec2`. Internal compute in `predict_movement` may convert to `glam::Vec2` privately at the function boundary if it wants glam's math API.
 - Confirm `#[derive(SpacetimeType)]` on `MovementState` (and any nested types that become table columns).
 - Confirm radians-only public surface; `rotation_to_vector` is already deleted.
 - Add `solarance-shared` as a path dep in `server/Cargo.toml` and `client/Cargo.toml`.
+
+**Client-side gotcha (resurfaces in Phase 8):** `spacetime generate` will produce a parallel `module_bindings::Vec2` and `module_bindings::MovementState` on the client with `#[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]` instead of `SpacetimeType`. These are *different Rust types* from `solarance_shared::Vec2` / `solarance_shared::MovementState` even though they are structurally identical. This is by design and unavoidable — there is no way to map generated bindings to a pre-existing Rust type. The client must convert at the boundary before calling `predict_movement`. Phase 8 adds the `From` impls.
 
 **Checkpoint:** `cargo check` clean on shared, server, client.
 
@@ -29,9 +31,10 @@ New fields exist in parallel with the old transform tables.
 - `ShipTypeDefinition`: drop `base_turn_rate: f32`, add `base_angular_acceleration: f32`.
 - `Ship`: add `movement: MovementState`.
 - `CargoCrate`: add `movement: MovementState`.
-- `Asteroid`: add `x: f32, y: f32` (rotation derived client-side from `id ⊕ time`).
-- `Station`: add `x: f32, y: f32, rotation: f32`.
-- `JumpGate`: add `x: f32, y: f32, rotation: f32`.
+- `Asteroid`: add `position: Vec2` (rotation derived client-side from `id ⊕ time`).
+- `Station`: add `position: Vec2, rotation: f32`.
+- `JumpGate`: add `position: Vec2, rotation: f32`.
+- All position fields use `solarance_shared::Vec2` (the single canonical type from Phase 1).
 - Update `definitions/ship_type_definitions.rs` for `base_angular_acceleration`.
 
 **Checkpoint:** `task server:publish-clear` succeeds.
@@ -108,11 +111,15 @@ Crates eventually go away without per-crate timers.
 ## Phase 8 — Client render path
 
 - `task client:generate`.
+- **Add `From` impls** for the bindings → shared boundary (per Phase 1 gotcha). Colocate with the render path or in a `client/src/gameplay/movement_bridge.rs` module:
+  - `impl From<module_bindings::Vec2> for solarance_shared::Vec2`
+  - `impl From<module_bindings::MovementState> for solarance_shared::MovementState`
+  - Mechanical field-by-field copy. The only place the bindings/shared duplication is visible.
 - `client/src/gameplay/render.rs` + per-class draw paths:
-  - Ship: read `ship.movement`, call `predict_movement(now_micros)`.
+  - Ship: read `ship.movement` (bindings type) → convert to shared → call `predict_movement(now_micros)`.
   - CargoCrate: same.
-  - Asteroid: read `(x, y)`, derive spin angle from `asteroid_id ⊕ time` deterministically.
-  - Station / JumpGate: read `(x, y, rotation)` direct.
+  - Asteroid: read `position`, derive spin angle from `asteroid_id ⊕ time` deterministically.
+  - Station / JumpGate: read `position, rotation` direct.
 - `client/src/stdb/connector/subscriptions.rs`: drop `sobj_velocity`, `sobj_hi_res_transform`, `sobj_low_res_transform`, `sobj_player_window`.
 
 **Checkpoint:** `cargo check` clean on client; solo run boots and a ship moves smoothly with no rotation-arrest bug.
@@ -126,7 +133,8 @@ Demolition. The new path is now load-bearing.
 - `server/src/tables/stellarobjects.rs`: delete `StellarObjectVelocity`, `StellarObjectTransformInternal`, `StellarObjectTransformHiRes`, `StellarObjectTransformLowRes`, `StellarObjectPlayerWindow` and their `referenced_by` entries.
 - `server/src/logic/stellarobjects/transforms.rs`: delete `recalculate_sobj_transforms` reducer + timer.
 - `server/src/logic/stellarobjects/player_windows.rs`: delete the timer + helpers (audit callers — `create_sobj_player_window_for` is invoked from undock flow; that whole call goes away too).
-- `server/src/lifecycle/timers.rs`: drop the two timer creations.
+- `server/src/logic/ships/movement_controllers.rs`: delete `timer_update_all_ship_movement_controllers`, the `UpdateShipMovementControllers` scheduled table, `_update_ship_movement_controller`, and `try_update_ship_velocity`. The dead-reckoning model is event-driven — no tick required, damping lives in `predict_movement`. The `update_ship_movement_controller` input reducer is the only remaining writer.
+- `server/src/lifecycle/timers.rs`: drop all three timer creations (transforms, player windows, movement controllers).
 
 ---
 

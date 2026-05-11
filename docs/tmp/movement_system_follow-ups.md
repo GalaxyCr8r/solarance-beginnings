@@ -229,3 +229,52 @@ Mining currently has no shared visual broadcast. Each client renders its own las
 
 - Issue describes the rename / move, the new enum variants, and the emission point in the mining reducer.
 - Issue notes the dependency on the movement-system rewrite (because positions move from transform tables to direct fields).
+
+---
+
+## Issue 5 — Evaluate removing the `StellarObject` table
+
+### Background
+
+The movement-system rewrite (`docs/tmp/movement_system_plan.md`) moves position data off the `sobj_*_transform` tables and onto the concrete entity tables (`Ship.movement`, `CargoCrate.movement`, `Asteroid.(x,y)`, `Station.(x,y,rotation)`, `JumpGate.(x,y,rotation)`). After Phase 9, the `StellarObject` table itself survives, but its role narrows dramatically — it becomes `(id, kind, sector_id)` only, and every concrete entity table already carries its own `sector_id`.
+
+The remaining structural job of `StellarObject` is to provide a **single auto-incremented ID namespace across all spatial things**, so client-side targeting (`targeted_sobj_id: u64`) and cross-kind reducer signatures (`fn dock_to(sobj_id)`) work with a single u64 instead of `(Kind, u64)`.
+
+### Problem
+
+`StellarObject` may no longer earn its keep:
+
+- **Polymorphic dispatch is shallow.** Dock, mine, and jump are all kind-specific. `enum Target { Ship(ShipId), Station(StationId), … }` is honest about the dispatch and is what the client effectively does anyway when it renders kind-specific UI for the targeted entity.
+- **Sector membership is duplicated.** Every concrete table already carries `sector_id` / `current_sector_id`, and they must be kept in sync with `StellarObject.sector_id` on every cross-sector move.
+- **The single-u64 ID convenience has a real cost.** Every spatial entity is created via the two-step `create_sobj_internal → create_<entity>` dance, every FK chains through StellarObject, and every reducer that takes `StellarObjectId` must look up the concrete entity afterward.
+
+The grilling on the movement-rewrite plan deferred this because demolishing StellarObject is a separate, large diff that touches every FK and every reducer signature in the schema. It's also easier to evaluate the removal *after* the movement rewrite lands, because that's when StellarObject's remaining role becomes minimal and obvious.
+
+### Proposed approach (sketch — issue should describe, not commit)
+
+- Audit every reducer signature that takes `StellarObjectId` — categorise as kind-specific (cheap to convert) vs. genuinely polymorphic (rare).
+- Audit every FK to `StellarObject` — each becomes the entity's own `auto_inc` primary key.
+- Replace cross-kind utilities like `same_sector_from_ids(sobj_a, sobj_b)` with per-pair specialisations or an `enum SpatialId`.
+- Update client-side targeting to use `enum Target { Ship(u64), Station(u64), … }` instead of bare `u64`.
+- Delete `StellarObject` table, `StellarObjectId`, `StellarObjectKinds`, and the `create_sobj_internal` helper.
+
+### Dependencies
+
+- Movement-system rewrite (`docs/tmp/movement_system_plan.md`) must land first.
+
+### References
+
+- `server/src/tables/stellarobjects.rs` — current table + `StellarObjectKinds` enum + `same_sector_from_ids` util.
+- `server/src/logic/stellarobjects/stellar_object_creation.rs` — `create_sobj_internal` two-step dance.
+- Every concrete entity table (`ships.rs`, `asteroids.rs`, `stations.rs`, `jumpgates.rs`, `items.rs::CargoCrate`) — FKs to `StellarObject`.
+
+### Non-goals
+
+- Salvaging the `kind` discriminator for some other purpose. If StellarObject goes, the discriminator goes with it.
+- Cleaning up the legacy `sector_id` duplication on concrete tables (it's already there and is independently load-bearing).
+
+### Acceptance criteria
+
+- Issue lists the count of reducer signatures and FKs affected, so the diff size is known up front.
+- Issue describes the client-side targeting change.
+- Issue notes the dependency on the movement-system rewrite landing first.
