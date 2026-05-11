@@ -1,6 +1,6 @@
 use macroquad::prelude::*;
 
-use crate::{gameplay::render::star_system::render_star_system, module_bindings::*};
+use crate::{gameplay::render::star_system::render_star_system, server::bindings::*};
 use spacetimedb_sdk::{DbContext, Table};
 
 use crate::stdb::utils::*;

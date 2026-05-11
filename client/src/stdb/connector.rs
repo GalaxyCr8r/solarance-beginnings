@@ -2,7 +2,7 @@ use macroquad::prelude::info;
 use spacetimedb_sdk::{credentials, Error, Identity};
 use std::env;
 
-use crate::module_bindings::*;
+use crate::server::bindings::*;
 
 mod subscriptions;
 

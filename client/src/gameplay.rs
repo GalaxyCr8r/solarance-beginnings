@@ -2,7 +2,7 @@ use std::sync::mpsc::{self, Sender};
 
 use macroquad::{math::Vec2, prelude::*, ui};
 
-use super::module_bindings::*;
+use super::server::bindings::*;
 use spacetimedb_sdk::{DbContext, Table};
 
 use crate::{shader::*, stdb::utils::*};

@@ -11,7 +11,7 @@ use spacetimedb_sdk::*;
 
 use solarance_beginnings::{
     gameplay::{ self, render::star_system::*, resources::* },
-    module_bindings::*,
+    server::bindings::*,
     stdb::connector::*,
 };
 

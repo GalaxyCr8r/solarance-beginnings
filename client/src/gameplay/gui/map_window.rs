@@ -3,7 +3,7 @@ use macroquad::prelude::*;
 use spacetimedb_sdk::Table;
 use spacetimedb_sdk::*;
 
-use crate::{module_bindings::*, stdb::utils::*};
+use crate::{server::bindings::*, stdb::utils::*};
 
 #[derive(PartialEq)]
 enum CurrentTab {

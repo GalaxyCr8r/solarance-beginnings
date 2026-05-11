@@ -18,7 +18,7 @@ Make the shared crate consumable from server + client. Establish a single canoni
 - Confirm radians-only public surface; `rotation_to_vector` is already deleted.
 - Add `solarance-shared` as a path dep in `server/Cargo.toml` and `client/Cargo.toml`.
 
-**Client-side gotcha (resurfaces in Phase 8):** `spacetime generate` will produce a parallel `module_bindings::Vec2` and `module_bindings::MovementState` on the client with `#[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]` instead of `SpacetimeType`. These are *different Rust types* from `solarance_shared::Vec2` / `solarance_shared::MovementState` even though they are structurally identical. This is by design and unavoidable — there is no way to map generated bindings to a pre-existing Rust type. The client must convert at the boundary before calling `predict_movement`. Phase 8 adds the `From` impls.
+**Client-side gotcha (resurfaces in Phase 8):** `spacetime generate` will produce a parallel `server::bindings::Vec2` and `server::bindings::MovementState` on the client with `#[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]` instead of `SpacetimeType`. These are *different Rust types* from `solarance_shared::Vec2` / `solarance_shared::MovementState` even though they are structurally identical. This is by design and unavoidable — there is no way to map generated bindings to a pre-existing Rust type. The client must convert at the boundary before calling `predict_movement`. Phase 8 adds the `From` impls.
 
 **Checkpoint:** `cargo check` clean on shared, server, client.
 
@@ -112,8 +112,8 @@ Crates eventually go away without per-crate timers.
 
 - `task client:generate`.
 - **Add `From` impls** for the bindings → shared boundary (per Phase 1 gotcha). Colocate with the render path or in a `client/src/gameplay/movement_bridge.rs` module:
-  - `impl From<module_bindings::Vec2> for solarance_shared::Vec2`
-  - `impl From<module_bindings::MovementState> for solarance_shared::MovementState`
+  - `impl From<server::bindings::Vec2> for solarance_shared::Vec2`
+  - `impl From<server::bindings::MovementState> for solarance_shared::MovementState`
   - Mechanical field-by-field copy. The only place the bindings/shared duplication is visible.
 - `client/src/gameplay/render.rs` + per-class draw paths:
   - Ship: read `ship.movement` (bindings type) → convert to shared → call `predict_movement(now_micros)`.

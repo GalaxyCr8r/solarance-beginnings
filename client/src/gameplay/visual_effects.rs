@@ -15,7 +15,7 @@ use macroquad::prelude::*;
 use spacetimedb_sdk::Table;
 
 use super::state::{FiringEffect, GameState};
-use crate::module_bindings::{
+use crate::server::bindings::{
     self, visual_effect_table::VisualEffectTableAccess, VisualEffectType,
 };
 
@@ -135,7 +135,7 @@ fn render_missile_fire_effect(effect: &FiringEffect, progress: f32) {
     let alpha = (1.0 - progress) * 255.0;
 
     // Calculate current missile position
-    let missile_pos = module_bindings::Vec2 {
+    let missile_pos = bindings::Vec2 {
         x: effect.source_pos.x + (effect.target_pos.x - effect.source_pos.x) * progress,
         y: effect.source_pos.y + (effect.target_pos.y - effect.source_pos.y) * progress,
     };
@@ -147,7 +147,7 @@ fn render_missile_fire_effect(effect: &FiringEffect, progress: f32) {
     let length = (direction_x * direction_x + direction_y * direction_y).sqrt();
     let normalized_x = direction_x / length;
     let normalized_y = direction_y / length;
-    let trail_start = module_bindings::Vec2 {
+    let trail_start = bindings::Vec2 {
         x: missile_pos.x - normalized_x * trail_length,
         y: missile_pos.y - normalized_y * trail_length,
     };

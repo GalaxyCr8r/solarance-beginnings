@@ -1,7 +1,7 @@
 use macroquad::prelude::*;
 use spacetimedb_sdk::{DbContext, Table};
 
-use crate::module_bindings::*;
+use crate::server::bindings::*;
 
 use crate::stdb::utils::*;
 

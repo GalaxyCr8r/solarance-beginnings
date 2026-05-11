@@ -1,7 +1,7 @@
 use egui::{Align2, Color32, Context, RichText};
 use spacetimedb_sdk::{DbContext, Table};
 
-use crate::{gameplay::state::GameState, module_bindings::*, stdb::utils::*};
+use crate::{gameplay::state::GameState, server::bindings::*, stdb::utils::*};
 
 // #[derive(PartialEq)]
 // enum CurrentTab {

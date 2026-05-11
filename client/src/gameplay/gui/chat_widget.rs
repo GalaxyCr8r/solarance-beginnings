@@ -4,7 +4,7 @@ use egui::{Align2, Color32, Context, RichText, ScrollArea, TextStyle, Ui};
 use macroquad::prelude::*;
 use spacetimedb_sdk::{DbContext, Timestamp};
 
-use crate::{gameplay::server_messages::ServerMessageUtils, module_bindings::*, stdb::utils::*};
+use crate::{gameplay::server_messages::ServerMessageUtils, server::bindings::*, stdb::utils::*};
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub enum GlobalChatMessageType {

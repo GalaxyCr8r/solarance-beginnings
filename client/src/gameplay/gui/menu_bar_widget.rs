@@ -1,7 +1,7 @@
 
 use egui::{Align2, Color32, Context, FontId, Frame, RichText, Shadow, Ui};
 
-use crate::{gameplay::state::GameState, module_bindings::*};
+use crate::{gameplay::state::GameState, server::bindings::*};
 
 //#[derive(Default)]
 pub struct State {

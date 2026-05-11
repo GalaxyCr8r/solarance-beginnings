@@ -2,14 +2,14 @@ use macroquad::{camera::Camera2D, prelude::*};
 use std::collections::HashMap;
 
 use crate::gameplay::gui::*;
-use crate::module_bindings::{self, DbConnection, StellarObject, VisualEffectType};
+use crate::server::bindings::{self, DbConnection, StellarObject, VisualEffectType};
 
 #[derive(Debug, Clone)]
 pub struct FiringEffect {
     pub start_time: f64,
     pub duration: f64,
-    pub source_pos: module_bindings::Vec2,
-    pub target_pos: module_bindings::Vec2,
+    pub source_pos: bindings::Vec2,
+    pub target_pos: bindings::Vec2,
     pub effect_type: VisualEffectType,
 }
 

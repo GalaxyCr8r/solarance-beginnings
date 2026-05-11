@@ -2,7 +2,7 @@ use egui::{Align2, Context, ScrollArea};
 use macroquad::miniquad::date::now;
 use macroquad::prelude::*;
 
-use crate::module_bindings::*;
+use crate::server::bindings::*;
 use spacetimedb_sdk::{DbContext, Table};
 
 use crate::gameplay::state::GameState;

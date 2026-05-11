@@ -690,7 +690,7 @@ spacetime publish <module-name> --project-path <backend-dir>
 spacetime publish <module-name> --clear-database -y --project-path <backend-dir>
 
 # Generate bindings
-spacetime generate --lang rust --out-dir <client>/src/module_bindings --project-path <backend-dir>
+spacetime generate --lang rust --out-dir <client>/src/server/bindings --project-path <backend-dir>
 
 # View logs
 spacetime logs <module-name>

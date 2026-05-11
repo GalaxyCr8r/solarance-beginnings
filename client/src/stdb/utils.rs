@@ -1,7 +1,7 @@
 use macroquad::prelude::glam;
 use spacetimedb_sdk::{DbContext, Identity, Table};
 
-use crate::module_bindings::*;
+use crate::server::bindings::*;
 
 pub fn get_transform(
     ctx: &DbConnection,

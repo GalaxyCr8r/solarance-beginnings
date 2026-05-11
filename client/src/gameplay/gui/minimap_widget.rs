@@ -1,7 +1,7 @@
 use egui::{Align2, Context, RichText, ScrollArea};
 use spacetimedb_sdk::*;
 
-use crate::{gameplay::state::GameState, module_bindings::*, stdb::utils::*};
+use crate::{gameplay::state::GameState, server::bindings::*, stdb::utils::*};
 
 pub fn draw(
     egui_ctx: &Context,

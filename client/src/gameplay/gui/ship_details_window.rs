@@ -4,7 +4,7 @@ use egui::{Context, FontId, RichText, Ui};
 use macroquad::prelude::*;
 use spacetimedb_sdk::*;
 
-use crate::{module_bindings::*, stdb::utils::*};
+use crate::{server::bindings::*, stdb::utils::*};
 
 #[derive(PartialEq)]
 pub enum CurrentTab {

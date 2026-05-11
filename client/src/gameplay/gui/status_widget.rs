@@ -2,7 +2,7 @@ use egui::{Align2, Color32, Context, RichText, Ui, Vec2};
 use macroquad::{miniquad::date::now, prelude::*};
 use spacetimedb_sdk::{DbContext, Table};
 
-use crate::{gameplay::state::GameState, module_bindings::*, stdb::utils::*};
+use crate::{gameplay::state::GameState, server::bindings::*, stdb::utils::*};
 
 #[derive(Default)]
 pub struct WindowState {

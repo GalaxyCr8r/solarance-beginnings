@@ -5,7 +5,7 @@ use macroquad::{
 
 use spacetimedb_sdk::DbContext;
 
-use crate::module_bindings::*;
+use crate::server::bindings::*;
 use crate::stdb::utils::*;
 
 use crate::gameplay::{resources::Resources, state::GameState};
