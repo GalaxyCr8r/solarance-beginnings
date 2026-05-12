@@ -11,7 +11,7 @@ use crate::{
         },
     },
     tables::{
-        jumpgates::JumpGate,
+        jumpgates::*,
         players::{get_player_ship_and_sobj, PlayerId},
         sectors::GetSectorRowOptionById,
         server_messages::send_info_message,
@@ -95,10 +95,42 @@ pub fn undock_ship(ctx: &ReducerContext, ship: Ship) -> Result<(), String> {
     Ok(())
 }
 
+/// Used by a player client. Looks up the targeted jumpgate by its sobj id
+/// and routes through `try_to_use_jumpgate` (which handles the energy gate
+/// + cross-sector transit). Distance / faction gating happens server-side.
+#[spacetimedb::reducer]
+pub fn use_jumpgate(ctx: &ReducerContext, jumpgate_sobj_id: u64) -> Result<(), String> {
+    let dsl = dsl(ctx);
+    let jumpgate = dsl
+        .get_jump_gate_by_id(&StellarObjectId::new(jumpgate_sobj_id))
+        .map_err(|_| format!("No jumpgate at sobj #{}", jumpgate_sobj_id))?;
+    try_to_use_jumpgate(ctx, &jumpgate)
+}
+
+/// Hard proximity check for jumpgate activation. Same units as ship pos
+/// (pixels). Matches the dock range in spirit — you have to fly up to the
+/// gate before it'll fire.
+const JUMPGATE_USE_RANGE: f32 = 300.0;
+
 pub fn try_to_use_jumpgate(ctx: &ReducerContext, jumpgate: &JumpGate) -> Result<(), String> {
     let dsl = dsl(ctx);
     let (ship_object, _) = get_player_ship_and_sobj(&dsl, &PlayerId::new(ctx.sender()))?;
     let mut ship_status = dsl.get_ship_status_by_id(ship_object.get_id())?;
+
+    // Predicted-forward ship pos vs. the gate's static position. Reject if
+    // the ship is too far away — this used to be missing, so a player on
+    // the far side of the sector could still trigger the jump.
+    let ship_snapshot = crate::logic::stellarobjects::movement::get_ship_movement_snapshot(
+        &dsl,
+        &ship_object.get_id(),
+    )?;
+    let dist = ship_snapshot.pos.distance_to(jumpgate.get_position());
+    if dist > JUMPGATE_USE_RANGE {
+        return Err(format!(
+            "Too far to use jumpgate #{} ({dist:.0} > {JUMPGATE_USE_RANGE})",
+            jumpgate.get_id().value()
+        ));
+    }
 
     // Jump once they have more than 100 energy
     if *ship_status.get_energy() > 100.0 {

@@ -180,17 +180,30 @@ fn autodocking_button(ui: &mut Ui, ctx: &DbConnection, game_state: &GameState) {
             }
         }
         ShipLocation::Sector => {
-            let target_is_station = game_state
-                .current_target_sobj
-                .as_ref()
-                .map_or(false, |t| t.kind == StellarObjectKinds::Station);
-            ui.add_enabled_ui(target_is_station, |ui| {
+            // The [C] button doubles as "Dock" (station target) and "Jump"
+            // (jumpgate target). Server-side distance / energy gating still
+            // applies — this UI just routes the intent.
+            let target_kind = game_state.current_target_sobj.as_ref().map(|t| t.kind);
+            let (label, enabled) = match target_kind {
+                Some(StellarObjectKinds::Station) => ("[C] Dock", true),
+                Some(StellarObjectKinds::JumpGate) => ("[C] Jump", true),
+                _ => ("[C] Dock", false),
+            };
+            ui.add_enabled_ui(enabled, |ui| {
                 if ui
-                    .button(RichText::new("[C] Dock").color(Color32::LIGHT_GRAY))
+                    .button(RichText::new(label).color(Color32::LIGHT_GRAY))
                     .clicked()
                 {
                     if let Some(target) = &game_state.current_target_sobj {
-                        let _ = ctx.reducers.dock_ship(target.id);
+                        match target.kind {
+                            StellarObjectKinds::Station => {
+                                let _ = ctx.reducers.dock_ship(target.id);
+                            }
+                            StellarObjectKinds::JumpGate => {
+                                let _ = ctx.reducers.use_jumpgate(target.id);
+                            }
+                            _ => {}
+                        }
                     }
                 }
             });

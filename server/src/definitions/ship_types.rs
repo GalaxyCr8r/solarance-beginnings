@@ -32,8 +32,8 @@ fn fighters<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
         max_health: 100,
         max_shields: 100,
         max_energy: 100,
-        base_speed: 60.0,
-        base_acceleration: 15.0,
+        base_speed: 70.0,
+        base_acceleration: 19.0,
         // Hand-tuned: nimble interceptor, ramps angular speed quickly and tops out fast.
         // Cap and accel scaled to 2/3 of the original first cut after live-feel test.
         base_angular_acceleration: 8.0 * PI / 3.0,
@@ -61,8 +61,8 @@ fn fighters<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
         max_health: 500,
         max_shields: 300,
         max_energy: 200,
-        base_speed: 45.0,
-        base_acceleration: 11.7,
+        base_speed: 150.0,
+        base_acceleration: 70.0,
         // Hand-tuned: chunky shuttle, slower ramp-up, lower top angular speed.
         // Cap and accel scaled to 2/3 of the original first cut after live-feel test.
         base_angular_acceleration: 4.0 * PI / 3.0,
@@ -88,8 +88,8 @@ fn fighters<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
         max_health: 150,
         max_shields: 50,
         max_energy: 125,
-        base_speed: 50.0,
-        base_acceleration: 14.0,
+        base_speed: 75.0,
+        base_acceleration: 18.0,
         // Hand-tuned: agile fighter, similar to Phalanx but slightly stiffer.
         // Cap and accel scaled to 2/3 of the original first cut after live-feel test.
         base_angular_acceleration: 7.0 * PI / 3.0,

@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use solarance_shared::Vec2;
 use spacetimedb::ReducerContext;
 use spacetimedsl::*;
@@ -37,14 +39,40 @@ pub fn create_jumpgate_internal<T: spacetimedsl::WriteContext>(
             }
         }
     };
+    // Local helper: classify a gate position (relative to sector origin)
+    // into the heading that points "into the sector" — i.e. away from
+    // whatever edge the gate sits on. Reused for both the gate's own
+    // visual rotation and the arrival rotation on the destination side
+    // (whose coords are `t_x, t_y`).
+    let inward_facing_rotation = |px: f32, py: f32| -> f32 {
+        if py.abs() < px.abs() {
+            // Horizontal gate
+            if px < 0.0 {
+                0.0 // west gate → face east (+x)
+            } else {
+                PI // east gate → face west (-x)
+            }
+        } else {
+            // Vertical gate
+            if py < 0.0 {
+               PI / 2.0 // north gate → face north (-y), screen up
+            } else {
+               2.0 * PI - (PI * 0.5) // south gate → face south (+y), screen down
+            }
+        }
+    };
+
+    // The arriving ship should face into the destination sector (same
+    // convention as the destination gate's own rotation), so feed the
+    // arrival coords through the same classifier.
+    let arrival_rotation = inward_facing_rotation(t_x, t_y);
+
     dsl.create_jump_gate(CreateJumpGate {
         id: sobj.get_id(),
         current_sector_id,
         target_sector_id: SectorId::new(target_sector_id),
         target_gate_arrival_pos: Vec2 { x: t_x, y: t_y },
-        // Designer default: arrival heading is 0 (east). Hand-tune per gate when
-        // sectors get curated layouts.
-        target_gate_arrival_rotation: 0.0,
+        target_gate_arrival_rotation: arrival_rotation,
         gfx_key: Some(gfx_key),
         is_active: true,
         position: Vec2 { x, y },
