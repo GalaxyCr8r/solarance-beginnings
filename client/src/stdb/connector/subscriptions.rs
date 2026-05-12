@@ -11,16 +11,10 @@ use crate::server::bindings::*;
 /// Register subscriptions for all rows of both tables.
 pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
     let stellar_object = format!(
-        "SELECT o.* 
+        "SELECT o.*
         FROM stellar_object o
         JOIN ship s ON s.sector_id = o.sector_id
         WHERE s.player_id = '{}'",
-        ctx.identity()
-    );
-    let sobj_player_window = format!(
-        "SELECT w.* 
-        FROM sobj_player_window w
-        WHERE w.id = '{}'",
         ctx.identity()
     );
     let sector_chat_message = format!(
@@ -84,30 +78,12 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
         WHERE s.player_id = '{}'",
         ctx.identity()
     );
-    let sobj_hi_res_transform = "SELECT o.* FROM sobj_hi_res_transform o".to_string();
-    // let sobj_hi_res_transform = format!(
-    //     // TODO: Once we can do two joins enable these after we have a way to specify via sector
-    //     "SELECT o.*
-    //     FROM sobj_player_window w
-    //     JOIN sobj_hi_res_transform o ON o.id = w.sobj_id // TODO: Change this to o.sector_id = w.sector_id
-    //     WHERE (o.x > w.tl_x AND
-    //         o.y > w.tl_y AND
-    //         o.x < w.br_x AND
-    //         o.y < w.br_y) AND w.id = '{}'",
-    //     ctx.identity()
-    // );
-    let sobj_low_res_transform = "SELECT o.* FROM sobj_low_res_transform o".to_string();
-    // let sobj_low_res_transform = format!(
-    //     // TODO: Once we can do two joins enable these after we have a way to specify via sector
-    //     "SELECT o.*
-    //     FROM sobj_low_res_transform o
-    //     JOIN sobj_player_window w ON o.id = w.sobj_id // TODO: Change this to o.sector_id = w.sector_id
-    //     WHERE (o.x <= w.tl_x OR
-    //         o.y <= w.tl_y OR
-    //         o.x >= w.br_x OR
-    //         o.y >= w.br_y) AND w.id = '{}'",
-    //     ctx.identity()
-    // );
+    // sobj_velocity / sobj_hi_res_transform / sobj_low_res_transform /
+    // sobj_player_window were removed by the dead-reckoning rewrite — the
+    // client extrapolates positions client-side from `Ship.movement` /
+    // `CargoCrate.movement` and reads static positions directly off
+    // `Asteroid` / `Station` / `JumpGate`.
+
     let server_message = format!(
         "SELECT m.*
         FROM server_message m
@@ -183,10 +159,6 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
             "SELECT * FROM station_status",
             "SELECT * FROM station_under_construction",
             stellar_object.as_str(),
-            "SELECT * FROM sobj_velocity",
-            sobj_hi_res_transform.as_str(),
-            sobj_low_res_transform.as_str(),
-            sobj_player_window.as_str(),
             visual_effect.as_str(),
         ]);
 }

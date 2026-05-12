@@ -208,7 +208,7 @@ fn add_targeted_object_status(
     let distance = {
         if let Some(player_ship) = get_player_transform(ctx) {
             if let Ok(target_object) = get_transform(ctx, target.id) {
-                if let Some(sobj) = ctx.db().stellar_object().id().find(&target_object.id) {
+                if let Some(sobj) = ctx.db().stellar_object().id().find(&target_object.sobj_id) {
                     kind = format!("{:?}", sobj.kind);
                 }
 

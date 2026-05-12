@@ -35,8 +35,8 @@ pub fn draw(
                             Ok(transform) => {
                                 ui.label(format!(
                                     "SObj: {}, {}",
-                                    transform.x.to_string(),
-                                    transform.y.to_string()
+                                    transform.pos.x.to_string(),
+                                    transform.pos.y.to_string()
                                 ));
                             }
                             _ => {
@@ -75,8 +75,8 @@ pub fn draw(
                                     Ok(transform) => {
                                         let string = format!(
                                             "Position: {}, {} Distance: {}",
-                                            transform.x.to_string(),
-                                            transform.y.to_string(),
+                                            transform.pos.x.to_string(),
+                                            transform.pos.y.to_string(),
                                             player_transform.distance(transform.to_vec2())
                                         );
                                         ui.label(string);
@@ -103,18 +103,6 @@ pub fn draw(
                                     "[{}] Credits: {}",
                                     player.username, player.credits
                                 ));
-                                if let Some(window) =
-                                    ctx.db().sobj_player_window().id().find(&player.id)
-                                {
-                                    ui.label(format!(
-                                        "- #{}: {}, {}, {}, {}",
-                                        window.window,
-                                        window.tl_x,
-                                        window.tl_y,
-                                        window.br_x,
-                                        window.br_y
-                                    ));
-                                }
                                 if let Some(_controller) =
                                     ctx.db().ship_movement_controller().id().find(&player.id)
                                 {

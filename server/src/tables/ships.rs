@@ -2,8 +2,10 @@ use log::info;
 use spacetimedb::{table, Identity, SpacetimeType};
 use spacetimedsl::*;
 
+use solarance_shared::{MovementState, Vec2};
+
 use crate::tables::{
-    common_types::*, items::*, players::PlayerId, sectors::*, stations::*, stellarobjects::*,
+    items::*, players::PlayerId, sectors::*, stations::*, stellarobjects::*,
 };
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
@@ -62,7 +64,12 @@ pub struct ShipTypeDefinition {
 
     pub base_speed: f32,
     pub base_acceleration: f32,
-    pub base_turn_rate: f32, // Radians per second
+    /// Angular acceleration in radians/s² — how quickly the ship's turn rate
+    /// ramps up while a turn key is held.
+    pub base_angular_acceleration: f32,
+    /// Hard cap on angular velocity in radians/s. Also drives the always-on
+    /// rotational damping (decel_rate = base_max_turn_rate / 2).
+    pub base_max_turn_rate: f32,
 
     pub cargo_capacity: u16, // Max cargo volume
 
@@ -172,16 +179,15 @@ impl ShipStatus {
 
 #[dsl(plural_name = ship_movement_controllers, method(update = true))]
 #[table(accessor = ship_movement_controller, public)]
+/// Input-state mirror for a player's ship. The dead-reckoning rewrite
+/// narrowed this row's role: it only feeds the no-op early-return inside
+/// `update_ship_movement_controller`. The actual motion lives on
+/// `Ship.movement`.
 pub struct ShipMovementController {
     #[primary_key]
     #[use_wrapper(PlayerId)]
     #[foreign_key(path = crate::tables::players, table = player, column = id, on_delete = Delete)]
     id: Identity,
-
-    #[index(btree)]
-    #[use_wrapper(StellarObjectId)]
-    #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
-    stellar_object_id: u64,
 
     pub forward: bool,
     pub backward: bool,
@@ -236,6 +242,11 @@ pub struct Ship {
     #[use_wrapper(crate::tables::factions::FactionId)]
     #[foreign_key(path = crate::tables::factions, table = faction, column = id, on_delete = Error)]
     pub faction_id: u32,
+
+    /// Dead-reckoning snapshot. The server writes this whenever inputs or
+    /// lifecycle events change the ship's motion; clients extrapolate forward
+    /// from it via `solarance_shared::predict_movement`.
+    pub movement: MovementState,
 }
 
 #[dsl(plural_name = ship_cargo_items, method(update = true))]

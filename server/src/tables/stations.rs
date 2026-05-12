@@ -1,3 +1,4 @@
+use solarance_shared::Vec2;
 use spacetimedb::{table, SpacetimeType, Timestamp};
 use spacetimedsl::*;
 
@@ -232,6 +233,12 @@ pub struct Station {
 
     // services_offered: Vec<StationServiceType>, // Could be an enum or FKs to service definitions
     pub gfx_key: Option<String>,
+
+    /// World-space position. Stations are static — clients read this
+    /// directly without any prediction.
+    pub position: Vec2,
+    /// Heading in radians. Designer-tunable; affects sprite orientation only.
+    pub rotation: f32,
 }
 
 #[dsl(plural_name = station_statuses, method(update = true))]

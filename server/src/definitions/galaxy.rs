@@ -2,13 +2,13 @@ use log::info;
 use spacetimedb::*;
 use spacetimedsl::*;
 
+use solarance_shared::Vec2;
+
 use crate::{
     definitions::factions::FACTION_LRAK_COMBINE,
     logic::stations::*,
-    logic::stellarobjects::stellar_object_creation::*,
-    tables::{
-        common_types::Vec2, factions::*, sectors::*, star_system::*, stations::*, stellarobjects::*,
-    },
+    logic::stellarobjects::stellar_object_creation::create_sobj,
+    tables::{factions::*, sectors::*, star_system::*, stations::*, stellarobjects::*},
 };
 
 //////////////////////////////////////////////////////////////
@@ -215,16 +215,13 @@ fn create_beta_trading_station<T: spacetimedsl::WriteContext + 'static>(
         dsl,
         StationSize::Medium,
         beta,
-        &create_sobj_internal(
-            dsl,
-            StellarObjectKinds::Station,
-            &beta.get_id(),
-            StellarObjectTransformInternal::default().from_xy(613.0, 1337.0),
-        )?,
+        &create_sobj(dsl, StellarObjectKinds::Station, &beta.get_id())?,
         faction_id.clone(),
         format!("{} Trading Station", beta.get_name()).as_str(),
         None,
-        vec![create_trading_module()], //TODO:, create_metal_plate_module()],
+        Vec2::new(613.0, 1337.0),
+        0.0,
+        vec![create_trading_module()],
     )?;
     Ok(())
 }
@@ -239,15 +236,12 @@ fn create_alpha_refinery_station<T: spacetimedsl::WriteContext + 'static>(
         dsl,
         StationSize::Outpost,
         alpha,
-        &create_sobj_internal(
-            dsl,
-            StellarObjectKinds::Station,
-            &alpha.get_id(),
-            StellarObjectTransformInternal::default(),
-        )?,
+        &create_sobj(dsl, StellarObjectKinds::Station, &alpha.get_id())?,
         faction_id.clone(),
         "Tarol's Rest & Refinery Stop",
         None,
+        Vec2::new(0.0, 0.0),
+        0.0,
         vec![
             create_iron_refinery_module(),
             create_ice_refinery_module(),
@@ -267,16 +261,13 @@ fn create_gamma_capital_station<T: spacetimedsl::WriteContext + 'static>(
         dsl,
         StationSize::Capital,
         gamma,
-        &create_sobj_internal(
-            dsl,
-            StellarObjectKinds::Station,
-            &gamma.get_id(),
-            StellarObjectTransformInternal::default().from_xy(455.0, -1337.0),
-        )?,
+        &create_sobj(dsl, StellarObjectKinds::Station, &gamma.get_id())?,
         faction_id.clone(),
         "Homeworld City",
         None,
-        vec![create_trading_module()], // No modules for this capital station yet
+        Vec2::new(455.0, -1337.0),
+        0.0,
+        vec![create_trading_module()],
     )?;
 
     let mut faction = dsl.get_faction_by_id(faction_id)?;

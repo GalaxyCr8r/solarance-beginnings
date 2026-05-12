@@ -1,8 +1,8 @@
 /*
 Rough draft of timings/tiers:
 
-    Input(INPUT: Change Velocity. 30fps)
-    Movement(MOVEMENT: Translate/Rotate. 20fps)
+    Input(INPUT: Change Velocity. event-driven, no tick)
+    Movement(MOVEMENT: client-side prediction via solarance_shared::predict_movement)
     Interactions(INTERACTIONS: Mine Asteroid, Use Jumpgate, etc. 5fps)
     Combat(COMBAT: Shield updates, Spawn missiles, etc. 2fps)
     Economy(ECONOMY: Update station modules, factories produce things, etc. 1 per minute)
@@ -17,21 +17,12 @@ use log::info;
 use spacetimedsl::*;
 
 use crate::{
-    logic::{
-        combat::combat_cooldown::*,
-        factions::*,
-        sectors::*,
-        ships::movement_controllers::*,
-        stellarobjects::{player_windows::*, transforms::*},
-    },
+    logic::{cargo_crates::*, combat::combat_cooldown::*, factions::*, sectors::*},
     tables::factions::*,
 };
 
 /// Called only once when the module is first initialized.
 pub fn initialize<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
-    // Stellar Objects
-    stellar_object_timers(dsl)?;
-
     // Sectors
     dsl.create_sector_upkeep_timer(CreateSectorUpkeepTimer {
         scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_hours(12).into()), // Every Minute
@@ -40,19 +31,16 @@ pub fn initialize<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), Str
     // Factions
     faction_timers(dsl)?;
 
-    // Ship Movement (~20 FPS)
-    dsl.create_create_update_ship_movement_controllers_timer(
-        CreateCreateUpdateShipMovementControllersTimer {
-            scheduled_at: spacetimedb::ScheduleAt::Interval(
-                Duration::from_millis(1000 / 20).into(),
-            ),
-        },
-    )?;
-
     // Combat
     // Schedule the cooldown update timer to run every 100ms
     let _cooldown_timer = dsl.create_combat_cooldown_timer(CreateCombatCooldownTimer {
         scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_micros(100_000).into()), // 100ms = 100,000 microseconds
+    })?;
+
+    // Cargo crate despawn sweeper (every 30 minutes). Replaces the per-crate
+    // despawn check that used to ride on the 20 Hz transform tick.
+    dsl.create_cargo_crate_despawn_sweeper_timer(CreateCargoCrateDespawnSweeperTimer {
+        scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_secs(30 * 60).into()),
     })?;
 
     Ok(())
@@ -79,17 +67,6 @@ fn faction_timers<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), Str
     let _timer = dsl.create_faction_management_timer(CreateFactionManagementTimer {
         scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_hours(12).into()), // 12 hours
         last_management_timestamp: spacetimedb::Timestamp::UNIX_EPOCH,
-    })?;
-    Ok(())
-}
-
-fn stellar_object_timers<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
-    dsl.create_all_transforms_timer(CreateAllTransformsTimer {
-        scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000 / 10).into()),
-        current_update: 0,
-    })?;
-    dsl.create_player_windows_timer(CreatePlayerWindowsTimer {
-        scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_millis(1000).into()),
     })?;
     Ok(())
 }

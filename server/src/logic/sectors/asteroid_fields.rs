@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use glam::Vec2;
+use solarance_shared::Vec2;
 use spacetimedb::rand::Rng;
 use spacetimedsl::*;
 
@@ -30,7 +30,7 @@ pub fn asteroid_sector_upkeep<T: spacetimedsl::WriteContext>(
             Some(inner_extent) => ctx.rng().gen_range(*inner_extent..field), // Pick a distance between inner and outer bounds.,
             None => ctx.rng().gen_range(0.0..field),
         };
-        let pos = Vec2::from_angle(ctx.rng().gen_range(0.0..2.0 * PI)) * dist;
+        let pos = Vec2::from_glam(glam::Vec2::from_angle(ctx.rng().gen_range(0.0..2.0 * PI)) * dist);
 
         let roll_with_disadvantage = {
             let a = ctx.rng().gen_range(0..100);

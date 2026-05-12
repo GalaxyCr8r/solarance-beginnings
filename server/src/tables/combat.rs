@@ -1,7 +1,7 @@
 use spacetimedb::{table, SpacetimeType, Timestamp};
 use spacetimedsl::*;
 
-use crate::tables::common_types::Vec2;
+use solarance_shared::Vec2;
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
 pub enum VisualEffectType {

@@ -1,6 +1,7 @@
 use spacetimedb::*;
 use spacetimedsl::*;
 
+use crate::logic::stellarobjects::movement::get_sobj_pose;
 use crate::tables::{combat::*, items::*, sectors::SectorId, ships::*, stellarobjects::*};
 
 #[dsl(plural_name = visual_effect_timers,
@@ -327,9 +328,8 @@ pub fn process_weapon_fire<T: spacetimedsl::WriteContext>(
     _weapon_type: WeaponType,
     weapon_item_def: ItemDefinition, // To get specific combat-related metadata
 ) -> Result<(), CombatError> {
-    // Get source and target stellar objects
-    let source_sobj = dsl.get_stellar_object_by_id(source_sobj_id)?;
-
+    // Validate that source/target exist before doing any real work.
+    let _ = dsl.get_stellar_object_by_id(source_sobj_id)?;
     let target_sobj = dsl.get_stellar_object_by_id(target_sobj_id)?;
 
     // Validate target is a valid Ship or Station class
@@ -350,13 +350,14 @@ pub fn process_weapon_fire<T: spacetimedsl::WriteContext>(
 
     let mut source_ship_status = dsl.get_ship_status_by_id(&source_ship)?;
 
-    // Get source and target positions and facing angles
-    let source_transform = dsl.get_sobj_internal_transform_by_id(source_sobj.get_id())?;
-    let target_transform = dsl.get_sobj_internal_transform_by_id(target_sobj.get_id())?;
-
-    let source_pos = source_transform.to_vec2();
-    let target_pos = target_transform.to_vec2();
-    let ship_facing_angle = *source_transform.get_rotation_radians();
+    // Get source and target poses (position + rotation). Source is always a
+    // ship; target may be a ship or station.
+    let (source_pos, ship_facing_angle) =
+        get_sobj_pose(dsl, source_sobj_id).map_err(|_| CombatError::InvalidTarget)?;
+    let (target_pos, target_rotation) =
+        get_sobj_pose(dsl, target_sobj_id).map_err(|_| CombatError::InvalidTarget)?;
+    let source_pos: glam::Vec2 = source_pos.into();
+    let target_pos: glam::Vec2 = target_pos.into();
 
     // Extract lock-on angle bound from weapon metadata
     let mut lock_on_angle_bound = std::f32::consts::PI; // Default to 180 degrees if not specified
@@ -381,7 +382,7 @@ pub fn process_weapon_fire<T: spacetimedsl::WriteContext>(
                 (
                     *target_ship_def.get_sprite_width() as f32,
                     *target_ship_def.get_sprite_height() as f32,
-                    *target_transform.get_rotation_radians(),
+                    target_rotation,
                 )
             } else {
                 // Fallback to default dimensions if ship not found
@@ -510,11 +511,9 @@ pub fn process_missile_fire<T: spacetimedsl::WriteContext>(
     missile_type: MissileType,
     missile_item_def: ItemDefinition, // To get specific combat-related metadata
 ) -> Result<(), CombatError> {
-    // Get source stellar object for position
-    let source_sobj = dsl.get_stellar_object_by_id(source_sobj_id)?;
-
-    // Validate target exists (even though we're not implementing full missile logic yet)
-    let _target_sobj = dsl.get_stellar_object_by_id(target_sobj_id)?;
+    // Validate source/target exist before doing any real work.
+    let _ = dsl.get_stellar_object_by_id(source_sobj_id)?;
+    let _ = dsl.get_stellar_object_by_id(target_sobj_id)?;
 
     // Get source ship to validate energy
     let source_ship = dsl
@@ -559,9 +558,10 @@ pub fn process_missile_fire<T: spacetimedsl::WriteContext>(
 
     dsl.update_ship_status_by_id(source_ship_status)?;
 
-    // Create visual effect for missile fire
-    let source_transform = dsl.get_sobj_internal_transform_by_id(source_sobj.get_id())?;
-    let source_pos = source_transform.to_vec2();
+    // Create visual effect for missile fire (predicted-forward position)
+    let (source_pos, _) =
+        get_sobj_pose(dsl, source_sobj_id).map_err(|_| CombatError::InvalidTarget)?;
+    let source_pos: glam::Vec2 = source_pos.into();
     let source_sector_id = source_ship.get_sector_id().value();
     create_visual_effect(
         dsl,

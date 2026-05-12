@@ -2,7 +2,10 @@ use log::info;
 use spacetimedsl::*;
 
 use crate::{
-    logic::combat::visual_effects::{process_missile_fire, process_weapon_fire},
+    logic::{
+        combat::visual_effects::{process_missile_fire, process_weapon_fire},
+        stellarobjects::movement::get_sobj_position,
+    },
     tables::{
         combat::{MissileType, WeaponType},
         items::*,
@@ -52,9 +55,11 @@ pub fn process_weapon_combat_action<T: spacetimedsl::WriteContext>(
         return Err("No weapons equipped".to_string());
     }
 
-    // Get target position for actual_location parameter
-    let target_transform = dsl.get_sobj_internal_transform_by_id(target_sobj.get_id())?;
-    let target_pos = target_transform.to_vec2();
+    // Get target position for actual_location parameter (predicted forward
+    // for ships, static for stations — `get_sobj_position` dispatches).
+    // process_weapon_fire still uses glam::Vec2 internally for its math
+    // helpers, so convert at the boundary.
+    let target_pos: glam::Vec2 = get_sobj_position(dsl, target_sobj_id)?.into();
 
     // Fire each equipped weapon
     for weapon_slot in weapon_slots {
@@ -143,9 +148,9 @@ pub fn process_missile_combat_action<T: spacetimedsl::WriteContext>(
         return Ok(());
     }
 
-    // Get target position for actual_location parameter
-    let target_transform = dsl.get_sobj_internal_transform_by_id(target_sobj.get_id())?;
-    let target_pos = target_transform.to_vec2();
+    // Get target position for actual_location parameter (predicted forward
+    // for ships, static for stations).
+    let target_pos: glam::Vec2 = get_sobj_position(dsl, &target_sobj_id)?.into();
 
     // Fire each equipped missile
     for missile_slot in missile_slots {

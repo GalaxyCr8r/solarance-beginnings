@@ -1,4 +1,5 @@
 use log::info;
+use solarance_shared::Vec2;
 use spacetimedb::{Identity, ReducerContext};
 use spacetimedsl::*;
 
@@ -7,7 +8,7 @@ use crate::{
     logic::{
         chat_messages::send_global_chat,
         ships::{cargo::*, movement_controllers::initialize_controller_for_player, status::*},
-        stellarobjects::{player_windows::*, stellar_object_creation::*},
+        stellarobjects::stellar_object_creation::create_sobj,
     },
     tables::{
         factions::FactionId,
@@ -24,8 +25,13 @@ use crate::{
 ///////////////////////////////////
 ///  Reducers
 
+/// Default starting pose for a freshly-registered player ship. Eventually
+/// chosen from the joinable faction's home station.
+const STARTING_SPAWN_POS: Vec2 = Vec2 { x: 64.0, y: 64.0 };
+const STARTING_SPAWN_ROTATION: f32 = 0.0;
+
 /// Creates a new ship for a registered player with starting equipment and cargo.
-/// Sets up the ship's stellar object, player window, controller, and initial inventory.
+/// Sets up the ship's stellar object, controller, and initial inventory.
 #[spacetimedb::reducer]
 pub fn create_player_controlled_ship(
     ctx: &ReducerContext,
@@ -40,7 +46,6 @@ pub fn create_player_controlled_ship(
             let error_message =
                 "You must register a username before creating a ship. Please use the registration system first.".to_string();
 
-            // Send server message for error feedback
             send_error_message(
                 &dsl,
                 &player_id,
@@ -52,19 +57,24 @@ pub fn create_player_controlled_ship(
         }
     };
 
-    if let Ok(sobj) = create_sobj_internal(
+    if let Ok(sobj) = create_sobj(
         &dsl,
         StellarObjectKinds::Ship,
         &SectorId::new(0), // TODO: Make this the proper sector id! Needs to be picked based on the joinable faction's home station.
-        StellarObjectTransformInternal::default().from_xy(64.0, 64.0),
     ) {
-        let _ = create_sobj_player_window_for(dsl.ctx(), identity, sobj.get_id())?;
         initialize_controller_for_player(&dsl, &player_id, &sobj)?;
 
         let ship_type = dsl.get_ship_type_definition_by_id(ShipTypeDefinitionId::new(1001))?;
         let faction_id = player.get_faction_id().clone();
-        let (ship, mut status) =
-            create_ship_from_sobj(&dsl, &ship_type, &player_id, &faction_id, &sobj)?;
+        let (ship, mut status) = create_ship_from_sobj(
+            &dsl,
+            &ship_type,
+            &player_id,
+            &faction_id,
+            &sobj,
+            STARTING_SPAWN_POS,
+            STARTING_SPAWN_ROTATION,
+        )?;
 
         attempt_to_load_cargo_into_ship(
             dsl.ctx(),
@@ -106,7 +116,6 @@ pub fn create_player_controlled_ship(
         let error_message =
             "Failed to create ship due to a system error. Please try again or contact support if the problem persists.".to_string();
 
-        // Send server message for error feedback
         send_error_message(
             &dsl,
             &player_id,
@@ -121,14 +130,27 @@ pub fn create_player_controlled_ship(
 ////////////////////////////////////////////
 /// Utility
 
-/// Creates a brand new ship instance in a sector with a specific stellar object.
+/// Creates a brand new ship instance in a sector at the given spawn pose.
+/// `spawn_pos` / `spawn_rotation` populate `Ship.movement` directly — the
+/// legacy `sobj_internal_transform` table no longer exists.
 pub fn create_ship_from_sobj<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     ship_type: &ShipTypeDefinition,
     player_id: &PlayerId,
     faction_id: &FactionId,
     sobj: &StellarObject,
+    spawn_pos: Vec2,
+    spawn_rotation: f32,
 ) -> Result<(Ship, ShipStatus), String> {
+    let movement = solarance_shared::MovementState {
+        pos: spawn_pos,
+        rotation: spawn_rotation,
+        max_speed: *ship_type.get_base_speed(),
+        max_turn_rate: *ship_type.get_base_max_turn_rate(),
+        last_update_time: dsl.ctx().timestamp()?.to_micros_since_unix_epoch(),
+        ..Default::default()
+    };
+
     let ship = dsl.create_ship(CreateShip {
         shiptype_id: ship_type.get_id(),
         location: ShipLocation::Sector,
@@ -137,6 +159,7 @@ pub fn create_ship_from_sobj<T: spacetimedsl::WriteContext>(
         sector_id: sobj.get_sector_id(),
         player_id: player_id.clone(),
         faction_id: faction_id.clone(),
+        movement,
     })?;
 
     create_status_timer_for_ship(dsl, &ship.get_id(), &ship_type.get_id())?;
@@ -154,7 +177,7 @@ pub fn create_ship_from_sobj<T: spacetimedsl::WriteContext>(
         max_cargo_capacity: *ship_type.get_cargo_capacity(),
     })?;
 
-    return Ok((ship, ship_status));
+    Ok((ship, ship_status))
 }
 
 /// Creates a brand new ship instance docked at a station.
@@ -165,6 +188,8 @@ pub fn create_ship_docked_at_station<T: spacetimedsl::WriteContext>(
     faction_id: &FactionId,
     station: Station,
 ) -> Result<(Ship, ShipStatus), String> {
+    // Docked ships are immovable — movement defaults to all zeros, and
+    // last_update_time == 0 makes `predict_movement` a no-op.
     let ship = dsl.create_ship(CreateShip {
         shiptype_id: ship_type.get_id(),
         location: ShipLocation::Station,
@@ -173,6 +198,7 @@ pub fn create_ship_docked_at_station<T: spacetimedsl::WriteContext>(
         sector_id: station.get_sector_id(),
         player_id: player_id.clone(),
         faction_id: faction_id.clone(),
+        movement: solarance_shared::MovementState::default(),
     })?;
 
     create_status_timer_for_ship(dsl, &ship.get_id(), &ship_type.get_id())?;
@@ -190,5 +216,5 @@ pub fn create_ship_docked_at_station<T: spacetimedsl::WriteContext>(
         max_cargo_capacity: *ship_type.get_cargo_capacity(),
     })?;
 
-    return Ok((ship, ship_status));
+    Ok((ship, ship_status))
 }

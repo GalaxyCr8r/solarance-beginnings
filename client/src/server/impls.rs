@@ -1,82 +1,71 @@
 use std::fmt::{ self, Debug };
 
-use macroquad::prelude::glam;
 use spacetimedb_sdk::*;
 
 use crate::server::bindings::*;
 
+// ── Bindings ↔ shared physics boundary ─────────────────────────────────────
+//
+// `spacetime generate` emits a parallel `bindings::Vec2` / `bindings::MovementState`
+// pair on the client — structurally identical to the server's
+// `solarance_shared::{Vec2, MovementState}` but *different Rust types*. There
+// is no way around that duplication: generated bindings can't be mapped onto
+// a pre-existing Rust type. The `From` impls below are the only place where
+// the two universes meet — call sites convert at the boundary and then talk
+// shared types from there on.
+
+impl From<&Vec2> for solarance_shared::Vec2 {
+    fn from(v: &Vec2) -> Self {
+        solarance_shared::Vec2 { x: v.x, y: v.y }
+    }
+}
+
+impl From<Vec2> for solarance_shared::Vec2 {
+    fn from(v: Vec2) -> Self {
+        solarance_shared::Vec2 { x: v.x, y: v.y }
+    }
+}
+
+impl From<&MovementState> for solarance_shared::MovementState {
+    fn from(m: &MovementState) -> Self {
+        solarance_shared::MovementState {
+            pos: (&m.pos).into(),
+            velocity: m.velocity,
+            rotation: m.rotation,
+            angular_velocity: m.angular_velocity,
+            last_update_time: m.last_update_time,
+            acceleration: m.acceleration,
+            angular_acceleration: m.angular_acceleration,
+            max_speed: m.max_speed,
+            max_turn_rate: m.max_turn_rate,
+        }
+    }
+}
+
+impl From<MovementState> for solarance_shared::MovementState {
+    fn from(m: MovementState) -> Self {
+        (&m).into()
+    }
+}
+
 /// Impls ///
 
-impl StellarObjectVelocity {
-    // pub fn new(x: f32, y: f32) -> Self {
-    //     Self { x, y }
-    // }
-
-    pub fn to_vec2(&self) -> glam::Vec2 {
-        glam::Vec2 {
-            x: self.x,
-            y: self.y,
-        }
-    }
-
-    pub fn from_vec2(&self, vec: glam::Vec2) -> StellarObjectVelocity {
-        StellarObjectVelocity {
-            x: vec.x,
-            y: vec.y,
-            ..*self
-        }
-    }
-}
-
-impl StellarObjectTransformHiRes {
-    // pub fn new(x: f32, y: f32) -> Self {
-    //     Self { x, y }
-    // }
-
-    pub fn to_vec2(&self) -> glam::Vec2 {
-        glam::Vec2 {
-            x: self.x,
-            y: self.y,
-        }
-    }
-
-    pub fn from_vec2(&self, vec: glam::Vec2) -> StellarObjectTransformHiRes {
-        StellarObjectTransformHiRes {
-            x: vec.x,
-            y: vec.y,
-            ..*self
-        }
-    }
-}
-
-impl StellarObjectTransformLowRes {
-    // pub fn new(x: f32, y: f32) -> Self {
-    //     Self { x, y }
-    // }
-
-    pub fn to_vec2(&self) -> glam::Vec2 {
-        glam::Vec2 {
-            x: self.x,
-            y: self.y,
-        }
-    }
-
-    pub fn from_vec2(&self, vec: glam::Vec2) -> StellarObjectTransformLowRes {
-        StellarObjectTransformLowRes {
-            x: vec.x,
-            y: vec.y,
-            ..*self
-        }
-    }
-}
+// Legacy StellarObjectVelocity / StellarObjectTransformHiRes /
+// StellarObjectTransformLowRes impls were removed: the server-side tables
+// still exist (deleted in Phase 9 of movement_system_plan), but the client
+// no longer subscribes to them — positions come from `Ship.movement` /
+// `CargoCrate.movement` / static `position` columns.
 
 impl Player {
+    /// Sobj id of the player's currently-controlled (in-sector) ship.
+    /// Replaces the legacy `sobj_player_window` lookup.
     pub fn get_controlled_stellar_object_id(&self, ctx: &DbConnection) -> Option<u64> {
-        if let Some(player_window) = ctx.db().sobj_player_window().id().find(&self.id) {
-            Some(player_window.sobj_id)
-        } else {
-            None
-        }
+        let identity = self.id;
+        ctx.db()
+            .ship()
+            .iter()
+            .find(|s| s.player_id == identity && s.location == ShipLocation::Sector)
+            .map(|s| s.sobj_id)
     }
 }
 

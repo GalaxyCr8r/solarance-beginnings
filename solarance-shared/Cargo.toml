@@ -4,4 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-spacetimedb = "2.1.0"
+spacetimedb = "2.2.0"
+glam = "0.30.2"

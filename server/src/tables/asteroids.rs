@@ -1,9 +1,9 @@
-use glam::Vec2;
 use log::info;
+use solarance_shared::Vec2;
 use spacetimedb::table;
 use spacetimedsl::*;
 
-use crate::logic::stellarobjects::stellar_object_creation::*;
+use crate::logic::stellarobjects::stellar_object_creation::create_sobj;
 use crate::tables::{items::ItemDefinitionId, sectors::SectorId, stellarobjects::*};
 
 #[dsl(plural_name = asteroids, method(update = true))]
@@ -33,6 +33,10 @@ pub struct Asteroid {
     initial_resources: u16,     // Original amount, for reference or respawn logic
 
     gfx_key: Option<String>, // For client side
+
+    /// World-space position. Asteroids don't move; rotation is derived
+    /// client-side from `id ⊕ time` for visual flavor.
+    pub position: Vec2,
 }
 
 /////////////////////////////////////////
@@ -46,12 +50,7 @@ pub fn create_asteroid<T: spacetimedsl::WriteContext>(
     item: ItemDefinitionId,
     resource_amount: u16,
 ) -> Option<Asteroid> {
-    let sobj = create_sobj_internal(
-        &dsl,
-        StellarObjectKinds::Asteroid,
-        &sector,
-        StellarObjectTransformInternal::default().from_vec2(position),
-    );
+    let sobj = create_sobj(dsl, StellarObjectKinds::Asteroid, &sector);
     if sobj.is_err() {
         info!(
             "ERROR: Couldn't create stellar object for asteroid: {}",
@@ -61,13 +60,14 @@ pub fn create_asteroid<T: spacetimedsl::WriteContext>(
     }
 
     match dsl.create_asteroid(CreateAsteroid {
-        id: sobj.unwrap().get_id(), // u64 or wrapped? Assuming wrapper based on use_wrapper
+        id: sobj.unwrap().get_id(),
         current_sector_id: sector.clone(),
         size_radius: 16.0,
         resource_item_id: item.clone(),
         current_resources: resource_amount,
         initial_resources: resource_amount,
         gfx_key: Some(gfx_key),
+        position,
     }) {
         Ok(ast) => Some(ast),
         Err(e) => {

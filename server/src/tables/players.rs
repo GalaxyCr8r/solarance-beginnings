@@ -15,7 +15,6 @@ pub struct Player {
     #[referenced_by(path = crate::tables::chats, table = global_chat_message)]
     #[referenced_by(path = crate::tables::chats, table = sector_chat_message)]
     #[referenced_by(path = crate::tables::chats, table = faction_chat_message)]
-    #[referenced_by(path = crate::tables::stellarobjects, table = sobj_player_window)]
     #[referenced_by(path = crate::tables::server_messages, table = server_message_recipient)]
     id: Identity,
 
@@ -31,32 +30,18 @@ pub struct Player {
 }
 
 impl Player {
+    /// Sobj id of the player's currently-controlled (in-sector) ship, if any.
     pub fn get_ship_id<T: spacetimedsl::WriteContext>(&self, dsl: &DSL<T>) -> Option<u64> {
-        if let Ok(window) = dsl.get_sobj_player_window_by_id(&self.get_id()) {
-            Some(window.get_sobj_id().value())
-        } else {
-            None
-        }
+        dsl.get_ships_by_player_id(&self.get_id())
+            .find(|s| *s.get_location() == crate::tables::ships::ShipLocation::Sector)
+            .map(|s| s.get_sobj_id().value())
     }
 
     pub fn get_player_objects<T: spacetimedsl::WriteContext>(
         &self,
         dsl: &DSL<T>,
     ) -> Result<(Ship, StellarObject), String> {
-        let player_id = self.get_id();
-        let ship_sobj_id = dsl
-            .get_ship_movement_controller_by_id(&player_id)?
-            .get_stellar_object_id();
-        let ship_sobj = dsl.get_stellar_object_by_id(&ship_sobj_id)?;
-        let ship_object = dsl
-            .get_ships_by_sobj_id(&ship_sobj_id)
-            .next()
-            .ok_or(format!(
-            "Couldn't find a Ship of SOBJ_ID: {} - Even though it should've just found the SOBJ!!",
-            &ship_sobj_id
-        ))?;
-
-        Ok((ship_object, ship_sobj))
+        get_player_ship_and_sobj(dsl, &self.get_id())
     }
 }
 
@@ -80,17 +65,17 @@ pub fn get_player_ship_and_sobj<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     player_id: &PlayerId,
 ) -> Result<(Ship, StellarObject), String> {
-    let ship_sobj_id = dsl
-        .get_ship_movement_controller_by_id(player_id)?
-        .get_stellar_object_id();
-    let ship_sobj = dsl.get_stellar_object_by_id(&ship_sobj_id)?;
+    // Pick the player's first in-sector ship. Phase 4 retired the controller-
+    // based lookup; the controller is now purely an input-state mirror.
     let ship_object = dsl
-        .get_ships_by_sobj_id(&ship_sobj_id)
-        .next()
-        .ok_or(format!(
-            "Couldn't find a Ship of SOBJ_ID: {} - Even though it should've just found the SOBJ!!",
-            &ship_sobj_id
-        ))?;
-
+        .get_ships_by_player_id(player_id)
+        .find(|ship| *ship.get_location() == crate::tables::ships::ShipLocation::Sector)
+        .ok_or_else(|| {
+            format!(
+                "Player {} has no in-sector ship",
+                player_id.value().to_abbreviated_hex()
+            )
+        })?;
+    let ship_sobj = dsl.get_stellar_object_by_id(&ship_object.get_sobj_id())?;
     Ok((ship_object, ship_sobj))
 }

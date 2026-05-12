@@ -3,38 +3,42 @@ use macroquad::{
     prelude::{collections::storage, *},
 };
 
-use spacetimedb_sdk::DbContext;
-
 use crate::server::bindings::*;
 use crate::stdb::utils::*;
 
 use crate::gameplay::{resources::Resources, state::GameState};
 
-pub fn draw_mining_laser(
-    game_state: &mut GameState<'_>,
-    actual_player_transform: &StellarObjectTransformHiRes,
-) {
+pub fn draw_mining_laser(game_state: &mut GameState<'_>, player_pose: &RenderPose) {
     if game_state.mining_active {
         if let Some(target) = &game_state.current_target_sobj {
-            // Draw a mining laser effect if the player is in range
             if target.kind == StellarObjectKinds::Asteroid {
-                if let Ok(transform) = get_transform(game_state.ctx, target.id) {
-                    draw_line(
-                        transform.x,
-                        transform.y,
-                        actual_player_transform.x,
-                        actual_player_transform.y,
-                        6.0,
-                        Color::from_rgba(128, 0, 0, ((now() * 100.0) % 255.0) as u8),
-                    );
-                    draw_line(
-                        transform.x,
-                        transform.y,
-                        actual_player_transform.x,
-                        actual_player_transform.y,
-                        ((now() as f32) * 100.0) % 3.0,
-                        RED,
-                    );
+                if let Some(object) = game_state
+                    .ctx
+                    .db
+                    .stellar_object()
+                    .id()
+                    .find(&target.id)
+                {
+                    let now_micros = now_unix_micros();
+                    if let Some(target_pose) = pose_for_object(game_state.ctx, &object, now_micros)
+                    {
+                        draw_line(
+                            target_pose.pos.x,
+                            target_pose.pos.y,
+                            player_pose.pos.x,
+                            player_pose.pos.y,
+                            6.0,
+                            Color::from_rgba(128, 0, 0, ((now() * 100.0) % 255.0) as u8),
+                        );
+                        draw_line(
+                            target_pose.pos.x,
+                            target_pose.pos.y,
+                            player_pose.pos.x,
+                            player_pose.pos.y,
+                            ((now() as f32) * 100.0) % 3.0,
+                            RED,
+                        );
+                    }
                 }
             }
         }
@@ -44,33 +48,24 @@ pub fn draw_mining_laser(
 pub fn draw_radar(
     game_state: &mut GameState<'_>,
     local_targets: Vec<(u64, glam::Vec2, StellarObjectKinds)>,
-    actual_player_transform: &StellarObjectTransformHiRes,
+    player_pose: &RenderPose,
     player_vec: glam::Vec2,
 ) {
     let radar_radius = screen_height() / 2.0 - 100.0;
     let radar_icon_size = 12.0;
     draw_circle_lines(
-        actual_player_transform.x,
-        actual_player_transform.y,
+        player_pose.pos.x,
+        player_pose.pos.y,
         radar_radius - radar_icon_size,
         radar_icon_size * 2.0,
         Color::from_rgba(255, 255, 255, 32),
     );
 
-    if let Some(velocity) = game_state
-        .ctx
-        .db()
-        .sobj_velocity()
-        .id()
-        .find(&actual_player_transform.id)
-    {
-        let _ = draw_hud(
-            game_state,
-            radar_radius,
-            &velocity,
-            actual_player_transform,
-            &player_vec,
-        );
+    // Predicted-forward velocity for the player ship — the HUD reads
+    // `velocity` (scalar speed) and `rotation` from the same snapshot used
+    // to draw the ship so the indicators don't lag the sprite.
+    if let Some((_, snapshot)) = predicted_player_snapshot(game_state.ctx) {
+        let _ = draw_hud(game_state, radar_radius, &snapshot, player_pose, &player_vec);
     }
 
     for (sobj_id, position, kind) in local_targets {
@@ -79,16 +74,10 @@ pub fn draw_radar(
         let from =
             player_vec + (glam::Vec2::from_angle(angle) * radar_radius + radar_icon_size / 2.0);
 
-        // Check targetted Stellar Object information (if there is any)
-        let targetted_sobj = if game_state.current_target_sobj.is_some() {
-            Some(game_state.current_target_sobj.as_ref().unwrap().id)
-        } else {
-            None
-        };
+        let targetted_sobj = game_state.current_target_sobj.as_ref().map(|s| s.id);
         let is_targetted = targetted_sobj.is_some_and(|id| id == sobj_id);
         let thickness = if is_targetted { 2.0 } else { 1.0 };
 
-        // Get distance to target and calculate various things based on it.
         let dist = player_vec.distance(position);
         if dist < radar_radius {
             continue;
@@ -110,7 +99,6 @@ pub fn draw_radar(
             (192.0 * distance_fade) as u8
         };
 
-        // Actually draw the icon.
         let radius = radar_icon_size * distance_fade;
         if is_targetted {
             draw_poly(
@@ -144,19 +132,23 @@ pub fn draw_radar(
     }
 }
 
+/// Draws the velocity / heading needle around the player's ship. The
+/// snapshot's `rotation` and `velocity` (scalar speed) replace the legacy
+/// `StellarObjectVelocity`'s (x,y) vector — multiply speed by the heading
+/// unit vector to get the velocity arrow.
 pub fn draw_hud(
     _game_state: &mut GameState<'_>,
     radar_radius: f32,
-    velocity: &StellarObjectVelocity,
-    transform: &StellarObjectTransformHiRes,
+    snapshot: &solarance_shared::MovementState,
+    pose: &RenderPose,
     _player_vec: &glam::Vec2,
 ) -> Result<(), String> {
     let color = Color::from_rgba(255, 255, 255, 128);
-    let position = transform.to_vec2();
-    let point_forward =
-        position + glam::Vec2::from_angle(transform.rotation_radians) * radar_radius;
-    let point_forward_mid =
-        position + glam::Vec2::from_angle(transform.rotation_radians) * (radar_radius - 32.0);
+    let position = pose.pos;
+
+    let heading = glam::Vec2::from_angle(pose.rotation_radians);
+    let point_forward = position + heading * radar_radius;
+    let point_forward_mid = position + heading * (radar_radius - 32.0);
 
     draw_line(
         point_forward_mid.x,
@@ -167,13 +159,11 @@ pub fn draw_hud(
         color,
     );
 
-    let vec = velocity.to_vec2();
-    let velocity_angle = velocity.to_vec2().to_angle();
-    let velocity_speed = vec.length();
-    let point_velocity_mid =
-        position + glam::Vec2::from_angle(velocity_angle) * (radar_radius - 32.0);
+    let velocity_speed = snapshot.velocity.max(0.0);
+    let velocity_dir = heading; // ships only move forward in this model
+    let point_velocity_mid = position + velocity_dir * (radar_radius - 32.0);
     let point_velocity_low =
-        position + glam::Vec2::from_angle(velocity_angle) * (radar_radius - 32.0 - velocity_speed);
+        position + velocity_dir * (radar_radius - 32.0 - velocity_speed);
 
     draw_line(
         point_velocity_mid.x,
@@ -189,12 +179,12 @@ pub fn draw_hud(
 
 pub fn draw_ship(
     ship: &Ship,
-    transform: &StellarObjectTransformHiRes,
+    pose: &RenderPose,
     ship_type: &ShipTypeDefinition,
     game_state: &mut GameState,
 ) {
     let resources = storage::get::<Resources>();
-    let position = transform.to_vec2();
+    let position = pose.pos;
 
     if let Some(player) = get_player(&game_state.ctx.db, &ship.player_id) {
         let string = format!(
@@ -222,13 +212,13 @@ pub fn draw_ship(
         position.y - tex.height() * 0.5,
         WHITE,
         DrawTextureParams {
-            rotation: transform.rotation_radians,
+            rotation: pose.rotation_radians,
             ..DrawTextureParams::default()
         },
     );
 
     if let Some(target) = &game_state.current_target_sobj {
-        if target.id == transform.id {
+        if target.id == pose.sobj_id {
             let size = (tex.width() + tex.height()) * 0.5;
             draw_targeting_bracket(
                 position,
@@ -240,14 +230,10 @@ pub fn draw_ship(
     }
 }
 
-pub fn draw_asteroid(
-    transform: &StellarObjectTransformHiRes,
-    asteroid: Asteroid,
-    game_state: &mut GameState,
-) {
+pub fn draw_asteroid(pose: &RenderPose, asteroid: Asteroid, game_state: &mut GameState) {
     let resources = storage::get::<Resources>();
-    let position = transform.to_vec2();
-    let angle = position.x + (((now() * 8.0 + (position.y as f64)) % 360.0).to_radians() as f32); // Make the rotation based on position and time
+    let position = pose.pos;
+    let angle = pose.rotation_radians;
 
     let tex = &resources.asteroid_textures[asteroid
         .gfx_key
@@ -264,7 +250,6 @@ pub fn draw_asteroid(
         },
     );
 
-    // Targeting bracket
     if let Some(target) = &game_state.current_target_sobj {
         if target.id == asteroid.id {
             let size = (tex.width() + tex.height()) * 0.5;
@@ -278,14 +263,10 @@ pub fn draw_asteroid(
     }
 }
 
-pub fn draw_crate(
-    transform: &StellarObjectTransformHiRes,
-    cargo_crate: CargoCrate,
-    game_state: &mut GameState,
-) {
+pub fn draw_crate(pose: &RenderPose, cargo_crate: CargoCrate, game_state: &mut GameState) {
     let resources = storage::get::<Resources>();
-    let position = transform.to_vec2();
-    let angle = position.x + (((now() * 8.0 + (position.y as f64)) % 360.0).to_radians() as f32); // Make the rotation based on position and time
+    let position = pose.pos;
+    let angle = pose.rotation_radians;
 
     let tex = &resources.asteroid_textures[cargo_crate
         .gfx_key
@@ -315,18 +296,14 @@ pub fn draw_crate(
     }
 }
 
-pub fn draw_jumpgate(
-    transform: &StellarObjectTransformHiRes,
-    jumpgate: JumpGate,
-    game_state: &mut GameState,
-) {
+pub fn draw_jumpgate(pose: &RenderPose, jumpgate: JumpGate, game_state: &mut GameState) {
     let resources = storage::get::<Resources>();
-    let position = transform.to_vec2();
+    let position = pose.pos;
 
     let tex = &resources.jumpgate_textures[jumpgate
         .gfx_key
         .unwrap_or("jumpgate_north".to_string())
-        .as_str()]; // TODO un-hardcode this
+        .as_str()];
     draw_texture(
         tex,
         position.x - tex.width() * 0.5,
@@ -347,13 +324,9 @@ pub fn draw_jumpgate(
     }
 }
 
-pub fn draw_station(
-    transform: &StellarObjectTransformHiRes,
-    station: Station,
-    game_state: &mut GameState,
-) {
+pub fn draw_station(pose: &RenderPose, station: Station, game_state: &mut GameState) {
     let resources = storage::get::<Resources>();
-    let position = transform.to_vec2();
+    let position = pose.pos;
 
     let gfx_key = match station.size {
         StationSize::Capital => "station.capital",

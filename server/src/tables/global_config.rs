@@ -12,6 +12,17 @@ pub struct GlobalConfig {
     pub old_gods_defeated: u8,
     pub version: String,
 
+    // ── Cargo-crate jettison & lifecycle tunables ─────────────────────────
+    // Read by Phase 3 snapshot helpers (re-stamp `max_turn_rate`) and by the
+    // Phase 5 jettison reducer (toss velocity, brake rate). Phase 7's sweeper
+    // reads `cargo_crate_ttl_secs`.
+    pub cargo_crate_ttl_secs: u64,
+    pub cargo_crate_toss_speed: f32,
+    pub cargo_crate_toss_speed_variance: f32,
+    pub cargo_crate_brake_rate: f32,
+    pub cargo_crate_brake_rate_variance: f32,
+    pub cargo_crate_max_turn_rate: f32,
+
     created_at: Timestamp,
     modified_at: Timestamp,
 }

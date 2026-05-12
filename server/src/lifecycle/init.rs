@@ -19,6 +19,12 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
             active_players: 0,
             old_gods_defeated: 0,
             version: env!("CARGO_PKG_VERSION").to_string(),
+            cargo_crate_ttl_secs: 4 * 60 * 60, // 4 hours
+            cargo_crate_toss_speed: 12.0,
+            cargo_crate_toss_speed_variance: 4.0,
+            cargo_crate_brake_rate: 1.5,
+            cargo_crate_brake_rate_variance: 0.5,
+            cargo_crate_max_turn_rate: std::f32::consts::PI,
         })?;
     } else {
         let mut config = dsl

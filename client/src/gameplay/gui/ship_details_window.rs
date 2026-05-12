@@ -153,8 +153,8 @@ fn ship_contents(
             ui.label(format!("Speed: {}", ship_type.base_speed));
             ui.label(format!("Acceleration: {}", ship_type.base_acceleration));
             ui.label(format!(
-                "Turn Rate: {}d",
-                ship_type.base_turn_rate * (180.0 / PI)
+                "Turn Rate: {}d/s",
+                ship_type.base_max_turn_rate * (180.0 / PI)
             ));
         });
     });

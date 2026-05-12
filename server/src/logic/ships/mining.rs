@@ -212,10 +212,16 @@ pub fn try_mining_asteroid(
 
     let asteroid_sobj = dsl.get_stellar_object_by_id(asteroid_sobj_id)?;
 
+    // Predicted-forward ship position vs. asteroid's static position.
+    let ship_snapshot = crate::logic::stellarobjects::movement::get_ship_movement_snapshot(
+        &dsl,
+        &ship_object.get_id(),
+    )?;
+    let asteroid = dsl.get_asteroid_by_id(&asteroid_sobj)?;
+    let dist_sq = ship_snapshot.pos.distance_to_sq(asteroid.get_position());
+
     // If the player is trying to mine and is targetting an asteroid, create a mining timer.
-    if ship_sobj
-        .distance_squared(&dsl, &asteroid_sobj)
-        .is_ok_and(|d| d < (300.0_f32).powi(2))
+    if dist_sq < (300.0_f32).powi(2)
     // TODO: Make mining range a config const
     {
         // Check if the player is already mining this asteroid

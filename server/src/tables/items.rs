@@ -1,3 +1,4 @@
+use solarance_shared::MovementState;
 use spacetimedb::{table, SpacetimeType, Timestamp};
 use spacetimedsl::*;
 
@@ -174,6 +175,11 @@ pub struct CargoCrate {
     despawn_ts: Option<Timestamp>, // When the crate should disappear if not collected
 
     gfx_key: Option<String>,
+
+    /// Dead-reckoning snapshot. Crates drift after jettison with a small
+    /// negative acceleration; `predict_movement` extrapolates their position
+    /// for both server-side range checks and client rendering.
+    pub movement: MovementState,
 }
 
 //////////////////////////////////////////////////////////////

@@ -1,12 +1,16 @@
-use std::f32::consts::PI;
-
-use glam::Vec2;
-use log::warn;
-use spacetimedb::{table, ReducerContext};
+use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 
-use crate::tables::{players::*, ships::*, stellarobjects::*};
+use crate::{
+    logic::stellarobjects::movement::write_ship_movement_snapshot,
+    tables::{players::*, ships::*, stellarobjects::*},
+};
 
+/// Player-input reducer. Records the latest control flags into the
+/// `ShipMovementController` mirror row, then writes one new `MovementState`
+/// snapshot on `Ship.movement` with the corresponding linear/angular
+/// accelerations. Damping is always-on inside `predict_movement`, so we
+/// don't have to schedule a tick for inertia.
 #[spacetimedb::reducer]
 pub fn update_ship_movement_controller(
     ctx: &ReducerContext,
@@ -17,24 +21,81 @@ pub fn update_ship_movement_controller(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
     let player_id = PlayerId::new(ctx.sender());
-    let mut controller = dsl
-        .get_ship_movement_controller_by_id(&player_id)?;
+
+    // Mutual exclusion: pressing both directions on an axis cancels out. Doing
+    // it here keeps the snapshot writer agnostic of the input convention.
+    let (forward, backward) = if forward && backward {
+        (false, false)
+    } else {
+        (forward, backward)
+    };
+    let (left, right) = if left && right {
+        (false, false)
+    } else {
+        (left, right)
+    };
+
+    // No-op early-return: key repeats fire this reducer at OS-level rates;
+    // we mustn't emit a fresh snapshot per repeat or the dead-reckoning
+    // would jitter.
+    let mut controller = dsl.get_ship_movement_controller_by_id(&player_id)?;
+    if controller.forward == forward
+        && controller.backward == backward
+        && controller.left == left
+        && controller.right == right
+    {
+        return Ok(());
+    }
+
     controller.forward = forward;
     controller.backward = backward;
     controller.left = left;
     controller.right = right;
     dsl.update_ship_movement_controller_by_id(controller)?;
+
+    // Look up the player's ship + ship_type without going through the
+    // controller's stellar_object_id (which was dropped this phase).
+    let ship = dsl
+        .get_ships_by_player_id(&player_id)
+        .find(|s| *s.get_location() == ShipLocation::Sector)
+        .ok_or_else(|| {
+            format!(
+                "Player {} has no in-sector ship to apply movement input to",
+                player_id.value().to_abbreviated_hex()
+            )
+        })?;
+    let ship_type = dsl.get_ship_type_definition_by_id(ship.get_shiptype_id())?;
+
+    // Map (forward, backward) → linear acceleration sign × base_acceleration.
+    // Map (left, right) → angular acceleration sign × base_angular_acceleration.
+    // Released keys yield 0, so the always-on dampening inside
+    // `predict_movement` bleeds the relevant velocity back toward zero.
+    let linear_a = match (forward, backward) {
+        (true, false) => *ship_type.get_base_acceleration(),
+        (false, true) => -*ship_type.get_base_acceleration(),
+        _ => 0.0,
+    };
+    let angular_a = match (left, right) {
+        (false, true) => *ship_type.get_base_angular_acceleration(),
+        (true, false) => -*ship_type.get_base_angular_acceleration(),
+        _ => 0.0,
+    };
+
+    write_ship_movement_snapshot(&dsl, &ship.get_id(), |state| {
+        state.acceleration = linear_a;
+        state.angular_acceleration = angular_a;
+    })?;
+
     Ok(())
 }
 
 pub fn initialize_controller_for_player<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     player: &PlayerId,
-    sobj: &StellarObject,
+    _sobj: &StellarObject,
 ) -> Result<(), String> {
     dsl.create_ship_movement_controller(CreateShipMovementController {
         id: player.clone(),
-        stellar_object_id: sobj.get_id(),
         forward: false,
         backward: false,
         left: false,
@@ -43,129 +104,7 @@ pub fn initialize_controller_for_player<T: spacetimedsl::WriteContext>(
     Ok(())
 }
 
-/////////////////////////////////////////
-/// Timers
-///
-
-/// Scheduled reducer that updates player ship movement controls and physics.
-/// Runs at 20 FPS to handle ship acceleration, rotation, and velocity damping based on player input.
-#[dsl(plural_name = create_update_ship_movement_controllers_timers, method(update = false))]
-#[table(
-    accessor = create_update_ship_movement_controllers_timer,
-    scheduled(timer_update_all_ship_movement_controllers)
-)]
-pub struct UpdateShipMovementControllers {
-    #[primary_key]
-    #[auto_inc]
-    #[create_wrapper]
-    id: u64,
-    scheduled_at: spacetimedb::ScheduleAt,
-}
-
-//
-//////////////////////////////////////////////////////////////
-// Timer Reducers
-//////////////////////////////////////////////////////////////
-
-/// Scheduled reducer that updates player ship movement controls and physics.
-/// Runs at 20? FPS to handle ship acceleration, rotation, and velocity damping based on player input.
-#[spacetimedb::reducer]
-pub fn timer_update_all_ship_movement_controllers(
-    ctx: &ReducerContext,
-    _timer: UpdateShipMovementControllers,
-) -> Result<(), String> {
-    let dsl = dsl(ctx);
-
-    //info!("Player con upkeep!");
-
-    for controller in dsl.get_all_ship_movement_controllers() {
-        match _update_ship_movement_controller(&dsl, controller) {
-            Ok(updated) => {
-                dsl.update_ship_movement_controller_by_id(updated)?;
-            }
-            Err(err) => {
-                warn!("Error: {err}");
-            }
-        }
-    }
-
-    Ok(())
-}
-
-fn _update_ship_movement_controller(
-    dsl: &DSL<ReducerContext>,
-    controller: ShipMovementController,
-) -> Result<ShipMovementController, String> {
-    let ship_object = match dsl
-        .get_ships_by_sobj_id(controller.get_stellar_object_id())
-        .next()
-    {
-        Some(ship) => ship,
-        None => {
-            // Ship might be docked, clean up the timer
-            dsl.delete_ship_movement_controller_by_id(&controller.get_id())?;
-            return Err(format!(
-                "Ship not found (likely docked), removing update timer for player ID: {}",
-                controller.get_id().value()
-            ));
-        }
-    };
-    let mut velocity = dsl.get_sobj_velocity_by_id(ship_object.get_sobj_id())?;
-
-    // If no input was given, slow down the rotation & speed
-    if !controller.left && !controller.right {
-        velocity.set_rotation_radians(velocity.get_rotation_radians() * 0.875); // TODO:: Milestone 10+ make these ship-type specific values.
-    }
-    if !controller.forward && !controller.backward {
-        // Add inertia to the velocity
-        velocity = velocity.from_vec2(velocity.to_vec2() * 0.975); // TODO:: Milestone 10+ make these ship-type specific values.
-        if velocity.to_vec2().length() < 0.042 {
-            velocity = velocity.from_vec2(Vec2::ZERO);
-        }
-    }
-
-    if controller.left || controller.right || controller.forward || controller.backward {
-        try_update_ship_velocity(&dsl, &mut velocity, &controller, &ship_object)?;
-    }
-
-    dsl.update_sobj_velocity_by_id(velocity)?;
-    Ok(controller)
-}
-
-pub fn try_update_ship_velocity(
-    dsl: &DSL<ReducerContext>,
-    velocity: &mut StellarObjectVelocity,
-    controller: &ShipMovementController,
-    ship_object: &Ship,
-) -> Result<(), String> {
-    let ship_type = dsl.get_ship_type_definition_by_id(ship_object.get_shiptype_id())?;
-    let transform = dsl.get_sobj_internal_transform_by_id(&ship_object.get_sobj_id())?;
-
-    // Based on the controller's settings and the ship definition and ship status, update the velocity.
-    if controller.forward {
-        let mut vec = Vec2::from_angle(*transform.get_rotation_radians())
-            * ship_type.get_base_acceleration()
-            + velocity.to_vec2();
-
-        // Check if the absolute velocity is too fast for the ship.
-        if vec.length() > *ship_type.get_base_speed() {
-            // Set the velocity
-            vec = vec.normalize() * ship_type.get_base_speed();
-        }
-
-        *velocity = velocity.from_vec2(vec);
-    }
-    if controller.right {
-        velocity.set_rotation_radians(PI * ship_type.get_base_turn_rate());
-    }
-    if controller.left {
-        velocity.set_rotation_radians(PI * -ship_type.get_base_turn_rate());
-    }
-    if controller.backward {
-        let mul = 0.965f32; // TODO: Control this somehow via ship def or a global config.
-        velocity.set_x(velocity.get_x() * mul);
-        velocity.set_y(velocity.get_y() * mul);
-    }
-
-    Ok(())
-}
+// The legacy 20 Hz `timer_update_all_ship_movement_controllers` tick was
+// retired by the dead-reckoning rewrite — motion is now event-driven
+// (snapshot on input change / dock / undock / jumpgate) with damping
+// living inside `solarance_shared::predict_movement`.

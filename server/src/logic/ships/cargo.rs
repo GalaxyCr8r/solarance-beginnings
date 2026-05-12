@@ -1,13 +1,15 @@
+use std::f32::consts::PI;
 use std::time::Duration;
 
-use glam::Vec2;
 use log::info;
+use solarance_shared::{MovementState, Vec2};
 use spacetimedb::rand::Rng;
 use spacetimedb::*;
 use spacetimedsl::*;
 
 use crate::logic::cargo_crates::attempt_to_pickup_cargo_crate;
-use crate::logic::stellarobjects::stellar_object_creation::create_sobj_with_random_velocity;
+use crate::logic::stellarobjects::stellar_object_creation::create_sobj;
+use crate::tables::global_config::*;
 use crate::tables::items::*;
 use crate::tables::players::get_player_ship_and_sobj;
 use crate::tables::players::PlayerId;
@@ -66,7 +68,19 @@ pub fn jettison_cargo_from_ship(
         dsl.update_ship_cargo_item_by_id(ship_cargo)?;
     }
 
-    create_cargo_crate_nearby_ship(ctx, &dsl, &ship.get_sobj_id(), &item_def, amount)?;
+    // Player-initiated jettison: toss in the ship's current heading with no
+    // momentum inheritance (MVP simplification per movement_system_plan).
+    let toss_dir_radians = ship.get_movement().rotation;
+    let origin = ship.get_movement().pos;
+    create_cargo_crate_at_position(
+        ctx,
+        &dsl,
+        &ship.get_sector_id(),
+        origin,
+        toss_dir_radians,
+        &item_def,
+        amount,
+    )?;
 
     send_info_message(
         &dsl,
@@ -356,8 +370,79 @@ pub fn attempt_to_load_cargo_into_ship<T: spacetimedsl::WriteContext>(
     Ok(())
 }
 
-/// Crates a cargo crate nearby the given stellar object if it exists,
-/// otherwise it'll place it randomly in its last known sector.
+/// Spawns a cargo crate at `origin` with a single, well-defined toss vector.
+/// Reads `cargo_crate_toss_speed`, `cargo_crate_brake_rate`, etc. from
+/// `global_config` so designers can retune crate physics without touching code.
+///
+/// This is the single sanctioned creation point for crates — callers like
+/// `jettison_cargo_from_ship` (toss direction = ship's heading) and the
+/// mining-overflow path in `attempt_to_load_cargo_into_ship` (random direction)
+/// both funnel through it.
+pub fn create_cargo_crate_at_position<T: spacetimedsl::WriteContext>(
+    ctx: &spacetimedb::ReducerContext,
+    dsl: &DSL<T>,
+    sector_id: &crate::tables::sectors::SectorId,
+    origin: Vec2,
+    toss_dir_radians: f32,
+    item_def: &ItemDefinition,
+    quantity: u16,
+) -> Result<(), String> {
+    let config = dsl.get_global_config_by_id(GlobalConfigId::new(0))?;
+
+    // Sample toss speed and brake rate from the configured ranges. The
+    // variance is symmetric (±variance) so designers can keep the mean tied
+    // to `*_speed` / `*_rate` directly.
+    let toss_speed_variance = *config.get_cargo_crate_toss_speed_variance();
+    let toss_speed = *config.get_cargo_crate_toss_speed()
+        + ctx
+            .rng()
+            .gen_range(-toss_speed_variance..=toss_speed_variance);
+    let brake_variance = *config.get_cargo_crate_brake_rate_variance();
+    let brake_rate = *config.get_cargo_crate_brake_rate()
+        + ctx.rng().gen_range(-brake_variance..=brake_variance);
+    // A small random spin for visual flavor — the always-on angular damping
+    // inside predict_movement bleeds it to zero on its own.
+    let spin = ctx.rng().gen_range(-PI..=PI);
+
+    let now_micros = dsl.ctx().timestamp()?.to_micros_since_unix_epoch();
+    let movement = MovementState {
+        pos: origin,
+        velocity: toss_speed.max(0.0),
+        rotation: toss_dir_radians,
+        angular_velocity: spin,
+        last_update_time: now_micros,
+        acceleration: -brake_rate.abs(), // braking → negative
+        angular_acceleration: 0.0,
+        // Cap at the chosen toss speed (velocity only decreases, so this is
+        // a free guard against bad input).
+        max_speed: toss_speed.max(0.0),
+        max_turn_rate: *config.get_cargo_crate_max_turn_rate(),
+    };
+
+    let new_sobj = create_sobj(dsl, StellarObjectKinds::CargoCrate, sector_id)?;
+
+    dsl.create_cargo_crate(CreateCargoCrate {
+        sobj_id: new_sobj.get_id(),
+        current_sector_id: sector_id.clone(),
+        item_id: item_def.get_id(),
+        quantity,
+        despawn_ts: Some(
+            dsl.ctx()
+                .timestamp()?
+                .checked_add(TimeDuration::from_duration(Duration::from_secs(
+                    *config.get_cargo_crate_ttl_secs(),
+                )))
+                .unwrap(),
+        ),
+        gfx_key: None,
+        movement,
+    })?;
+    Ok(())
+}
+
+/// Overflow-path crate spawn: when mined cargo can't fit, we drop a crate at
+/// the ship's last-known position with a random toss direction (per
+/// movement_system_plan §"Cargo jettison from asteroid").
 pub fn create_cargo_crate_nearby_ship<T: spacetimedsl::WriteContext>(
     ctx: &spacetimedb::ReducerContext,
     dsl: &DSL<T>,
@@ -365,44 +450,33 @@ pub fn create_cargo_crate_nearby_ship<T: spacetimedsl::WriteContext>(
     item_def: &ItemDefinition,
     quantity: u16,
 ) -> Result<(), String> {
-    let sobj = dsl.get_stellar_object_by_id(ship_sobj)?;
-    let pos = {
-        if let Ok(transform) = dsl.get_sobj_internal_transform_by_id(ship_sobj) {
-            transform.to_vec2()
-        } else {
-            info!("Could not find ship's stellar object transform, placing randomly...");
-            Vec2::new(
-                ctx.rng().gen_range(-2048.0..2048.0),
-                ctx.rng().gen_range(-2048.0..2048.0),
+    let ship = dsl
+        .get_ships_by_sobj_id(ship_sobj)
+        .next()
+        .ok_or_else(|| {
+            format!(
+                "Couldn't find a Ship for sobj_id {} when spawning overflow crate",
+                ship_sobj.value()
             )
-        }
-    };
+        })?;
 
-    let new_sobj = create_sobj_with_random_velocity(
+    let origin = ship.get_movement().pos;
+    let random_dir = ctx.rng().gen_range(-PI..=PI);
+
+    info!(
+        "Spawning overflow crate from ship #{} at ({:.0},{:.0})",
+        ship.get_id().value(),
+        origin.x,
+        origin.y
+    );
+
+    create_cargo_crate_at_position(
         ctx,
         dsl,
-        StellarObjectKinds::CargoCrate,
-        &sobj.get_sector_id(),
-        pos.x,
-        pos.y,
-        1.0,
-        Some(0.9995),
-    )?;
-
-    dsl.create_cargo_crate(CreateCargoCrate {
-        sobj_id: new_sobj.get_id(),
-        current_sector_id: sobj.get_sector_id(),
-        item_id: item_def.get_id(),
+        &ship.get_sector_id(),
+        origin,
+        random_dir,
+        item_def,
         quantity,
-        despawn_ts: Some(
-            dsl.ctx()
-                .timestamp()?
-                .checked_add(TimeDuration::from_duration(Duration::from_secs(
-                    /*D* /24 * /*H*/60 * */ /*M*/ 60,
-                )))
-                .unwrap(),
-        ), // TODO cargo crate timer to despawn them
-        gfx_key: None,
-    })?;
-    Ok(())
+    )
 }

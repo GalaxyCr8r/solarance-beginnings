@@ -1,10 +1,9 @@
+use solarance_shared::Vec2;
 use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 
-use crate::logic::stellarobjects::stellar_object_creation::create_sobj_vec2;
-use crate::tables::{
-    common_types::Vec2, jumpgates::*, sectors::SectorId, stellarobjects::StellarObjectKinds,
-};
+use crate::logic::stellarobjects::stellar_object_creation::create_sobj;
+use crate::tables::{jumpgates::*, sectors::SectorId, stellarobjects::StellarObjectKinds};
 use crate::utility::try_server_only;
 
 pub fn create_jumpgate_internal<T: spacetimedsl::WriteContext>(
@@ -20,12 +19,7 @@ pub fn create_jumpgate_internal<T: spacetimedsl::WriteContext>(
 
     let current_sector_id = SectorId::new(sector_id);
 
-    let sobj = create_sobj_vec2(
-        dsl,
-        StellarObjectKinds::JumpGate,
-        &current_sector_id,
-        glam::Vec2::new(x, y),
-    )?;
+    let sobj = create_sobj(dsl, StellarObjectKinds::JumpGate, &current_sector_id)?;
     let gfx_key = {
         if y.abs() < x.abs() {
             // Horizontal gate
@@ -45,11 +39,16 @@ pub fn create_jumpgate_internal<T: spacetimedsl::WriteContext>(
     };
     dsl.create_jump_gate(CreateJumpGate {
         id: sobj.get_id(),
-        current_sector_id: current_sector_id,
+        current_sector_id,
         target_sector_id: SectorId::new(target_sector_id),
         target_gate_arrival_pos: Vec2 { x: t_x, y: t_y },
+        // Designer default: arrival heading is 0 (east). Hand-tune per gate when
+        // sectors get curated layouts.
+        target_gate_arrival_rotation: 0.0,
         gfx_key: Some(gfx_key),
         is_active: true,
+        position: Vec2 { x, y },
+        rotation: 0.0,
     })?;
 
     Ok(())

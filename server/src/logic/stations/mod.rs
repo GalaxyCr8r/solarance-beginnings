@@ -84,16 +84,19 @@ pub fn create_station_with_modules<T: spacetimedsl::WriteContext>(
     owner_faction_id: FactionId,
     name: &str,
     _description: Option<String>,
+    position: solarance_shared::Vec2,
+    rotation: f32,
     module_creators: Vec<ModuleCreationFn<T>>,
 ) -> Result<Station, String> {
-    // Create the station
     let station = dsl.create_station(CreateStation {
-        size: size,
+        size,
         sector_id: sector.get_id(),
         sobj_id: sobj.get_id(),
-        owner_faction_id: FactionId::new(owner_faction_id.value()), // check wrapper
+        owner_faction_id: FactionId::new(owner_faction_id.value()),
         name: name.to_string(),
         gfx_key: None,
+        position,
+        rotation,
     })?;
 
     // Create all modules

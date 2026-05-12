@@ -33,26 +33,18 @@ pub fn is_server_or_sobj_owner<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     stellar_object_id: Option<StellarObjectId>,
 ) -> Result<(), String> {
-    // For now, always allow - this needs proper server identity check
-    //return Ok(());
+    let sobj_id = stellar_object_id.ok_or_else(|| "Given a missing SOBJ ID".to_string())?;
 
-    if let Some(sobj_id) = stellar_object_id {
-        // If the given stellar object has a player associated with it,
-        // then it WILL have a player window, so we can search that instead of the Ship table.
-        if let Ok(window) = dsl.get_sobj_player_window_by_sobj_id(sobj_id) {
-            if window.get_id().value() == dsl.ctx().sender()? {
-                return Ok(());
-            }
+    // Post-Phase 9: the `sobj_player_window` table is gone — find the owning
+    // ship by `sobj_id` and check its player_id against the sender.
+    let sender = dsl.ctx().sender()?;
+    if let Some(ship) = dsl.get_ships_by_sobj_id(&sobj_id).next() {
+        if ship.get_player_id().value() == sender {
+            return Ok(());
         }
-    } else {
-        return Err("Given a missing SOBJ ID".to_string());
     }
 
-    warn!(
-        "Deined server/sobj-owner request from: {}",
-        dsl.ctx().sender()?.to_string()
-    );
-
+    warn!("Denied server/sobj-owner request from: {}", sender.to_string());
     Err(IS_SERVER_OR_OWNER_ERROR.to_string())
 }
 

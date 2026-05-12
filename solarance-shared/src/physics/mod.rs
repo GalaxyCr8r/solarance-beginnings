@@ -31,17 +31,29 @@
 //! held a key for 60 s still runs in the same time as one that held it for
 //! 1 s) and keeps accuracy high because each numerical sub-phase is short.
 
+use std::hash::Hasher;
+
+use spacetimedb::SpacetimeType;
+
 // ---------------------------------------------------------------------------
 // Data types
 // ---------------------------------------------------------------------------
 
-#[derive(Clone, Copy, Debug)]
+/// World-space 2D vector. Shared between server tables (via `SpacetimeType`)
+/// and client renderers — the single canonical position/heading type.
+#[derive(SpacetimeType, Clone, Copy, Debug, Default)]
 pub struct Vec2 {
     pub x: f32,
     pub y: f32,
 }
 
 impl Vec2 {
+    pub const ZERO: Vec2 = Vec2 { x: 0.0, y: 0.0 };
+
+    pub fn new(x: f32, y: f32) -> Self {
+        Vec2 { x, y }
+    }
+
     pub fn distance_to(&self, other: &Vec2) -> f32 {
         ((self.x - other.x).powi(2) + (self.y - other.y).powi(2)).sqrt()
     }
@@ -51,46 +63,101 @@ impl Vec2 {
     pub fn distance_to_sq(&self, other: &Vec2) -> f32 {
         (self.x - other.x).powi(2) + (self.y - other.y).powi(2)
     }
+
+    pub fn sub(&self, other: &Vec2) -> Vec2 {
+        Vec2 {
+            x: self.x - other.x,
+            y: self.y - other.y,
+        }
+    }
+
+    pub fn length(&self) -> f32 {
+        (self.x * self.x + self.y * self.y).sqrt()
+    }
+
+    pub fn signed_angle_to(&self, other: &Vec2) -> f32 {
+        let cross = self.x * other.y - self.y * other.x;
+        let dot = self.x * other.x + self.y * other.y;
+        cross.atan2(dot)
+    }
+
+    pub fn to_glam(&self) -> glam::Vec2 {
+        glam::Vec2 { x: self.x, y: self.y }
+    }
+
+    pub fn from_glam(vec: glam::Vec2) -> Vec2 {
+        Vec2 { x: vec.x, y: vec.y }
+    }
 }
 
-/// A complete snapshot of a ship's motion at a single point in time.
-/// Stored in the database by the server whenever the ship's inputs change;
-/// clients extrapolate forward from this snapshot using `predict_movement`.
-#[derive(Clone, Copy, Debug)]
+impl PartialEq for Vec2 {
+    fn eq(&self, other: &Self) -> bool {
+        // Compare the bit patterns of the floats.
+        // This means 0.0 and -0.0 are different, and NaN == NaN.
+        self.x.to_bits() == other.x.to_bits() && self.y.to_bits() == other.y.to_bits()
+    }
+}
+
+impl Eq for Vec2 {}
+
+impl std::hash::Hash for Vec2 {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.x.to_bits().hash(state);
+        self.y.to_bits().hash(state);
+    }
+}
+
+impl From<glam::Vec2> for Vec2 {
+    fn from(glam_vec: glam::Vec2) -> Self {
+        Vec2 { x: glam_vec.x, y: glam_vec.y }
+    }
+}
+
+impl From<Vec2> for glam::Vec2 {
+    fn from(vec: Vec2) -> Self {
+        glam::Vec2 { x: vec.x, y: vec.y }
+    }
+}
+
+/// A complete snapshot of an entity's motion at a single point in time.
+/// Stored in the database by the server whenever inputs change; clients
+/// extrapolate forward from this snapshot using `predict_movement`.
+///
+/// Angular damping is **always on** inside `predict_movement` — when
+/// `angular_acceleration == 0` and `angular_velocity != 0`, ω bleeds toward
+/// zero at `max_turn_rate / 2` rad/s². To opt out (spin-forever objects),
+/// set `max_turn_rate = 0` (decel_rate becomes 0 and no event fires).
+#[derive(SpacetimeType, Clone, Copy, Debug, Default, PartialEq)]
 pub struct MovementState {
     /// World-space position at `last_update_time`.
     pub pos: Vec2,
-    /// Forward speed at `last_update_time`.  Always ≥ 0 — ships cannot fly
-    /// backward.  Units: pixels per second.
+    /// Forward speed at `last_update_time`. Always ≥ 0 — ships cannot fly
+    /// backward. Units: pixels per second.
     pub velocity: f32,
-    /// Heading at `last_update_time`.  See module-level coordinate notes.
+    /// Heading at `last_update_time`. See module-level coordinate notes.
     /// Units: radians.
     pub rotation: f32,
-    /// Rate of heading change at `last_update_time`.  Positive = clockwise
-    /// on screen (because Y is down).  Units: radians per second.
+    /// Rate of heading change at `last_update_time`. Positive = clockwise
+    /// on screen (because Y is down). Units: radians per second.
     pub angular_velocity: f32,
     /// When this snapshot was recorded, as microseconds since the Unix epoch.
     /// Used to compute `dt = current_time − last_update_time`.
     pub last_update_time: i64,
     /// Constant linear acceleration applied from `last_update_time` onward.
-    /// Positive = thrusting forward, negative = braking.  Units: px/s².
+    /// Positive = thrusting forward, negative = braking. Units: px/s².
     pub acceleration: f32,
     /// Constant angular acceleration applied from `last_update_time` onward.
-    /// Set to ±max_angular_acceleration while the player holds a turn key,
-    /// or 0 when the key is released (dampening then bleeds ω to zero).
+    /// Set to ±base_angular_acceleration while a turn key is held, or 0 when
+    /// released (the always-on dampening then bleeds ω to zero).
     /// Units: radians/s².
     pub angular_acceleration: f32,
-    /// Hard cap on forward speed.  `v` is never allowed to exceed this.
+    /// Hard cap on forward speed. `v` is never allowed to exceed this.
     /// Units: pixels per second.
     pub max_speed: f32,
-    /// Hard cap on angular speed.  `|ω|` is never allowed to exceed this.
-    /// Units: radians per second.
+    /// Hard cap on angular speed. `|ω|` is never allowed to exceed this.
+    /// Also doubles as the dampening rate (decel_rate = max_turn_rate / 2).
+    /// Set to 0 to opt out of angular damping (spin-forever). Units: rad/s.
     pub max_turn_rate: f32,
-    /// When `true` and `angular_acceleration == 0`, `ω` bleeds toward zero
-    /// at `max_turn_rate / 2` radians per second squared.  This simulates
-    /// rotational friction so ships don't spin forever after releasing a
-    /// turn key.
-    pub dampen_angular_rotation: bool,
 }
 
 // ---------------------------------------------------------------------------
@@ -137,11 +204,11 @@ fn simulate(state: &MovementState, total_dt: f32) -> (Vec2, f32, f32, f32) {
     // Unpack constants for this prediction run.
     let max_v = state.max_speed;
     let max_omega = state.max_turn_rate;
-    // Rotational-friction deceleration rate when dampening is active (half of max turn rate).
+    // Rotational-friction deceleration rate (half of max turn rate). When
+    // max_turn_rate == 0, decel_rate is 0 — spin-forever opt-out.
     let decel_rate = state.max_turn_rate / 2.0;
     let a = state.acceleration;       // linear acceleration (px/s²)
     let alpha = state.angular_acceleration; // angular acceleration (rad/s²)
-    let dampen = state.dampen_angular_rotation;
 
     // Working state — mutated each phase.
     let mut x = state.pos.x;
@@ -154,7 +221,7 @@ fn simulate(state: &MovementState, total_dt: f32) -> (Vec2, f32, f32, f32) {
 
     while remaining > f32::EPSILON {
         // Find how long until each velocity hits its clamping boundary.
-        let t_omega = omega_event_time(omega, alpha, max_omega, decel_rate, dampen);
+        let t_omega = omega_event_time(omega, alpha, max_omega, decel_rate);
         let t_v = v_event_time(v, a, max_v);
 
         // Advance only to the nearest boundary (or the end of remaining time).
@@ -172,7 +239,7 @@ fn simulate(state: &MovementState, total_dt: f32) -> (Vec2, f32, f32, f32) {
             // phase is short and accuracy is high regardless of total_dt.
             numerical_phase(
                 &mut x, &mut y, &mut theta, &mut v, &mut omega,
-                a, alpha, max_v, max_omega, decel_rate, dampen, phase_dt,
+                a, alpha, max_v, max_omega, decel_rate, phase_dt,
             );
         } else {
             // ω is constant this phase — use closed-form analytical formulas.
@@ -182,8 +249,9 @@ fn simulate(state: &MovementState, total_dt: f32) -> (Vec2, f32, f32, f32) {
         // Snap velocities exactly at boundary to prevent floating-point drift
         // accumulating across many phases.
         if t_omega.is_finite() && phase_dt >= t_omega - 1e-6 {
-            omega = if dampen && alpha.abs() < f32::EPSILON {
-                0.0         // dampening finished: ω has bled all the way to zero
+            omega = if alpha.abs() < f32::EPSILON {
+                // dampening finished: ω has bled all the way to zero
+                0.0
             } else if alpha > 0.0 {
                 max_omega   // positive acceleration hit the cap
             } else {
@@ -212,24 +280,24 @@ fn simulate(state: &MovementState, total_dt: f32) -> (Vec2, f32, f32, f32) {
 
 /// Returns the number of seconds until `ω` reaches its clamping boundary.
 ///
-/// When `α ≠ 0` the ship is actively turning.  ω changes linearly as
+/// When `α ≠ 0` the ship is actively turning. ω changes linearly as
 /// `ω(t) = ω₀ + α·t`, so the time to reach the cap is simply:
 ///     t = (target − ω₀) / α
 ///
-/// When `α == 0` but dampening is on, ω is bleeding toward zero at a
-/// constant rate (`decel_rate`), so the time to reach zero is:
+/// When `α == 0` and `decel_rate > 0`, ω is bleeding toward zero at a
+/// constant rate (the always-on rotational friction), so:
 ///     t = |ω| / decel_rate
 ///
-/// Returns `INFINITY` when ω is already at its boundary or nothing is
-/// changing it (signal to the caller: no angular event in this direction).
-fn omega_event_time(omega: f32, alpha: f32, max_omega: f32, decel_rate: f32, dampen: bool) -> f32 {
+/// Returns `INFINITY` when ω is already at its boundary, or when `decel_rate`
+/// is 0 (spin-forever opt-out via `max_turn_rate = 0`).
+fn omega_event_time(omega: f32, alpha: f32, max_omega: f32, decel_rate: f32) -> f32 {
     if alpha.abs() > f32::EPSILON {
         // Active angular acceleration toward ±max_omega.
         let target = if alpha > 0.0 { max_omega } else { -max_omega };
         let t = (target - omega) / alpha;
         // A non-positive t means ω is already past (or at) the boundary.
         if t > 0.0 { t } else { f32::INFINITY }
-    } else if dampen && omega.abs() > f32::EPSILON {
+    } else if decel_rate > f32::EPSILON && omega.abs() > f32::EPSILON {
         // Rotational friction: ω decays linearly to zero.
         omega.abs() / decel_rate
     } else {
@@ -307,13 +375,24 @@ fn constant_omega_phase(
             // Ship is already stopped and braking: nothing to do.
             // Without this guard, d = ½·a·dt² would be negative and push the
             // ship backward through the world.
+        } else if *v >= max_v && a > 0.0 {
+            // Already at the speed cap and still thrusting. Without this
+            // guard the kinematic formula below would happily push v past
+            // max_v: `v_event_time` returns INFINITY when v == max_v
+            // (because t = 0 isn't > 0), so phase_dt becomes the full
+            // remaining time instead of being bounded by t_v, and
+            // `v += a·dt` accumulates indefinitely. Coast at max_v.
+            *x += theta.cos() * max_v * dt;
+            *y += theta.sin() * max_v * dt;
+            *v = max_v;
         } else {
             // Kinematic formula: d = v₀·t + ½·a·t²
-            // dt is bounded by t_v so v stays within [0, max_v].
+            // dt is bounded by t_v so v stays within [0, max_v]; clamp on
+            // both sides as defense in depth against rounding.
             let d = *v * dt + 0.5 * a * dt * dt;
             *x += theta.cos() * d;
             *y += theta.sin() * d;
-            *v = (*v + a * dt).max(0.0); // floor at 0; caller snaps exactly at boundary
+            *v = (*v + a * dt).clamp(0.0, max_v);
         }
     } else if a.abs() < f32::EPSILON {
         // ── Pure circular arc (analytical) ─────────────────────────────────
@@ -365,7 +444,6 @@ fn numerical_phase(
     max_v: f32,
     max_omega: f32,
     decel_rate: f32,
-    dampen: bool,
     dt: f32,
 ) {
     const STEPS: usize = 20;
@@ -375,8 +453,8 @@ fn numerical_phase(
         let omega_old = *omega;
 
         // ── Update ω ───────────────────────────────────────────────────────
-        if dampen && alpha.abs() < f32::EPSILON {
-            // Rotational friction: bleed ω toward zero at `decel_rate` rad/s².
+        if alpha.abs() < f32::EPSILON {
+            // Rotational friction (always-on when alpha == 0 and decel_rate > 0).
             // Cap the decrement so we don't overshoot zero in a single step.
             let d_omega = -omega.signum() * decel_rate * step_dt;
             if d_omega.abs() >= omega.abs() {
@@ -402,11 +480,6 @@ fn numerical_phase(
         *v = (*v + a * step_dt).clamp(0.0, max_v);
     }
 }
-
-// ---------------------------------------------------------------------------
-// Utilities
-// ---------------------------------------------------------------------------
-
 
 #[cfg(test)]
 mod tests;
