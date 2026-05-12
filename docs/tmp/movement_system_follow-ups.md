@@ -278,3 +278,54 @@ The grilling on the movement-rewrite plan deferred this because demolishing Stel
 - Issue lists the count of reducer signatures and FKs affected, so the diff size is known up front.
 - Issue describes the client-side targeting change.
 - Issue notes the dependency on the movement-system rewrite landing first.
+
+---
+
+## Issue 6 — Cross-sector render flicker on jumpgate transit
+
+### Background
+
+After the movement-system rewrite (`docs/tmp/movement_system_plan.md`), the client renders every ship by reading its `MovementState` snapshot and calling `predict_movement(state, now)` to extrapolate forward. The snapshot is the source of truth and the extrapolation hides RTT for non-self entities.
+
+Jumpgate transit is special: `try_to_use_jumpgate` atomically updates `Ship.sector_id`, `ShipStatus.sector_id`, `StellarObject.sector_id`, and rewrites `Ship.movement` with the new arrival position (clean stop). All four writes happen in a single server transaction via `transit_ship_to_sector(...)`. But the client receives those updates over the network in *some* order, and there may be one or more render frames where the client's view of the ship is inconsistent — e.g. `Ship.sector_id` has changed but the new `Ship.movement` snapshot hasn't arrived yet, or vice versa.
+
+### Problem
+
+For one or more frames during the transition, the client may:
+
+- Extrapolate forward from the **old** snapshot (which puts the ship somewhere in the *previous* sector's world space, but `Ship.sector_id` now says it's in the new sector — so the ship renders at a stale position in the new sector's view).
+- Render the ship at the **new** arrival pos but with stale prediction from old velocity/heading until the next prediction tick.
+- Briefly render the ship at the *origin* sector while subscriptions for the new sector are still loading (once views land in Issue 1).
+
+End result: visible jitter, flicker, or a "ghost" of the ship at the wrong place when crossing a gate. Cosmetic, not state-corrupting.
+
+### Proposed approach (sketch — issue should describe, not commit)
+
+Two candidate fixes; the issue should pick or combine:
+
+**(a) Sector-change invalidates prediction.** When the client observes a `Ship.sector_id` change for any ship (including its own), discard any in-flight extrapolation and snap to the latest snapshot. Don't lerp across the transition. One-line behaviour, low risk.
+
+**(b) Skip rendering ships whose `sector_id` doesn't match the player's current sector.** Belt-and-suspenders — the player should never see a ship from another sector regardless of subscription timing. This becomes free once Issue 1 (per-sector view scoping) lands, but is worth adding pre-emptively as a client filter.
+
+**(c) Hide the player's own ship during transit.** Briefly render a "jumping" effect or fade-out instead of the ship while the four writes propagate. The simplest version: stop rendering the ship for one render tick after observing the sector change, then resume.
+
+### Dependencies
+
+- Movement-system rewrite (`docs/tmp/movement_system_plan.md`) must land first.
+- Issue 1 (view-function visibility scoping) interacts with this — once views are sector-scoped, the wrong-sector ship problem partly self-resolves, but the per-ship transition flicker remains.
+
+### References
+
+- `client/src/gameplay/render.rs` — current render fan-out.
+- `client/src/gameplay/player.rs` — current player-ship logic (likely where jumpgate input is sent).
+- `docs/tmp/movement_system_plan.md` Phase 3 — `transit_ship_to_sector` helper that performs the atomic four-field write.
+
+### Non-goals
+
+- Eliminating the brief network delay itself — RTT is RTT.
+- Custom transit animations / portal effects — could be added later as a polish pass, but the issue should focus on correctness, not effects.
+
+### Acceptance criteria
+
+- Issue describes the chosen approach (or combination) and where it's applied in the render path.
+- Issue notes that this is cosmetic, not a correctness bug — server state is consistent.
