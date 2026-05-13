@@ -2,9 +2,9 @@ use std::cmp::Ordering;
 
 use egui::{Align2, Color32, Context, RichText, ScrollArea, TextStyle, Ui};
 use macroquad::prelude::*;
-use spacetimedb_sdk::{DbContext, Timestamp};
+use spacetimedb_sdk::{DbContext, Table, Timestamp};
 
-use crate::{gameplay::server_messages::ServerMessageUtils, module_bindings::*, stdb::utils::*};
+use crate::{gameplay::server_messages::ServerMessageUtils, server::bindings::*, stdb::utils::*};
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub enum GlobalChatMessageType {
@@ -186,13 +186,14 @@ pub fn _draw_widget(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
 }
 
 pub fn draw_panel(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
-    // Ensure that we only show sector chat if the player is actively piloting a ship in a sector.
+    // Ensure that we only show sector chat if the player is actively piloting
+    // a ship in a sector. The legacy `sobj_player_window` row used to gate
+    // this — post-dead-reckoning we just look for an in-sector ship.
     let sector_enabled = ctx
         .db()
-        .sobj_player_window()
-        .id()
-        .find(&ctx.identity())
-        .is_some();
+        .ship()
+        .iter()
+        .any(|s| s.player_id == ctx.identity() && s.location == ShipLocation::Sector);
     if chat_window.selected_tab == GlobalChatMessageType::Sector && !sector_enabled {
         chat_window.selected_tab = GlobalChatMessageType::Server;
     }

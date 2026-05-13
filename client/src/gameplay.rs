@@ -2,7 +2,7 @@ use std::sync::mpsc::{self, Sender};
 
 use macroquad::{math::Vec2, prelude::*, ui};
 
-use super::module_bindings::*;
+use super::server::bindings::*;
 use spacetimedb_sdk::{DbContext, Table};
 
 use crate::{shader::*, stdb::utils::*};
@@ -13,6 +13,7 @@ pub mod render;
 pub mod resources;
 pub mod server_messages;
 pub mod state;
+pub mod visual_effects;
 
 /// Register all the callbacks our app will use to respond to database events.
 pub fn register_callbacks(
@@ -78,6 +79,20 @@ pub fn register_callbacks(
                 }
             }
         });
+
+    // Register visual effect callback for client-side visual effects
+    ctx.db().visual_effect().on_insert(|_ec, visual_effect| {
+        info!(
+            "Visual effect created: {:?} from ({}, {}) to ({}, {})",
+            visual_effect.effect_type,
+            visual_effect.source.x,
+            visual_effect.source.y,
+            visual_effect.target.x,
+            visual_effect.target.y
+        );
+        // The visual effect will be handled by the visual_effects::update_visual_effects function
+        // in the main game loop, which checks the database for new effects
+    });
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -149,7 +164,13 @@ pub async fn gameplay(connection: Option<DbConnection>) {
             game_state.camera.target * 0.000_01337,
         );
 
+        // Update and render visual effects
+        visual_effects::update_visual_effects(&mut game_state);
+
         render::sector(&mut game_state);
+
+        // Render visual effects on top of everything else
+        visual_effects::render_visual_effects(&game_state);
 
         egui_macroquad::ui(|egui_ctx| {
             if player_ship.is_none() {
@@ -211,21 +232,10 @@ pub async fn gameplay(connection: Option<DbConnection>) {
         if !game_state.chat_window.has_focus && player_ship.is_some() {
             if is_key_pressed(KeyCode::E) {
                 if let Ok(target) = player::target_closest_stellar_object(&ctx, &mut game_state) {
-                    if let Some(mut controller) =
-                        ctx.db.player_ship_controller().id().find(&ctx.identity())
-                    {
-                        // Deselect target if it's already selected
-                        if controller.targetted_sobj_id.is_some()
-                            && controller.targetted_sobj_id.unwrap() == target.id
-                        {
-                            controller.targetted_sobj_id = None;
-                            game_state.current_target_sobj = None;
-                        } else {
-                            controller.targetted_sobj_id = Some(target.id);
-                            game_state.current_target_sobj = Some(target);
-                        }
-                        let _ = ctx.reducers.update_player_controller(controller);
-                        // TODO Alert player of error
+                    if game_state.current_target_sobj.as_ref().map(|t| t.id) == Some(target.id) {
+                        game_state.current_target_sobj = None;
+                    } else {
+                        game_state.current_target_sobj = Some(target);
                     }
                 }
             }

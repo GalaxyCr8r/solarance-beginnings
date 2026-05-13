@@ -1,7 +1,7 @@
 
 use egui::{Align2, Color32, Context, FontId, Frame, RichText, Shadow, Ui};
 
-use crate::{gameplay::state::GameState, module_bindings::*};
+use crate::{gameplay::state::GameState, server::bindings::*};
 
 //#[derive(Default)]
 pub struct State {
@@ -18,7 +18,7 @@ impl State {
     }
 }
 
-pub fn draw(egui_ctx: &Context, ctx: &DbConnection, game_state: &mut GameState) -> Option<egui::InnerResponse<Option<()>>> {
+pub fn draw(egui_ctx: &Context, _ctx: &DbConnection, game_state: &mut GameState) -> Option<egui::InnerResponse<Option<()>>> {
     egui::Window
         ::new("Menu Bar")
         .title_bar(false)

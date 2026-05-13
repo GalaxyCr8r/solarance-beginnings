@@ -1,4 +1,4 @@
-use crate::module_bindings::*;
+use crate::server::bindings::*;
 use spacetimedb_sdk::{DbContext, Identity, Table};
 
 /// Client-side utilities for handling server messages

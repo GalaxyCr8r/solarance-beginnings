@@ -4,7 +4,7 @@ use egui::{Context, FontId, RichText, Ui};
 use macroquad::prelude::*;
 use spacetimedb_sdk::*;
 
-use crate::{module_bindings::*, stdb::utils::*};
+use crate::{server::bindings::*, stdb::utils::*};
 
 #[derive(PartialEq)]
 pub enum CurrentTab {
@@ -153,8 +153,8 @@ fn ship_contents(
             ui.label(format!("Speed: {}", ship_type.base_speed));
             ui.label(format!("Acceleration: {}", ship_type.base_acceleration));
             ui.label(format!(
-                "Turn Rate: {}d",
-                ship_type.base_turn_rate * (180.0 / PI)
+                "Turn Rate: {}d/s",
+                ship_type.base_max_turn_rate * (180.0 / PI)
             ));
         });
     });

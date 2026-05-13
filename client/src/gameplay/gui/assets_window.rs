@@ -6,7 +6,7 @@ use crate::{
         asset_utils::{display_sectors_with_ships, ShipTreeHandler},
         out_of_play_screen::utils::prepare_ships_for_system_tree,
     },
-    module_bindings::*,
+    server::bindings::*,
     stdb::utils::*,
 };
 

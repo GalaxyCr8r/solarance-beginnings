@@ -14,7 +14,7 @@ use crate::{
         },
         state::GameState,
     },
-    module_bindings::*,
+    server::bindings::*,
     stdb::utils::*,
 };
 

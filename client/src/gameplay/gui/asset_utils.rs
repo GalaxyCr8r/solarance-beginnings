@@ -1,4 +1,4 @@
-use crate::module_bindings::*;
+use crate::server::bindings::*;
 use egui::{Align, Layout, Ui};
 
 /// Trait for handling ship selection and actions in the asset tree

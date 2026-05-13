@@ -1,7 +1,7 @@
 use egui::{Color32, Context, RichText};
 use spacetimedb_sdk::*;
 
-use crate::{module_bindings::*, stdb::utils::get_faction_shortname};
+use crate::{server::bindings::*, stdb::utils::get_faction_shortname};
 
 #[derive(PartialEq)]
 enum CurrentTab {

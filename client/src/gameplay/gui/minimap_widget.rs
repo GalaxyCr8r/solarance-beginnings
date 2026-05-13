@@ -1,7 +1,7 @@
 use egui::{Align2, Context, RichText, ScrollArea};
 use spacetimedb_sdk::*;
 
-use crate::{gameplay::state::GameState, module_bindings::*, stdb::utils::*};
+use crate::{gameplay::state::GameState, server::bindings::*, stdb::utils::*};
 
 pub fn draw(
     egui_ctx: &Context,
@@ -26,18 +26,13 @@ pub fn draw(
                     ui.label("Sector Faction: n/a");
                     ui.separator();
 
-                    if let Some(mut controller) =
-                        ctx.db().player_ship_controller().id().find(&ctx.identity())
-                    {
-                        let _ = list_sector_objects(
-                            game_state,
-                            ctx,
-                            ui,
-                            sector,
-                            player_ship,
-                            &mut controller,
-                        );
-                    }
+                    let _ = list_sector_objects(
+                        game_state,
+                        ctx,
+                        ui,
+                        sector,
+                        player_ship,
+                    );
                 }
             } else {
                 ui.label("No ship detected");
@@ -51,7 +46,6 @@ fn list_sector_objects(
     ui: &mut egui::Ui,
     _sector: Sector,
     player_ship: Ship,
-    controller: &mut PlayerShipController,
 ) -> std::result::Result<(), String> {
     // Get player position for distance calculations
     let player_sobj_id = get_player_sobj_id(ctx).ok_or("Failed to find player".to_string())?;
@@ -85,24 +79,19 @@ fn list_sector_objects(
                 ui.label("No objects detected in sector");
             } else {
                 for (sobj, distance) in stellar_objects_with_distance {
-                    let selected = controller
-                        .targetted_sobj_id
-                        .map_or(false, |sobj_id| sobj_id == sobj.id);
+                    let selected = game_state
+                        .current_target_sobj
+                        .as_ref()
+                        .map_or(false, |target| target.id == sobj.id);
 
                     ui.horizontal(|ui| {
                         // Target button
                         if ui.button(if selected { "X" } else { "O" }).clicked() {
-                            // Toggle target if already selected
-                            if controller.targetted_sobj_id.is_some()
-                                && controller.targetted_sobj_id.unwrap() == sobj.id
-                            {
-                                controller.targetted_sobj_id = None;
+                            if selected {
                                 game_state.current_target_sobj = None;
                             } else {
-                                controller.targetted_sobj_id = Some(sobj.id);
                                 game_state.current_target_sobj = Some(sobj.clone());
                             }
-                            let _ = ctx.reducers.update_player_controller(controller.clone());
                         }
 
                         // Object type

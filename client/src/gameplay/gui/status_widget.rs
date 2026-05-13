@@ -2,7 +2,7 @@ use egui::{Align2, Color32, Context, RichText, Ui, Vec2};
 use macroquad::{miniquad::date::now, prelude::*};
 use spacetimedb_sdk::{DbContext, Table};
 
-use crate::{gameplay::state::GameState, module_bindings::*, stdb::utils::*};
+use crate::{gameplay::state::GameState, server::bindings::*, stdb::utils::*};
 
 #[derive(Default)]
 pub struct WindowState {
@@ -29,7 +29,7 @@ pub fn window(
                         .id()
                         .find(&player_ship.shiptype_id)
                     {
-                        ship_function_status(ctx, ui);
+                        ship_function_status(ctx, ui, game_state);
 
                         ui.separator();
                         if let Some(player_ship_status) = player_ship.status(ctx) {
@@ -96,48 +96,35 @@ fn ship_status(ui: &mut Ui, ship_type: ShipTypeDefinition, player_ship_status: S
     });
 }
 
-fn ship_function_status(ctx: &DbConnection, ui: &mut Ui) {
+fn ship_function_status(ctx: &DbConnection, ui: &mut Ui, game_state: &mut GameState) {
     ui.vertical(|ui| {
-        if let Some(mut controller) = ctx.db().player_ship_controller().id().find(&ctx.identity()) {
-            let changed = cargo_bay_button(ui, &mut controller)
-                || mining_beam_button(ui, &mut controller)
-                || autodocking_button(ui, &mut controller);
-
-            if changed {
-                let _ = ctx.reducers.update_player_controller(controller);
-            }
-        }
+        combat_mode_indicator(ui, game_state);
+        mining_beam_button(ui, ctx, game_state);
+        autodocking_button(ui, ctx, game_state);
+        fire_weapons_button(ui, ctx, game_state);
     });
 }
 
-fn cargo_bay_button(ui: &mut Ui, controller: &mut PlayerShipController) -> bool {
-    if controller.cargo_bay_open {
-        if ui
-            .button(RichText::new("[Z] Cargo Bay: Open").color({
-                if now() % 1.0 < 0.45 {
-                    Color32::YELLOW
-                } else {
-                    Color32::BLACK
-                }
-            }))
-            .clicked()
-        {
-            controller.cargo_bay_open = false;
-            return true;
-        }
+fn combat_mode_indicator(ui: &mut Ui, game_state: &GameState) {
+    if game_state.combat_mode {
+        let _ = ui.button(RichText::new("[Q] Mode: Combat").color({
+            if now() % 1.0 < 0.45 {
+                Color32::RED
+            } else {
+                Color32::DARK_RED
+            }
+        }));
     } else {
-        if ui
-            .button(RichText::new("[Z] Cargo Bay: Closed").color(Color32::LIGHT_GRAY))
-            .clicked()
-        {
-            controller.cargo_bay_open = true;
-            return true;
-        }
+        let _ = ui.button(RichText::new("[Q] Mode: Utility").color(Color32::LIGHT_BLUE));
     }
-    return false;
 }
-fn mining_beam_button(ui: &mut Ui, controller: &mut PlayerShipController) -> bool {
-    if controller.mining_laser_on {
+
+fn mining_beam_button(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
+    if game_state.combat_mode {
+        return;
+    }
+
+    if game_state.mining_active {
         if ui
             .button(RichText::new("[X] Mining Beam: On").color({
                 if now() % 1.0 < 0.45 {
@@ -148,45 +135,81 @@ fn mining_beam_button(ui: &mut Ui, controller: &mut PlayerShipController) -> boo
             }))
             .clicked()
         {
-            controller.mining_laser_on = false;
-            return true;
+            let _ = ctx.reducers.stop_mining_asteroid();
+            game_state.mining_active = false;
         }
     } else {
-        if ui
-            .button(RichText::new("[X] Mining Beam: Off").color(Color32::LIGHT_GRAY))
-            .clicked()
-        {
-            controller.mining_laser_on = true;
-            return true;
-        }
-    }
-    return false;
-}
-fn autodocking_button(ui: &mut Ui, controller: &mut PlayerShipController) -> bool {
-    if controller.dock {
-        if ui
-            .button(RichText::new("[C] Autodocking: Ready").color({
-                if now() % 1.0 < 0.45 {
-                    Color32::LIGHT_BLUE
-                } else {
-                    Color32::BLACK
+        let enabled = game_state
+            .current_target_sobj
+            .as_ref()
+            .map_or(false, |t| t.kind == StellarObjectKinds::Asteroid);
+        ui.add_enabled_ui(enabled, |ui| {
+            if ui
+                .button(RichText::new("[X] Mining Beam: Off").color(Color32::LIGHT_GRAY))
+                .clicked()
+            {
+                if let Some(target) = &game_state.current_target_sobj {
+                    let _ = ctx
+                        .reducers
+                        .try_mining_asteroid(StellarObjectId { value: target.id });
+                    game_state.mining_active = true;
                 }
-            }))
-            .clicked()
-        {
-            controller.dock = false;
-            return true;
-        }
-    } else {
-        if ui
-            .button(RichText::new("[C] Autodocking: Off").color(Color32::LIGHT_GRAY))
-            .clicked()
-        {
-            controller.dock = true;
-            return true;
-        }
+            }
+        });
     }
-    return false;
+}
+
+fn autodocking_button(ui: &mut Ui, ctx: &DbConnection, game_state: &GameState) {
+    if game_state.combat_mode {
+        return;
+    }
+    let Some(identity) = ctx.try_identity() else {
+        return;
+    };
+    let Some(ship) = ctx.db().ship().iter().find(|s| s.player_id == identity) else {
+        return;
+    };
+
+    match ship.location {
+        ShipLocation::Station => {
+            if ui
+                .button(RichText::new("[C] Undock").color(Color32::LIGHT_GRAY))
+                .clicked()
+            {
+                let _ = ctx.reducers.undock_ship(ship);
+            }
+        }
+        ShipLocation::Sector => {
+            // The [C] button doubles as "Dock" (station target) and "Jump"
+            // (jumpgate target). Server-side distance / energy gating still
+            // applies — this UI just routes the intent.
+            let target_kind = game_state.current_target_sobj.as_ref().map(|t| t.kind);
+            let (label, enabled) = match target_kind {
+                Some(StellarObjectKinds::Station) => ("[C] Dock", true),
+                Some(StellarObjectKinds::JumpGate) => ("[C] Jump", true),
+                _ => ("[C] Dock", false),
+            };
+            ui.add_enabled_ui(enabled, |ui| {
+                if ui
+                    .button(RichText::new(label).color(Color32::LIGHT_GRAY))
+                    .clicked()
+                {
+                    if let Some(target) = &game_state.current_target_sobj {
+                        match target.kind {
+                            StellarObjectKinds::Station => {
+                                let _ = ctx.reducers.dock_ship(target.id);
+                            }
+                            StellarObjectKinds::JumpGate => {
+                                let _ = ctx.reducers.use_jumpgate(target.id);
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            });
+        }
+        _ => {}
+    }
 }
 
 fn add_targeted_object_status(
@@ -198,7 +221,7 @@ fn add_targeted_object_status(
     let distance = {
         if let Some(player_ship) = get_player_transform(ctx) {
             if let Ok(target_object) = get_transform(ctx, target.id) {
-                if let Some(sobj) = ctx.db().stellar_object().id().find(&target_object.id) {
+                if let Some(sobj) = ctx.db().stellar_object().id().find(&target_object.sobj_id) {
                     kind = format!("{:?}", sobj.kind);
                 }
 
@@ -339,4 +362,22 @@ fn add_status_bar(ui: &mut Ui, name: &str, max: f32, current: f32, color: Color3
     } else {
         ui.vertical(contents);
     }
+}
+
+fn fire_weapons_button(ui: &mut Ui, ctx: &DbConnection, game_state: &GameState) {
+    if !game_state.combat_mode {
+        return;
+    }
+
+    let enabled = game_state.current_target_sobj.is_some();
+    ui.add_enabled_ui(enabled, |ui| {
+        if ui
+            .button(RichText::new("[Space] Fire Weapons").color(Color32::LIGHT_GRAY))
+            .clicked()
+        {
+            if let Some(target) = &game_state.current_target_sobj {
+                let _ = ctx.reducers.fire_weapons(target.id);
+            }
+        }
+    });
 }

@@ -1,7 +1,7 @@
 use egui::{Align2, Color32, Context, RichText};
 use spacetimedb_sdk::{DbContext, Table};
 
-use crate::{gameplay::state::GameState, module_bindings::*, stdb::utils::*};
+use crate::{gameplay::state::GameState, server::bindings::*, stdb::utils::*};
 
 // #[derive(PartialEq)]
 // enum CurrentTab {
@@ -80,9 +80,8 @@ fn create_ship(
     ui.separator();
     ui.heading("Basic Instructions");
     ui.label(
-        "Currently you can only mine asteroids, buy/sell goods at stations, and travel to different sectors via jump gates. There is no combat or NPC ships yet."
+        "Currently you can only mine asteroids, buy/sell goods at stations, and travel to different sectors via jump gates."
     );
-    ui.label("The next milestone will begin NPCs and make the universe feel more alive!");
     ui.strong("Use WASD or the Arrow keys to move. 'Down' or 'S' will slow your ship.");
     ui.label(
         "To dock with stations or to use jump gates, engage auto-docking, target the station/gate and get to its exact center. Jump gates drain half your energy currently."

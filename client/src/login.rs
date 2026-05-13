@@ -15,7 +15,7 @@ use macroquad::{
     time,
 };
 
-use solarance_beginnings::{module_bindings::DbConnection, stdb::connector::connect_to_spacetime};
+use solarance_beginnings::{server::bindings::DbConnection, stdb::connector::connect_to_spacetime};
 use spacetimedb_sdk::DbContext;
 
 pub struct MenuAssets {

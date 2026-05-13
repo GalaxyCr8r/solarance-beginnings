@@ -26,6 +26,6 @@ Cargo.lock
 # Spacetime ignore
 /.spacetime
 
-client/src/module_bindings/
+client/src/server/bindings/
 
 **/.env
