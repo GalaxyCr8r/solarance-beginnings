@@ -15,6 +15,7 @@ use spacetimedsl::*;
 use std::time::Duration;
 
 pub mod buy_and_sell;
+pub mod contribution;
 pub mod module_types;
 pub mod production;
 pub mod status;

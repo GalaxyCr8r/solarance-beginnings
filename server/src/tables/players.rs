@@ -16,6 +16,7 @@ pub struct Player {
     #[referenced_by(path = crate::tables::chats, table = sector_chat_message)]
     #[referenced_by(path = crate::tables::chats, table = faction_chat_message)]
     #[referenced_by(path = crate::tables::server_messages, table = server_message_recipient)]
+    #[referenced_by(path = crate::tables::stations, table = construction_contribution_log)]
     id: Identity,
 
     #[unique]
