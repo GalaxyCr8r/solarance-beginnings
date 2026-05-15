@@ -1,14 +1,10 @@
-<div align="center">
-
 # Solarance: Beginnings
 
-<img src="../client/assets/Solarance_Logo.png" alt="Solarance:Beginnings Logo. Text over a black planet with a pure white horizon lit up as a cresent in the bottom left of the circle." />
+<img src="assets/Solarance_Logo.png" alt="Solarance:Beginnings Logo. Text over a black planet with a pure white horizon lit up as a cresent in the bottom left of the circle." />
 
 *A cozy persistent space MMO for adults with jobs.*
 
 [Discord](https://discord.gg/34xzCtsKxe) 🌌 [Bluesky](https://bsky.app/profile/galaxycr8r.bsky.social) 🌌 [Itch.io](https://galaxycr8r.itch.io/solarance-beginnings)
-
-</div>
 
 Contribute to something bigger than yourself in the time you have. Your progress will be waiting for you.
 
@@ -53,6 +49,11 @@ This is going to be a slow, public build. The plan is to be boring publicly for 
 - **Discord:** [discord.gg/34xzCtsKxe](https://discord.gg/34xzCtsKxe) — hang out, watch the build, give feedback
 - **Bluesky:** [@galaxycr8r.bsky.social](https://bsky.app/profile/galaxycr8r.bsky.social) — devlog posts and updates
 
+<<<<<<< HEAD
+<img src="assets/Solarance_Icon.png" alt="Solarance:Beginnings Icon. A black planet with a pure white horizon lit up as a cresent in the bottom left of the circle." />
+
+=======
+>>>>>>> main
 ---
 
 Last Updated - May 13th, 2026

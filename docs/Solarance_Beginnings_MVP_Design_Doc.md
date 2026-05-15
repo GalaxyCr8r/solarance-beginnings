@@ -108,14 +108,16 @@ This is the game. If this loop is not satisfying, nothing else matters. If this 
 
 These features do not exist in the MVP and must not be built until the core loop is proven fun:
 
-Player organizations (factions only, no sub-groups). Royalty systems of any kind. Faction goals, faction research, faction politics. Passive / offline income generation. Mining minigame and heatmap mechanics. Drones. Multiple ships per player. Ship-switching / specialized hulls. Wormholes, anomalies, non-jumpgate FTL. Procedural sector or system generation. Combat of any kind. Vancellan Swarm. Free Trade Union, Independent Worlds Alliance. Civilian NPC AI. Pirate NPC AI. AI-generated welcome-back summaries.
+Player organizations (factions only, no sub-groups). Royalty systems of any kind. Faction goals, faction research, faction politics. Passive / offline income generation. Mining minigame and heatmap mechanics. Drones. Multiple ships per player. Ship-switching / specialized hulls. Wormholes, anomalies as gameplay mechanic (sensor pulses, discovery rewards, exploration as a discipline), non-jumpgate FTL. Procedural sector or system generation. Combat of any kind. Vancellan Swarm. Free Trade Union, Independent Worlds Alliance. Civilian NPC AI. Pirate NPC AI. AI-generated welcome-back summaries.
+
+*Permitted as MVP flavor (no gameplay mechanic attached):* purely decorative anomalies — nebula sprites rendered in-sector at fixed coordinates. These are larger, slower-moving cousins of the background-system nebulae and reuse existing art assets. They distinguish sectors visually; they do not gate or alter any player action. The anomaly *mechanic* (sensors, discovery, exploration gameplay) remains Future Vision.
 
 ---
 
 ## Technical scope for MVP
 
-- **Target concurrent players: 5–10.** This is a realistic expectation given current marketing presence (an inactive Discord, occasional posts in SpacetimeDB and indie-game-dev communities).
-- **No orchestrator deployed.** A single worker process is sufficient for this player count. The worker should be *designed* such that future orchestration (sector handoff, split/merge) is possible without a massive refactor — but the orchestrator itself is not MVP.
+- **Expected concurrent audience: 5–10 players.** This is an *audience-size expectation* given current marketing presence (an inactive Discord, occasional posts in SpacetimeDB and indie-game-dev communities) — not an engineering target. SpacetimeDB handles concurrency transparently; earlier versions of this repo have already been accessed by 3+ people simultaneously with no special work. Two-player, ten-player, twenty-player — the server doesn't care, and neither does the designer.
+- **No orchestrator concerns.** SpacetimeDB hosts the module on Maincloud; sector handoff, worker management, and split/merge are not the designer's problem at MVP scale (or any plausible post-MVP scale for the foreseeable future). Don't pre-engineer for an orchestrator that may never exist.
 - **Movement system rework is on the critical path — but narrowly scoped.** The current client/server prediction model does not correctly handle arresting all rotational velocity. That specific issue (or an acceptable workaround) must be resolved before the two-player shared-building spike. Everything else about the movement system is "done enough for MVP." NPC movement is not a concern — there are no NPCs in the MVP.
 - **Art assets: reuse the 2010 Solarance assets** where they fit the cozy aesthetic. The corvette prototype art is already done.
 
@@ -187,7 +189,7 @@ This project is built by one person with a full-time job, young children, and AD
 ### v1.0 — Systems that make the world feel alive
 
 - **Persistent NPC economy.** Free Trade Union ships as the NPC trader layer. NPC ships visit player stations while offline. "Your station facilitated 42 trades" becomes a real number, not a placeholder.
-- **Faction rep and faction-weighted economy.** Selling the right ore at the right time to the right faction grants rep and bonus credits.
+- **Faction rep and faction-weighted economy.** Selling the right ore at the right time to the right faction grants rep and bonus credits. **Same-faction contribution** to construction sites grants rep points and (over time) compounding contribution bonuses. **Cross-faction contribution** still works — the goods are accepted — but pays out at flat market value with no rep accrual. Some faction pairings are antagonistic enough that cross-contribution may carry a *negative* rep modifier with your own faction. This preserves the "friends in different factions can still play together" affordance from the MVP while giving same-faction play a long-term progression hook.
 - **Simplified royalty system.** Players who mark a point of interest earn a flat credit reward from nowhere (not player-funded) when another player uses it. No market distribution model needed.
 - **Civilian NPC AI.** Background ships flying around to make sectors feel populated.
 - **Pirate NPC encounters** as avoidable environmental threats. No player-side combat skill required; defenders/autoturrets handle it.

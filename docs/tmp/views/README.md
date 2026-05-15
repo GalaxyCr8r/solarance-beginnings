@@ -1,0 +1,1 @@
+Provided from the `Solarance-Movement-Prototype` repo. This shows how I implemented `View`s a few different ways successfully.
