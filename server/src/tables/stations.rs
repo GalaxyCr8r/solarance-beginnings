@@ -181,9 +181,7 @@ pub struct ConstructionRequirement {
 
 /// Append-only log of every contribution event. Source of truth for both
 /// real-time progress recomputation and the welcome-back screen query (#82b).
-/// `method(update = true)` is on for FK-cascade codegen — the reducer never
-/// updates a log row.
-#[dsl(plural_name = construction_contribution_logs, method(update = true))]
+#[dsl(plural_name = construction_contribution_logs, method(update = false))]
 #[table(accessor = construction_contribution_log, public)]
 pub struct ConstructionContributionLog {
     #[primary_key]
@@ -195,24 +193,24 @@ pub struct ConstructionContributionLog {
     #[use_wrapper(StationId)]
     #[foreign_key(path = crate::tables::stations, table = station, column = id, on_delete = Delete)]
     /// FK to Station — the construction site the contribution was made to.
-    pub station_id: u64,
+    station_id: u64,
 
     #[index(btree)]
     #[use_wrapper(crate::tables::players::PlayerId)]
     #[foreign_key(path = crate::tables::players, table = player, column = id, on_delete = Error)]
     /// FK to Player — who made the contribution.
-    pub player_id: Identity,
+    player_id: Identity,
 
     #[index(btree)]
     #[use_wrapper(crate::tables::items::ItemDefinitionId)]
     #[foreign_key(path = crate::tables::items, table = item_definition, column = id, on_delete = Error)]
     /// FK to ItemDefinition.
-    pub item_id: u32,
+    item_id: u32,
 
     /// Quantity of `item_id` deposited in this single contribution event.
-    pub quantity: u32,
+    quantity: u32,
 
-    pub contributed_at: Timestamp,
+    contributed_at: Timestamp,
 }
 
 #[dsl(plural_name = station_modules_under_construction, method(update = true))]
