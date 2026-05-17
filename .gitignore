@@ -29,3 +29,4 @@ Cargo.lock
 client/src/server/bindings/
 
 **/.env
+.DS_Store
