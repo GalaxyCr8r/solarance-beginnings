@@ -126,6 +126,8 @@ pub struct ItemDefinition {
     #[referenced_by(path = crate::tables::ships, table = ship_cargo_item)]
     #[referenced_by(path = crate::tables::ships, table = ship_equipment_slot)]
     #[referenced_by(path = crate::tables::stations, table = station_module_inventory_item)]
+    #[referenced_by(path = crate::tables::stations, table = construction_requirement)]
+    #[referenced_by(path = crate::tables::stations, table = construction_contribution_log)]
     #[referenced_by(path = crate::tables::items, table = cargo_crate)]
     id: u32,
 

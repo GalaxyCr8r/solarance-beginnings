@@ -1,5 +1,5 @@
 use solarance_shared::Vec2;
-use spacetimedb::{table, SpacetimeType, Timestamp};
+use spacetimedb::{table, Identity, SpacetimeType, Timestamp};
 use spacetimedsl::*;
 
 use crate::tables::economy::ResourceAmount;
@@ -151,6 +151,68 @@ pub struct StationUnderConstruction {
     pub construction_progress_percentage: f32,
 }
 
+/// One row per resource type required to complete a construction site.
+/// Together these rows define the "spec" — the pure progress engine compares
+/// this spec against the rows in `construction_contribution_log` to derive
+/// the percentage stored on `StationUnderConstruction`.
+#[dsl(plural_name = construction_requirements, method(update = true))]
+#[table(accessor = construction_requirement, public)]
+pub struct ConstructionRequirement {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]
+    id: u64,
+
+    #[index(btree)]
+    #[use_wrapper(StationId)]
+    #[foreign_key(path = crate::tables::stations, table = station, column = id, on_delete = Delete)]
+    /// FK to Station — the construction site this requirement belongs to.
+    pub station_id: u64,
+
+    #[index(btree)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
+    #[foreign_key(path = crate::tables::items, table = item_definition, column = id, on_delete = Error)]
+    /// FK to ItemDefinition.
+    pub resource_item_id: u32,
+
+    /// Total quantity needed of this resource type for the site to complete.
+    pub quantity_required: u32,
+}
+
+/// Append-only log of every contribution event. Source of truth for both
+/// real-time progress recomputation and the welcome-back screen query (#82b).
+#[dsl(plural_name = construction_contribution_logs, method(update = false))]
+#[table(accessor = construction_contribution_log, public)]
+pub struct ConstructionContributionLog {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]
+    id: u64,
+
+    #[index(btree)]
+    #[use_wrapper(StationId)]
+    #[foreign_key(path = crate::tables::stations, table = station, column = id, on_delete = Delete)]
+    /// FK to Station — the construction site the contribution was made to.
+    station_id: u64,
+
+    #[index(btree)]
+    #[use_wrapper(crate::tables::players::PlayerId)]
+    #[foreign_key(path = crate::tables::players, table = player, column = id, on_delete = Error)]
+    /// FK to Player — who made the contribution.
+    player_id: Identity,
+
+    #[index(btree)]
+    #[use_wrapper(crate::tables::items::ItemDefinitionId)]
+    #[foreign_key(path = crate::tables::items, table = item_definition, column = id, on_delete = Error)]
+    /// FK to ItemDefinition.
+    item_id: u32,
+
+    /// Quantity of `item_id` deposited in this single contribution event.
+    quantity: u32,
+
+    contributed_at: Timestamp,
+}
+
 #[dsl(plural_name = station_modules_under_construction, method(update = true))]
 #[table(accessor = station_module_under_construction, public)]
 pub struct StationModuleUnderConstruction {
@@ -205,6 +267,8 @@ pub struct Station {
     #[referenced_by(path = crate::tables::stations, table = station_under_construction)]
     #[referenced_by(path = crate::tables::stations, table = station_module_under_construction)]
     #[referenced_by(path = crate::tables::stations, table = station_status)]
+    #[referenced_by(path = crate::tables::stations, table = construction_requirement)]
+    #[referenced_by(path = crate::tables::stations, table = construction_contribution_log)]
     #[referenced_by(path = crate::tables::ships, table = ship)]
     id: u64,
 
