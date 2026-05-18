@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use log::info;
 use spacetimedb::{Identity, ReducerContext};
 use spacetimedsl::*;
@@ -17,12 +19,18 @@ use crate::utility::try_server_only;
 #[spacetimedb::reducer]
 pub fn admin_spawn_cargo_in_player_ship(
     ctx: &ReducerContext,
-    target_player_id: Identity,
+    target_player_id_str: &str,
     item_id: u32,
     quantity: u16,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
     try_server_only(&dsl)?;
+    let target_player_id = Identity::from_str(target_player_id_str).map_err(|e| {
+        format!(
+            "admin_spawn_cargo_in_player_ship: invalid target_player_id_str {:?}: {}",
+            target_player_id_str, e
+        )
+    })?;
 
     if quantity == 0 {
         return Err("admin_spawn_cargo_in_player_ship: quantity must be > 0".to_string());
