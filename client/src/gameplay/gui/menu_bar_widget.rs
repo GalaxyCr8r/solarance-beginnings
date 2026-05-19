@@ -37,6 +37,8 @@ pub fn draw(egui_ctx: &Context, _ctx: &DbConnection, game_state: &mut GameState)
               toggable_label(ui, "ASSE[T]S", &mut game_state.assets_window_open);
               ui.separator();
               toggable_label(ui, "[M]AP", &mut game_state.map_window_open);
+              ui.separator();
+              toggable_label(ui, "[B]UILD", &mut game_state.construction_window_open);
             });
         })
 }
