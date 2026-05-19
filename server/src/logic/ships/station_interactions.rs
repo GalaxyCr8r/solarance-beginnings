@@ -30,6 +30,19 @@ pub fn try_to_dock_to_station(ctx: &ReducerContext, station: &Station) -> Result
     let dsl = dsl(ctx);
     let (ship_object, ship_sobj) = get_player_ship_and_sobj(&dsl, &PlayerId::new(ctx.sender()))?;
 
+    // Reject docking with an under-construction site. The row only exists for
+    // stations that started life as construction sites; `is_operational` flips
+    // to true on completion, so a missing row also implies "operational".
+    if let Ok(under_construction) = dsl.get_station_under_construction_by_id(&station.get_id()) {
+        if !*under_construction.get_is_operational() {
+            return Err(format!(
+                "Cannot dock at '{}' (station #{}): still under construction.",
+                station.get_name(),
+                station.get_id().value()
+            ));
+        }
+    }
+
     // TODO: Check if same faction
 
     // TODO: If not, check faction standing

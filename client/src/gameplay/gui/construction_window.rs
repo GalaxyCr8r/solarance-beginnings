@@ -3,6 +3,11 @@ use spacetimedb_sdk::*;
 
 use crate::{server::bindings::*, stdb::utils::*};
 
+/// Must match `server::logic::stations::contribution::CONTRIBUTE_RANGE_PX`.
+/// The server rejects deposits past this distance; we mirror it here so the
+/// UI can grey the deposit buttons before the player tries.
+const CONTRIBUTE_RANGE_PX: f32 = 300.0;
+
 pub struct State {}
 
 impl State {
@@ -72,7 +77,7 @@ fn draw_site(
     station: &Station,
     under_construction: &StationUnderConstruction,
 ) {
-    ui.heading(&station.name);
+    ui.heading(station_display_name(ctx, station));
     ui.separator();
 
     if under_construction.is_operational {
@@ -142,6 +147,26 @@ fn draw_site(
         None => return,
     };
 
+    let distance = get_player_pose(ctx).map(|p| {
+        let dx = station.position.x - p.pos.x;
+        let dy = station.position.y - p.pos.y;
+        (dx * dx + dy * dy).sqrt()
+    });
+    let in_range = distance.map_or(false, |d| d <= CONTRIBUTE_RANGE_PX);
+
+    if !in_range {
+        let dist_text = distance
+            .map(|d| format!("{:.0}px", d))
+            .unwrap_or_else(|| "unknown".to_string());
+        ui.label(
+            RichText::new(format!(
+                "Too far to contribute — move within {:.0}px (currently {}).",
+                CONTRIBUTE_RANGE_PX, dist_text
+            ))
+            .color(Color32::from_rgb(230, 190, 80)),
+        );
+    }
+
     let useful_items: std::collections::HashSet<u32> =
         requirements.iter().map(|r| r.resource_item_id).collect();
 
@@ -160,7 +185,7 @@ fn draw_site(
         shown_any = true;
         ui.horizontal(|ui| {
             ui.label(format!("{}x {}", cargo.quantity, item_def.name));
-            deposit_buttons(ui, ctx, station.id, cargo.item_id, cargo.quantity);
+            deposit_buttons(ui, ctx, station.id, cargo.item_id, cargo.quantity, in_range);
         });
     }
 
@@ -175,6 +200,7 @@ fn deposit_buttons(
     station_id: u64,
     item_id: u32,
     cargo_qty: u16,
+    enabled: bool,
 ) {
     let station_id = StationId { value: station_id };
     let item_id = ItemDefinitionId { value: item_id };
@@ -185,16 +211,20 @@ fn deposit_buttons(
             .contribute_to_station(station_id.clone(), item_id.clone(), qty);
     };
 
-    if ui.button("+1").clicked() {
+    if ui.add_enabled(enabled, egui::Button::new("+1")).clicked() {
         deposit(1);
     }
-    if cargo_qty >= 10 && ui.button("+10").clicked() {
+    if cargo_qty >= 10
+        && ui.add_enabled(enabled, egui::Button::new("+10")).clicked()
+    {
         deposit(10);
     }
-    if cargo_qty >= 100 && ui.button("+100").clicked() {
+    if cargo_qty >= 100
+        && ui.add_enabled(enabled, egui::Button::new("+100")).clicked()
+    {
         deposit(100);
     }
-    if ui.button("All").clicked() {
+    if ui.add_enabled(enabled, egui::Button::new("All")).clicked() {
         deposit(cargo_qty as u32);
     }
 }

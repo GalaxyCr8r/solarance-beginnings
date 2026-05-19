@@ -116,7 +116,7 @@ fn list_sector_objects(
                                     format!(
                                         "[{}] {}",
                                         get_faction_shortname(ctx, &station.owner_faction_id),
-                                        station.name
+                                        station_display_name(ctx, &station)
                                     )
                                 } else {
                                     "Unknown Station".to_string()

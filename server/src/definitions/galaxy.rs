@@ -5,10 +5,16 @@ use spacetimedsl::*;
 use solarance_shared::Vec2;
 
 use crate::{
-    definitions::factions::FACTION_LRAK_COMBINE,
-    logic::stations::*,
+    definitions::{
+        factions::FACTION_LRAK_COMBINE,
+        item_types::{ITEM_IRON_ORE, ITEM_SILICON_ORE},
+    },
+    logic::stations::{contribution::create_construction_site, *},
     logic::stellarobjects::stellar_object_creation::create_sobj,
-    tables::{factions::*, sectors::*, star_system::*, stations::*, stellarobjects::*},
+    tables::{
+        economy::ResourceAmount, factions::*, sectors::*, star_system::*, stations::*,
+        stellarobjects::*,
+    },
 };
 
 //////////////////////////////////////////////////////////////
@@ -201,7 +207,35 @@ fn create_sector_stations<T: spacetimedsl::WriteContext + 'static>(
 ) -> Result<(), String> {
     create_beta_trading_station(dsl, beta, faction_id)?;
     create_alpha_refinery_station(dsl, alpha, faction_id)?;
+    create_alpha_construction_site(dsl, alpha, faction_id)?;
     create_gamma_capital_station(dsl, gamma, faction_id)?;
+    Ok(())
+}
+
+/// Creates a single under-construction site in Alpha for the M1 spike.
+/// Spike-grade quantities (100 iron, 50 silicon) — small enough to drive to
+/// 100% in one playtest. M4 will replace this with proper per-sector
+/// construction sites; for now this is the only test target the
+/// `contribute_to_station` reducer can point at after `--clear-database`.
+fn create_alpha_construction_site<T: spacetimedsl::WriteContext + 'static>(
+    dsl: &DSL<T>,
+    alpha: &Sector,
+    faction_id: &FactionId,
+) -> Result<(), String> {
+    let _station = create_construction_site(
+        dsl,
+        StationSize::Small,
+        alpha,
+        &create_sobj(dsl, StellarObjectKinds::Station, &alpha.get_id())?,
+        faction_id.clone(),
+        "Alpha Outpost",
+        Vec2::new(2000.0, 0.0),
+        0.0,
+        vec![
+            ResourceAmount::new(ITEM_IRON_ORE, 10),
+            ResourceAmount::new(ITEM_SILICON_ORE, 5),
+        ],
+    )?;
     Ok(())
 }
 
