@@ -1,0 +1,38 @@
+[
+  {
+    "slug": "2026-05-cutting-mvp-back",
+    "file": "2026-05-cutting-mvp-back.md",
+    "date": "2026-05-14",
+    "tag": "DEVLOG · 004",
+    "title": "Cutting the MVP back. Again.",
+    "blurb": "Reread the design doc. Found four features I'd quietly added back. Out they go.",
+    "tags": ["scope", "discipline"]
+  },
+  {
+    "slug": "2026-04-rotational-velocity",
+    "file": "2026-04-rotational-velocity.md",
+    "date": "2026-04-02",
+    "tag": "DEVLOG · 003",
+    "title": "Rotational velocity, finally arrested.",
+    "blurb": "The client/server prediction bug that made ships spin gently forever is fixed.",
+    "tags": ["netcode", "movement"]
+  },
+  {
+    "slug": "2026-03-what-cozy-means",
+    "file": "2026-03-what-cozy-means.md",
+    "date": "2026-03-01",
+    "tag": "DEVLOG · 002",
+    "title": "What “cozy” actually means.",
+    "blurb": "Why my drafts kept drifting back toward EVE — and the persona that fixed it.",
+    "tags": ["design", "player"]
+  },
+  {
+    "slug": "2026-02-hello-40",
+    "file": "2026-02-hello-40.md",
+    "date": "2026-02-03",
+    "tag": "DEVLOG · 001",
+    "title": "Hello, 40 followers.",
+    "blurb": "Starting the public devlog. The bar isn't how much I have to show.",
+    "tags": ["meta"]
+  }
+]
