@@ -14,7 +14,7 @@ use crate::{
         jumpgates::*,
         players::{get_player_ship_and_sobj, PlayerId},
         sectors::GetSectorRowOptionById,
-        server_messages::send_info_message,
+        server_messages::{send_error_message, send_info_message},
         ships::*,
         stations::*,
         stellarobjects::*,
@@ -35,11 +35,18 @@ pub fn try_to_dock_to_station(ctx: &ReducerContext, station: &Station) -> Result
     // to true on completion, so a missing row also implies "operational".
     if let Ok(under_construction) = dsl.get_station_under_construction_by_id(&station.get_id()) {
         if !*under_construction.get_is_operational() {
-            return Err(format!(
+            let msg = format!(
                 "Cannot dock at '{}' (station #{}): still under construction.",
                 station.get_name(),
                 station.get_id().value()
-            ));
+            );
+            let _ = send_error_message(
+                &dsl,
+                &PlayerId::new(ctx.sender()),
+                msg.clone(),
+                Some("Docking"),
+            );
+            return Err(msg);
         }
     }
 
