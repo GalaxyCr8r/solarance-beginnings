@@ -25,6 +25,7 @@ pub struct GameState<'a> {
     // GUI States
     pub assets_window: assets_window::State,
     pub chat_window: chat_widget::State,
+    pub construction_window: construction_window::State,
     pub creation_window: creation_window::State,
     pub details_window: ship_details_window::State,
     pub faction_window: faction_window::State,
@@ -34,6 +35,7 @@ pub struct GameState<'a> {
 
     // GUI Window Booleans
     pub assets_window_open: bool,
+    pub construction_window_open: bool,
     pub details_window_open: bool,
     pub faction_window_open: bool,
     pub map_window_open: bool,
@@ -68,6 +70,7 @@ pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
 
         assets_window: assets_window::State::new(),
         chat_window: chat_widget::State::default(),
+        construction_window: construction_window::State::new(),
         creation_window: creation_window::State::new(),
         details_window: ship_details_window::State::new(),
         faction_window: faction_window::State::new(),
@@ -76,6 +79,7 @@ pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
         out_of_play_screen: out_of_play_screen::State::new(),
 
         assets_window_open: false,
+        construction_window_open: false,
         details_window_open: false,
         faction_window_open: false,
         map_window_open: false,

@@ -221,6 +221,12 @@ pub async fn gameplay(connection: Option<DbConnection>) {
                     &mut game_state.map_window,
                     &mut game_state.map_window_open,
                 );
+                gui::construction_window::draw(
+                    egui_ctx,
+                    &ctx,
+                    &mut game_state.construction_window,
+                    &mut game_state.construction_window_open,
+                );
             }
         });
 
@@ -250,6 +256,9 @@ pub async fn gameplay(connection: Option<DbConnection>) {
             }
             if is_key_pressed(KeyCode::M) {
                 game_state.map_window_open = !game_state.map_window_open;
+            }
+            if is_key_pressed(KeyCode::B) {
+                game_state.construction_window_open = !game_state.construction_window_open;
             }
         }
 

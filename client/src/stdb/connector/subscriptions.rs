@@ -158,6 +158,8 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
             "SELECT * FROM station",
             "SELECT * FROM station_status",
             "SELECT * FROM station_under_construction",
+            "SELECT * FROM construction_requirement",
+            "SELECT * FROM construction_contribution_log",
             stellar_object.as_str(),
             visual_effect.as_str(),
         ]);

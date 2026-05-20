@@ -111,7 +111,7 @@ fn show_station_window(
 ) {
     egui::Window::new(format!(
         "{} Station - {} - Docked Ship #{}",
-        station.name,
+        station_display_name(ctx, &station),
         get_sector_name(ctx, &station.sector_id),
         ship.id
     ))

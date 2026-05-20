@@ -149,6 +149,24 @@ pub fn get_faction_shortname(ctx: &DbConnection, id: &u32) -> String {
     }
 }
 
+/// Station name plus a lifecycle suffix when the station has a matching
+/// `StationUnderConstruction` row that hasn't flipped to operational yet.
+/// Construction state lives in tables, not in `Station.name`; this helper is
+/// the single place that derives the display string so callers don't each
+/// re-implement it.
+pub fn station_display_name(ctx: &DbConnection, station: &Station) -> String {
+    let under_construction = ctx
+        .db()
+        .station_under_construction()
+        .id()
+        .find(&station.id)
+        .filter(|uc| !uc.is_operational);
+    match under_construction {
+        Some(_) => format!("{} (Under Construction)", station.name),
+        None => station.name.clone(),
+    }
+}
+
 pub fn get_sector_name(ctx: &DbConnection, id: &u64) -> String {
     if let Some(sector) = ctx.db().sector().id().find(&id) {
         sector.name

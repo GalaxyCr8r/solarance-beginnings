@@ -3,8 +3,18 @@ use spacetimedsl::*;
 
 use crate::{
     logic::ships::cargo::remove_cargo_from_ship,
-    tables::{items::*, players::*, server_messages::*, ships::*, stations::*},
+    logic::stations::create_station_with_modules,
+    logic::stellarobjects::movement::get_ship_movement_snapshot,
+    tables::{
+        economy::ResourceAmount, factions::FactionId, items::*, players::*, sectors::Sector,
+        server_messages::*, ships::*, stations::*, stellarobjects::StellarObject,
+    },
 };
+
+/// Maximum world-space distance (px) between a contributing ship and a
+/// construction site. Mirrored client-side in `construction_window.rs` so the
+/// UI can warn before the player tries.
+pub const CONTRIBUTE_RANGE_PX: f32 = 300.0;
 
 ///////////////////////////////////////////////////////////
 // Pure progress engine
@@ -138,6 +148,98 @@ fn refresh_station_progress<T: spacetimedsl::WriteContext>(
 }
 
 ///////////////////////////////////////////////////////////
+// Construction site lifecycle helpers
+///////////////////////////////////////////////////////////
+
+/// Create a station that starts life under construction: no modules, zero
+/// progress, with the given resource requirement spec. Used by both the
+/// init seeder in `definitions/galaxy.rs` and the admin reducer in
+/// `admin/construction.rs` so the two paths can't drift.
+pub fn create_construction_site<T: spacetimedsl::WriteContext + 'static>(
+    dsl: &DSL<T>,
+    size: StationSize,
+    sector: &Sector,
+    sobj: &StellarObject,
+    owner_faction_id: FactionId,
+    name: &str,
+    position: solarance_shared::Vec2,
+    rotation: f32,
+    requirements: Vec<ResourceAmount>,
+) -> Result<Station, String> {
+    if requirements.is_empty() {
+        return Err(format!(
+            "create_construction_site refused: '{}' has no requirements — would never complete",
+            name
+        ));
+    }
+
+    let station = create_station_with_modules(
+        dsl,
+        size,
+        sector,
+        sobj,
+        owner_faction_id,
+        name,
+        None,
+        position,
+        rotation,
+        Vec::new(),
+    )?;
+
+    dsl.create_station_under_construction(CreateStationUnderConstruction {
+        id: station.get_id(),
+        is_operational: false,
+        construction_progress_percentage: 0.0,
+    })?;
+
+    for req in requirements {
+        if req.quantity == 0 {
+            return Err(format!(
+                "create_construction_site rejected zero-quantity requirement for item {} on station {}",
+                req.resource_item_id,
+                station.get_id().value()
+            ));
+        }
+        dsl.create_construction_requirement(CreateConstructionRequirement {
+            station_id: station.get_id(),
+            resource_item_id: ItemDefinitionId::new(req.resource_item_id),
+            quantity_required: req.quantity,
+        })?;
+    }
+
+    Ok(station)
+}
+
+/// Wipe every contribution row for the station and zero the progress bar.
+/// Used by `admin_reset_construction_site` so the designer can replay the
+/// completion moment without re-publishing the module.
+pub fn reset_construction_site<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    station_id: &StationId,
+) -> Result<(), String> {
+    let log_ids: Vec<_> = dsl
+        .get_construction_contribution_logs_by_station_id(station_id)
+        .map(|log| log.get_id().clone())
+        .collect();
+    let cleared = log_ids.len();
+    for id in log_ids {
+        dsl.delete_construction_contribution_log_by_id(&id)?;
+    }
+
+    let mut under_construction = dsl.get_station_under_construction_by_id(station_id)?;
+    under_construction.set_is_operational(false);
+    under_construction.set_construction_progress_percentage(0.0);
+    dsl.update_station_under_construction_by_id(under_construction)?;
+
+    log::info!(
+        "reset_construction_site: station_id={} cleared {} contribution log rows",
+        station_id.value(),
+        cleared
+    );
+    Ok(())
+}
+
+///////////////////////////////////////////////////////////
 // Reducers
 ///////////////////////////////////////////////////////////
 
@@ -193,6 +295,24 @@ pub fn contribute_to_station(
             ship.get_sector_id().value(),
             station_id.value(),
             station.get_sector_id().value()
+        );
+        let _ = send_error_message(&dsl, &player_id, msg.clone(), Some("Station Contribution"));
+        return Err(msg);
+    }
+
+    let ship_snapshot = get_ship_movement_snapshot(&dsl, &ship.get_id())?;
+    let station_pos = station.get_position();
+    let dx = ship_snapshot.pos.x - station_pos.x;
+    let dy = ship_snapshot.pos.y - station_pos.y;
+    let dist_sq = dx * dx + dy * dy;
+    let max_dist_sq = CONTRIBUTE_RANGE_PX * CONTRIBUTE_RANGE_PX;
+    if dist_sq > max_dist_sq {
+        let msg = format!(
+            "Too far to contribute: ship #{} is {:.0}px from '{}' (max {:.0}px).",
+            ship.get_id().value(),
+            dist_sq.sqrt(),
+            station.get_name(),
+            CONTRIBUTE_RANGE_PX,
         );
         let _ = send_error_message(&dsl, &player_id, msg.clone(), Some("Station Contribution"));
         return Err(msg);

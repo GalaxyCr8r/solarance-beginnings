@@ -292,7 +292,7 @@ fn add_targeted_object_status(
         }
         StellarObjectKinds::Station => {
             if let Some(station) = ctx.db().station().sobj_id().find(&target.id) {
-                ui.label(format!("{}", station.name));
+                ui.label(station_display_name(ctx, &station));
                 ui.label(format!(
                     "Faction: {}",
                     get_faction_shortname(ctx, &station.owner_faction_id)
