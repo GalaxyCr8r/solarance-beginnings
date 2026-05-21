@@ -67,7 +67,7 @@ fn fighters<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
         // Cap and accel scaled to 2/3 of the original first cut after live-feel test.
         base_angular_acceleration: 4.0 * PI / 3.0,
         base_max_turn_rate: 2.0 * PI / 3.0,
-        cargo_capacity: 64,
+        cargo_capacity: 256,
         num_weapon_slots: 2,
         num_large_weapon_slots: 0,
         num_turret_slots: 0,
