@@ -22,4 +22,4 @@ It's not pretty. Nothing flashes when it completes. The construction site is a s
 
 Persistence. The welcome-back screen. Log out, come back tomorrow, see what changed while you were gone — both your own progress and the other pilot's. That's M2.
 
-No mining yet. No second sector with its own construction site. No completion fanfare. Those are later. The core question this spike was supposed to answer — *does watching the bar move together actually feel like anything* — is the part I can't write down. That's for the people who flew up to the outpost with me.
+No mining yet. No second sector with its own construction site. No completion fanfare. Those are later. The core question this spike was supposed to answer — *does watching the bar move together actually feel like anything* — is still open. So far it's just me, two clients, two machines. The bar moves from both sides. That part works. Whether it feels like anything with someone else on the other end is the part I can't answer yet.
