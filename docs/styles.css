@@ -293,19 +293,120 @@ hr { border: 0; border-top: 1px dashed var(--line); margin: 20px 0; }
 
 /* Hero block */
 .hero {
-  padding: 80px 18px 60px;
+  padding: 56px 18px 60px;
   display: grid;
-  grid-template-columns: 1.3fr 1fr;
-  gap: 56px;
-  align-items: center;
+  grid-template-columns: 1fr;
+  gap: 36px;
+  align-items: start;
 }
-@media (max-width: 900px) { .hero { grid-template-columns: 1fr; gap: 32px; padding: 48px 18px; } }
+.hero-shot {
+  position: relative;
+  margin: 0;
+  background: #000;
+  border: 1px solid var(--line);
+  padding: 10px;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--accent) 20%, transparent),
+    0 24px 80px -20px color-mix(in oklch, var(--accent) 40%, transparent),
+    0 0 120px -30px color-mix(in oklch, var(--accent) 30%, transparent);
+}
+.hero-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1px solid var(--line);
+}
+/* subtle scanline overlay so the shot reads "from inside our terminal" */
+.hero-shot::after {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 3px,
+    rgba(0,0,0,0.18) 4px,
+    transparent 5px
+  );
+  mix-blend-mode: multiply;
+}
+.hero-shot figcaption {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: baseline;
+  padding: 10px 4px 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--fg-dim);
+}
+.hero-shot .cap-no {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--accent);
+  line-height: 1;
+}
+.hero-shot .cap-t { color: var(--fg); }
+.hero-shot .cap-meta {
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+
+.hero-copy { max-width: 880px; }
+.hero-copy .pitch { max-width: 62ch; }
+
+@media (max-width: 1099px) {
+  .hero-copy {
+    text-align: center;
+    margin: 0 auto;
+  }
+  .hero-copy .hero-logo {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 680px;
+  }
+  .hero-copy .pitch {
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .hero-copy .ctaRow {
+    justify-content: center;
+  }
+  .hero-copy > div[style*="flex-wrap"] {
+    justify-content: center;
+  }
+}
+
+@media (min-width: 1100px) {
+  .hero {
+    grid-template-columns: 1.35fr 1fr;
+    align-items: center;
+    padding: 64px 18px 64px;
+    gap: 56px;
+  }
+  .hero-copy { order: -1; }
+}
+@media (max-width: 640px) {
+  .hero-shot figcaption {
+    grid-template-columns: auto 1fr;
+  }
+  .hero-shot .cap-meta { grid-column: 1 / -1; padding-top: 2px; }
+}
+
 .hero-logo {
   display: block;
   width: 100%;
-  max-width: 560px;
+  max-width: 520px;
   height: auto;
-  margin: 18px 0 6px;
+  margin: 14px 0 6px;
   filter:
     drop-shadow(0 0 20px color-mix(in oklch, var(--accent) 55%, transparent))
     drop-shadow(0 0 4px color-mix(in oklch, var(--accent) 80%, transparent));
@@ -609,7 +710,31 @@ pre.ascii {
 }
 .tl-row.future .stage { color: var(--fg-muted); }
 
-/* Devlog entry */
+/* "Time skip" connector — between session and welcome-back */
+.time-skip {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 28px 0 22px;
+  padding: 0 6px;
+}
+.time-skip .line {
+  flex: 1;
+  height: 1px;
+  background: repeating-linear-gradient(
+    to right,
+    var(--line) 0 6px,
+    transparent 6px 12px
+  );
+}
+.time-skip .label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  white-space: nowrap;
+}
 .entry {
   display: grid;
   grid-template-columns: 140px 1fr;
@@ -891,6 +1016,8 @@ pre.ascii {
   color: var(--fg-dim);
   line-height: 1.6;
   max-width: 80ch;
+  margin-left: auto;
+  margin-right: auto;
 }
 .terminal .prompt { color: var(--accent); }
 .terminal .said { color: var(--fg); }
