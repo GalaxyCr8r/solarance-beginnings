@@ -232,8 +232,8 @@ fn create_alpha_construction_site<T: spacetimedsl::WriteContext + 'static>(
         Vec2::new(2000.0, 0.0),
         0.0,
         vec![
-            ResourceAmount::new(ITEM_IRON_ORE, 10),
-            ResourceAmount::new(ITEM_SILICON_ORE, 5),
+            ResourceAmount::new(ITEM_IRON_ORE, 100),
+            ResourceAmount::new(ITEM_SILICON_ORE, 50),
         ],
     )?;
     Ok(())

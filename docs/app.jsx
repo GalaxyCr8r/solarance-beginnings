@@ -206,8 +206,9 @@ function App() {
   // Scroll to top on route change
   useEffect(() => { window.scrollTo(0, 0); }, [route]);
 
+  const topRoute = route.split("/")[0];
   const page = (() => {
-    switch (route) {
+    switch (topRoute) {
       case "manifesto": return <ManifestoPage />;
       case "roadmap":   return <RoadmapPage />;
       case "map":       return <MapPage />;
@@ -221,7 +222,7 @@ function App() {
   return (
     <div className="app">
       <StatusBar />
-      <Nav route={route} />
+      <Nav route={topRoute} />
       {page}
       <Footer />
       <TweaksUI tweaks={tweaks} setTweaks={setTweaks} />
