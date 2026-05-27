@@ -26,6 +26,12 @@ pub struct Player {
     pub logged_in: bool,
     pub faction_id: FactionId,
 
+    /// Wall-clock of the player's previous `client_connected`. `None` until the
+    /// first time the welcome-back composer runs for them. Read *before* it is
+    /// re-stamped each connect, so it marks the boundary of "while you were
+    /// away" — the baseline the welcome-back message diffs against.
+    pub last_login: Option<Timestamp>,
+
     created_at: Timestamp,
     modified_at: Timestamp,
 }
