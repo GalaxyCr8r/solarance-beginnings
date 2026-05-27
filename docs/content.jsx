@@ -8,7 +8,16 @@ function HomePage() {
   return (
     <main>
       <section className="container hero">
-        <div>
+        <figure className="hero-shot">
+          <img src="assets/screen-01-corvette.png" alt="Corvette beside an asteroid, jumpgate above — in-engine screenshot of Solarance: Beginnings" />
+          <figcaption>
+            <span className="cap-no">▸</span>
+            <span className="cap-t">Corvette beside a low-quality asteroid · Outpost Echo's jumpgate above.</span>
+            <span className="cap-meta">in-engine · pre-alpha · v0.4.0</span>
+          </figcaption>
+        </figure>
+
+        <div className="hero-copy">
           <div className="kicker accent-bloom">▸ Pre-Alpha · Public Devlog · Pilot enrollment closed</div>
           <img src="assets/solarance-logo.png" alt="Karl Nyborg's Solarance: Beginnings" className="hero-logo" />
           <p className="pitch">
@@ -26,34 +35,6 @@ function HomePage() {
             <span className="tag warn">⚠ Not playable yet</span>
             <span className="tag dim">Target: 5–10 concurrent pilots at MVP</span>
             <span className="tag dim">Solo dev · ADHD · 2 kids</span>
-          </div>
-        </div>
-
-        <div className="panel" style={{ minHeight: 420 }}>
-          <div className="head">
-            <span className="dot" /> <span>WELCOME-BACK MOCKUP</span>
-            <span style={{ flex: 1 }} />
-            <span className="tag dim">terminal preview</span>
-          </div>
-          <div className="body">
-            <div className="terminal">
-              <div><span className="prompt">$</span> ssh pilot@solarance-beginnings.com</div>
-              <div style={{ marginTop: 8 }}>
-                <span className="prompt">solarance ▸ </span>
-                <span className="said">Welcome back, Pilot.</span>
-              </div>
-              <div>It has been <b style={{color:"var(--accent)"}}>4d 11h</b> since your last dock.</div>
-              <hr style={{ borderTop: "1px dashed var(--line)" }} />
-              <div className="said">▸ Outpost Echo (Rediar) — construction <b style={{color:"var(--accent)"}}>34%</b></div>
-              <div style={{ color: "var(--fg-muted)" }}>  3 pilots contributed while you were away.</div>
-              <div className="said">▸ You have <b style={{color:"var(--accent)"}}>240</b> units of iron ore in storage.</div>
-              <div className="said">▸ 1 sector notification — &nbsp;<span style={{color:"var(--warn)"}}>[FACTION]</span> &nbsp;Outpost Echo nearing 50%.</div>
-              <hr style={{ borderTop: "1px dashed var(--line)" }} />
-              <div style={{ color: "var(--fg-muted)" }}>Your progress waited for you. It will keep waiting.</div>
-              <div style={{ marginTop: 10 }}>
-                <span className="prompt">▸</span> <span className="cursor" />
-              </div>
-            </div>
           </div>
         </div>
       </section>
@@ -249,6 +230,50 @@ function HomePage() {
           <div style={{ color: "var(--fg-muted)" }}>
             Twenty minutes. A small thing built. Then — dinner, bath time, sleep.
             Tomorrow night the station's a little further along, and so are you.
+          </div>
+        </div>
+
+        {/* time-skip connector */}
+        <div className="time-skip" role="separator" aria-label="four days later" style={{ maxWidth: "82ch", marginLeft: "auto", marginRight: "auto" }}>
+          <span className="line" />
+          <span className="label">▸ four days later. dinner over, kids asleep. ▸</span>
+          <span className="line" />
+        </div>
+
+        {/* welcome-back mockup — the payoff */}
+        <div className="panel" style={{ maxWidth: "82ch", margin: "0 auto" }}>
+          <div className="head">
+            <span className="dot" /> <span>WELCOME-BACK SCREEN</span>
+            <span style={{ flex: 1 }} />
+            <span className="tag dim">no AI · no LLM · just receipts</span>
+          </div>
+          <div className="body">
+            <p style={{ color: "var(--fg-dim)", maxWidth: "62ch", marginTop: 0, marginBottom: 14 }}>
+              This is what greets him next time. No login streak. No daily quest.
+              Just a list of what the galaxy did while he was away, scoped to what he cares about.
+            </p>
+            <div className="terminal">
+              <div><span className="prompt">$</span> ssh pilot@solarance-beginnings.com</div>
+              <div style={{ marginTop: 8 }}>
+                <span className="prompt">solarance ▸ </span>
+                <span className="said">Welcome back, Pilot.</span>
+              </div>
+              <div>It has been <b style={{color:"var(--accent)"}}>4d 11h</b> since your last dock.</div>
+              <hr style={{ borderTop: "1px dashed var(--line)" }} />
+              <div className="said">▸ Outpost Echo (Rediar) — construction <b style={{color:"var(--accent)"}}>52%</b> <span style={{color:"var(--green)"}}>(+18% since your last visit)</span></div>
+              <div style={{ color: "var(--fg-muted)" }}>  7 pilots contributed while you were away. Top contributor: <span style={{color:"var(--fg-dim)"}}>cmdr_helga</span> · 412 units</div>
+              <div className="said">▸ Your storage: <b style={{color:"var(--accent)"}}>0</b> iron ore <span style={{color:"var(--fg-muted)"}}>(fully delivered last session)</span></div>
+              <div className="said">▸ 1 sector notification — &nbsp;<span style={{color:"var(--warn)"}}>[FACTION]</span> &nbsp;Outpost Echo nearing 50% milestone.</div>
+              <div className="said">▸ 1 sector notification — &nbsp;<span style={{color:"var(--rediar)"}}>[SYSTEM]</span> &nbsp;Quiet Belt mining yields up.</div>
+              <hr style={{ borderTop: "1px dashed var(--line)" }} />
+              <div style={{ color: "var(--fg-muted)" }}>Your progress waited for you. It will keep waiting.</div>
+              <div style={{ marginTop: 10 }}>
+                <span className="prompt">▸</span> <span className="cursor" />
+              </div>
+            </div>
+            <p style={{ color: "var(--fg-muted)", fontSize: 12, marginTop: 14 }}>
+              ▸ Mockup. The MVP welcome-back is text-only — visuals come later, if they earn their place.
+            </p>
           </div>
         </div>
       </section>

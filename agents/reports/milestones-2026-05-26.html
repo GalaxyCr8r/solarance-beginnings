@@ -1,0 +1,1282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Solarance — Roadmap &amp; Milestones</title>
+<link rel="icon" type="image/png" href="../assets/Solarance_Icon.png" />
+<style>
+  :root {
+    --bg: #05070d;
+    --bg-2: #0a0f1a;
+    --panel: rgba(14, 20, 34, 0.72);
+    --panel-strong: rgba(14, 20, 34, 0.92);
+    --panel-border: rgba(120, 160, 220, 0.14);
+    --text: #d6e1f5;
+    --text-dim: #8a9bbd;
+    --text-muted: #5f6f8e;
+    --accent: #6cf0c2;        /* mint — done / good */
+    --accent-2: #7aa8ff;      /* blue — info / active */
+    --warn: #ffb066;          /* amber — in-progress */
+    --bad: #ff7a8a;           /* red — blocked / risk */
+    --good: #6cf0c2;
+    --gold: #f5d57a;
+    --pink: #ff9ec6;
+    --purple: #b89eff;
+    --cyan: #8de0ff;
+    --code-bg: #0c1322;
+    --code-border: rgba(120, 160, 220, 0.18);
+    --shadow: 0 20px 60px rgba(0,0,0,0.5);
+    --mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { background: var(--bg); }
+  html, body {
+    margin: 0;
+    padding: 0;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- Starfield ---------- */
+  #stars {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background:
+      radial-gradient(ellipse at 15% -10%, rgba(108, 240, 194, 0.10), transparent 60%),
+      radial-gradient(ellipse at 85% 50%, rgba(122, 168, 255, 0.08), transparent 60%),
+      radial-gradient(ellipse at 50% 120%, rgba(184, 158, 255, 0.06), transparent 60%),
+      linear-gradient(180deg, #05070d 0%, #060a14 100%);
+  }
+  #stars-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    width: 100vw;
+    height: 100vh;
+    display: block;
+  }
+
+  /* ---------- Layout ---------- */
+  .wrap {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 56px;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 56px 32px 120px;
+  }
+  @media (max-width: 960px) {
+    .wrap { grid-template-columns: 1fr; gap: 0; padding: 32px 20px 80px; }
+    .toc { position: static !important; max-height: none !important; margin-bottom: 32px; }
+  }
+
+  /* ---------- TOC ---------- */
+  .toc {
+    position: sticky;
+    top: 32px;
+    align-self: start;
+    max-height: calc(100vh - 64px);
+    overflow-y: auto;
+    font-size: 13px;
+    color: var(--text-dim);
+    border-left: 1px solid var(--panel-border);
+    padding: 4px 0 4px 16px;
+  }
+  .toc h4 {
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 10px;
+    margin: 0 0 14px;
+    font-weight: 600;
+  }
+  .toc a {
+    display: block;
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 5px 0;
+    border-left: 2px solid transparent;
+    margin-left: -16px;
+    padding-left: 14px;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .toc a:hover { color: var(--text); }
+  .toc a.active { color: var(--accent); border-left-color: var(--accent); }
+  .toc .sub { padding-left: 28px; font-size: 12px; opacity: 0.85; }
+
+  /* ---------- Hero ---------- */
+  .hero { margin-bottom: 64px; position: relative; }
+  .hero-logo {
+    display: block;
+    width: 280px;
+    max-width: 72%;
+    height: auto;
+    margin: 0 0 32px;
+    filter: drop-shadow(0 6px 28px rgba(108, 240, 194, 0.18));
+    animation: logo-in 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  @keyframes logo-in {
+    from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .footer-mark {
+    width: 44px;
+    height: 44px;
+    display: block;
+    margin: 0 auto 16px;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+  }
+  .footer-mark:hover { opacity: 1; }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 12px var(--accent);
+    animation: pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.4; transform: scale(0.9); }
+    50%      { opacity: 1;   transform: scale(1.15); }
+  }
+  h1 {
+    font-size: clamp(34px, 4.8vw, 56px);
+    line-height: 1.05;
+    margin: 0 0 18px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    background: linear-gradient(180deg, #ffffff 0%, #b9c8e6 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .hero-sub {
+    color: var(--text-dim);
+    font-size: 17px;
+    max-width: 720px;
+    margin: 0 0 28px;
+    line-height: 1.55;
+  }
+  .hero-meta {
+    display: flex; flex-wrap: wrap; gap: 24px;
+    font-size: 13px; color: var(--text-dim);
+    margin-bottom: 36px;
+  }
+  .hero-meta span strong { color: var(--text); font-weight: 500; }
+
+  /* ---------- Overview stat strip ---------- */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin: 0 0 12px;
+  }
+  @media (max-width: 760px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+  .stat {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    backdrop-filter: blur(6px);
+    position: relative;
+    overflow: hidden;
+  }
+  .stat::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(108, 240, 194, 0.04), transparent 50%);
+    pointer-events: none;
+  }
+  .stat .n {
+    font-family: var(--mono);
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .stat .n.warn { color: var(--warn); }
+  .stat .n.info { color: var(--accent-2); }
+  .stat .n.dim  { color: var(--text-muted); }
+  .stat .lbl {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 600;
+  }
+  .stat .desc {
+    color: var(--text-dim);
+    font-size: 12px;
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+
+  /* ---------- Sections ---------- */
+  section {
+    margin: 72px 0;
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  section.visible { opacity: 1; transform: translateY(0); }
+  section h2 {
+    font-size: 28px;
+    margin: 0 0 8px;
+    color: var(--text);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  section h2 .num {
+    color: var(--text-muted);
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 400;
+    margin-right: 12px;
+  }
+  .section-rule {
+    width: 60px; height: 2px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+    margin: 0 0 18px;
+    border-radius: 2px;
+  }
+  .section-lede {
+    color: var(--text-dim);
+    margin-bottom: 28px;
+    max-width: 760px;
+  }
+
+  /* ---------- Timeline / roadmap ---------- */
+  .timeline {
+    position: relative;
+    padding-left: 36px;
+    margin: 32px 0;
+  }
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    background: linear-gradient(180deg,
+      rgba(108, 240, 194, 0.6) 0%,
+      rgba(122, 168, 255, 0.4) 40%,
+      rgba(120, 160, 220, 0.15) 100%);
+  }
+  .ms {
+    position: relative;
+    margin: 0 0 28px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 24px 26px;
+    backdrop-filter: blur(8px);
+    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+  .ms:hover {
+    transform: translateY(-2px);
+    border-color: rgba(108, 240, 194, 0.3);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  }
+  .ms::before {
+    /* timeline node */
+    content: "";
+    position: absolute;
+    left: -29px;
+    top: 30px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--panel-strong);
+    border: 2px solid var(--text-muted);
+    box-shadow: 0 0 0 4px rgba(5, 7, 13, 0.8);
+  }
+  .ms.done::before     { border-color: var(--accent);  background: var(--accent);  box-shadow: 0 0 0 4px rgba(5,7,13,0.8), 0 0 18px var(--accent); }
+  .ms.active::before   { border-color: var(--accent-2); background: var(--accent-2); box-shadow: 0 0 0 4px rgba(5,7,13,0.8), 0 0 18px var(--accent-2); animation: pulse 2s ease-in-out infinite; }
+  .ms.pending::before  { border-color: var(--text-muted); background: var(--panel-strong); }
+
+  .ms-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .ms-title {
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .ms-title .tag {
+    font-family: var(--mono);
+    color: var(--accent);
+    font-size: 14px;
+    margin-right: 8px;
+    font-weight: 500;
+  }
+  .ms.active .ms-title .tag { color: var(--accent-2); }
+  .ms.pending .ms-title .tag { color: var(--text-dim); }
+
+  .ms-status {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .ms-status.done    { background: rgba(108, 240, 194, 0.12); color: var(--accent); border: 1px solid rgba(108, 240, 194, 0.3); }
+  .ms-status.active  { background: rgba(122, 168, 255, 0.12); color: var(--accent-2); border: 1px solid rgba(122, 168, 255, 0.3); }
+  .ms-status.pending { background: rgba(120, 160, 220, 0.08); color: var(--text-dim); border: 1px solid var(--panel-border); }
+
+  .ms-exit {
+    margin: 14px 0 18px;
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.55;
+    padding: 12px 16px;
+    background: rgba(122, 168, 255, 0.05);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 4px 8px 8px 4px;
+  }
+  .ms-exit .lbl {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent-2);
+    font-weight: 600;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .ms.done .ms-exit { border-left-color: var(--accent); background: rgba(108, 240, 194, 0.05); }
+  .ms.done .ms-exit .lbl { color: var(--accent); }
+
+  /* progress bar */
+  .progress {
+    margin: 12px 0 0;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .progress-track {
+    flex: 1;
+    height: 6px;
+    background: rgba(120, 160, 220, 0.08);
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-2), var(--accent));
+    border-radius: 999px;
+    width: 0;
+    transition: width 1.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-shadow: 0 0 12px rgba(108, 240, 194, 0.4);
+  }
+  .ms.done .progress-fill { background: linear-gradient(90deg, var(--accent), #b8ffe0); }
+  .ms.pending .progress-fill { background: linear-gradient(90deg, var(--text-muted), var(--text-dim)); box-shadow: none; }
+  .progress-label {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    min-width: 76px;
+    text-align: right;
+  }
+
+  /* Issue list */
+  .issues {
+    margin-top: 18px;
+    list-style: none;
+    padding: 0;
+  }
+  .issue {
+    display: grid;
+    grid-template-columns: 28px 60px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    transition: background 0.2s ease, transform 0.2s ease;
+    border: 1px solid transparent;
+  }
+  .issue + .issue { margin-top: 2px; }
+  .issue:hover {
+    background: rgba(120, 160, 220, 0.04);
+    border-color: var(--panel-border);
+    transform: translateX(2px);
+  }
+  .issue-state {
+    width: 20px; height: 20px;
+    display: grid; place-items: center;
+    font-size: 13px;
+    border-radius: 50%;
+    color: var(--text-dim);
+  }
+  .issue-state.closed { background: rgba(108, 240, 194, 0.12); color: var(--accent); }
+  .issue-state.open   { background: rgba(255, 176, 102, 0.12); color: var(--warn); }
+  .issue-num {
+    font-family: var(--mono);
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  .issue-title {
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.4;
+    text-decoration: none;
+    border-bottom: 1px dotted transparent;
+  }
+  .issue-title:hover { border-bottom-color: rgba(122, 168, 255, 0.4); color: #fff; }
+  .issue.closed .issue-title { color: var(--text-dim); }
+  .issue-labels {
+    display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end;
+  }
+
+  @media (max-width: 760px) {
+    .issue { grid-template-columns: 24px 50px 1fr; }
+    .issue-labels { grid-column: 1 / -1; justify-content: flex-start; padding-left: 84px; }
+  }
+
+  /* Label chips */
+  .chip {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 999px;
+    border: 1px solid;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .chip.enhancement   { color: var(--accent);   border-color: rgba(108, 240, 194, 0.4);  background: rgba(108, 240, 194, 0.08); }
+  .chip.server-side   { color: var(--purple);   border-color: rgba(184, 158, 255, 0.4);  background: rgba(184, 158, 255, 0.08); }
+  .chip.client-side   { color: var(--cyan);     border-color: rgba(141, 224, 255, 0.4);  background: rgba(141, 224, 255, 0.08); }
+  .chip.polish        { color: var(--gold);     border-color: rgba(245, 213, 122, 0.4);  background: rgba(245, 213, 122, 0.08); }
+  .chip.documentation { color: var(--text-dim); border-color: var(--panel-border);       background: rgba(120, 160, 220, 0.06); }
+  .chip.factions      { color: var(--warn);     border-color: rgba(255, 176, 102, 0.4);  background: rgba(255, 176, 102, 0.08); }
+  .chip.milestone-req { color: var(--bad);      border-color: rgba(255, 122, 138, 0.4);  background: rgba(255, 122, 138, 0.08); }
+  .chip.bug           { color: var(--bad);      border-color: rgba(255, 122, 138, 0.55); background: rgba(255, 122, 138, 0.14); }
+  .chip.agent-triaged { color: var(--accent-2); border-color: rgba(122, 168, 255, 0.4);  background: rgba(122, 168, 255, 0.08); }
+  .chip.agent-eligible{ color: var(--accent);   border-color: rgba(108, 240, 194, 0.3);  background: rgba(108, 240, 194, 0.05); }
+  .chip.agent-human-needed { color: var(--pink); border-color: rgba(255, 158, 198, 0.4); background: rgba(255, 158, 198, 0.08); }
+
+  /* ---------- Pull quote ---------- */
+  blockquote.pullquote {
+    font-size: 20px;
+    text-align: center;
+    padding: 28px 24px;
+    margin: 36px 0;
+    background:
+      linear-gradient(135deg, rgba(108, 240, 194, 0.06), rgba(122, 168, 255, 0.04));
+    border-radius: 12px;
+    border: 1px solid rgba(108, 240, 194, 0.15);
+    color: var(--text);
+    font-weight: 500;
+    line-height: 1.5;
+  }
+  blockquote.pullquote strong { color: var(--accent); font-weight: 600; }
+
+  /* ---------- Foundation / archive grids ---------- */
+  .foundation {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 24px 0;
+  }
+  @media (max-width: 760px) { .foundation { grid-template-columns: 1fr; } }
+  .found-card {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+  }
+  .found-card .tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .found-card .title {
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+  .found-card .desc {
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+  .found-card .n {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+  }
+
+  .archive-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 18px 0;
+  }
+  .archived {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: rgba(120, 160, 220, 0.04);
+    border: 1px dashed var(--panel-border);
+    color: var(--text-muted);
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+
+  /* Callouts */
+  .callout {
+    border-left: 3px solid var(--accent-2);
+    background: rgba(122, 168, 255, 0.06);
+    padding: 16px 20px;
+    border-radius: 4px 8px 8px 4px;
+    margin: 20px 0;
+  }
+  .callout.warn { border-left-color: var(--warn); background: rgba(255, 176, 102, 0.06); }
+  .callout.good { border-left-color: var(--good); background: rgba(108, 240, 194, 0.06); }
+  .callout-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent-2);
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .callout.warn .callout-label { color: var(--warn); }
+  .callout.good .callout-label { color: var(--good); }
+  .callout p:last-child { margin: 0; }
+
+  /* small bits */
+  a { color: var(--accent-2); text-decoration: none; border-bottom: 1px dotted rgba(122, 168, 255, 0.4); }
+  a:hover { color: #a8c2ff; }
+  code {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: rgba(120, 160, 220, 0.08);
+    color: #b8d4ff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--code-border);
+  }
+  strong { color: #fff; font-weight: 600; }
+  em { color: var(--text-dim); font-style: italic; }
+
+  /* Now-banner */
+  .now-banner {
+    margin: 24px 0 32px;
+    padding: 18px 22px;
+    border-radius: 12px;
+    background:
+      linear-gradient(135deg, rgba(122, 168, 255, 0.10), rgba(108, 240, 194, 0.06));
+    border: 1px solid rgba(122, 168, 255, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .now-banner .now-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--accent-2);
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .now-banner .now-tag::before {
+    content: "●";
+    margin-right: 8px;
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  .now-banner .now-body { color: var(--text); flex: 1; min-width: 240px; }
+  .now-banner .now-body strong { color: var(--accent-2); }
+
+  footer {
+    margin-top: 80px;
+    padding-top: 24px;
+    border-top: 1px solid var(--panel-border);
+    color: var(--text-muted);
+    font-size: 12px;
+    text-align: center;
+  }
+  footer a { color: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<div id="stars"></div>
+<canvas id="stars-canvas"></canvas>
+
+<div class="wrap">
+
+  <nav class="toc" aria-label="Table of contents">
+    <h4>Navigation</h4>
+    <a href="#overview">Overview</a>
+    <a href="#now">Where we are now</a>
+    <a href="#roadmap">MVP Roadmap</a>
+    <a href="#m1" class="sub">M1 — Shared-Building</a>
+    <a href="#m2" class="sub">M2 — Persistence</a>
+    <a href="#m3" class="sub">M3 — Two Factions</a>
+    <a href="#m4" class="sub">M4 — Multi-Sector</a>
+    <a href="#m5" class="sub">M5 — Mining + Polish</a>
+    <a href="#m6" class="sub">M6 — Launch</a>
+    <a href="#m7" class="sub">M7 — Anti-Cheat</a>
+    <a href="#post">Post-MVP</a>
+    <a href="#foundation">Foundation</a>
+    <a href="#archive">Archive</a>
+  </nav>
+
+  <main>
+
+    <!-- ============ HERO ============ -->
+    <header class="hero">
+      <img class="hero-logo" src="../assets/Solarance_Logo.png" alt="Karl Nyborg's Solarance: Beginnings" />
+      <div class="eyebrow">Roadmap Review · 2026-05-26 · Solarance: Beginnings</div>
+      <h1>Where the ship is heading.</h1>
+      <p class="hero-sub">
+        GitHub's milestone page hides the story. This view shows the road to MVP as one continuous arc:
+        what's done, what's next, what each exit gate looks like, and which issues sit underneath each goal.
+      </p>
+      <div class="hero-meta">
+        <span><strong>Repo:</strong> GalaxyCr8r/solarance-beginnings</span>
+        <span><strong>Active plan:</strong> M1 → M7 (post-MVP gated on success criterion 5)</span>
+        <span><strong>Source:</strong> live <code>gh api /milestones</code></span>
+      </div>
+    </header>
+
+    <!-- ============ §1 OVERVIEW ============ -->
+    <section id="overview" class="visible">
+      <h2><span class="num">§</span>Overview</h2>
+      <div class="section-rule"></div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="n">1<span style="font-size: 22px; color: var(--text-dim);"> / 7</span></div>
+          <div class="lbl">MVP milestones complete</div>
+          <div class="desc">M1 (Shared-Building Spike) cleared all 5 issues. Six MVP milestones remain.</div>
+        </div>
+        <div class="stat">
+          <div class="n warn">27</div>
+          <div class="lbl">Open MVP issues</div>
+          <div class="desc">Across M2–M7. Six new tickets added 2026-05-26: map (#120–#122) + client-debt from the architecture review (#123–#125).</div>
+        </div>
+        <div class="stat">
+          <div class="n info">5</div>
+          <div class="lbl">MVP issues closed</div>
+          <div class="desc">All from M1 — the shared-building spike landed clean.</div>
+        </div>
+        <div class="stat">
+          <div class="n dim">46</div>
+          <div class="lbl">Foundation issues shipped</div>
+          <div class="desc">Across the three pre-MVP milestones (movement, ship, economy).</div>
+        </div>
+      </div>
+
+      <blockquote class="pullquote">
+        The MVP success criterion is one sentence:<br/>
+        <strong>"Someone other than the designer wants to log in tomorrow."</strong>
+      </blockquote>
+    </section>
+
+    <!-- ============ §2 NOW ============ -->
+    <section id="now">
+      <h2><span class="num">§</span>Where we are right now</h2>
+      <div class="section-rule"></div>
+
+      <div class="now-banner">
+        <div class="now-tag">CURRENT FOCUS</div>
+        <div class="now-body">
+          <strong>M2 — Persistence + Welcome-Back</strong> is the active milestone. M1 closed its last issue (#97 devlog section) on
+          <code>2026-05-22</code>. Next exit gate: log out, come back tomorrow, the welcome-back accurately reflects what changed.
+        </div>
+      </div>
+
+      <p class="section-lede">
+        The seven MVP milestones below replaced the original ten-milestone plan (now archived).
+        Each one's exit gate is the only check that matters — the issue list is just the path to get there.
+      </p>
+    </section>
+
+    <!-- ============ §3 ROADMAP ============ -->
+    <section id="roadmap">
+      <h2><span class="num">§</span>MVP Roadmap</h2>
+      <div class="section-rule"></div>
+
+      <div class="timeline">
+
+        <!-- ============ M1 ============ -->
+        <article class="ms done" id="m1" data-progress="100">
+          <div class="ms-head">
+            <h3 class="ms-title"><span class="tag">M1</span>Shared-Building Spike 🛰️</h3>
+            <span class="ms-status done">✓ Complete · 5/5</span>
+          </div>
+          <div class="ms-exit">
+            <span class="lbl">Exit gate</span>
+            Two players, one partially-built station, each hauls cargo (spawned for testing), the station progress visibly updates for both in real time. Devlog cadence starts here. <em>Did watching the bar move together feel emotionally satisfying?</em>
+          </div>
+          <div class="progress">
+            <div class="progress-track"><div class="progress-fill" data-fill="100"></div></div>
+            <div class="progress-label">100% · 5 closed</div>
+          </div>
+          <ul class="issues">
+            <li class="issue closed">
+              <span class="issue-state closed" title="closed">✓</span>
+              <span class="issue-num">#117</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/117">Seed a construction site at init + admin reducer to spawn/reset sites</a>
+              <span class="issue-labels"><span class="chip enhancement">enhancement</span><span class="chip server-side">server</span><span class="chip agent-eligible">agent-ready</span></span>
+            </li>
+            <li class="issue closed">
+              <span class="issue-state closed">✓</span>
+              <span class="issue-num">#99</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/99">Admin/seed reducer: spawn test cargo in player inventory for spike testing</a>
+              <span class="issue-labels"><span class="chip enhancement">enhancement</span><span class="chip server-side">server</span><span class="chip agent-eligible">agent-ready</span></span>
+            </li>
+            <li class="issue closed">
+              <span class="issue-state closed">✓</span>
+              <span class="issue-num">#98</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/98">Construction-site UI: progress bar, contributions panel, deposit-from-cargo</a>
+              <span class="issue-labels"><span class="chip enhancement">enhancement</span><span class="chip client-side">client</span><span class="chip agent-eligible">agent-ready</span></span>
+            </li>
+            <li class="issue closed">
+              <span class="issue-state closed">✓</span>
+              <span class="issue-num">#97</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/97">Add /devlog/ section to solarance-beginnings.com GitHub Pages site</a>
+              <span class="issue-labels"><span class="chip documentation">docs</span><span class="chip polish">polish</span></span>
+            </li>
+            <li class="issue closed">
+              <span class="issue-state closed">✓</span>
+              <span class="issue-num">#91</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/91">Station Contribution Mechanic (server-side) [split from #82]</a>
+              <span class="issue-labels"><span class="chip enhancement">enhancement</span><span class="chip server-side">server</span><span class="chip agent-eligible">agent-ready</span></span>
+            </li>
+          </ul>
+        </article>
+
+        <!-- ============ M2 ============ -->
+        <article class="ms active" id="m2" data-progress="0">
+          <div class="ms-head">
+            <h3 class="ms-title"><span class="tag">M2</span>Persistence + Welcome-Back 💾</h3>
+            <span class="ms-status active">● Active · 0/6</span>
+          </div>
+          <div class="ms-exit">
+            <span class="lbl">Exit gate</span>
+            Stations and contributions survive server restart. <code>client_connected</code> composes a text-only welcome-back ServerMessage with station progress, contributions since last login, and current cargo. <em>Log out, come back next day, welcome-back accurately reflects what changed.</em>
+          </div>
+          <div class="progress">
+            <div class="progress-track"><div class="progress-fill" data-fill="0"></div></div>
+            <div class="progress-label">0% · 6 open</div>
+          </div>
+          <ul class="issues">
+            <li class="issue open">
+              <span class="issue-state open" title="open">○</span>
+              <span class="issue-num">#123</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/123">Client caches SpacetimeDB rows that go stale on eviction → crashes</a>
+              <span class="issue-labels"><span class="chip bug">bug</span><span class="chip client-side">client</span></span>
+            </li>
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#124</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/124">Reshape stdb/utils.rs around domain queries (house the validate-on-read)</a>
+              <span class="issue-labels"><span class="chip enhancement">enhancement</span><span class="chip client-side">client</span></span>
+            </li>
+            <li class="issue open">
+              <span class="issue-state open" title="open">○</span>
+              <span class="issue-num">#102</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/102">Persistence smoke test: stations + contributions survive server restart</a>
+              <span class="issue-labels"><span class="chip documentation">docs</span><span class="chip server-side">server</span></span>
+            </li>
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#101</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/101">ServerMessage notification scopes (personal/faction/system) + priorities</a>
+              <span class="issue-labels"><span class="chip enhancement">enhancement</span><span class="chip client-side">client</span><span class="chip server-side">server</span></span>
+            </li>
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#100</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/100">Welcome-back panel: client-side rendering of the welcome-back ServerMessage</a>
+              <span class="issue-labels"><span class="chip enhancement">enhancement</span><span class="chip client-side">client</span></span>
+            </li>
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#92</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/92">Welcome-Back ServerMessage (server-side composition) [split from #82]</a>
+              <span class="issue-labels"><span class="chip enhancement">enhancement</span><span class="chip server-side">server</span></span>
+            </li>
+          </ul>
+        </article>
+
+        <!-- ============ M3 ============ -->
+        <article class="ms pending" id="m3" data-progress="0">
+          <div class="ms-head">
+            <h3 class="ms-title"><span class="tag">M3</span>Two-Faction MVP Setup 🪐</h3>
+            <span class="ms-status pending">Pending · 0/5</span>
+          </div>
+          <div class="ms-exit">
+            <span class="lbl">Exit gate</span>
+            Hard-cap joinable factions to Lrak Combine + Rediar Federation. One Column corvette per player. Construction sites faction-flagged with soft-default UI (any player can contribute to any site). Faction chat verified. <em>New player picks Lrak/Rediar, spawns at Capital station, flies a Column, sees own faction sites highlighted, can contribute to any site they reach.</em>
+          </div>
+          <div class="progress">
+            <div class="progress-track"><div class="progress-fill" data-fill="0"></div></div>
+            <div class="progress-label">0% · 5 open</div>
+          </div>
+          <ul class="issues">
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#105</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/105">Verify each faction has one Capital station and new players spawn there</a>
+              <span class="issue-labels"><span class="chip documentation">docs</span><span class="chip server-side">server</span><span class="chip factions">factions</span></span>
+            </li>
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#104</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/104">Faction-flag UI affordance: highlight own-faction construction sites</a>
+              <span class="issue-labels"><span class="chip enhancement">enhancement</span><span class="chip client-side">client</span><span class="chip factions">factions</span></span>
+            </li>
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#103</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/103">Enforce one Column corvette per player; reject Phalanx/Javelin</a>
+              <span class="issue-labels"><span class="chip enhancement">enhancement</span><span class="chip server-side">server</span></span>
+            </li>
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#93</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/93">Players can join one of two factions on first login [split from #16]</a>
+              <span class="issue-labels"><span class="chip enhancement">enhancement</span><span class="chip client-side">client</span><span class="chip factions">factions</span></span>
+            </li>
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#19</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/19">Verify faction chat works end-to-end with multiple clients</a>
+              <span class="issue-labels"><span class="chip factions">factions</span></span>
+            </li>
+          </ul>
+        </article>
+
+        <!-- ============ M4 ============ -->
+        <article class="ms pending" id="m4" data-progress="0">
+          <div class="ms-head">
+            <h3 class="ms-title"><span class="tag">M4</span>Multi-Sector World Buildout 🌌</h3>
+            <span class="ms-status pending">Pending · 0/6</span>
+          </div>
+          <div class="ms-exit">
+            <span class="lbl">Exit gate</span>
+            Design and seed 7 additional sectors (total 10). Each functionally differs via asteroid yield, station size, construction demand profile, faction ownership. Galaxy Creator client for seed ops. Jumpgate network. Decorative nebulae. <em>Player can jumpgate between all 10 sectors, each functionally differs, each has persistent construction state.</em>
+          </div>
+          <div class="progress">
+            <div class="progress-track"><div class="progress-fill" data-fill="0"></div></div>
+            <div class="progress-label">0% · 6 open</div>
+          </div>
+          <ul class="issues">
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#120</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/120">Map: draw jumpgate edges, always-on labels, auto-fit bounds</a>
+              <span class="issue-labels"><span class="chip enhancement">enhancement</span><span class="chip client-side">client</span></span>
+            </li>
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#108</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/108">Verify jumpgate connectivity across all ten sectors</a>
+              <span class="issue-labels"><span class="chip documentation">docs</span><span class="chip client-side">client</span><span class="chip server-side">server</span></span>
+            </li>
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#107</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/107">Render decorative in-sector nebulae from X/Y data</a>
+              <span class="issue-labels"><span class="chip enhancement">enhancement</span><span class="chip client-side">client</span><span class="chip server-side">server</span><span class="chip polish">polish</span></span>
+            </li>
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#106</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/106">Design and seed seven additional MVP sectors</a>
+              <span class="issue-labels"><span class="chip enhancement">enhancement</span><span class="chip server-side">server</span></span>
+            </li>
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#89</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/89">Cross-sector render flicker on jumpgate transit</a>
+              <span class="issue-labels"><span class="chip client-side">client</span><span class="chip polish">polish</span><span class="chip agent-eligible">agent-ready</span></span>
+            </li>
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#34</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/34">Create "Galaxy Creator" privileged client</a>
+              <span class="issue-labels"><span class="chip server-side">server</span><span class="chip milestone-req">milestone-req</span></span>
+            </li>
+          </ul>
+        </article>
+
+        <!-- ============ M5 ============ -->
+        <article class="ms pending" id="m5" data-progress="0">
+          <div class="ms-head">
+            <h3 class="ms-title"><span class="tag">M5</span>Mining Loop + Polish ⛏️</h3>
+            <span class="ms-status pending">Pending · 0/6</span>
+          </div>
+          <div class="ms-exit">
+            <span class="lbl">Exit gate</span>
+            Mining end-to-end: target asteroid, mine ~15 min, cargo populates, haul to construction site. Mining visual effects broadcast to all clients in sector. Cozy polish pass. <em>20-minute session feels good.</em>
+          </div>
+          <div class="progress">
+            <div class="progress-track"><div class="progress-fill" data-fill="0"></div></div>
+            <div class="progress-label">0% · 6 open</div>
+          </div>
+          <ul class="issues">
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#125</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/125">Shrink GameState: move open flags into window state, group into WindowsState</a>
+              <span class="issue-labels"><span class="chip enhancement">enhancement</span><span class="chip client-side">client</span><span class="chip polish">polish</span></span>
+            </li>
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#122</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/122">Under-construction station art variants (one per size) + client render swap</a>
+              <span class="issue-labels"><span class="chip enhancement">enhancement</span><span class="chip client-side">client</span><span class="chip polish">polish</span><span class="chip agent-human-needed">human-needed</span></span>
+            </li>
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#121</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/121">Map polish: click details, construction-site indicators, faction tinting</a>
+              <span class="issue-labels"><span class="chip enhancement">enhancement</span><span class="chip client-side">client</span><span class="chip polish">polish</span></span>
+            </li>
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#109</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/109">Mining loop end-to-end verification</a>
+              <span class="issue-labels"><span class="chip documentation">docs</span><span class="chip client-side">client</span><span class="chip server-side">server</span></span>
+            </li>
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#87</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/87">Generalize visual_effects for mining-laser broadcast</a>
+              <span class="issue-labels"><span class="chip server-side">server</span><span class="chip polish">polish</span><span class="chip agent-eligible">agent-ready</span></span>
+            </li>
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#81</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/81">Create/remove mining effect when mining</a>
+              <span class="issue-labels"><span class="chip client-side">client</span><span class="chip server-side">server</span><span class="chip polish">polish</span></span>
+            </li>
+          </ul>
+        </article>
+
+        <!-- ============ M6 ============ -->
+        <article class="ms pending" id="m6" data-progress="0">
+          <div class="ms-head">
+            <h3 class="ms-title"><span class="tag">M6</span>MVP Launch &amp; Devlog 🚨</h3>
+            <span class="ms-status pending">Pending · 0/2</span>
+          </div>
+          <div class="ms-exit">
+            <span class="lbl">Exit gate</span>
+            Continue monthly devlog (started M1). Smoke test with whoever shows up from Discord. Final core-loop bug fixing. <em>Someone other than the designer wants to log in tomorrow.</em>
+          </div>
+          <div class="progress">
+            <div class="progress-track"><div class="progress-fill" data-fill="0"></div></div>
+            <div class="progress-label">0% · 2 open</div>
+          </div>
+          <ul class="issues">
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#110</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/110">MVP smoke test session with welcome-back verification</a>
+              <span class="issue-labels"><span class="chip documentation">docs</span></span>
+            </li>
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#29</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/29">Add proper configuration to store OIDC info and other things</a>
+              <span class="issue-labels"><span class="chip client-side">client</span><span class="chip milestone-req">milestone-req</span></span>
+            </li>
+          </ul>
+        </article>
+
+        <!-- ============ M7 ============ -->
+        <article class="ms pending" id="m7" data-progress="0">
+          <div class="ms-head">
+            <h3 class="ms-title"><span class="tag">M7</span>Anti-Cheat Hardening via Views 🛡️</h3>
+            <span class="ms-status pending">Pending · 0/2</span>
+          </div>
+          <div class="ms-exit">
+            <span class="lbl">Exit gate</span>
+            First post-MVP work. Convert ship/asteroid/cargo/visual-effect/stellar-object tables from <code>public</code> to private, expose via per-sector Views. Refactor Stations to use Views instead of RLS. <em>Foundation for protecting client-visible state from cheaters.</em>
+          </div>
+          <div class="progress">
+            <div class="progress-track"><div class="progress-fill" data-fill="0"></div></div>
+            <div class="progress-label">0% · 2 open</div>
+          </div>
+          <ul class="issues">
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#95</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/95">Sector-scoped station view via SpacetimeDB Views [split from #75]</a>
+              <span class="issue-labels"><span class="chip enhancement">enhancement</span><span class="chip client-side">client</span><span class="chip server-side">server</span></span>
+            </li>
+            <li class="issue open">
+              <span class="issue-state open">○</span>
+              <span class="issue-num">#84</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/84">Per-sector visibility scoping via SpacetimeDB views</a>
+              <span class="issue-labels"><span class="chip enhancement">enhancement</span><span class="chip server-side">server</span><span class="chip agent-human-needed">human-needed</span></span>
+            </li>
+          </ul>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- ============ §4 POST-MVP ============ -->
+    <section id="post">
+      <h2><span class="num">§</span>Post-MVP Review</h2>
+      <div class="section-rule"></div>
+
+      <div class="callout warn">
+        <div class="callout-label">⬢ Gated, intentionally empty</div>
+        <p>
+          The Post-MVP Review milestone holds zero issues by design. It unlocks <strong>only after MVP ships AND M7
+          (Anti-Cheat Hardening) completes.</strong> The gate is MVP success criterion 5: <em>the player wants to log in again tomorrow</em>.
+        </p>
+        <p style="margin-top: 10px;">
+          Once it passes: re-read the Future Vision section of the MVP design doc, run a real retro on what the gap analysis missed,
+          and pick the single Future Vision v1.0 item with the highest ratio of <em>"amplifies the existing loop"</em> to <em>"build cost"</em>.
+          Build only that.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ §5 FOUNDATION ============ -->
+    <section id="foundation">
+      <h2><span class="num">§</span>Foundation — Pre-MVP Milestones (shipped)</h2>
+      <div class="section-rule"></div>
+      <p class="section-lede">Three completed milestones got the project to "playable as a single-player demo with a real DB." 46 issues across three milestones — the bones of the current codebase.</p>
+
+      <div class="foundation">
+        <div class="found-card">
+          <div class="tag">M1 · 🛰️ · Closed</div>
+          <div class="title">Core Movement &amp; Networking</div>
+          <div class="desc">Macroquad client with top-down space movement and inertia, SpacetimeDB server tracking player positions, minimal login, one shared sector.</div>
+          <div class="n">✓ 13 / 13 issues</div>
+        </div>
+        <div class="found-card">
+          <div class="tag">M2 · 🚀 · Closed</div>
+          <div class="title">Ship Entities &amp; Basic World</div>
+          <div class="desc">Ship stats (shields, cargo, health), floating resources, basic mining mechanic, world persistence — mined asteroids stay gone.</div>
+          <div class="n">✓ 18 / 18 issues</div>
+        </div>
+        <div class="found-card">
+          <div class="tag">M3 · 🏭 · Closed</div>
+          <div class="title">Economy Core &amp; NPC Factions</div>
+          <div class="desc">3 major NPC factions with invisible elevator stations. Players sell resources, demand regenerates, prices fluctuate.</div>
+          <div class="n">✓ 15 / 15 issues</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ §6 ARCHIVE ============ -->
+    <section id="archive">
+      <h2><span class="num">§</span>Archive — Replaced by the MVP plan</h2>
+      <div class="section-rule"></div>
+      <p class="section-lede">
+        The original 10-milestone plan was retired on <code>2026-05-14</code> in favour of the tighter M1–M7 sequence above.
+        See <code>docs/milestones/issue-disposition.md</code> for per-issue redistribution.
+      </p>
+
+      <div class="archive-strip">
+        <span class="archived">M4 👥</span>
+        <span class="archived">M5 🏗️</span>
+        <span class="archived">M6 ⚔️</span>
+        <span class="archived">M7 🌌</span>
+        <span class="archived">M8 🌠</span>
+        <span class="archived">M9 🪐</span>
+        <span class="archived">M10 🚨</span>
+      </div>
+
+      <div class="callout">
+        <div class="callout-label">⬢ Why the retire</div>
+        <p>
+          The original plan was scope-shaped, not exit-gate-shaped. The MVP-aligned milestones each end in a question
+          you can answer "yes" or "no" by playing the game. That's the only criterion that matters.
+        </p>
+      </div>
+    </section>
+
+    <footer>
+      <img class="footer-mark" src="../assets/Solarance_Icon.png" alt="Solarance" />
+      Milestones snapshot · 2026-05-26 · Solarance: Beginnings · Source:
+      <a href="https://github.com/GalaxyCr8r/solarance-beginnings/milestones">github.com/GalaxyCr8r/solarance-beginnings/milestones</a>
+    </footer>
+
+  </main>
+</div>
+
+<script>
+  // ---------- Starfield ----------
+  (function() {
+    const canvas = document.getElementById('stars-canvas');
+    const ctx = canvas.getContext('2d');
+    let stars = [];
+    let w = 0, h = 0, dpr = window.devicePixelRatio || 1;
+
+    function resize() {
+      w = window.innerWidth;
+      h = window.innerHeight;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const count = Math.floor((w * h) / 6500);
+      stars = [];
+      for (let i = 0; i < count; i++) {
+        const layer = Math.random();
+        stars.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          z: layer,
+          r: layer < 0.5 ? 0.4 + Math.random() * 0.6 : 0.6 + Math.random() * 1.4,
+          a: 0.3 + Math.random() * 0.7,
+          twinkle: Math.random() * Math.PI * 2,
+          twinkleSpeed: 0.005 + Math.random() * 0.02,
+          driftX: (Math.random() - 0.5) * 0.05,
+          driftY: (Math.random() - 0.5) * 0.02,
+        });
+      }
+    }
+
+    function frame() {
+      ctx.clearRect(0, 0, w, h);
+      for (const s of stars) {
+        s.twinkle += s.twinkleSpeed;
+        s.x += s.driftX;
+        s.y += s.driftY;
+        if (s.x < 0) s.x = w; else if (s.x > w) s.x = 0;
+        if (s.y < 0) s.y = h; else if (s.y > h) s.y = 0;
+
+        const tw = 0.6 + 0.4 * Math.sin(s.twinkle);
+        const alpha = s.a * tw;
+
+        let col;
+        if (s.z < 0.3) col = `rgba(180, 200, 255, ${alpha * 0.5})`;
+        else if (s.z < 0.7) col = `rgba(220, 230, 255, ${alpha * 0.8})`;
+        else col = `rgba(255, 255, 255, ${alpha})`;
+
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      requestAnimationFrame(frame);
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+    requestAnimationFrame(frame);
+  })();
+
+  // ---------- Section reveals ----------
+  (function() {
+    const sections = document.querySelectorAll('section');
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          io.unobserve(e.target);
+        }
+      }
+    }, { rootMargin: '0px 0px -80px 0px', threshold: 0.05 });
+    sections.forEach(s => io.observe(s));
+  })();
+
+  // ---------- Progress bar fill on view ----------
+  (function() {
+    const fills = document.querySelectorAll('.progress-fill');
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          const pct = parseInt(e.target.dataset.fill, 10) || 0;
+          requestAnimationFrame(() => {
+            e.target.style.width = pct + '%';
+          });
+          io.unobserve(e.target);
+        }
+      }
+    }, { threshold: 0.3 });
+    fills.forEach(f => io.observe(f));
+  })();
+
+  // ---------- TOC active link ----------
+  (function() {
+    const links = document.querySelectorAll('.toc a');
+    const map = new Map();
+    links.forEach(a => {
+      const id = a.getAttribute('href').slice(1);
+      const el = document.getElementById(id);
+      if (el) map.set(el, a);
+    });
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        const link = map.get(e.target);
+        if (!link) continue;
+        if (e.isIntersecting) {
+          links.forEach(l => l.classList.remove('active'));
+          link.classList.add('active');
+        }
+      }
+    }, { rootMargin: '-25% 0px -65% 0px' });
+    map.forEach((_, el) => io.observe(el));
+  })();
+
+  // ---------- Smooth scroll for TOC ----------
+  document.querySelectorAll('.toc a').forEach(a => {
+    a.addEventListener('click', (e) => {
+      const href = a.getAttribute('href');
+      if (href && href.startsWith('#')) {
+        const el = document.querySelector(href);
+        if (el) {
+          e.preventDefault();
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    });
+  });
+</script>
+</body>
+</html>
