@@ -113,6 +113,7 @@ function DevlogPage() {
         <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
           <a className="btn" href="https://discord.solarance-beginnings.com" target="_blank" rel="noopener">DISCORD →</a>
           <a className="btn ghost" href="#/community">PILOT'S LOUNGE</a>
+          <a className="btn ghost" href="https://github.com/GalaxyCr8r/solarance-beginnings/releases/tag/v0.4.0" target="_blank" rel="noopener">LATEST RELEASE: v0.4.0 →</a>
         </div>
       </div>
 
