@@ -9,6 +9,7 @@ use crate::{
         factions::FACTION_LRAK_COMBINE,
         item_types::{ITEM_IRON_ORE, ITEM_SILICON_ORE},
     },
+    logic::sectors::asteroid_fields::fill_asteroid_sector,
     logic::stations::{contribution::create_construction_site, *},
     logic::stellarobjects::stellar_object_creation::create_sobj,
     tables::{
@@ -21,8 +22,11 @@ use crate::{
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init<T: spacetimedsl::WriteContext + 'static>(dsl: &DSL<T>) -> Result<(), String> {
-    demo_sectors(dsl)?;
+pub fn init<T: spacetimedsl::WriteContext + 'static>(
+    ctx: &ReducerContext,
+    dsl: &DSL<T>,
+) -> Result<(), String> {
+    demo_sectors(ctx, dsl)?;
 
     info!("Sectors Loaded: {}", dsl.get_all_sectors().count());
     Ok(())
@@ -32,13 +36,16 @@ pub fn init<T: spacetimedsl::WriteContext + 'static>(dsl: &DSL<T>) -> Result<(),
 // Utility
 //////////////////////////////////////////////////////////////
 
-fn demo_sectors<T: spacetimedsl::WriteContext + 'static>(dsl: &DSL<T>) -> Result<(), String> {
+fn demo_sectors<T: spacetimedsl::WriteContext + 'static>(
+    ctx: &ReducerContext,
+    dsl: &DSL<T>,
+) -> Result<(), String> {
     let faction_lrak = FactionId::new(FACTION_LRAK_COMBINE);
     let procyon = create_procyon_star_system(dsl, &faction_lrak)?;
     let (alpha, beta, gamma) = create_procyon_sectors(dsl, &procyon, &faction_lrak)?;
 
     setup_sector_connections(dsl, &alpha, &beta, &gamma)?;
-    populate_sectors_with_asteroids(dsl, &alpha, &beta)?;
+    populate_sectors_with_asteroids(ctx, dsl, &alpha, &beta)?;
     create_sector_stations(dsl, &alpha, &beta, &gamma, &faction_lrak)?;
     Ok(())
 }
@@ -173,26 +180,32 @@ fn setup_sector_connections<T: spacetimedsl::WriteContext>(
     Ok(())
 }
 
-/// Populates sectors with asteroid fields
-fn populate_sectors_with_asteroids<T: spacetimedsl::WriteContext>(
+/// Populates sectors with asteroid fields, then stocks each field to its full
+/// target population so asteroids exist from t=0. The hourly `sector_upkeep`
+/// timer only replenishes fields after they've been mined down.
+fn populate_sectors_with_asteroids<T: spacetimedsl::WriteContext + 'static>(
+    ctx: &ReducerContext,
     dsl: &DSL<T>,
     alpha: &Sector,
     beta: &Sector,
 ) -> Result<(), String> {
-    dsl.create_asteroid_sector(CreateAsteroidSector {
+    let alpha_field = dsl.create_asteroid_sector(CreateAsteroidSector {
         id: alpha.get_id(),
         sparseness: 1,
         rarity: 25,
         cluster_extent: 3000.0,
         cluster_inner: Some(1000.0),
     })?;
-    dsl.create_asteroid_sector(CreateAsteroidSector {
+    let beta_field = dsl.create_asteroid_sector(CreateAsteroidSector {
         id: beta.get_id(),
         sparseness: 5,
         rarity: 0,
         cluster_extent: 5000.0,
         cluster_inner: None,
     })?;
+
+    fill_asteroid_sector(ctx, dsl, &alpha_field)?;
+    fill_asteroid_sector(ctx, dsl, &beta_field)?;
 
     Ok(())
 }
