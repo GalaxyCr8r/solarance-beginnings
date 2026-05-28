@@ -438,6 +438,8 @@
   }
   .issue-state.closed { background: rgba(108, 240, 194, 0.12); color: var(--accent); }
   .issue-state.open   { background: rgba(255, 176, 102, 0.12); color: var(--warn); }
+  .issue-state.shipped{ background: rgba(184, 158, 255, 0.14); color: var(--purple); }
+  .issue.shipped .issue-title { color: var(--text-dim); }
   .issue-num {
     font-family: var(--mono);
     color: var(--text-muted);
@@ -484,6 +486,8 @@
   .chip.agent-triaged { color: var(--accent-2); border-color: rgba(122, 168, 255, 0.4);  background: rgba(122, 168, 255, 0.08); }
   .chip.agent-eligible{ color: var(--accent);   border-color: rgba(108, 240, 194, 0.3);  background: rgba(108, 240, 194, 0.05); }
   .chip.agent-human-needed { color: var(--pink); border-color: rgba(255, 158, 198, 0.4); background: rgba(255, 158, 198, 0.08); }
+  .chip.in-050        { color: var(--purple);   border-color: rgba(184, 158, 255, 0.45); background: rgba(184, 158, 255, 0.12); }
+  .chip.pr-flight     { color: var(--accent-2); border-color: rgba(122, 168, 255, 0.45); background: rgba(122, 168, 255, 0.12); }
 
   /* ---------- Pull quote ---------- */
   blockquote.pullquote {
@@ -668,13 +672,14 @@
     <!-- ============ HERO ============ -->
     <header class="hero">
       <img class="hero-logo" src="../assets/Solarance_Logo.png" alt="Karl Nyborg's Solarance: Beginnings" />
-      <div class="eyebrow">Roadmap Review · 2026-05-26 · Solarance: Beginnings</div>
+      <div class="eyebrow">Roadmap Review · Solarance: Beginnings</div>
       <h1>Where the ship is heading.</h1>
       <p class="hero-sub">
         GitHub's milestone page hides the story. This view shows the road to MVP as one continuous arc:
         what's done, what's next, what each exit gate looks like, and which issues sit underneath each goal.
       </p>
       <div class="hero-meta">
+        <span><strong style="color: var(--accent);">Last updated:</strong> <strong>2026-05-28</strong></span>
         <span><strong>Repo:</strong> GalaxyCr8r/solarance-beginnings</span>
         <span><strong>Active plan:</strong> M1 → M7 (post-MVP gated on success criterion 5)</span>
         <span><strong>Source:</strong> live <code>gh api /milestones</code></span>
@@ -693,14 +698,14 @@
           <div class="desc">M1 (Shared-Building Spike) cleared all 5 issues. Six MVP milestones remain.</div>
         </div>
         <div class="stat">
-          <div class="n warn">27</div>
+          <div class="n warn">29</div>
           <div class="lbl">Open MVP issues</div>
-          <div class="desc">Across M2–M7. Six new tickets added 2026-05-26: map (#120–#122) + client-debt from the architecture review (#123–#125).</div>
+          <div class="desc">Across M2–M7. Two regression bugs surfaced 2026-05-27 while working M2: <strong style="color:var(--bad)">#128</strong> asteroid spawning broke in the M4 refactor, and <strong style="color:var(--bad)">#130</strong> mining ignores range after start. Both filed against M5, PRs open on <code>0.5.0</code>.</div>
         </div>
         <div class="stat">
           <div class="n info">5</div>
           <div class="lbl">MVP issues closed</div>
-          <div class="desc">All from M1 — the shared-building spike landed clean.</div>
+          <div class="desc">All from M1. <strong style="color:var(--purple)">#92</strong> shipped to <code>0.5.0</code> via #129 on 2026-05-27 and will auto-close on the next main integration.</div>
         </div>
         <div class="stat">
           <div class="n dim">46</div>
@@ -723,8 +728,9 @@
       <div class="now-banner">
         <div class="now-tag">CURRENT FOCUS</div>
         <div class="now-body">
-          <strong>M2 — Persistence + Welcome-Back</strong> is the active milestone. M1 closed its last issue (#97 devlog section) on
-          <code>2026-05-22</code>. Next exit gate: log out, come back tomorrow, the welcome-back accurately reflects what changed.
+          <strong>M2 — Persistence + Welcome-Back</strong> is the active milestone. Server-side welcome-back composition (<strong>#92</strong>) shipped to <code>0.5.0</code> via <code>#129</code> on
+          <code>2026-05-27</code>; the client-side rendering (<strong>#100</strong>) and notification scopes (<strong>#101</strong>) are next.
+          Two unrelated server regressions surfaced during this work and were split off to M5: <strong>#128</strong> (asteroids) and <strong>#130</strong> (mining range), PRs open against <code>0.5.0</code>.
         </div>
       </div>
 
@@ -790,18 +796,18 @@
         </article>
 
         <!-- ============ M2 ============ -->
-        <article class="ms active" id="m2" data-progress="0">
+        <article class="ms active" id="m2" data-progress="17">
           <div class="ms-head">
             <h3 class="ms-title"><span class="tag">M2</span>Persistence + Welcome-Back 💾</h3>
-            <span class="ms-status active">● Active · 0/6</span>
+            <span class="ms-status active">● Active · 1/6</span>
           </div>
           <div class="ms-exit">
             <span class="lbl">Exit gate</span>
             Stations and contributions survive server restart. <code>client_connected</code> composes a text-only welcome-back ServerMessage with station progress, contributions since last login, and current cargo. <em>Log out, come back next day, welcome-back accurately reflects what changed.</em>
           </div>
           <div class="progress">
-            <div class="progress-track"><div class="progress-fill" data-fill="0"></div></div>
-            <div class="progress-label">0% · 6 open</div>
+            <div class="progress-track"><div class="progress-fill" data-fill="17"></div></div>
+            <div class="progress-label">17% · 1 in 0.5.0 · 5 open</div>
           </div>
           <ul class="issues">
             <li class="issue open">
@@ -834,11 +840,11 @@
               <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/100">Welcome-back panel: client-side rendering of the welcome-back ServerMessage</a>
               <span class="issue-labels"><span class="chip enhancement">enhancement</span><span class="chip client-side">client</span></span>
             </li>
-            <li class="issue open">
-              <span class="issue-state open">○</span>
+            <li class="issue shipped">
+              <span class="issue-state shipped" title="Merged to 0.5.0 via #129">→</span>
               <span class="issue-num">#92</span>
               <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/92">Welcome-Back ServerMessage (server-side composition) [split from #82]</a>
-              <span class="issue-labels"><span class="chip enhancement">enhancement</span><span class="chip server-side">server</span></span>
+              <span class="issue-labels"><span class="chip enhancement">enhancement</span><span class="chip server-side">server</span><span class="chip in-050">in 0.5.0 · #129</span></span>
             </li>
           </ul>
         </article>
@@ -949,7 +955,7 @@
         <article class="ms pending" id="m5" data-progress="0">
           <div class="ms-head">
             <h3 class="ms-title"><span class="tag">M5</span>Mining Loop + Polish ⛏️</h3>
-            <span class="ms-status pending">Pending · 0/6</span>
+            <span class="ms-status pending">Pending · 0/8</span>
           </div>
           <div class="ms-exit">
             <span class="lbl">Exit gate</span>
@@ -957,9 +963,21 @@
           </div>
           <div class="progress">
             <div class="progress-track"><div class="progress-fill" data-fill="0"></div></div>
-            <div class="progress-label">0% · 6 open</div>
+            <div class="progress-label">0% · 8 open · 2 PRs in flight</div>
           </div>
           <ul class="issues">
+            <li class="issue open">
+              <span class="issue-state open" title="open">○</span>
+              <span class="issue-num">#130</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/130">Mining continues from anywhere in-sector — range is only checked at start</a>
+              <span class="issue-labels"><span class="chip bug">bug</span><span class="chip server-side">server</span><span class="chip agent-eligible">agent-ready</span><span class="chip pr-flight">PR #132 → 0.5.0</span></span>
+            </li>
+            <li class="issue open">
+              <span class="issue-state open" title="open">○</span>
+              <span class="issue-num">#128</span>
+              <a class="issue-title" href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/128">Asteroids no longer spawn — seed fields fully at init + hourly maintenance cadence</a>
+              <span class="issue-labels"><span class="chip bug">bug</span><span class="chip server-side">server</span><span class="chip agent-eligible">agent-ready</span><span class="chip pr-flight">PR #131 → 0.5.0</span></span>
+            </li>
             <li class="issue open">
               <span class="issue-state open">○</span>
               <span class="issue-num">#125</span>
@@ -1139,7 +1157,7 @@
 
     <footer>
       <img class="footer-mark" src="../assets/Solarance_Icon.png" alt="Solarance" />
-      Milestones snapshot · 2026-05-26 · Solarance: Beginnings · Source:
+      Milestones snapshot · 2026-05-28 · Solarance: Beginnings · Source:
       <a href="https://github.com/GalaxyCr8r/solarance-beginnings/milestones">github.com/GalaxyCr8r/solarance-beginnings/milestones</a>
     </footer>
 
