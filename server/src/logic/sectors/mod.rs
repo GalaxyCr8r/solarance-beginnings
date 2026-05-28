@@ -32,7 +32,7 @@ pub fn sector_upkeep(ctx: &ReducerContext, _timer: SectorUpkeepTimer) -> Result<
 
     // If a sector has an asteroid_sector entry associated with it, then update it
     for sector in dsl.get_all_asteroid_sectors() {
-        if let Err(e) = asteroid_sector_upkeep(ctx, &dsl, &sector.get_id()) {
+        if let Err(e) = asteroid_sector_upkeep(&dsl, &sector.get_id()) {
             warn!(
                 "asteroid_sector_upkeep failed for sector {}: {}",
                 sector.get_id().value(),

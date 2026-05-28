@@ -9,7 +9,7 @@ use super::timers;
 pub fn init(ctx: &ReducerContext) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    definitions::init(ctx, &dsl)?;
+    definitions::init(&dsl)?;
     timers::initialize(&dsl)?;
 
     // Create a Global Config row, or reinitalize the one if it exists.

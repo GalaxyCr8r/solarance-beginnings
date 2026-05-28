@@ -22,11 +22,8 @@ use crate::{
 // Init
 //////////////////////////////////////////////////////////////
 
-pub fn init<T: spacetimedsl::WriteContext + 'static>(
-    ctx: &ReducerContext,
-    dsl: &DSL<T>,
-) -> Result<(), String> {
-    demo_sectors(ctx, dsl)?;
+pub fn init(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
+    demo_sectors(dsl)?;
 
     info!("Sectors Loaded: {}", dsl.get_all_sectors().count());
     Ok(())
@@ -36,23 +33,20 @@ pub fn init<T: spacetimedsl::WriteContext + 'static>(
 // Utility
 //////////////////////////////////////////////////////////////
 
-fn demo_sectors<T: spacetimedsl::WriteContext + 'static>(
-    ctx: &ReducerContext,
-    dsl: &DSL<T>,
-) -> Result<(), String> {
+fn demo_sectors(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
     let faction_lrak = FactionId::new(FACTION_LRAK_COMBINE);
     let procyon = create_procyon_star_system(dsl, &faction_lrak)?;
     let (alpha, beta, gamma) = create_procyon_sectors(dsl, &procyon, &faction_lrak)?;
 
     setup_sector_connections(dsl, &alpha, &beta, &gamma)?;
-    populate_sectors_with_asteroids(ctx, dsl, &alpha, &beta)?;
+    populate_sectors_with_asteroids(dsl, &alpha, &beta)?;
     create_sector_stations(dsl, &alpha, &beta, &gamma, &faction_lrak)?;
     Ok(())
 }
 
 /// Creates the Procyon star system with all its celestial objects
-fn create_procyon_star_system<T: spacetimedsl::WriteContext>(
-    dsl: &DSL<T>,
+fn create_procyon_star_system(
+    dsl: &DSL<'_, ReducerContext>,
     faction_id: &FactionId,
 ) -> Result<StarSystem, String> {
     let procyon = dsl.create_star_system(CreateStarSystem {
@@ -112,8 +106,8 @@ fn create_procyon_star_system<T: spacetimedsl::WriteContext>(
 }
 
 /// Creates the three main sectors in the Procyon system
-fn create_procyon_sectors<T: spacetimedsl::WriteContext>(
-    dsl: &DSL<T>,
+fn create_procyon_sectors(
+    dsl: &DSL<'_, ReducerContext>,
     procyon: &StarSystem,
     faction_id: &FactionId,
 ) -> Result<(Sector, Sector, Sector), String> {
@@ -169,8 +163,8 @@ fn create_procyon_sectors<T: spacetimedsl::WriteContext>(
 }
 
 /// Sets up warp gate connections between sectors
-fn setup_sector_connections<T: spacetimedsl::WriteContext>(
-    dsl: &DSL<T>,
+fn setup_sector_connections(
+    dsl: &DSL<'_, ReducerContext>,
     alpha: &Sector,
     beta: &Sector,
     gamma: &Sector,
@@ -183,9 +177,8 @@ fn setup_sector_connections<T: spacetimedsl::WriteContext>(
 /// Populates sectors with asteroid fields, then stocks each field to its full
 /// target population so asteroids exist from t=0. The hourly `sector_upkeep`
 /// timer only replenishes fields after they've been mined down.
-fn populate_sectors_with_asteroids<T: spacetimedsl::WriteContext + 'static>(
-    ctx: &ReducerContext,
-    dsl: &DSL<T>,
+fn populate_sectors_with_asteroids(
+    dsl: &DSL<'_, ReducerContext>,
     alpha: &Sector,
     beta: &Sector,
 ) -> Result<(), String> {
@@ -204,15 +197,15 @@ fn populate_sectors_with_asteroids<T: spacetimedsl::WriteContext + 'static>(
         cluster_inner: None,
     })?;
 
-    fill_asteroid_sector(ctx, dsl, &alpha_field)?;
-    fill_asteroid_sector(ctx, dsl, &beta_field)?;
+    fill_asteroid_sector(dsl, &alpha_field)?;
+    fill_asteroid_sector(dsl, &beta_field)?;
 
     Ok(())
 }
 
 /// Creates stations in each sector with appropriate modules
-fn create_sector_stations<T: spacetimedsl::WriteContext + 'static>(
-    dsl: &DSL<T>,
+fn create_sector_stations(
+    dsl: &DSL<'_, ReducerContext>,
     alpha: &Sector,
     beta: &Sector,
     gamma: &Sector,
@@ -230,8 +223,8 @@ fn create_sector_stations<T: spacetimedsl::WriteContext + 'static>(
 /// 100% in one playtest. M4 will replace this with proper per-sector
 /// construction sites; for now this is the only test target the
 /// `contribute_to_station` reducer can point at after `--clear-database`.
-fn create_alpha_construction_site<T: spacetimedsl::WriteContext + 'static>(
-    dsl: &DSL<T>,
+fn create_alpha_construction_site(
+    dsl: &DSL<'_, ReducerContext>,
     alpha: &Sector,
     faction_id: &FactionId,
 ) -> Result<(), String> {
@@ -253,8 +246,8 @@ fn create_alpha_construction_site<T: spacetimedsl::WriteContext + 'static>(
 }
 
 /// Creates the trading station in Beta sector
-fn create_beta_trading_station<T: spacetimedsl::WriteContext + 'static>(
-    dsl: &DSL<T>,
+fn create_beta_trading_station(
+    dsl: &DSL<'_, ReducerContext>,
     beta: &Sector,
     faction_id: &FactionId,
 ) -> Result<(), String> {
@@ -274,8 +267,8 @@ fn create_beta_trading_station<T: spacetimedsl::WriteContext + 'static>(
 }
 
 /// Creates the refinery station in Alpha sector
-fn create_alpha_refinery_station<T: spacetimedsl::WriteContext + 'static>(
-    dsl: &DSL<T>,
+fn create_alpha_refinery_station(
+    dsl: &DSL<'_, ReducerContext>,
     alpha: &Sector,
     faction_id: &FactionId,
 ) -> Result<(), String> {
@@ -299,8 +292,8 @@ fn create_alpha_refinery_station<T: spacetimedsl::WriteContext + 'static>(
 }
 
 /// Creates the Gamma capital station
-fn create_gamma_capital_station<T: spacetimedsl::WriteContext + 'static>(
-    dsl: &DSL<T>,
+fn create_gamma_capital_station(
+    dsl: &DSL<'_, ReducerContext>,
     gamma: &Sector,
     faction_id: &FactionId,
 ) -> Result<(), String> {
