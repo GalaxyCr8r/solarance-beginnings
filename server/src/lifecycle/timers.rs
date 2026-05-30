@@ -25,7 +25,7 @@ use crate::{
 pub fn initialize<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     // Sectors
     dsl.create_sector_upkeep_timer(CreateSectorUpkeepTimer {
-        scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_hours(12).into()), // Every Minute
+        scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_hours(1).into()), // Every hour — fields are seeded full at init; this only replenishes mined-out asteroids.
     })?;
 
     // Factions

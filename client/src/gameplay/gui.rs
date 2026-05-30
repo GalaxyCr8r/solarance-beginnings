@@ -11,3 +11,4 @@ pub mod minimap_widget;
 pub mod out_of_play_screen;
 pub mod ship_details_window;
 pub mod status_widget;
+pub mod welcome_back_widget;

@@ -1,6 +1,12 @@
 use crate::server::bindings::*;
 use spacetimedb_sdk::{DbContext, Identity, Table};
 
+/// Discriminator the server stamps on the welcome-back message's
+/// `sender_context` (see `server/src/logic/players/welcome_back.rs`,
+/// `WELCOME_BACK_CONTEXT`). Keep in sync with the server-side constant — it is
+/// how the client tells a welcome-back apart from a generic notification.
+pub const WELCOME_BACK_CONTEXT: &str = "welcome_back";
+
 /// Client-side utilities for handling server messages
 pub struct ServerMessageUtils;
 
@@ -47,6 +53,24 @@ impl ServerMessageUtils {
     /// Get count of unread server messages for the current player
     pub fn get_unread_count(ctx: &DbConnection, player_id: &Identity) -> usize {
         Self::get_unread_messages_for_player(ctx, player_id).len()
+    }
+
+    /// Find the most recent welcome-back message for the current player, if any.
+    ///
+    /// The welcome-back panel (#100) renders this; it is the server-composed
+    /// `ServerMessage` tagged with [`WELCOME_BACK_CONTEXT`]. Returns the newest
+    /// one so a reconnect supersedes any stale welcome-back left unread from a
+    /// previous session.
+    pub fn get_latest_welcome_back(
+        ctx: &DbConnection,
+        player_id: &Identity,
+    ) -> Option<(ServerMessage, ServerMessageRecipient)> {
+        // `get_messages_for_player` already returns newest-first.
+        Self::get_messages_for_player(ctx, player_id)
+            .into_iter()
+            .find(|(message, _)| {
+                message.sender_context.as_deref() == Some(WELCOME_BACK_CONTEXT)
+            })
     }
 
     /// Mark a server message as read

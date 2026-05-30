@@ -10,6 +10,12 @@ use crate::{
     utility::try_server_only,
 };
 
+/// Maximum distance (world units) between a ship and an asteroid for mining.
+/// Enforced both when mining starts (`try_mining_asteroid`) and on every mining
+/// tick (`ship_mining_timer_reducer`), so a ship can't start in range and then
+/// drift away while extraction continues.
+pub const MINING_RANGE: f32 = 300.0;
+
 #[dsl(plural_name = ship_mining_timers, method(update = true))]
 #[spacetimedb::table(accessor = ship_mining_timer, scheduled(ship_mining_timer_reducer))]
 pub struct ShipMiningTimer {
@@ -73,6 +79,33 @@ pub fn ship_mining_timer_reducer(
         .next()
         .ok_or("Couldn't find ship.".to_string())?;
     let mut asteroid_object = dsl.get_asteroid_by_id(timer.get_asteroid_sobj_id())?;
+
+    // Range is enforced continuously, not just at start: if the ship has drifted
+    // beyond mining range, cancel the operation (delete the timer) and notify.
+    let ship_snapshot = crate::logic::stellarobjects::movement::get_ship_movement_snapshot(
+        &dsl,
+        &ship_object.get_id(),
+    )?;
+    if ship_snapshot
+        .pos
+        .distance_to_sq(asteroid_object.get_position())
+        > MINING_RANGE.powi(2)
+    {
+        dsl.delete_ship_mining_timer_by_id(timer.get_id())?;
+
+        let _ = send_info_message(
+            &dsl,
+            &ship_object.get_player_id(),
+            "Mining cancelled — asteroid out of range.".to_string(),
+            Some("mining"),
+        );
+        info!(
+            "Ship #{:?} drifted out of mining range of asteroid #{:?}; mining timer removed.",
+            ship_object.get_id(),
+            asteroid_object.get_id()
+        );
+        return Ok(());
+    }
 
     if *asteroid_object.get_current_resources() == 0 {
         dsl.delete_ship_mining_timer_by_id(timer.get_id())?;
@@ -221,9 +254,7 @@ pub fn try_mining_asteroid(
     let dist_sq = ship_snapshot.pos.distance_to_sq(asteroid.get_position());
 
     // If the player is trying to mine and is targetting an asteroid, create a mining timer.
-    if dist_sq < (300.0_f32).powi(2)
-    // TODO: Make mining range a config const
-    {
+    if dist_sq < MINING_RANGE.powi(2) {
         // Check if the player is already mining this asteroid
         if !dsl
             .get_ship_mining_timers_by_ship_sobj_id(&ship_object.get_sobj_id())

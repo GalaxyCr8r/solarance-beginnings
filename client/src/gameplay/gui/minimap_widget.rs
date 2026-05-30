@@ -48,7 +48,9 @@ fn list_sector_objects(
     player_ship: Ship,
 ) -> std::result::Result<(), String> {
     // Get player position for distance calculations
-    let player_sobj_id = get_player_sobj_id(ctx).ok_or("Failed to find player".to_string())?;
+    let player_sobj_id = get_player_ship(ctx)
+        .ok_or("Failed to find player".to_string())?
+        .sobj_id;
     let player_transform = get_transform(ctx, player_sobj_id)?;
     let player_pos = player_transform.to_vec2();
 
@@ -79,18 +81,17 @@ fn list_sector_objects(
                 ui.label("No objects detected in sector");
             } else {
                 for (sobj, distance) in stellar_objects_with_distance {
-                    let selected = game_state
-                        .current_target_sobj
-                        .as_ref()
-                        .map_or(false, |target| target.id == sobj.id);
+                    // Comparing ids is safe even if the row was just evicted —
+                    // we never dereference the cached target here (#123).
+                    let selected = game_state.current_target_sobj_id == Some(sobj.id);
 
                     ui.horizontal(|ui| {
                         // Target button
                         if ui.button(if selected { "X" } else { "O" }).clicked() {
                             if selected {
-                                game_state.current_target_sobj = None;
+                                game_state.current_target_sobj_id = None;
                             } else {
-                                game_state.current_target_sobj = Some(sobj.clone());
+                                game_state.current_target_sobj_id = Some(sobj.id);
                             }
                         }
 

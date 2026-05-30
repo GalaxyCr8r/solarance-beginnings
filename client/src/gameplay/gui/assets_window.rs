@@ -1,5 +1,4 @@
 use egui::Context;
-use spacetimedb_sdk::*;
 
 use crate::{
     gameplay::gui::{
@@ -11,30 +10,30 @@ use crate::{
 };
 
 pub struct State {
-    selected_ship: Option<Ship>,
+    // Cache the ship *id*, never the row — selection must survive a row being
+    // evicted from the subscription (#123).
+    selected_ship_id: Option<u64>,
 }
 
 impl State {
     pub fn new() -> Self {
         State {
-            selected_ship: None,
+            selected_ship_id: None,
         }
     }
 }
 
 impl ShipTreeHandler for State {
     fn is_ship_selected(&self, ship: &Ship) -> bool {
-        self.selected_ship
-            .as_ref()
-            .map_or(false, |selected| selected.id == ship.id)
+        self.selected_ship_id == Some(ship.id)
     }
 
     fn select_ship(&mut self, ship: &Ship) {
-        self.selected_ship = Some(ship.clone());
+        self.selected_ship_id = Some(ship.id);
     }
 
     fn deselect_ship(&mut self) {
-        self.selected_ship = None;
+        self.selected_ship_id = None;
     }
 }
 
@@ -60,7 +59,7 @@ pub fn draw(
             // Display player credits
             ui.label(format!(
                 "Credits: {}",
-                get_player(&ctx.db, &ctx.identity()).map_or_else(|| 0, |player| player.credits)
+                get_current_player(ctx).map_or_else(|| 0, |player| player.credits)
             ));
 
             ui.separator();

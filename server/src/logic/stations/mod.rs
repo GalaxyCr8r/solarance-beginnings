@@ -6,7 +6,6 @@ use crate::{
         status::*,
     },
     tables::{factions::*, items::*, sectors::*, stations::*, stellarobjects::*},
-    utility::*,
 };
 
 use log::info;
