@@ -30,6 +30,7 @@ pub struct GameState<'a> {
     pub details_window: ship_details_window::State,
     pub faction_window: faction_window::State,
     pub map_window: map_window::State,
+    pub welcome_back: welcome_back_widget::State,
 
     pub out_of_play_screen: out_of_play_screen::State,
 
@@ -75,6 +76,7 @@ pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
         details_window: ship_details_window::State::new(),
         faction_window: faction_window::State::new(),
         map_window: map_window::State::new(),
+        welcome_back: welcome_back_widget::State::new(),
 
         out_of_play_screen: out_of_play_screen::State::new(),
 
