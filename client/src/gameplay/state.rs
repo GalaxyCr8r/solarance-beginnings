@@ -2,7 +2,7 @@ use macroquad::{camera::Camera2D, prelude::*};
 use std::collections::HashMap;
 
 use crate::gameplay::gui::*;
-use crate::server::bindings::{self, DbConnection, StellarObject, VisualEffectType};
+use crate::server::bindings::{self, DbConnection, VisualEffectType};
 
 #[derive(Debug, Clone)]
 pub struct FiringEffect {
@@ -42,7 +42,11 @@ pub struct GameState<'a> {
     pub map_window_open: bool,
 
     // Gameplay States
-    pub current_target_sobj: Option<StellarObject>,
+    // Cache the target's *id*, never the row — the `StellarObject` row is
+    // evicted on sector jump / undock and a cached copy goes stale (#123).
+    // Read it back through `stdb::utils::get_current_target`, which re-queries
+    // fresh and clears this field when the row is gone.
+    pub current_target_sobj_id: Option<u64>,
     pub combat_mode: bool,
     pub mining_active: bool,
     pub movement_flags: (bool, bool, bool, bool), // (forward, backward, left, right)
@@ -86,7 +90,7 @@ pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
         faction_window_open: false,
         map_window_open: false,
 
-        current_target_sobj: None,
+        current_target_sobj_id: None,
         combat_mode: false,
         mining_active: false,
         movement_flags: (false, false, false, false),

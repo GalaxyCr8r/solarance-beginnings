@@ -98,11 +98,7 @@ pub fn display_ship_on_tree(ctx: &DbConnection, state: &mut State, ui: &mut Ui, 
     let ship_type = ctx.db().ship_type_definition().id().find(&ship.shiptype_id);
 
     let mut select_enabled = true;
-    if state
-        .selected_ship
-        .clone()
-        .is_some_and(|selected| selected.id == ship.id)
-    {
+    if state.selected_ship_id == Some(ship.id) {
         select_enabled = false;
     }
 
@@ -123,7 +119,7 @@ pub fn display_ship_on_tree(ctx: &DbConnection, state: &mut State, ui: &mut Ui, 
             // Add buttons in reverse order of appearance (rightmost first)
             if ui.button("Undock").clicked() {
                 println!("Undock clicked for ship ID: {}", ship.id);
-                state.selected_ship = None;
+                state.selected_ship_id = None;
                 state.currently_selected_module = None;
                 let _ = ctx.reducers().undock_ship(ship.clone());
                 // TODO Add a system message to alert the player if it failed.
@@ -131,8 +127,7 @@ pub fn display_ship_on_tree(ctx: &DbConnection, state: &mut State, ui: &mut Ui, 
             if select_enabled && ui.button("Select").clicked() {
                 println!("Select clicked for ship ID: {}", ship.id);
                 // Handle selection, e.g., update some state
-                // *selected_ship_id = Some(ship.id);
-                state.selected_ship = Some(ship.clone());
+                state.selected_ship_id = Some(ship.id);
             } else if !select_enabled {
                 ui.add_enabled(select_enabled, egui::Button::new("Select"));
             }

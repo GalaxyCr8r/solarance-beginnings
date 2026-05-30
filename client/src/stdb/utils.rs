@@ -176,22 +176,7 @@ pub fn get_sector_name(ctx: &DbConnection, id: &u64) -> String {
 }
 
 pub fn get_current_player(ctx: &DbConnection) -> Option<Player> {
-    get_player(&ctx.db, &ctx.identity())
-}
-
-pub fn get_player(db: &RemoteTables, id: &Identity) -> Option<Player> {
-    let this = db.player().id().find(id);
-    match this {
-        Some(p) => Some(p),
-        None => None,
-    }
-}
-
-/// Returns the sobj id of the player's currently-controlled ship. Replaces
-/// the old `sobj_player_window`-based lookup — the player owns at most one
-/// in-sector ship.
-pub fn get_player_sobj_id(ctx: &DbConnection) -> Option<u64> {
-    get_player_ship(ctx).map(|s| s.sobj_id)
+    ctx.db().player().id().find(&ctx.identity())
 }
 
 pub fn get_player_ship(ctx: &DbConnection) -> Option<Ship> {
@@ -200,6 +185,57 @@ pub fn get_player_ship(ctx: &DbConnection) -> Option<Ship> {
         .ship()
         .iter()
         .find(|s| s.player_id == identity && s.location == ShipLocation::Sector)
+}
+
+/// Re-query the player's current target by id, returning a **fresh** row every
+/// call. If the stored id no longer resolves — the row was evicted on a sector
+/// jump, undock, or subscription rotation — the reference is cleared and `None`
+/// is returned.
+///
+/// This is the single home of the validate-or-clear discipline for the target
+/// (#123/#124): client state holds only the id (`Option<u64>`), never a cached
+/// `StellarObject` row that could go stale and panic a later read. Callers pass
+/// `&mut state.current_target_sobj_id` and get back either a live row or
+/// nothing — they never have to remember to null out their own reference.
+pub fn get_current_target(
+    ctx: &DbConnection,
+    target_id: &mut Option<u64>,
+) -> Option<StellarObject> {
+    let id = (*target_id)?;
+    match ctx.db().stellar_object().id().find(&id) {
+        Some(object) => Some(object),
+        None => {
+            *target_id = None;
+            None
+        }
+    }
+}
+
+/// A ship plus its type definition for an in-sector stellar-object id, hiding
+/// the `ship` → `ship_type_definition` join. Returns `None` if either row is
+/// absent from the cache. Replaces the duplicated lookup the renderer and the
+/// status widget previously each inlined.
+pub fn get_ship_with_type(
+    ctx: &DbConnection,
+    sobj_id: u64,
+) -> Option<(Ship, ShipTypeDefinition)> {
+    let ship = ctx.db().ship().iter().find(|s| s.sobj_id == sobj_id)?;
+    let ship_type = ctx
+        .db()
+        .ship_type_definition()
+        .id()
+        .find(&ship.shiptype_id)?;
+    Some((ship, ship_type))
+}
+
+/// Every ship the calling player owns that is currently docked at a station.
+pub fn get_my_docked_ships(ctx: &DbConnection) -> Vec<Ship> {
+    let identity = ctx.identity();
+    ctx.db()
+        .ship()
+        .iter()
+        .filter(|s| s.player_id == identity && s.location == ShipLocation::Station)
+        .collect()
 }
 
 pub fn get_all_equipped_of_type(
