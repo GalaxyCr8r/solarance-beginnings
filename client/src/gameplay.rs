@@ -173,15 +173,6 @@ pub async fn gameplay(connection: Option<DbConnection>) {
         visual_effects::render_visual_effects(&game_state);
 
         egui_macroquad::ui(|egui_ctx| {
-            // Welcome-back panel (#100): shows once on connect regardless of
-            // whether the player is piloting, docked, or still on the creation
-            // screen. Self-suppresses after dismissal.
-            gui::welcome_back_widget::draw(
-                egui_ctx,
-                &game_state.ctx,
-                &mut game_state.welcome_back,
-            );
-
             if player_ship.is_none() {
                 if ctx
                     .db()
