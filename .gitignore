@@ -30,3 +30,5 @@ client/src/server/bindings/
 
 **/.env
 .DS_Store
+
+.claude/
