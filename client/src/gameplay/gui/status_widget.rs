@@ -43,13 +43,11 @@ pub fn window(
                         }
                         ui.separator();
 
-                        if game_state.current_target_sobj != None {
+                        if let Some(target) =
+                            get_current_target(ctx, &mut game_state.current_target_sobj_id)
+                        {
                             ui.vertical(|ui| {
-                                let _ = add_targeted_object_status(
-                                    ui,
-                                    ctx,
-                                    &game_state.current_target_sobj.clone().unwrap(),
-                                );
+                                let _ = add_targeted_object_status(ui, ctx, &target);
                             });
                         } else {
                             ui.allocate_ui(Vec2 { x: 96.0, y: 32.0 }, |ui| {
@@ -139,8 +137,8 @@ fn mining_beam_button(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameStat
             game_state.mining_active = false;
         }
     } else {
-        let enabled = game_state
-            .current_target_sobj
+        let target = get_current_target(ctx, &mut game_state.current_target_sobj_id);
+        let enabled = target
             .as_ref()
             .map_or(false, |t| t.kind == StellarObjectKinds::Asteroid);
         ui.add_enabled_ui(enabled, |ui| {
@@ -148,7 +146,7 @@ fn mining_beam_button(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameStat
                 .button(RichText::new("[X] Mining Beam: Off").color(Color32::LIGHT_GRAY))
                 .clicked()
             {
-                if let Some(target) = &game_state.current_target_sobj {
+                if let Some(target) = &target {
                     let _ = ctx
                         .reducers
                         .try_mining_asteroid(StellarObjectId { value: target.id });
@@ -159,7 +157,7 @@ fn mining_beam_button(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameStat
     }
 }
 
-fn autodocking_button(ui: &mut Ui, ctx: &DbConnection, game_state: &GameState) {
+fn autodocking_button(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
     if game_state.combat_mode {
         return;
     }
@@ -183,7 +181,8 @@ fn autodocking_button(ui: &mut Ui, ctx: &DbConnection, game_state: &GameState) {
             // The [C] button doubles as "Dock" (station target) and "Jump"
             // (jumpgate target). Server-side distance / energy gating still
             // applies — this UI just routes the intent.
-            let target_kind = game_state.current_target_sobj.as_ref().map(|t| t.kind);
+            let target = get_current_target(ctx, &mut game_state.current_target_sobj_id);
+            let target_kind = target.as_ref().map(|t| t.kind);
             let (label, enabled) = match target_kind {
                 Some(StellarObjectKinds::Station) => ("[C] Dock", true),
                 Some(StellarObjectKinds::JumpGate) => ("[C] Jump", true),
@@ -194,7 +193,7 @@ fn autodocking_button(ui: &mut Ui, ctx: &DbConnection, game_state: &GameState) {
                     .button(RichText::new(label).color(Color32::LIGHT_GRAY))
                     .clicked()
                 {
-                    if let Some(target) = &game_state.current_target_sobj {
+                    if let Some(target) = &target {
                         match target.kind {
                             StellarObjectKinds::Station => {
                                 let _ = ctx.reducers.dock_ship(target.id);
@@ -253,40 +252,36 @@ fn add_targeted_object_status(
             }
         }
         StellarObjectKinds::Ship => {
-            if let Some(ship) = ctx.db().ship().iter().find(|s| s.sobj_id == target.id) {
+            if let Some((ship, ship_type)) = get_ship_with_type(ctx, target.id) {
                 ui.label(format!(
                     "Faction: {}",
                     get_faction_shortname(ctx, &ship.faction_id)
                 ));
                 if let Some(ship_status) = ship.status(ctx) {
-                    if let Some(ship_type) =
-                        ctx.db.ship_type_definition().id().find(&ship.shiptype_id)
-                    {
-                        add_status_bar(
-                            ui,
-                            "Health",
-                            ship_type.max_health as f32,
-                            ship_status.health,
-                            Color32::from_rgb(242, 0, 32),
-                            true,
-                        );
-                        add_status_bar(
-                            ui,
-                            "Shields",
-                            ship_type.max_shields as f32,
-                            ship_status.shields,
-                            Color32::from_rgb(0, 64, 192),
-                            true,
-                        );
-                        add_status_bar(
-                            ui,
-                            "Energy",
-                            ship_type.max_energy as f32,
-                            ship_status.energy,
-                            Color32::from_rgb(0, 100, 64),
-                            true,
-                        );
-                    }
+                    add_status_bar(
+                        ui,
+                        "Health",
+                        ship_type.max_health as f32,
+                        ship_status.health,
+                        Color32::from_rgb(242, 0, 32),
+                        true,
+                    );
+                    add_status_bar(
+                        ui,
+                        "Shields",
+                        ship_type.max_shields as f32,
+                        ship_status.shields,
+                        Color32::from_rgb(0, 64, 192),
+                        true,
+                    );
+                    add_status_bar(
+                        ui,
+                        "Energy",
+                        ship_type.max_energy as f32,
+                        ship_status.energy,
+                        Color32::from_rgb(0, 100, 64),
+                        true,
+                    );
                 }
             }
         }
@@ -332,11 +327,7 @@ fn add_targeted_object_status(
             if let Some(jump_gate) = ctx.db().jump_gate().id().find(&target.id) {
                 ui.horizontal(|ui| {
                     ui.label("Destination:");
-                    if let Some(sector) = ctx.db().sector().id().find(&jump_gate.target_sector_id) {
-                        ui.label(format!("{}", sector.name));
-                    } else {
-                        ui.label(get_sector_name(ctx, &jump_gate.target_sector_id));
-                    }
+                    ui.label(get_sector_name(ctx, &jump_gate.target_sector_id));
                 });
             }
         } //_ => {}
@@ -364,18 +355,19 @@ fn add_status_bar(ui: &mut Ui, name: &str, max: f32, current: f32, color: Color3
     }
 }
 
-fn fire_weapons_button(ui: &mut Ui, ctx: &DbConnection, game_state: &GameState) {
+fn fire_weapons_button(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
     if !game_state.combat_mode {
         return;
     }
 
-    let enabled = game_state.current_target_sobj.is_some();
+    let target = get_current_target(ctx, &mut game_state.current_target_sobj_id);
+    let enabled = target.is_some();
     ui.add_enabled_ui(enabled, |ui| {
         if ui
             .button(RichText::new("[Space] Fire Weapons").color(Color32::LIGHT_GRAY))
             .clicked()
         {
-            if let Some(target) = &game_state.current_target_sobj {
+            if let Some(target) = &target {
                 let _ = ctx.reducers.fire_weapons(target.id);
             }
         }

@@ -67,7 +67,7 @@ pub fn register_callbacks(
     ctx.db()
         .faction_chat_message()
         .on_insert(move |ec, message| {
-            if let Some(player) = get_player(&ec.db, &ec.identity()) {
+            if let Some(player) = ec.db().player().id().find(&ec.identity()) {
                 if player.faction_id.value == message.faction_id {
                     info!(
                         "F{}.{}: {}",
@@ -247,10 +247,10 @@ pub async fn gameplay(connection: Option<DbConnection>) {
         if !game_state.chat_window.has_focus && player_ship.is_some() {
             if is_key_pressed(KeyCode::E) {
                 if let Ok(target) = player::target_closest_stellar_object(&ctx, &mut game_state) {
-                    if game_state.current_target_sobj.as_ref().map(|t| t.id) == Some(target.id) {
-                        game_state.current_target_sobj = None;
+                    if game_state.current_target_sobj_id == Some(target.id) {
+                        game_state.current_target_sobj_id = None;
                     } else {
-                        game_state.current_target_sobj = Some(target);
+                        game_state.current_target_sobj_id = Some(target.id);
                     }
                 }
             }

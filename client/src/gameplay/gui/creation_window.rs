@@ -39,7 +39,7 @@ pub fn draw(
         .anchor(Align2::CENTER_CENTER, egui::Vec2::ZERO)
         .show(egui_ctx, |ui| {
             ui.vertical_centered(|ui| {
-                if let Some(player) = get_player(&ctx.db, &ctx.identity()) {
+                if let Some(player) = get_current_player(ctx) {
                     create_ship(ctx, game_state, ui, player);
                 } else if let Some(_player_ship) = get_player_ship(&ctx) {
                     // You're ready to go!
