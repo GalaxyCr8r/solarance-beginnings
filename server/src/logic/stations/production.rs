@@ -1,6 +1,5 @@
 use crate::*;
 use spacetimedb::{log::info, *};
-use spacetimedsl::*;
 
 use super::*;
 

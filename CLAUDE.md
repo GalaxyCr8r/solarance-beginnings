@@ -797,13 +797,17 @@ Get a DSL handle inside a reducer with `dsl(ctx)`:
 let dsl = dsl(ctx);
 ```
 
-For helper functions outside reducers, accept a generic `DSL<T>`:
+For helper functions called from reducers, type the `dsl` parameter as `&DSL<'_, ReducerContext>`:
 
 ```rust
-pub fn my_helper<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
+pub fn my_helper(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
     // ...
 }
 ```
+
+**Never pass `ctx` alongside `dsl`.** `dsl` is a superset of `ctx` — reach the underlying `ReducerContext` via `dsl.ctx()` when you need `rng()`, `sender()`, or `timestamp`. A signature like `fn foo(ctx: &ReducerContext, dsl: &DSL<T>, ...)` is a sign that `dsl` was typed too generically; collapse to the concrete form above.
+
+Generic `&DSL<T>` (with a `T: spacetimedsl::WriteContext` bound) is reserved for helpers that must work across reducer *and* procedure contexts. This project has no procedures today, so prefer the concrete form for new helpers.
 
 ---
 
@@ -919,6 +923,6 @@ pub fn timer_update_all_ship_movement_controllers(
 2. **Pair `#[dsl(...)]` with every `#[table]`** — defines plural name and update method
 3. **Use `#[spacetimedb::reducer]`** (full path) — project convention
 4. **Use `dsl(ctx)` inside reducers** — not `ctx.db` directly
-5. **Pass `&DSL<T>` to helper functions** — use `T: spacetimedsl::WriteContext` bound
+5. **Type helper `dsl` params as `&DSL<'_, ReducerContext>`** — never pass `ctx` alongside `dsl`; reach the context via `dsl.ctx()`. Generic `&DSL<T>` is reserved for cross-reducer/procedure reuse.
 6. **Use generated CRUD methods** — don't call `ctx.db.*` for tables covered by DSL
 7. **Use ID wrappers** — `PlayerId::new(identity)`, not raw `Identity` where typed ID exists

@@ -29,8 +29,12 @@ use crate::{
 pub struct State {
     // current_tab: CurrentTab, // = CurrentTab::Ship
     // current_equipment_tab: EquipmentSlotType,
-    currently_selected_module: Option<(u8, StationModule, StationModuleBlueprint)>,
-    selected_ship: Option<Ship>,
+    // Cache *ids*, never rows (#123). The previous `(u8, StationModule,
+    // StationModuleBlueprint)` tuple cached two whole rows that go stale when
+    // the station's modules rotate out of the subscription. Store the tab
+    // index + module id and re-query both rows on read.
+    currently_selected_module: Option<(u8, u64)>,
+    selected_ship_id: Option<u64>,
 
     /// A hashmap of station module IDs + item def IDs to the currently selected buy/sell amounts.
     buy_sell_scalars: HashMap<(u64, u32), (u32, u32)>,
@@ -40,7 +44,7 @@ impl State {
     pub fn new() -> Self {
         State {
             currently_selected_module: None,
-            selected_ship: None,
+            selected_ship_id: None,
             buy_sell_scalars: HashMap::new(),
         }
     }
@@ -48,17 +52,15 @@ impl State {
 
 impl crate::gameplay::gui::asset_utils::ShipTreeHandler for State {
     fn is_ship_selected(&self, ship: &Ship) -> bool {
-        self.selected_ship
-            .as_ref()
-            .map_or(false, |selected| selected.id == ship.id)
+        self.selected_ship_id == Some(ship.id)
     }
 
     fn select_ship(&mut self, ship: &Ship) {
-        self.selected_ship = Some(ship.clone());
+        self.selected_ship_id = Some(ship.id);
     }
 
     fn deselect_ship(&mut self) {
-        self.selected_ship = None;
+        self.selected_ship_id = None;
         self.currently_selected_module = None;
     }
 }
@@ -92,11 +94,14 @@ pub fn draw(
                     super::chat_widget::draw_panel(ui, ctx, &mut game_state.chat_window)
                 });
 
-            if game_state.out_of_play_screen.selected_ship.is_some() {
-                if let Some(ship) = game_state.out_of_play_screen.selected_ship.clone() {
+            if let Some(ship_id) = game_state.out_of_play_screen.selected_ship_id {
+                if let Some(ship) = ctx.db().ship().id().find(&ship_id) {
                     if let Some(station) = ctx.db().station().id().find(&ship.station_id) {
                         show_station_window(egui_ctx, ctx, game_state, ship, station);
                     }
+                } else {
+                    // Selected ship evicted (undocked elsewhere / sold) — drop it.
+                    game_state.out_of_play_screen.selected_ship_id = None;
                 }
             }
         })
@@ -139,13 +144,14 @@ fn show_station_window(
                 .filter(|sm| sm.station_id == station.id)
                 .enumerate()
             {
-                if let Some(blueprint) = ctx
+                if ctx
                     .db()
                     .station_module_blueprint()
                     .id()
                     .find(&module.blueprint)
+                    .is_some()
                 {
-                    show_station_module(game_state, ui, index, module, blueprint);
+                    show_station_module(game_state, ui, index, module);
                 } else {
                     ui.label(format!("Module #{} (Unknown)", index));
                 }
@@ -153,22 +159,41 @@ fn show_station_window(
         });
         ui.separator();
         egui::ScrollArea::vertical().show(ui, |ui| {
-            if let Some((index, module, blueprint)) = game_state
-                .out_of_play_screen
-                .currently_selected_module
-                .clone()
+            // Re-query the selected module + blueprint fresh from their ids; a
+            // cached pair would dangle once the module rotates out (#123).
+            if let Some((index, module_id)) = game_state.out_of_play_screen.currently_selected_module
             {
-                ui.group(|ui| {
-                    show_currently_selected_module(
-                        ctx,
-                        &mut game_state.out_of_play_screen,
-                        ship,
-                        ui,
-                        index,
-                        module,
-                        blueprint,
-                    );
-                });
+                let resolved = ctx
+                    .db()
+                    .station_module()
+                    .id()
+                    .find(&module_id)
+                    .and_then(|module| {
+                        ctx.db()
+                            .station_module_blueprint()
+                            .id()
+                            .find(&module.blueprint)
+                            .map(|blueprint| (module, blueprint))
+                    });
+                match resolved {
+                    Some((module, blueprint)) => {
+                        ui.group(|ui| {
+                            show_currently_selected_module(
+                                ctx,
+                                &mut game_state.out_of_play_screen,
+                                ship,
+                                ui,
+                                index,
+                                module,
+                                blueprint,
+                            );
+                        });
+                    }
+                    None => {
+                        // Module (or its blueprint) gone — clear the selection.
+                        game_state.out_of_play_screen.currently_selected_module = None;
+                    }
+                }
             }
         });
     });
@@ -179,11 +204,10 @@ fn show_station_module(
     ui: &mut Ui,
     index: usize,
     module: StationModule,
-    blueprint: StationModuleBlueprint,
 ) {
     // Check if this is module is selected
     let mut selected = false;
-    if let Some((selected_index, _, _)) = game_state.out_of_play_screen.currently_selected_module {
+    if let Some((selected_index, _)) = game_state.out_of_play_screen.currently_selected_module {
         selected = (index as u8) == selected_index;
     }
 
@@ -194,8 +218,7 @@ fn show_station_module(
         )
         .clicked()
     {
-        game_state.out_of_play_screen.currently_selected_module =
-            Some((index as u8, module.clone(), blueprint.clone()));
+        game_state.out_of_play_screen.currently_selected_module = Some((index as u8, module.id));
     }
 }
 
@@ -553,25 +576,19 @@ fn left_panel(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
         ui.separator();
     });
 
-    // If there is no ship selected, simply pick the first one.
-    if game_state.out_of_play_screen.selected_ship.is_none() {
-        let players_ships: Vec<Ship> = game_state
-            .ctx
-            .db()
-            .ship()
-            .iter()
-            .filter(|ship| ship.player_id == ctx.identity())
-            .collect();
-
-        if players_ships.len() > 0 {
-            if let Some(ship) = players_ships.get(0) {
-                game_state.out_of_play_screen.selected_ship = Some(ship.clone());
-            }
+    // If there is no ship selected, simply pick the first docked one.
+    if game_state.out_of_play_screen.selected_ship_id.is_none() {
+        if let Some(ship) = get_my_docked_ships(ctx).first() {
+            game_state.out_of_play_screen.selected_ship_id = Some(ship.id);
         }
     }
 
-    // Display the selected ships' details
-    if let Some(ship) = game_state.out_of_play_screen.selected_ship.clone() {
+    // Display the selected ship's details, re-queried fresh from its id.
+    if let Some(ship) = game_state
+        .out_of_play_screen
+        .selected_ship_id
+        .and_then(|id| ctx.db().ship().id().find(&id))
+    {
         egui::TopBottomPanel::bottom("left_panel_bottom")
             .resizable(true)
             .min_height(300.0)
@@ -606,8 +623,7 @@ fn left_panel(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
     ui.separator();
     ui.label(format!(
         "Credits: {}",
-        get_player(&game_state.ctx.db, &game_state.ctx.identity())
-            .map_or_else(|| 0, |player| player.credits)
+        get_current_player(ctx).map_or_else(|| 0, |player| player.credits)
     ));
 
     egui::ScrollArea::vertical().show(ui, |ui| {

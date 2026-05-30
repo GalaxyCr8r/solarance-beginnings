@@ -64,6 +64,7 @@ pub fn register_playername(
         credits: 1000,
         logged_in: true,
         faction_id: final_faction.clone(),
+        last_login: None, // Stamped by the welcome-back composer on first connect.
     })?;
     let _ = dsl.create_faction_chat_message(CreateFactionChatMessage {
         player_id: PlayerId::new(identity),

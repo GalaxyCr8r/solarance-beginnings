@@ -9,39 +9,36 @@ use crate::stdb::utils::*;
 use crate::gameplay::{resources::Resources, state::GameState};
 
 pub fn draw_mining_laser(game_state: &mut GameState<'_>, player_pose: &RenderPose) {
-    if game_state.mining_active {
-        if let Some(target) = &game_state.current_target_sobj {
-            if target.kind == StellarObjectKinds::Asteroid {
-                if let Some(object) = game_state
-                    .ctx
-                    .db
-                    .stellar_object()
-                    .id()
-                    .find(&target.id)
-                {
-                    let now_micros = now_unix_micros();
-                    if let Some(target_pose) = pose_for_object(game_state.ctx, &object, now_micros)
-                    {
-                        draw_line(
-                            target_pose.pos.x,
-                            target_pose.pos.y,
-                            player_pose.pos.x,
-                            player_pose.pos.y,
-                            6.0,
-                            Color::from_rgba(128, 0, 0, ((now() * 100.0) % 255.0) as u8),
-                        );
-                        draw_line(
-                            target_pose.pos.x,
-                            target_pose.pos.y,
-                            player_pose.pos.x,
-                            player_pose.pos.y,
-                            ((now() as f32) * 100.0) % 3.0,
-                            RED,
-                        );
-                    }
-                }
-            }
-        }
+    if !game_state.mining_active {
+        return;
+    }
+    // Re-query the target fresh; `get_current_target` is the row we'd otherwise
+    // have cached and dereferenced. None ⇒ target gone, nothing to draw.
+    let Some(target) = get_current_target(game_state.ctx, &mut game_state.current_target_sobj_id)
+    else {
+        return;
+    };
+    if target.kind != StellarObjectKinds::Asteroid {
+        return;
+    }
+    let now_micros = now_unix_micros();
+    if let Some(target_pose) = pose_for_object(game_state.ctx, &target, now_micros) {
+        draw_line(
+            target_pose.pos.x,
+            target_pose.pos.y,
+            player_pose.pos.x,
+            player_pose.pos.y,
+            6.0,
+            Color::from_rgba(128, 0, 0, ((now() * 100.0) % 255.0) as u8),
+        );
+        draw_line(
+            target_pose.pos.x,
+            target_pose.pos.y,
+            player_pose.pos.x,
+            player_pose.pos.y,
+            ((now() as f32) * 100.0) % 3.0,
+            RED,
+        );
     }
 }
 
@@ -74,8 +71,7 @@ pub fn draw_radar(
         let from =
             player_vec + (glam::Vec2::from_angle(angle) * radar_radius + radar_icon_size / 2.0);
 
-        let targetted_sobj = game_state.current_target_sobj.as_ref().map(|s| s.id);
-        let is_targetted = targetted_sobj.is_some_and(|id| id == sobj_id);
+        let is_targetted = game_state.current_target_sobj_id == Some(sobj_id);
         let thickness = if is_targetted { 2.0 } else { 1.0 };
 
         let dist = player_vec.distance(position);
@@ -186,7 +182,7 @@ pub fn draw_ship(
     let resources = storage::get::<Resources>();
     let position = pose.pos;
 
-    if let Some(player) = get_player(&game_state.ctx.db, &ship.player_id) {
+    if let Some(player) = game_state.ctx.db.player().id().find(&ship.player_id) {
         let string = format!(
             "[{}] {}",
             get_faction_shortname(game_state.ctx, &player.faction_id.value),
@@ -217,16 +213,14 @@ pub fn draw_ship(
         },
     );
 
-    if let Some(target) = &game_state.current_target_sobj {
-        if target.id == pose.sobj_id {
-            let size = (tex.width() + tex.height()) * 0.5;
-            draw_targeting_bracket(
-                position,
-                size,
-                target.kind,
-                Color::from_rgba(255, 255, 255, 200),
-            );
-        }
+    if game_state.current_target_sobj_id == Some(pose.sobj_id) {
+        let size = (tex.width() + tex.height()) * 0.5;
+        draw_targeting_bracket(
+            position,
+            size,
+            StellarObjectKinds::Ship,
+            Color::from_rgba(255, 255, 255, 200),
+        );
     }
 }
 
@@ -250,16 +244,14 @@ pub fn draw_asteroid(pose: &RenderPose, asteroid: Asteroid, game_state: &mut Gam
         },
     );
 
-    if let Some(target) = &game_state.current_target_sobj {
-        if target.id == asteroid.id {
-            let size = (tex.width() + tex.height()) * 0.5;
-            draw_targeting_bracket(
-                position,
-                size,
-                target.kind,
-                Color::from_rgba(255, 255, 255, 200),
-            );
-        }
+    if game_state.current_target_sobj_id == Some(asteroid.id) {
+        let size = (tex.width() + tex.height()) * 0.5;
+        draw_targeting_bracket(
+            position,
+            size,
+            StellarObjectKinds::Asteroid,
+            Color::from_rgba(255, 255, 255, 200),
+        );
     }
 }
 
@@ -283,16 +275,14 @@ pub fn draw_crate(pose: &RenderPose, cargo_crate: CargoCrate, game_state: &mut G
         },
     );
 
-    if let Some(target) = &game_state.current_target_sobj {
-        if target.id == cargo_crate.sobj_id {
-            let size = (tex.width() + tex.height()) * 0.5;
-            draw_targeting_bracket(
-                position,
-                size,
-                target.kind,
-                Color::from_rgba(255, 255, 255, 200),
-            );
-        }
+    if game_state.current_target_sobj_id == Some(cargo_crate.sobj_id) {
+        let size = (tex.width() + tex.height()) * 0.5;
+        draw_targeting_bracket(
+            position,
+            size,
+            StellarObjectKinds::CargoCrate,
+            Color::from_rgba(255, 255, 255, 200),
+        );
     }
 }
 
@@ -311,16 +301,14 @@ pub fn draw_jumpgate(pose: &RenderPose, jumpgate: JumpGate, game_state: &mut Gam
         WHITE,
     );
 
-    if let Some(target) = &game_state.current_target_sobj {
-        if target.id == jumpgate.id {
-            let size = (tex.width() + tex.height()) * 0.33;
-            draw_targeting_bracket(
-                position,
-                size,
-                target.kind,
-                Color::from_rgba(255, 255, 255, 200),
-            );
-        }
+    if game_state.current_target_sobj_id == Some(jumpgate.id) {
+        let size = (tex.width() + tex.height()) * 0.33;
+        draw_targeting_bracket(
+            position,
+            size,
+            StellarObjectKinds::JumpGate,
+            Color::from_rgba(255, 255, 255, 200),
+        );
     }
 }
 
@@ -344,16 +332,14 @@ pub fn draw_station(pose: &RenderPose, station: Station, game_state: &mut GameSt
         WHITE,
     );
 
-    if let Some(target) = &game_state.current_target_sobj {
-        if target.id == station.sobj_id {
-            let size = (tex.width() + tex.height()) * 0.33;
-            draw_targeting_bracket(
-                position,
-                size * 1.1,
-                target.kind,
-                Color::from_rgba(255, 255, 255, 200),
-            );
-        }
+    if game_state.current_target_sobj_id == Some(station.sobj_id) {
+        let size = (tex.width() + tex.height()) * 0.33;
+        draw_targeting_bracket(
+            position,
+            size * 1.1,
+            StellarObjectKinds::Station,
+            Color::from_rgba(255, 255, 255, 200),
+        );
     }
 }
 

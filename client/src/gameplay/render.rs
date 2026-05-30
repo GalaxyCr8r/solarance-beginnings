@@ -43,21 +43,17 @@ pub fn sector(game_state: &mut GameState) {
 
         match object.kind {
             StellarObjectKinds::Ship => {
-                if let Some(ship_object) = db.ship().iter().find(|s| s.sobj_id == pose.sobj_id) {
-                    if let Some(ship_type) = db
-                        .ship_type_definition()
-                        .id()
-                        .find(&ship_object.shiptype_id)
+                if let Some((ship_object, ship_type)) =
+                    get_ship_with_type(game_state.ctx, pose.sobj_id)
+                {
+                    if player_ship
+                        .as_ref()
+                        .is_some_and(|ship_obj| ship_obj.sobj_id == object.id)
                     {
-                        if player_ship
-                            .as_ref()
-                            .is_some_and(|ship_obj| ship_obj.sobj_id == object.id)
-                        {
-                            player_pose = Some(pose);
-                            player_ship_type = Some(ship_type);
-                        } else {
-                            ships_to_draw.push((ship_object.clone(), pose, ship_type.clone()));
-                        }
+                        player_pose = Some(pose);
+                        player_ship_type = Some(ship_type);
+                    } else {
+                        ships_to_draw.push((ship_object, pose, ship_type));
                     }
                 }
             }
