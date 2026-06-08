@@ -43,7 +43,21 @@ Strict hierarchical containers for the game world.
 *   **Server Offset:** Client-side estimator that aligns the local clock to the server's clock so `predict_movement` doesn't see negative deltas (frozen ship) or oversized deltas (snap-forward). Computed as a maximum aggregator over recent snapshots; surfaced in the debug widget.
 *   **Static Position:** Non-moving entities (`Asteroid`, `Station`, `Jumpgate`) carry `(x, y)` (and `rotation` for stations and jumpgates) as direct table columns. They do not have a `MovementState`. Asteroid spin is pure client-side animation derived from `asteroid_id ⊕ time`.
 
-## 5. Anti-Concepts (Banned Terminology)
+## 5. Messaging
+Two distinct messaging systems. They do not share tables. Choosing between them *is* choosing the audience, which is why there is no separate "scope" column.
+
+*   **Direct Server Message** (`DirectServerMessage`): A 1-to-1 message FROM the Server TO a single Player. Server is *always* the sender — there is no sender enum on this table. Replaces the old `ServerMessage` + `ServerMessageRecipient` pair and most existing `send_server_message_*` usages. The **Welcome-Back Summary** is delivered as a Direct Server Message. Player→player DMs are **out of MVP scope**; when added they will be a *separate* table (`DirectMessage`), not a reschema of this one. *(Do not use: ServerMessage, notification, PM, whisper.)*
+*   **Channel Message:** A 1-to-many message posted to a **Channel**. Everyone subscribed to that Channel sees it. Fire-and-forget — no per-player delivery or read state is stored. *(Do not use: broadcast, group message.)*
+*   **Channel:** The audience of a Channel Message. This replaces issue #101's proposed `Scope` enum: scope is *which Channel table you posted to*, not a stored column. The Channels, broadest to narrowest:
+    *   **Server** (`ServerChannelMessage`): server-wide MOTD / updates. Sender is always `System`. Truly **public** — readable by anyone connected (incl. not-logged-in / banned) and surfaceable outside the game (e.g. a webpage). No View.
+    *   **Galaxy** (`GalaxyChannelMessage`): galaxy-wide *player* chat. Gated to logged-in players (good-standing check added later) via a View. Distinct from Server so player chatter never mixes with official announcements.
+    *   **Star System** (`StarSystemChannelMessage`): scoped to one `StarSystem` (`system_id`). In MVP there is one StarSystem, so this is *effectively* galaxy-wide today, but stays separate so it scopes correctly when more systems ship.
+    *   **Sector** (`SectorChannelMessage`): scoped to one `Sector` (`sector_id`); audience is players whose Ship is in that Sector.
+    *   **Faction** (`FactionChannelMessage`): scoped to one `Faction` (`faction_id`).
+*   **Message Sender** (`MessageSender` enum): The author of a **Channel Message** — `Player(Identity)` or `System`. Lives only on the five channel tables (so System can post into any channel). `DirectServerMessage` has *no* sender field — its sender is always the Server, implicitly.
+*   **Read state (login-relative):** Not stored server-side for either system. A message is "unread" if its `created_at` is later than the Player's `last_login`; the client highlights those and clears the highlight once the Player next sends a message.
+
+## 6. Anti-Concepts (Banned Terminology)
 To prevent scope creep, these terms are explicitly banned from MVP code, PRs, and design discussions. Once the MVP is released, this list will be updated. If you see them, flag them for the `Future Vision` backlog:
 
 *   🚫 **Combat / Attack / Health (for ships) / Weapons** -> (Exterminate pillar is absent).
@@ -55,6 +69,19 @@ To prevent scope creep, these terms are explicitly banned from MVP code, PRs, an
 *   🚫 **Orchestrator / Handoff** -> (Over-engineering for <10 concurrent players).
 
 ---
+
+### Messaging design decisions (issue #101, resolved 2026-05-30)
+- `ServerMessage`/`ServerMessageRecipient` are split into **Direct Message** (1-to-1, server can be sender) and **Channel Message** (1-to-many, fire-and-forget). Six message tables total: `ServerChannelMessage`, `GalaxyChannelMessage`, `StarSystemChannelMessage`, `SectorChannelMessage`, `FactionChannelMessage`, `DirectServerMessage`. The five channel tables share `{ id, sender: MessageSender, body, created_at }` plus their indexed scope key; `DirectServerMessage` is `{ id, to: Identity (indexed), body, created_at }` with **no** sender field (server is always sender).
+- **`MessageSender` enum lives only on channel tables**, not on `DirectServerMessage`. Player→player DM, if ever built, is a separate `DirectMessage` table.
+- **Server vs Galaxy are deliberately two tables**: Server = official/public/no-view; Galaxy = player chat/gated/view. Kept separate so post-MVP multi-system growth is clean and so official announcements can live outside the game client.
+- **No server-side windowing on any channel.** Views return the full filtered set; the client may limit how many it subscribes to. Client windowing (default last ~10 + "look back") is **post-MVP**.
+- **View legality (no `.iter()` full scans):** StarSystem/Sector/Faction/DM views filter on their natural indexed FK. **Galaxy** has no natural key, so it carries a constant indexed `galaxy_id` (always `0` in MVP) the view filters on, plus an in-body `is logged-in?` gate (non-players / banned get an empty result). The `galaxy_id` column exists solely to keep the gated, un-windowed view legal; the whole-table read set is acceptable at MVP scale. Server channel needs no view, so no such key.
+- The `ServerMessageRecipient` join table is dropped — DM recipient is a column, read state is login-relative and client-derived.
+- Issue #101's `Scope` enum and `priority` field are dropped: scope is the Channel; priority is not modeled.
+- **Sender is a `MessageSender` enum** (`Player(Identity)` + `System` to start; `Station` etc. added when needed). It is display-only.
+- **All message tables are private; clients see them only through STDB Views** (`#[spacetimedb::view]`). Views are read-only Rust functions, so they may branch on enums/`Option` freely (the `MessageSender` enum is fine). Two real View constraints drive the schema instead:
+  - **No full table scans** — a View may only reach a table via *indexed* `.find()`/`.filter()`. So every per-audience View filters on an **indexed** column (`to`, `sector_id`, `faction_id`). A View that returns "all rows" is illegal.
+  - **Per-caller Views are O(subscribers)** — a View using `ctx.sender()` (`ViewContext`) is recomputed per client. DM/Sector/Faction Views are per-caller (unavoidable; fine at <10 players). Prefer `AnonymousViewContext` (shared) where the audience isn't caller-specific.
 
 ### How to use this document
 - **When writing Code:** Name your classes strictly after these terms. E.g., `class ContributionPool`, `struct WelcomeBackSummary`, `fn extract_resource()`.
