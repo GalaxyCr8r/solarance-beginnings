@@ -1,4 +1,4 @@
-use spacetimedb::{Identity, ReducerContext};
+use spacetimedb::{Identity, ReducerContext, log};
 use spacetimedsl::*;
 
 use crate::definitions::factions::FACTION_FACTIONLESS;
@@ -25,10 +25,12 @@ pub fn register_playername(
     // TODO: Check if the identity already has a player!!!!
 
     if dsl.get_player_by_id(PlayerId::new(identity)).is_ok() {
+        log::error!("Player Already Registered");
         return Err("Player Already Registered.".to_string());
     }
 
     if username.len() > 32 {
+        log::error!("Username is toooooo long");
         return Err("Username is toooooo long.".to_string());
     }
 
@@ -40,13 +42,14 @@ pub fn register_playername(
         );
 
         // Send server message for error feedback
-        send_error_message(
-            &dsl,
-            &player_id,
-            error_message.clone(),
-            Some("Player Registration"),
-        )?;
+        // send_error_message(
+        //     &dsl,
+        //     &player_id,
+        //     error_message.clone(),
+        //     Some("Player Registration"),
+        // )?;
 
+        log::error!("{error_message}");
         return Err("Username already taken!".to_string());
     }
 

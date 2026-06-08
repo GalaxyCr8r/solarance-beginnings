@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use egui::{Align2, Color32, Context, RichText};
 use spacetimedb_sdk::{DbContext, Table};
 
@@ -11,7 +13,22 @@ use crate::{gameplay::state::GameState, server::bindings::*, stdb::utils::*};
 
 pub struct State {
     pub text: String,
-    pub error: Option<String>,
+    // Why Arc<Mutex<...>> instead of plain Option<String>?
+    //
+    // SpacetimeDB reducers run asynchronously on the server. The `_then`
+    // variants of the generated reducer methods accept a callback that fires
+    // when the result comes back over the network — possibly many frames after
+    // the call. That callback is bound by `Send + 'static`, so it cannot
+    // borrow `&mut game_state` (no lifetime survives the wait).
+    //
+    // The standard workaround is shared ownership: wrap the slot in
+    // Arc<Mutex<...>>, clone the Arc into the closure, and have both the
+    // draw loop (reader) and the callback (writer) lock it.
+    //
+    // If we ever stop caring about server-side error messages, this can go
+    // back to plain Option<String> and we use the fire-and-forget
+    // `register_playername` method again.
+    pub error: Arc<Mutex<Option<String>>>,
     pub selected_faction_id: Option<u32>,
 }
 
@@ -19,7 +36,7 @@ impl State {
     pub fn new() -> Self {
         State {
             text: "".to_string(),
-            error: None,
+            error: Arc::new(Mutex::new(None)),
             selected_faction_id: None,
         }
     }
@@ -46,19 +63,11 @@ pub fn draw(
                 } else {
                     create_player(ctx, game_state, ui);
                 }
-                if game_state.creation_window.error.is_some() {
+                if let Some(err) = game_state.creation_window.error.lock().unwrap().as_ref() {
                     ui.label(
-                        RichText::new(format!(
-                            "ERROR: {}",
-                            game_state
-                                .creation_window
-                                .error
-                                .as_ref()
-                                .unwrap()
-                                .to_string()
-                        ))
-                        .strong()
-                        .color(Color32::RED),
+                        RichText::new(format!("ERROR: {}", err))
+                            .strong()
+                            .color(Color32::RED),
                     );
                 }
                 ui.separator();
@@ -99,10 +108,10 @@ fn create_ship(
             .create_player_controlled_ship(ctx.identity(), game_state.chat_window.text.clone())
         {
             Ok(_) => {
-                game_state.creation_window.error = None;
+                *game_state.creation_window.error.lock().unwrap() = None;
             }
             Err(e) => {
-                game_state.creation_window.error = Some(format!("{:?}", e));
+                *game_state.creation_window.error.lock().unwrap() = Some(format!("{:?}", e));
             }
         }
     }
@@ -162,18 +171,43 @@ fn create_player(ctx: &DbConnection, game_state: &mut GameState<'_>, ui: &mut eg
             || (can_create && ui.input(|i| i.key_pressed(egui::Key::Enter)))
         {
             if let Some(faction_id) = game_state.creation_window.selected_faction_id {
-                // Create Player
-                match ctx.reducers.register_playername(
+                // Create Player.
+                //
+                // We use `register_playername_then` (not `register_playername`)
+                // because the plain version is fire-and-forget — it returns
+                // success as soon as the request is *sent*, with no way to
+                // observe what the server actually decided. To surface a
+                // reducer-side error like "username taken" we need the `_then`
+                // form, which takes a callback that runs when the result
+                // arrives over the network.
+                //
+                // Clone the Arc so the closure (Send + 'static) owns its own
+                // handle to the same slot the draw loop reads from.
+                let error_slot = game_state.creation_window.error.clone();
+                if let Err(e) = ctx.reducers.register_playername_then(
                     ctx.identity(),
                     game_state.creation_window.text.clone(),
                     faction_id,
+                    // Callback signature is:
+                    //   Result<Result<(), String>, InternalError>
+                    // Outer Result  : did the SDK successfully round-trip with
+                    //                 the server? (Err = transport/protocol bug)
+                    // Inner Result  : what did the reducer itself return?
+                    //                 (Err = a `return Err(...)` from Rust on
+                    //                 the server, e.g. validation failure)
+                    move |_event_ctx, result| {
+                        *error_slot.lock().unwrap() = match result {
+                            Ok(Ok(())) => None,
+                            Ok(Err(msg)) => Some(msg),
+                            Err(internal) => Some(format!("{:?}", internal)),
+                        };
+                    },
                 ) {
-                    Ok(_) => {
-                        game_state.creation_window.error = None;
-                    }
-                    Err(e) => {
-                        game_state.creation_window.error = Some(format!("{:?}", e));
-                    }
+                    // This Err only fires if we couldn't even *send* the
+                    // request (e.g. the connection is down). Server-side
+                    // errors come through the callback above, not here.
+                    *game_state.creation_window.error.lock().unwrap() =
+                        Some(format!("{:?}", e));
                 }
             }
         }
