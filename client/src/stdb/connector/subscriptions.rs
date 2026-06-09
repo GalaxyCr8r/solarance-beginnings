@@ -17,13 +17,10 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
         WHERE s.player_id = '{}'",
         ctx.identity()
     );
-    let sector_chat_message = format!(
-        "SELECT c.* 
-        FROM sector_chat_message c
-        JOIN ship o ON o.sector_id = c.sector_id
-        WHERE o.player_id = '{}'",
-        ctx.identity()
-    );
+    // Sector chat is now exposed via the `my_sector_chat` View, which already
+    // filters to the caller's current sector — the client just subscribes to
+    // `SELECT * FROM my_sector_chat`. Same for galaxy / star-system / faction
+    // / direct-server-messages below.
     let player_ship_controller = format!(
         "SELECT c.* 
         FROM ship_movement_controller c
@@ -84,19 +81,10 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
     // `CargoCrate.movement` and reads static positions directly off
     // `Asteroid` / `Station` / `JumpGate`.
 
-    let server_message = format!(
-        "SELECT m.*
-        FROM server_message m
-        JOIN server_message_recipient r ON m.id = r.server_message_id
-        WHERE r.player_id = '{}'",
-        ctx.identity()
-    );
-    let server_message_recipient = format!(
-        "SELECT r.*
-        FROM server_message_recipient r
-        WHERE r.player_id = '{}'",
-        ctx.identity()
-    );
+    // ServerMessage / ServerMessageRecipient are gone (replaced by the six
+    // tables in `tables/messages.rs`). DMs are exposed via the
+    // `my_direct_server_messages` View — subscribed below as a plain table.
+
     let visual_effect = format!(
         "SELECT v.* 
         FROM visual_effect v 
@@ -110,11 +98,14 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
         .on_error(on_sub_error)
         .subscribe(vec![
             asteroid.as_str(),
-            "SELECT * FROM global_chat_message",
-            sector_chat_message.as_str(),
-            "SELECT * FROM faction_chat_message",
-            server_message.as_str(),
-            server_message_recipient.as_str(),
+            // Messaging (#101): channels + DM are exposed through Views which
+            // auto-filter per caller. Server channel is the only public one.
+            "SELECT * FROM server_channel_message",
+            "SELECT * FROM my_galaxy_chat",
+            "SELECT * FROM my_star_system_chat",
+            "SELECT * FROM my_sector_chat",
+            "SELECT * FROM my_faction_chat",
+            "SELECT * FROM my_direct_server_messages",
             "SELECT * FROM faction",
             "SELECT * FROM faction_standing",
             "SELECT * FROM item_definition",

@@ -1,5 +1,3 @@
-use std::sync::mpsc::{self, Sender};
-
 use macroquad::{math::Vec2, prelude::*, ui};
 
 use super::server::bindings::*;
@@ -9,76 +7,21 @@ use crate::{shader::*, stdb::utils::*};
 
 mod gui;
 mod player;
+pub mod direct_server_messages;
 pub mod render;
 pub mod resources;
-pub mod server_messages;
 pub mod state;
 pub mod visual_effects;
 
 /// Register all the callbacks our app will use to respond to database events.
-pub fn register_callbacks(
-    ctx: &DbConnection,
-    global_chat_channel: Sender<GlobalChatMessage>,
-    sector_chat_channel: Sender<SectorChatMessage>,
-    faction_chat_channel: Sender<FactionChatMessage>,
-) {
+///
+/// Post-#101 chat data is read directly from the STDB Views each frame, so the
+/// old MPSC mirror is gone. The visual-effect callback stays — it's the only
+/// side-effecting one.
+pub fn register_callbacks(ctx: &DbConnection) {
     ctx.db().stellar_object().on_insert(|_ec, sobj| {
         info!("Stellar Object Inserted: {:?}", sobj);
     });
-
-    for message in ctx.db().global_chat_message().iter() {
-        let _ = &global_chat_channel.send(message.clone());
-    }
-    ctx.db()
-        .global_chat_message()
-        .on_insert(move |_ec, message| {
-            info!(
-                "G{}: {}",
-                message.player_id.to_abbreviated_hex().to_string(),
-                message.message
-            );
-            let _ = global_chat_channel.send(message.clone());
-        });
-
-    for message in ctx.db().sector_chat_message().iter() {
-        let _ = &sector_chat_channel.send(message.clone());
-    }
-    ctx.db()
-        .sector_chat_message()
-        .on_insert(move |_ec, message| {
-            info!(
-                "S{}: {}",
-                message.player_id.to_abbreviated_hex().to_string(),
-                message.message
-            );
-            let _ = sector_chat_channel.send(message.clone());
-        });
-
-    // Load existing faction chat messages for current player's faction
-    if let Some(player) = get_current_player(&ctx) {
-        for message in ctx.db().faction_chat_message().iter() {
-            if player.faction_id.value == message.faction_id {
-                let _ = &faction_chat_channel.send(message.clone());
-            }
-        }
-    }
-
-    // Register faction chat callback that dynamically checks player's current faction
-    ctx.db()
-        .faction_chat_message()
-        .on_insert(move |ec, message| {
-            if let Some(player) = ec.db().player().id().find(&ec.identity()) {
-                if player.faction_id.value == message.faction_id {
-                    info!(
-                        "F{}.{}: {}",
-                        message.faction_id,
-                        message.player_id.to_abbreviated_hex().to_string(),
-                        message.message
-                    );
-                    let _ = faction_chat_channel.send(message.clone());
-                }
-            }
-        });
 
     // Register visual effect callback for client-side visual effects
     ctx.db().visual_effect().on_insert(|_ec, visual_effect| {
@@ -110,20 +53,11 @@ pub async fn gameplay(connection: Option<DbConnection>) {
     }
     let ctx = connection.unwrap();
 
-    let (global_chat_transmitter, global_chat_receiver) = mpsc::channel::<GlobalChatMessage>();
-    let (sector_chat_transmitter, sector_chat_receiver) = mpsc::channel::<SectorChatMessage>();
-    let (faction_chat_transmitter, faction_chat_receiver) = mpsc::channel::<FactionChatMessage>();
-
     let mut game_state = state::initialize(&ctx);
     game_state.camera.zoom.y *= -1.0;
     game_state.bg_camera.zoom.y *= -1.0;
 
-    let _receiver = register_callbacks(
-        &ctx,
-        global_chat_transmitter,
-        sector_chat_transmitter,
-        faction_chat_transmitter,
-    );
+    register_callbacks(&ctx);
 
     // Load starfield shader
     info!("Loading shader...");
@@ -269,51 +203,6 @@ pub async fn gameplay(connection: Option<DbConnection>) {
             }
             if is_key_pressed(KeyCode::B) {
                 game_state.construction_window_open = !game_state.construction_window_open;
-            }
-        }
-
-        // Handle callbacks
-        if let Ok(message) = global_chat_receiver.try_recv() {
-            game_state.chat_window.global_chat_channel.push(message);
-            game_state
-                .chat_window
-                .global_chat_channel
-                .sort_by_key(|chat| chat.created_at);
-        }
-
-        if player_ship.is_some() {
-            if let Ok(message) = sector_chat_receiver.try_recv() {
-                let sector_id = player_ship.unwrap().sector_id;
-                if game_state
-                    .chat_window
-                    .sector_chat_channel
-                    .iter()
-                    .any(|msg| msg.sector_id != sector_id)
-                {
-                    // Just dump prior sector messages.
-                    game_state
-                        .chat_window
-                        .sector_chat_channel
-                        .retain(|msg| msg.sector_id == sector_id);
-                }
-                game_state.chat_window.sector_chat_channel.push(message);
-                game_state
-                    .chat_window
-                    .sector_chat_channel
-                    .sort_by_key(|chat| chat.created_at);
-            }
-        }
-
-        //faction_chat_receiver
-        if let Ok(message) = faction_chat_receiver.try_recv() {
-            if let Some(player) = get_current_player(&ctx) {
-                if message.faction_id == player.faction_id.value {
-                    game_state.chat_window.faction_chat_channel.push(message);
-                    game_state
-                        .chat_window
-                        .faction_chat_channel
-                        .sort_by_key(|chat| chat.created_at);
-                }
             }
         }
 

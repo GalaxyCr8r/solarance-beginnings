@@ -1,98 +1,70 @@
+//! Admin-only reducers for sending Direct Server Messages.
+//!
+//! Authorization: server-only via `try_server_only` — only the module itself can
+//! call these (the typical use case is a debug pipeline or scripted admin tool
+//! that schedules a reducer call with the module identity).
+//!
+//! Per #101 redesign:
+//! - `DirectServerMessage` is 1-to-1; "send to many" loops over recipients.
+//! - There is no per-message read state — the old `mark_*_as_read` reducer is gone.
+//! - Server is the implicit sender on every DSM, so no sender field is passed.
+
 use spacetimedb::{Identity, ReducerContext};
 use spacetimedsl::*;
 
 use crate::{
-    tables::{players::PlayerId, server_messages::*},
+    tables::{
+        messages::{send_direct_server_message, MessageSeverity},
+        players::PlayerId,
+    },
     utility::try_server_only,
 };
 
-/// Mark a server message as read by the calling player
+/// Send a Direct Server Message to one player (server-only).
 #[spacetimedb::reducer]
-pub fn mark_server_message_as_read(
+pub fn admin_send_direct_server_message(
     ctx: &ReducerContext,
-    server_message_id: u64,
+    target_player_id: Identity,
+    severity: MessageSeverity,
+    body: String,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
-
-    let player_id = PlayerId::new(ctx.sender());
-
-    // Find the recipient record
-    let recipient_opt = dsl
-        .get_server_message_recipients_by_player_id(player_id)
-        .find(|r| r.get_server_message_id().value() == server_message_id);
-
-    if let Some(mut recipient) = recipient_opt {
-        recipient.set_read_at(Some(dsl.ctx().timestamp));
-        dsl.update_server_message_recipient_by_id(recipient)?;
-        Ok(())
-    } else {
-        Err("Message recipient not found".to_string())
-    }
-}
-
-/// Administrative reducer for sending targeted messages (server-only)
-/// Supports both individual and group message targeting with proper authorization
-#[spacetimedb::reducer]
-pub fn send_admin_message(
-    ctx: &ReducerContext,
-    target_player_ids: Vec<Identity>,
-    message: String,
-    message_type: ServerMessageType,
-    group_name: Option<String>,
-) -> Result<(), String> {
-    let dsl = dsl(ctx);
-    // Authorization check - only server can send admin messages
     try_server_only(&dsl)?;
 
-    // Validate input parameters
+    if body.trim().is_empty() {
+        return Err("Cannot send empty admin message".to_string());
+    }
+
+    send_direct_server_message(&dsl, &PlayerId::new(target_player_id), severity, body)
+}
+
+/// Send the same Direct Server Message to a list of players (server-only).
+/// Each recipient gets its own row — DSM is 1-to-1 by design.
+#[spacetimedb::reducer]
+pub fn admin_send_direct_server_message_to_group(
+    ctx: &ReducerContext,
+    target_player_ids: Vec<Identity>,
+    severity: MessageSeverity,
+    body: String,
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
+    try_server_only(&dsl)?;
+
     if target_player_ids.is_empty() {
         return Err("Cannot send admin message to empty recipient list".to_string());
     }
 
-    if message.trim().is_empty() {
+    if body.trim().is_empty() {
         return Err("Cannot send empty admin message".to_string());
     }
 
-    // Convert Identity to PlayerId
-    let player_ids: Vec<PlayerId> = target_player_ids.into_iter().map(PlayerId::new).collect();
-
-    // Send message using utility function
-    send_server_message_to_group(
-        &dsl,
-        player_ids,
-        message,
-        message_type,
-        group_name,
-        Some("Admin".to_string()),
-    )
-}
-
-/// Administrative reducer for sending a message to a single player (server-only)
-/// Convenience function for individual player targeting
-#[spacetimedb::reducer]
-pub fn send_admin_message_to_player(
-    ctx: &ReducerContext,
-    target_player_id: Identity,
-    message: String,
-    message_type: ServerMessageType,
-) -> Result<(), String> {
-    let dsl = dsl(ctx);
-    // Authorization check - only server can send admin messages
-    try_server_only(&dsl)?;
-
-    // Validate input parameters
-    if message.trim().is_empty() {
-        return Err("Cannot send empty admin message".to_string());
+    for target in target_player_ids {
+        send_direct_server_message(
+            &dsl,
+            &PlayerId::new(target),
+            severity.clone(),
+            body.clone(),
+        )?;
     }
-
-    let player_id = PlayerId::new(target_player_id);
-
-    // Send message using utility function
-    send_server_message_to_player(
-        &dsl,
-        &player_id,
-        message,
-        message_type,
-        Some("Admin".to_string()),
-    )
+    Ok(())
 }

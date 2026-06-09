@@ -40,6 +40,7 @@ pub struct StarSystem {
     #[create_wrapper]
     #[referenced_by(path = crate::tables::star_system, table = star_system_object)]
     #[referenced_by(path = crate::tables::sectors, table = sector)]
+    #[referenced_by(path = crate::tables::messages, table = star_system_channel_message)]
     id: u32,
 
     #[unique]

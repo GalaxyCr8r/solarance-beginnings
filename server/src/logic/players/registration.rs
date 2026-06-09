@@ -2,7 +2,10 @@ use spacetimedb::{Identity, ReducerContext, log};
 use spacetimedsl::*;
 
 use crate::definitions::factions::FACTION_FACTIONLESS;
-use crate::tables::{chats::*, factions::FactionId, server_messages::send_error_message};
+use crate::tables::{
+    factions::FactionId,
+    messages::{post_faction_channel, MessageSender},
+};
 
 use crate::players::*;
 use crate::tables::players::{CreatePlayer, PlayerId};
@@ -35,21 +38,13 @@ pub fn register_playername(
     }
 
     if dsl.get_player_by_username(&username).is_ok() {
-        let player_id = PlayerId::new(identity);
-        let error_message = format!(
+        // Synchronous validation failure — reducer Err is enough. The client
+        // surfaces this via the `_then` callback at registration time. We do
+        // *not* persist a DM for it (per #101: inbox is for async events).
+        log::error!(
             "Username '{}' is already taken. Please choose a different username.",
             username
         );
-
-        // Send server message for error feedback
-        // send_error_message(
-        //     &dsl,
-        //     &player_id,
-        //     error_message.clone(),
-        //     Some("Player Registration"),
-        // )?;
-
-        log::error!("{error_message}");
         return Err("Username already taken!".to_string());
     }
 
@@ -61,19 +56,20 @@ pub fn register_playername(
         faction_id
     });
 
-    let _player = dsl.create_player(CreatePlayer {
+    let player = dsl.create_player(CreatePlayer {
         id: identity,
-        username,
+        username: username.clone(),
         credits: 1000,
         logged_in: true,
         faction_id: final_faction.clone(),
         last_login: None, // Stamped by the welcome-back composer on first connect.
     })?;
-    let _ = dsl.create_faction_chat_message(CreateFactionChatMessage {
-        player_id: PlayerId::new(identity),
-        faction_id: final_faction,
-        message: "- has joined the faction!".to_string(),
-    });
+    let _ = post_faction_channel(
+        &dsl,
+        final_faction,
+        MessageSender::Player(identity),
+        format!("{} has joined the faction!", player.get_username()),
+    );
 
     Ok(())
 }

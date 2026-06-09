@@ -6,7 +6,7 @@ use spacetimedsl::*;
 use crate::{
     definitions::item_types::*,
     logic::{
-        chat_messages::send_global_chat,
+        chat_messages::send_galaxy_chat,
         ships::{cargo::*, movement_controllers::initialize_controller_for_player, status::*},
         stellarobjects::stellar_object_creation::create_sobj,
     },
@@ -15,7 +15,7 @@ use crate::{
         items::*,
         players::*,
         sectors::SectorId,
-        server_messages::*,
+        messages::*,
         ships::{CreateShipEquipmentSlot, *},
         stations::*,
         stellarobjects::*,
@@ -46,11 +46,10 @@ pub fn create_player_controlled_ship(
             let error_message =
                 "You must register a username before creating a ship. Please use the registration system first.".to_string();
 
-            send_error_message(
+            send_direct_server_warning(
                 &dsl,
                 &player_id,
                 error_message.clone(),
-                Some("Ship Creation"),
             )?;
 
             return Err("Client hasn't created a username yet!".to_string());
@@ -110,17 +109,16 @@ pub fn create_player_controlled_ship(
         })?;
 
         info!("Successfully created ship!");
-        send_global_chat(dsl.ctx(), format!("{} has created a ship!", username))?;
+        send_galaxy_chat(dsl.ctx(), format!("{} has created a ship!", username))?;
         Ok(())
     } else {
         let error_message =
             "Failed to create ship due to a system error. Please try again or contact support if the problem persists.".to_string();
 
-        send_error_message(
+        send_direct_server_warning(
             &dsl,
             &player_id,
             error_message.clone(),
-            Some("Ship Creation"),
         )?;
 
         Err("Failed to create ship!".to_string())

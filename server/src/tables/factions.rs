@@ -28,7 +28,7 @@ pub struct Faction {
     #[referenced_by(path = crate::tables::sectors, table = sector)]
     #[referenced_by(path = crate::tables::ships, table = ship)]
     #[referenced_by(path = crate::tables::stations, table = station)]
-    #[referenced_by(path = crate::tables::chats, table = faction_chat_message)]
+    #[referenced_by(path = crate::tables::messages, table = faction_channel_message)]
     #[referenced_by(path = crate::tables::factions, table = faction_standing)]
     //#[referenced_by(path = crate::tables::factions, table = player_faction_standing)]
     id: u32,

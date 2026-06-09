@@ -14,7 +14,7 @@ use crate::{
         jumpgates::*,
         players::{get_player_ship_and_sobj, PlayerId},
         sectors::GetSectorRowOptionById,
-        server_messages::{send_error_message, send_info_message},
+        messages::{send_direct_server_warning, send_direct_server_info},
         ships::*,
         stations::*,
         stellarobjects::*,
@@ -40,11 +40,10 @@ pub fn try_to_dock_to_station(ctx: &ReducerContext, station: &Station) -> Result
                 station.get_name(),
                 station.get_id().value()
             );
-            let _ = send_error_message(
+            let _ = send_direct_server_warning(
                 &dsl,
                 &PlayerId::new(ctx.sender()),
                 msg.clone(),
-                Some("Docking"),
             );
             return Err(msg);
         }
@@ -171,7 +170,7 @@ pub fn try_to_use_jumpgate(ctx: &ReducerContext, jumpgate: &JumpGate) -> Result<
             arrival_rotation,
         )?;
 
-        send_info_message(
+        send_direct_server_info(
             &dsl,
             &ship_object.get_player_id(),
             format!(
@@ -179,7 +178,6 @@ pub fn try_to_use_jumpgate(ctx: &ReducerContext, jumpgate: &JumpGate) -> Result<
                 destination_sector.get_id().value(),
                 destination_sector.get_name()
             ),
-            Some("status"),
         )?;
     }
 
@@ -217,7 +215,7 @@ pub fn dock_to_station<T: spacetimedsl::WriteContext>(
     info!("Updating docked ship's station and location");
     let _ = dsl.update_ship_by_id(docked.clone())?;
 
-    send_info_message(
+    send_direct_server_info(
         dsl,
         &ship.get_player_id(),
         format!(
@@ -225,7 +223,6 @@ pub fn dock_to_station<T: spacetimedsl::WriteContext>(
             station.get_id().value(),
             station.get_name()
         ),
-        Some("status"),
     )?;
 
     Ok(docked.clone())
@@ -270,7 +267,7 @@ pub fn undock_from_station<T: spacetimedsl::WriteContext>(
 
     let _ = initialize_controller_for_player(dsl, &docked.get_player_id(), &sobj);
 
-    send_info_message(
+    send_direct_server_info(
         dsl,
         &ship.get_player_id(),
         format!(
@@ -278,7 +275,6 @@ pub fn undock_from_station<T: spacetimedsl::WriteContext>(
             station.get_id().value(),
             station.get_name()
         ),
-        Some("status"),
     )?;
 
     Ok(ship.clone())

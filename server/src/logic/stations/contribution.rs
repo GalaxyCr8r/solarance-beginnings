@@ -6,8 +6,17 @@ use crate::{
     logic::stations::create_station_with_modules,
     logic::stellarobjects::movement::get_ship_movement_snapshot,
     tables::{
-        economy::ResourceAmount, factions::FactionId, items::*, players::*, sectors::Sector,
-        server_messages::*, ships::*, stations::*, stellarobjects::StellarObject,
+        economy::ResourceAmount,
+        factions::FactionId,
+        items::*,
+        messages::{
+            post_galaxy_channel, send_direct_server_info, send_direct_server_warning, MessageSender,
+        },
+        players::*,
+        sectors::Sector,
+        ships::*,
+        stations::*,
+        stellarobjects::StellarObject,
     },
 };
 
@@ -122,26 +131,18 @@ fn refresh_station_progress<T: spacetimedsl::WriteContext>(
 
     if now_complete {
         let station = dsl.get_station_by_id(station_id)?;
-        let recipients: Vec<PlayerId> = dsl
-            .get_all_players()
-            .filter(|p| *p.get_logged_in())
-            .map(|p| p.get_id().clone())
-            .collect();
-
-        if !recipients.is_empty() {
-            send_server_message_to_group(
-                dsl,
-                recipients,
-                format!(
-                    "Construction complete: '{}' (station #{}) is now operational.",
-                    station.get_name(),
-                    station_id.value()
-                ),
-                ServerMessageType::System,
-                Some("station_construction".to_string()),
-                Some("Construction Complete".to_string()),
-            )?;
-        }
+        // Construction completion is a genuinely async, everyone-relevant event:
+        // post it to the Galaxy channel as System. Replaces the old per-player
+        // fan-out via `send_server_message_to_group`.
+        post_galaxy_channel(
+            dsl,
+            MessageSender::System,
+            format!(
+                "Construction complete: '{}' (station #{}) is now operational.",
+                station.get_name(),
+                station_id.value()
+            ),
+        )?;
     }
 
     Ok(progress)
@@ -285,7 +286,7 @@ pub fn contribute_to_station(
             "Station {} is already operational — no further contributions accepted.",
             station_id.value()
         );
-        let _ = send_error_message(&dsl, &player_id, msg.clone(), Some("Station Contribution"));
+        let _ = send_direct_server_warning(&dsl, &player_id, msg.clone());
         return Err(msg);
     }
 
@@ -296,7 +297,7 @@ pub fn contribute_to_station(
             station_id.value(),
             station.get_sector_id().value()
         );
-        let _ = send_error_message(&dsl, &player_id, msg.clone(), Some("Station Contribution"));
+        let _ = send_direct_server_warning(&dsl, &player_id, msg.clone());
         return Err(msg);
     }
 
@@ -314,7 +315,7 @@ pub fn contribute_to_station(
             station.get_name(),
             CONTRIBUTE_RANGE_PX,
         );
-        let _ = send_error_message(&dsl, &player_id, msg.clone(), Some("Station Contribution"));
+        let _ = send_direct_server_warning(&dsl, &player_id, msg.clone());
         return Err(msg);
     }
 
@@ -330,7 +331,7 @@ pub fn contribute_to_station(
                 station_id.value(),
                 item_def.get_name()
             );
-            let _ = send_error_message(&dsl, &player_id, msg.clone(), Some("Station Contribution"));
+            let _ = send_direct_server_warning(&dsl, &player_id, msg.clone());
             return Err(msg);
         }
     };
@@ -353,7 +354,7 @@ pub fn contribute_to_station(
             already_contributed,
             required
         );
-        let _ = send_error_message(&dsl, &player_id, msg.clone(), Some("Station Contribution"));
+        let _ = send_direct_server_warning(&dsl, &player_id, msg.clone());
         return Err(msg);
     }
 
@@ -385,7 +386,7 @@ pub fn contribute_to_station(
             ship.get_id().value(),
             cargo_available
         );
-        let _ = send_error_message(&dsl, &player_id, msg.clone(), Some("Station Contribution"));
+        let _ = send_direct_server_warning(&dsl, &player_id, msg.clone());
         return Err(msg);
     }
 
@@ -401,7 +402,7 @@ pub fn contribute_to_station(
 
     let new_progress = refresh_station_progress(&dsl, &station_id)?;
 
-    send_info_message(
+    send_direct_server_info(
         &dsl,
         &player_id,
         format!(
@@ -411,7 +412,6 @@ pub fn contribute_to_station(
             station.get_name(),
             new_progress
         ),
-        Some("Station Contribution"),
     )?;
 
     Ok(())

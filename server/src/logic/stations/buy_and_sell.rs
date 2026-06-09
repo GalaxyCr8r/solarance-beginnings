@@ -1,6 +1,6 @@
 use crate::{
     logic::ships::cargo::{attempt_to_load_cargo_into_ship, remove_cargo_from_ship},
-    tables::{items::*, players::*, server_messages::*, ships::*, stations::*},
+    tables::{items::*, messages::*, players::*, ships::*, stations::*},
     utility::is_server_or_ship_owner,
     *,
 };
@@ -36,11 +36,10 @@ pub fn buy_item_from_station_module(
         );
 
         // Send server message for error feedback
-        send_error_message(
+        send_direct_server_warning(
             &dsl,
             &player_id,
             error_message.clone(),
-            Some("Station Trading"),
         )?;
 
         return Err(error_message);
@@ -63,11 +62,10 @@ pub fn buy_item_from_station_module(
             );
 
             // Send server message for error feedback
-            let _ = send_error_message(
+            let _ = send_direct_server_warning(
                 &dsl,
                 &player_id,
                 error_message.clone(),
-                Some("Station Trading"),
             );
 
             format!(
@@ -88,11 +86,10 @@ pub fn buy_item_from_station_module(
         );
 
         // Send server message for error feedback
-        send_error_message(
+        send_direct_server_warning(
             &dsl,
             &player_id,
             error_message.clone(),
-            Some("Station Trading"),
         )?;
 
         return Err(format!(
@@ -118,11 +115,10 @@ pub fn buy_item_from_station_module(
         );
 
         // Send server message for error feedback
-        send_error_message(
+        send_direct_server_warning(
             &dsl,
             &player_id,
             error_message.clone(),
-            Some("Station Trading"),
         )?;
 
         return Err(format!(
@@ -151,11 +147,10 @@ pub fn buy_item_from_station_module(
         );
 
         // Send server message for error feedback
-        send_error_message(
+        send_direct_server_warning(
             &dsl,
             &ship.get_player_id(),
             error_message.clone(),
-            Some("Station Trading"),
         )?;
 
         return Err(cargo_err);
@@ -169,7 +164,7 @@ pub fn buy_item_from_station_module(
     item_listing.set_cached_price(item_listing.calculate_current_price(&item_def));
     dsl.update_station_module_inventory_item_by_id(item_listing)?;
 
-    send_info_message(
+    send_direct_server_info(
         &dsl,
         &ship.get_player_id(),
         format!(
@@ -180,7 +175,6 @@ pub fn buy_item_from_station_module(
             item_def.get_name(),
             total_price
         ),
-        Some("station_module"),
     )?;
 
     Ok(())
@@ -218,11 +212,10 @@ pub fn sell_item_to_station_module(
         );
 
         // Send server message for error feedback
-        send_error_message(
+        send_direct_server_warning(
             &dsl,
             &player_id,
             error_message.clone(),
-            Some("Station Trading"),
         )?;
 
         return Err(error_message);
@@ -245,11 +238,10 @@ pub fn sell_item_to_station_module(
             );
 
             // Send server message for error feedback
-            let _ = send_error_message(
+            let _ = send_direct_server_warning(
                 &dsl,
                 &player_id,
                 error_message.clone(),
-                Some("Station Trading"),
             );
 
             format!(
@@ -269,11 +261,10 @@ pub fn sell_item_to_station_module(
         );
 
         // Send server message for error feedback
-        send_error_message(
+        send_direct_server_warning(
             &dsl,
             &player_id,
             error_message.clone(),
-            Some("Station Trading"),
         )?;
 
         return Err(format!(
@@ -303,11 +294,10 @@ pub fn sell_item_to_station_module(
         );
 
         // Send server message for error feedback
-        send_error_message(
+        send_direct_server_warning(
             &dsl,
             &player_id,
             error_message.clone(),
-            Some("Station Trading"),
         )?;
 
         return Err(cargo_err);
@@ -321,7 +311,7 @@ pub fn sell_item_to_station_module(
     item_listing.set_cached_price(item_listing.calculate_current_price(&item_def));
     dsl.update_station_module_inventory_item_by_id(item_listing)?;
 
-    send_info_message(
+    send_direct_server_info(
         &dsl,
         &ship.get_player_id(),
         format!(
@@ -332,7 +322,6 @@ pub fn sell_item_to_station_module(
             item_def.get_name(),
             total_price
         ),
-        Some("station_module"),
     )?;
 
     Ok(())
