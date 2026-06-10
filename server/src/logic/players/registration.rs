@@ -3,7 +3,7 @@ use spacetimedsl::*;
 
 use crate::definitions::factions::FACTION_FACTIONLESS;
 use crate::tables::{
-    factions::FactionId,
+    factions::*,
     messages::{post_faction_channel, MessageSender},
 };
 
@@ -48,13 +48,37 @@ pub fn register_playername(
         return Err("Username already taken!".to_string());
     }
 
-    // TODO: Re-enable faction validation once client bindings are updated
-    // For now, just use the provided faction_id or default to factionless
+    // Faction validation (#93): the chosen faction must exist, be joinable,
+    // and have a Capital station — new players spawn at their faction's
+    // Capital (#105), so a faction without one has nowhere to put them. In
+    // MVP this admits exactly Lrak Combine and Rediar Federation; the picker
+    // greys everything else out, and this is the server-side backstop.
     let final_faction = FactionId::new(if faction_id == 0 {
         FACTION_FACTIONLESS
     } else {
         faction_id
     });
+    let faction = dsl.get_faction_by_id(&final_faction).map_err(|_| {
+        format!(
+            "Registration rejected: faction id {} does not exist (player identity {})",
+            final_faction.value(),
+            identity
+        )
+    })?;
+    if !faction.get_joinable() {
+        return Err(format!(
+            "Registration rejected: faction '{}' (id {}) is not joinable",
+            faction.get_name(),
+            final_faction.value()
+        ));
+    }
+    if faction.get_capital_station_id().is_none() {
+        return Err(format!(
+            "Registration rejected: faction '{}' (id {}) has no Capital station to spawn at — only capital-holding factions are joinable in MVP (#93)",
+            faction.get_name(),
+            final_faction.value()
+        ));
+    }
 
     let player = dsl.create_player(CreatePlayer {
         id: identity,

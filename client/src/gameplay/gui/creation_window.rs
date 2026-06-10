@@ -117,6 +117,20 @@ fn create_ship(
     }
 }
 
+/// Display color for a faction's picker entry. Faction colors are a design
+/// commitment (CONTEXT.md §3: Lrak / red, Rediar / blue) but are not stored
+/// in the Faction table, so the mapping lives here.
+fn faction_color(faction_id: u32, pickable: bool) -> Color32 {
+    if !pickable {
+        return Color32::DARK_GRAY;
+    }
+    match faction_id {
+        1 => Color32::from_rgb(230, 90, 90),  // Lrak Combine — red
+        4 => Color32::from_rgb(100, 150, 255), // Rediar Federation — blue
+        _ => Color32::LIGHT_GRAY,
+    }
+}
+
 fn create_player(ctx: &DbConnection, game_state: &mut GameState<'_>, ui: &mut egui::Ui) {
     // Create an account
     ui.heading("Player Creation");
@@ -150,8 +164,22 @@ fn create_player(ctx: &DbConnection, game_state: &mut GameState<'_>, ui: &mut eg
         for faction in &joinable_factions {
             let is_selected = game_state.creation_window.selected_faction_id == Some(faction.id);
 
-            if ui.selectable_label(is_selected, &faction.name).clicked() {
+            // Only factions with a Capital station are pickable (#93) — new
+            // players spawn at their faction's Capital, so a faction without
+            // one has nowhere to put them. In MVP that is exactly Lrak
+            // Combine and Rediar Federation.
+            let pickable = faction.capital_station_id.is_some();
+
+            let label = RichText::new(&faction.name).color(faction_color(faction.id, pickable));
+            let response =
+                ui.add_enabled(pickable, egui::SelectableLabel::new(is_selected, label));
+            if response.clicked() {
                 game_state.creation_window.selected_faction_id = Some(faction.id);
+            }
+            if !pickable {
+                response.on_disabled_hover_text(
+                    "This faction has no Capital station yet — not joinable in the MVP.",
+                );
             }
 
             if is_selected {
