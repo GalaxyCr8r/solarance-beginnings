@@ -1,104 +1,112 @@
-use crate::tables::chats::{
-    CreateFactionChatMessage, CreateGlobalChatMessage, CreateSectorChatMessage,
-};
+//! Player-sent Channel Message reducers (#101 redesign).
+//!
+//! One reducer per channel a player can post into. Each derives the audience
+//! key (sector / system / faction) from server-side state — the client never
+//! tells us "I'm in sector N", because the server already knows.
+
 use log::info;
 use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 
-use crate::tables::{chats::*, factions::FactionId, players::*, sectors::SectorId, ships::*};
+use crate::tables::{
+    messages::{
+        post_faction_channel, post_galaxy_channel, post_sector_channel,
+        post_star_system_channel, MessageSender,
+    },
+    players::*,
+    sectors::{SectorId, *},
+    ships::*,
+};
 
-/// Sends a message to the global chat channel visible to all players.
-/// Validates the sender and logs the message before storing it in the database.
+/// Send a message to the **Galaxy** channel — visible to every logged-in player.
 #[spacetimedb::reducer]
-pub fn send_global_chat(ctx: &ReducerContext, chat_message: String) -> Result<(), String> {
+pub fn send_galaxy_chat(ctx: &ReducerContext, message: String) -> Result<(), String> {
     let dsl = dsl(ctx);
+    let sender = ctx.sender();
 
-    // If ctx.sender() is a valid, unbanned, unmuted player
+    // Resolve the player row both to enforce "logged-in to post" and to log a username.
+    let username = get_username(&dsl, sender);
+
+    info!("GalaxyChat [{}]: {}", username, message);
+
+    post_galaxy_channel(&dsl, MessageSender::Player(sender), message)
+}
+
+/// Send a message to the caller's current **StarSystem** channel.
+///
+/// Derived: the system the player's ship is currently in. No ship → reject.
+#[spacetimedb::reducer]
+pub fn send_star_system_chat(ctx: &ReducerContext, message: String) -> Result<(), String> {
+    let dsl = dsl(ctx);
+    let sender = ctx.sender();
+    let player_id = PlayerId::new(sender);
+    let username = get_username(&dsl, sender);
+
+    let ship = dsl
+        .get_ships_by_player_id(&player_id)
+        .next()
+        .ok_or_else(|| format!("Player {} has no ship — cannot post to star system chat", username))?;
+    let sector = dsl.get_sector_by_id(&ship.get_sector_id().clone())?;
+    // `sector.get_system_id()` already returns the typed wrapper.
+    let system_id = sector.get_system_id().clone();
+
     info!(
-        "GlobalChat [{}]: {}",
-        get_username(&dsl, ctx.sender()),
-        chat_message
+        "StarSystemChat #{} [{}]: {}",
+        system_id.value(),
+        username,
+        message
     );
 
-    dsl.create_global_chat_message(CreateGlobalChatMessage {
-        player_id: PlayerId::new(ctx.sender()),
-        message: chat_message,
-    })?;
-    Ok(())
+    post_star_system_channel(&dsl, system_id, MessageSender::Player(sender), message)
 }
 
-/// Sends a message to a specific sector's chat channel.
-/// Validates that the sender has a ship in the target sector before allowing the message.
+/// Send a message to the caller's current **Sector** channel.
+///
+/// Derived: the sector the player's ship is currently in. No ship → reject.
 #[spacetimedb::reducer]
-pub fn send_sector_chat(
-    ctx: &ReducerContext,
-    chat_message: String,
-    sector_id: u64,
-) -> Result<(), String> {
+pub fn send_sector_chat(ctx: &ReducerContext, message: String) -> Result<(), String> {
     let dsl = dsl(ctx);
-    let sender = PlayerId::new(ctx.sender());
-    let username = get_username(&dsl, ctx.sender());
+    let sender = ctx.sender();
+    let player_id = PlayerId::new(sender);
+    let username = get_username(&dsl, sender);
 
-    if let Some(player) = dsl.get_ships_by_player_id(&sender).next() {
-        if player.get_sector_id().value() != sector_id {
-            return Err(format!(
-                "Player {} is not in sector {}",
-                username, sector_id
-            ));
-        }
-    } else {
-        return Err(format!("Player {} does not have a ship object", username));
-    }
+    let ship = dsl
+        .get_ships_by_player_id(&player_id)
+        .next()
+        .ok_or_else(|| format!("Player {} has no ship — cannot post to sector chat", username))?;
+    let sector_id = SectorId::new(ship.get_sector_id().value());
 
-    // If ctx.sender() is a valid, unbanned, unmuted player
-    info!("SectorChat #{} [{}]: {}", sector_id, username, chat_message);
+    info!(
+        "SectorChat #{} [{}]: {}",
+        sector_id.value(),
+        username,
+        message
+    );
 
-    dsl.create_sector_chat_message(CreateSectorChatMessage {
-        player_id: sender,
-        sector_id: SectorId::new(sector_id),
-        message: chat_message,
-    })?;
-    Ok(())
+    post_sector_channel(&dsl, sector_id, MessageSender::Player(sender), message)
 }
 
-/// Sends a message to the faction chat channel visible to all players of that faction.
-/// Validates the sender and logs the message before storing it in the database.
+/// Send a message to the caller's **Faction** channel.
+///
+/// Derived: the player's own faction. No need for a client-supplied faction id —
+/// a player may only post to their own faction's channel.
 #[spacetimedb::reducer]
-pub fn send_faction_chat(
-    ctx: &ReducerContext,
-    chat_message: String,
-    faction_id: FactionId,
-) -> Result<(), String> {
+pub fn send_faction_chat(ctx: &ReducerContext, message: String) -> Result<(), String> {
     let dsl = dsl(ctx);
-    let sender = PlayerId::new(ctx.sender());
-    let username = get_username(&dsl, ctx.sender());
+    let sender = ctx.sender();
+    let username = get_username(&dsl, sender);
 
-    if let Ok(player) = dsl.get_player_by_id(&sender) {
-        if player.get_faction_id().value() != faction_id.value() {
-            return Err(format!(
-                "Player {} does not access to faction id {}",
-                username, faction_id
-            ));
-        }
-    } else {
-        return Err(format!(
-            "Player {} does not access to faction id {}",
-            username, faction_id
-        ));
-    }
+    let player = dsl
+        .get_player_by_id(PlayerId::new(sender))
+        .map_err(|_| format!("Player {} is not registered — cannot post to faction chat", username))?;
+    let faction_id = player.get_faction_id().clone();
 
-    // If ctx.sender() is a valid, unbanned, unmuted player
     info!(
         "FactionChat #{} [{}]: {}",
-        faction_id.value(),
-        get_username(&dsl, ctx.sender()),
-        chat_message
+        faction_id,
+        username,
+        message
     );
 
-    dsl.create_faction_chat_message(CreateFactionChatMessage {
-        player_id: PlayerId::new(ctx.sender()),
-        faction_id: faction_id,
-        message: chat_message,
-    })?;
-    Ok(())
+    post_faction_channel(&dsl, faction_id, MessageSender::Player(sender), message)
 }

@@ -13,7 +13,7 @@ use crate::tables::global_config::*;
 use crate::tables::items::*;
 use crate::tables::players::get_player_ship_and_sobj;
 use crate::tables::players::PlayerId;
-use crate::tables::server_messages::*;
+use crate::tables::messages::*;
 use crate::tables::ships::*;
 use crate::tables::stellarobjects::*;
 use crate::utility::*;
@@ -82,11 +82,10 @@ pub fn jettison_cargo_from_ship(
         amount,
     )?;
 
-    send_info_message(
+    send_direct_server_info(
         &dsl,
         &ship.get_player_id(),
         format!("Jettioned successfully {}x {}", amount, item_def.get_name()),
-        Some("status"),
     )?;
 
     Ok(())
@@ -360,11 +359,10 @@ pub fn attempt_to_load_cargo_into_ship<T: spacetimedsl::WriteContext>(
     }
     dsl.update_ship_status_by_id(ship_status.clone())?;
 
-    send_info_message(
+    send_direct_server_info(
         dsl,
         &ship_status.get_player_id(),
         format!("Loaded successfully {}x {}", amount, item_def.get_name()),
-        Some("status"),
     )?;
 
     Ok(())

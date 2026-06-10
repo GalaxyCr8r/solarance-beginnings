@@ -1,16 +1,21 @@
 //! Welcome-back panel (#100) — the client-side render half of the welcome-back
 //! feature whose server-side composition landed in #92.
 //!
-//! On connect the server composes a single text-only `ServerMessage` tagged
-//! with `WELCOME_BACK_CONTEXT` and routes it to the player. This widget detects
-//! that message and shows it once, in a cozy centered panel, so a returning
-//! player learns at a glance what changed while they were away. Closing the
-//! panel marks the message read and suppresses it for the rest of the session.
+//! Post-#101 the welcome-back is a plain `DirectServerMessage` with no
+//! discriminator. We identify it as the most-recent DM at-or-after the player's
+//! `last_login` — the server's composer fires inside `client_connected`, so
+//! that row is always the freshest one when this panel checks. Dismissing the
+//! panel just hides it for the session; there is no server-side read state to
+//! mutate.
 
 use egui::{Align2, Color32, Context, RichText};
 use spacetimedb_sdk::DbContext;
 
-use crate::{gameplay::server_messages::ServerMessageUtils, server::bindings::DbConnection};
+use crate::{
+    gameplay::direct_server_messages::DirectServerMessageUtils,
+    server::bindings::DbConnection,
+    stdb::utils::get_current_player,
+};
 
 /// Per-session state for the welcome-back panel.
 #[derive(Default)]
@@ -37,8 +42,14 @@ pub fn draw(egui_ctx: &Context, ctx: &DbConnection, state: &mut State) {
         return;
     }
 
-    let Some((message, _recipient)) =
-        ServerMessageUtils::get_latest_welcome_back(ctx, &ctx.identity())
+    // The player row's `last_login` is the pre-connect timestamp the server
+    // composed the welcome-back against. If the row hasn't streamed in yet
+    // we wait — without it we can't tell welcome-back from any other DM.
+    let Some(player) = get_current_player(ctx) else {
+        return;
+    };
+    let Some(message) =
+        DirectServerMessageUtils::get_latest_welcome_back(ctx, player.last_login)
     else {
         return;
     };
@@ -63,7 +74,7 @@ pub fn draw(egui_ctx: &Context, ctx: &DbConnection, state: &mut State) {
 
             // The server joins the summary lines with '\n'; egui renders the
             // newlines directly. Keep it text-only and easy to read at a glance.
-            ui.label(RichText::new(&message.message).size(15.0));
+            ui.label(RichText::new(&message.body).size(15.0));
 
             ui.add_space(8.0);
             ui.separator();
@@ -75,9 +86,6 @@ pub fn draw(egui_ctx: &Context, ctx: &DbConnection, state: &mut State) {
         });
 
     if close_requested {
-        // Mark read so the chat unread indicator clears too; failures here are
-        // non-fatal (the session-level `dismissed` flag still hides the panel).
-        let _ = ServerMessageUtils::mark_message_as_read(ctx, message.id);
         state.dismissed = true;
     }
 }

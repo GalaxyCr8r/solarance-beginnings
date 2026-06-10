@@ -12,10 +12,7 @@ pub struct Player {
     #[create_wrapper]
     #[referenced_by(path = crate::tables::ships, table = ship_movement_controller)]
     #[referenced_by(path = crate::tables::ships, table = ship)]
-    #[referenced_by(path = crate::tables::chats, table = global_chat_message)]
-    #[referenced_by(path = crate::tables::chats, table = sector_chat_message)]
-    #[referenced_by(path = crate::tables::chats, table = faction_chat_message)]
-    #[referenced_by(path = crate::tables::server_messages, table = server_message_recipient)]
+    #[referenced_by(path = crate::tables::messages, table = direct_server_message)]
     #[referenced_by(path = crate::tables::stations, table = construction_contribution_log)]
     id: Identity,
 

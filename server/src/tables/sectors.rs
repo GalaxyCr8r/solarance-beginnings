@@ -18,7 +18,7 @@ pub struct Sector {
     #[referenced_by(path = crate::tables::stations, table = station)]
     #[referenced_by(path = crate::tables::jumpgates, table = jump_gate)]
     #[referenced_by(path = crate::tables::combat, table = visual_effect)]
-    #[referenced_by(path = crate::tables::chats, table = sector_chat_message)]
+    #[referenced_by(path = crate::tables::messages, table = sector_channel_message)]
     #[referenced_by(path = crate::tables::items, table = cargo_crate)]
     id: u64,
 

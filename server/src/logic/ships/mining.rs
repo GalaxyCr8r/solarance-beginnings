@@ -6,7 +6,7 @@ use spacetimedsl::*;
 
 use crate::{
     logic::ships::add_cargo_timer::*,
-    tables::{asteroids::*, items::*, players::*, server_messages::*, ships::*, stellarobjects::*},
+    tables::{asteroids::*, items::*, messages::*, players::*, ships::*, stellarobjects::*},
     utility::try_server_only,
 };
 
@@ -93,11 +93,10 @@ pub fn ship_mining_timer_reducer(
     {
         dsl.delete_ship_mining_timer_by_id(timer.get_id())?;
 
-        let _ = send_info_message(
+        let _ = send_direct_server_info(
             &dsl,
             &ship_object.get_player_id(),
             "Mining cancelled — asteroid out of range.".to_string(),
-            Some("mining"),
         );
         info!(
             "Ship #{:?} drifted out of mining range of asteroid #{:?}; mining timer removed.",
@@ -112,11 +111,10 @@ pub fn ship_mining_timer_reducer(
 
         let _ = dsl.delete_stellar_object_by_id(&asteroid_object.get_id());
 
-        let _ = send_info_message(
+        let _ = send_direct_server_info(
             &dsl,
             &ship_object.get_player_id(),
             "Targetted asteroid exhausted!".to_string(),
-            Some("mining"),
         );
         info!(
             "Asteroid #{:?} exhausted of resources! Timer and Asteroid deleted",
@@ -161,7 +159,7 @@ pub fn ship_mining_timer_reducer(
             })?;
 
     if ship_status.get_energy() < &energy_consumption {
-        let _ = send_info_message(
+        let _ = send_direct_server_info(
             &dsl,
             &ship_object.get_player_id(),
             format!(
@@ -169,7 +167,6 @@ pub fn ship_mining_timer_reducer(
                 ship_status.get_energy(),
                 energy_consumption
             ),
-            Some("mining"),
         );
         return Err(format!(
             "Ship {:?} does not have enough energy to mine. Req: {}, Current: {}",
@@ -205,7 +202,7 @@ pub fn ship_mining_timer_reducer(
 
         timer.set_mining_progress(0.0); //timer.get_mining_progress() - diff.floor()); // Just reset it to 0 instead of letting it roll over
 
-        let _ = send_info_message(
+        let _ = send_direct_server_info(
             &dsl,
             &ship_object.get_player_id(),
             format!(
@@ -213,7 +210,6 @@ pub fn ship_mining_timer_reducer(
                 diff.floor() as u16,
                 item_def.get_name()
             ),
-            Some("mining"),
         );
         info!(
             "Ship #{:?} mined {}x of {}. Current progress to next item: {}",
@@ -263,7 +259,7 @@ pub fn try_mining_asteroid(
             // TODO: Start 'mining asteroid' effect
 
             // Only add if there is no mining timer for this ship and asteroid.
-            let _ = send_info_message(
+            let _ = send_direct_server_info(
                 &dsl,
                 &player_id,
                 format!(
@@ -271,7 +267,6 @@ pub fn try_mining_asteroid(
                     get_username(&dsl, player_id.value()),
                     asteroid_sobj.get_id().value()
                 ),
-                Some("mining"),
             ); // Should this Error really be suppressed?
             info!(
                 "Player {} started mining asteroid #{}!",

@@ -1,35 +1,58 @@
+//! Chat widget — tabbed access to all six messaging channels (#101).
+//!
+//! Each tab reads directly from its STDB View / public table — there is no
+//! mirrored state in `State`. The views auto-update on insert, so each frame
+//! sees fresh rows for free. This is the simpler shape the new schema enables;
+//! the old MPSC mirror existed only because the per-faction filter had to
+//! happen in Rust callbacks.
+//!
+//! ## Tabs
+//! - **Server** — `ServerChannelMessage` (public, MOTD; read-only).
+//! - **Galaxy** — `my_galaxy_chat` view; logged-in players only.
+//! - **System** — `my_star_system_chat` view; player's current star system.
+//! - **Sector** — `my_sector_chat` view; player's current sector.
+//! - **Faction** — `my_faction_chat` view; player's faction.
+//! - **DM** — `my_direct_server_messages` view; the async inbox.
+
 use std::cmp::Ordering;
 
 use egui::{Align2, Color32, Context, RichText, ScrollArea, TextStyle, Ui};
 use macroquad::prelude::*;
 use spacetimedb_sdk::{DbContext, Table, Timestamp};
 
-use crate::{gameplay::server_messages::ServerMessageUtils, server::bindings::*, stdb::utils::*};
+use crate::{
+    gameplay::direct_server_messages::{render_sender, DirectServerMessageUtils},
+    server::bindings::*,
+    stdb::utils::*,
+};
 
-#[derive(Clone, Debug, PartialEq, PartialOrd)]
-pub enum GlobalChatMessageType {
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd)]
+pub enum ChatTab {
     Server,
-    Global,
+    Galaxy,
+    System,
     Sector,
-    Alliance,
     Faction,
+    DirectMessages,
 }
 
-impl Default for GlobalChatMessageType {
+impl Default for ChatTab {
     fn default() -> Self {
-        GlobalChatMessageType::Server
+        ChatTab::Galaxy
     }
 }
 
 #[derive(Default)]
 pub struct State {
-    pub global_chat_channel: Vec<GlobalChatMessage>,
-    pub sector_chat_channel: Vec<SectorChatMessage>,
-    pub faction_chat_channel: Vec<FactionChatMessage>,
     pub text: String,
-    pub selected_tab: GlobalChatMessageType,
+    pub selected_tab: ChatTab,
     pub has_focus: bool,
     pub hidden: bool,
+    /// Session-local "Mark all read" timestamp. The DM unread count is taken
+    /// against `max(player.last_login, dms_dismissed_at)`. None until the
+    /// player clicks the Read button; cleared on next session (login-relative
+    /// is still the source of truth across sessions).
+    pub dms_dismissed_at: Option<Timestamp>,
 }
 
 fn contents_hidden(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
@@ -38,55 +61,41 @@ fn contents_hidden(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
             chat_window.hidden = false;
         }
 
-        // Show server tab with unread indicator (first tab)
-        let unread_count = ServerMessageUtils::get_unread_count(ctx, &ctx.identity());
-        let server_tab_text = if unread_count > 0 {
-            format!(" Server* ")
+        let unread_count = unread_dm_count(ctx, chat_window);
+        let dm_tab_text = if unread_count > 0 {
+            format!(" DM* ")
         } else {
-            " Server ".to_string()
+            " DM ".to_string()
         };
-        ui.label(RichText::new(server_tab_text).color(
-            if chat_window.selected_tab == GlobalChatMessageType::Server {
-                Color32::DARK_GRAY
-            } else {
-                Color32::BLACK
-            },
-        ));
 
-        ui.label(RichText::new(" Global ").color(
-            if chat_window.selected_tab == GlobalChatMessageType::Global {
+        for (label, tab) in [
+            (" Server ".to_string(), ChatTab::Server),
+            (" Galaxy ".to_string(), ChatTab::Galaxy),
+            (" System ".to_string(), ChatTab::System),
+            (" Sector ".to_string(), ChatTab::Sector),
+            (" Faction ".to_string(), ChatTab::Faction),
+            (dm_tab_text, ChatTab::DirectMessages),
+        ] {
+            ui.label(RichText::new(label).color(if chat_window.selected_tab == tab {
                 Color32::DARK_GRAY
             } else {
                 Color32::BLACK
-            },
-        ));
-        ui.label(RichText::new(" Sector ").color(
-            if chat_window.selected_tab == GlobalChatMessageType::Sector {
-                Color32::DARK_GRAY
-            } else {
-                Color32::BLACK
-            },
-        ));
-        ui.label(RichText::new(" Faction ").color(
-            if chat_window.selected_tab == GlobalChatMessageType::Faction {
-                Color32::DARK_GRAY
-            } else {
-                Color32::BLACK
-            },
-        ));
-
-        ui.label(RichText::new(" Alliance ").color(Color32::BLACK));
+            }));
+        }
     });
 
     ui.separator();
 
+    // Always show the last 3 Galaxy messages collapsed — most public stream.
     ui.label(RichText::new("...").color(Color32::DARK_GRAY));
-    for message in chat_window.global_chat_channel.iter().rev().take(3).rev() {
+    let mut messages: Vec<GalaxyChannelMessage> = ctx.db().my_galaxy_chat().iter().collect();
+    messages.sort_by_key(|m| m.created_at);
+    for message in messages.iter().rev().take(3).rev() {
         ui.label(
             RichText::new(format!(
                 "[{}]: {}",
-                get_username(ctx, &message.player_id),
-                message.message
+                render_sender(ctx, &message.sender),
+                message.body
             ))
             .color(Color32::DARK_GRAY),
         );
@@ -114,88 +123,15 @@ pub fn draw(
         })
 }
 
-pub fn _draw_widget(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
-    ui.horizontal(|ui| {
-        if !chat_window.hidden && ui.button("v").clicked() {
-            chat_window.hidden = true;
-        }
-
-        // Server tab with unread indicator (first tab)
-        let unread_count = ServerMessageUtils::get_unread_count(ctx, &ctx.identity());
-        let server_tab_text = if unread_count > 0 {
-            format!("Server*")
-        } else {
-            "Server".to_string()
-        };
-        ui.selectable_value(
-            &mut chat_window.selected_tab,
-            GlobalChatMessageType::Server,
-            server_tab_text,
-        );
-
-        ui.selectable_value(
-            &mut chat_window.selected_tab,
-            GlobalChatMessageType::Global,
-            "Global",
-        );
-        ui.selectable_value(
-            &mut chat_window.selected_tab,
-            GlobalChatMessageType::Sector,
-            "Sector",
-        );
-        ui.selectable_value(
-            &mut chat_window.selected_tab,
-            GlobalChatMessageType::Faction,
-            "Faction",
-        );
-
-        ui.label(RichText::new(" Alliance ").color(Color32::BLACK));
-    });
-    ui.separator();
-
-    match chat_window.selected_tab {
-        GlobalChatMessageType::Global => {
-            draw_global_chat(ctx, chat_window, ui);
-        }
-        GlobalChatMessageType::Sector => {
-            draw_sector_chat(ctx, chat_window, ui);
-        }
-        GlobalChatMessageType::Server => {
-            draw_server_messages(ctx, ui);
-        }
-        GlobalChatMessageType::Alliance => todo!(),
-        GlobalChatMessageType::Faction => {
-            draw_faction_chat(ctx, chat_window, ui);
-        }
-    }
-
-    ui.horizontal(|ui| {
-        chat_window.has_focus = false;
-        if ui.text_edit_singleline(&mut chat_window.text).has_focus() {
-            // Game State -> Can Move Ship False
-            // Also need to make that new state boolean set to "True" each loop
-            // and make sure this dialog is shown before player input can be processed
-            chat_window.has_focus = true;
-        }
-        if ui.button("Send").clicked() || ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-            if !chat_window.text.is_empty() {
-                send_message(ctx, chat_window);
-            }
-        }
-    });
-}
-
 pub fn draw_panel(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
-    // Ensure that we only show sector chat if the player is actively piloting
-    // a ship in a sector. The legacy `sobj_player_window` row used to gate
-    // this — post-dead-reckoning we just look for an in-sector ship.
+    // Sector tab is only meaningful while the player has an in-sector ship.
     let sector_enabled = ctx
         .db()
         .ship()
         .iter()
         .any(|s| s.player_id == ctx.identity() && s.location == ShipLocation::Sector);
-    if chat_window.selected_tab == GlobalChatMessageType::Sector && !sector_enabled {
-        chat_window.selected_tab = GlobalChatMessageType::Server;
+    if chat_window.selected_tab == ChatTab::Sector && !sector_enabled {
+        chat_window.selected_tab = ChatTab::Galaxy;
     }
 
     egui::TopBottomPanel::top("chat_top")
@@ -206,42 +142,23 @@ pub fn draw_panel(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
                     chat_window.hidden = true;
                 }
 
-                // Server tab with unread indicator (first tab)
-                let unread_count = ServerMessageUtils::get_unread_count(ctx, &ctx.identity());
-                let server_tab_text = if unread_count > 0 {
-                    format!("*Server")
-                } else {
-                    "Server".to_string()
-                };
-                ui.selectable_value(
-                    &mut chat_window.selected_tab,
-                    GlobalChatMessageType::Server,
-                    server_tab_text,
-                );
-
-                ui.selectable_value(
-                    &mut chat_window.selected_tab,
-                    GlobalChatMessageType::Global,
-                    "Global",
-                );
+                ui.selectable_value(&mut chat_window.selected_tab, ChatTab::Server, "Server");
+                ui.selectable_value(&mut chat_window.selected_tab, ChatTab::Galaxy, "Galaxy");
+                ui.selectable_value(&mut chat_window.selected_tab, ChatTab::System, "System");
                 if sector_enabled {
-                    ui.selectable_value(
-                        &mut chat_window.selected_tab,
-                        GlobalChatMessageType::Sector,
-                        "Sector",
-                    );
+                    ui.selectable_value(&mut chat_window.selected_tab, ChatTab::Sector, "Sector");
                 } else {
                     ui.label(RichText::new(" Sector ").color(Color32::BLACK));
                 }
+                ui.selectable_value(&mut chat_window.selected_tab, ChatTab::Faction, "Faction");
 
-                ui.selectable_value(
-                    &mut chat_window.selected_tab,
-                    GlobalChatMessageType::Faction,
-                    "Faction",
-                );
-
-                ui.label(RichText::new(" Station ").color(Color32::BLACK));
-                ui.label(RichText::new(" Guild ").color(Color32::BLACK));
+                let unread_count = unread_dm_count(ctx, chat_window);
+                let dm_text = if unread_count > 0 {
+                    format!("*DM ({})", unread_count)
+                } else {
+                    "DM".to_string()
+                };
+                ui.selectable_value(&mut chat_window.selected_tab, ChatTab::DirectMessages, dm_text);
             });
         });
 
@@ -250,341 +167,221 @@ pub fn draw_panel(ui: &mut Ui, ctx: &DbConnection, chat_window: &mut State) {
         .show_inside(ui, |ui| {
             ui.horizontal(|ui| {
                 chat_window.has_focus = false;
-                if ui.text_edit_singleline(&mut chat_window.text).has_focus() {
-                    // Game State -> Can Move Ship False
-                    // Also need to make that new state boolean set to "True" each loop
-                    // and make sure this dialog is shown before player input can be processed
-                    chat_window.has_focus = true;
-                }
-                if ui.button("Send").clicked() || ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-                    if !chat_window.text.is_empty() {
-                        send_message(ctx, chat_window);
+                // The DM tab + Server tab are read-only (server-composed).
+                let read_only = matches!(
+                    chat_window.selected_tab,
+                    ChatTab::Server | ChatTab::DirectMessages
+                );
+                if read_only {
+                    ui.label(RichText::new("(read-only)").color(Color32::DARK_GRAY));
+                } else {
+                    if ui.text_edit_singleline(&mut chat_window.text).has_focus() {
+                        chat_window.has_focus = true;
+                    }
+                    if ui.button("Send").clicked() || ui.input(|i| i.key_pressed(egui::Key::Enter))
+                    {
+                        if !chat_window.text.is_empty() {
+                            send_message(ctx, chat_window);
+                        }
                     }
                 }
             });
         });
 
     egui::CentralPanel::default().show_inside(ui, |ui| match chat_window.selected_tab {
-        GlobalChatMessageType::Server => {
-            draw_server_messages(ctx, ui);
-        }
-        GlobalChatMessageType::Global => {
-            draw_global_chat(ctx, chat_window, ui);
-        }
-        GlobalChatMessageType::Sector => {
-            draw_sector_chat(ctx, chat_window, ui);
-        }
-        GlobalChatMessageType::Alliance => todo!(),
-        GlobalChatMessageType::Faction => {
-            draw_faction_chat(ctx, chat_window, ui);
-        }
+        ChatTab::Server => draw_server_channel(ctx, ui),
+        ChatTab::Galaxy => draw_galaxy_channel(ctx, ui),
+        ChatTab::System => draw_system_channel(ctx, ui),
+        ChatTab::Sector => draw_sector_channel(ctx, ui),
+        ChatTab::Faction => draw_faction_channel(ctx, ui),
+        ChatTab::DirectMessages => draw_direct_messages(ctx, chat_window, ui),
     });
 }
 
 fn send_message(ctx: &DbConnection, chat_window: &mut State) {
-    match chat_window.selected_tab {
-        GlobalChatMessageType::Global => {
-            if let Err(error) = ctx.reducers.send_global_chat(chat_window.text.clone()) {
-                info!("Failed to send message: {}", error);
-                // TODO Add a message to chat log or do SOMETHING to alert the user it failed.
-                chat_window.global_chat_channel.push(GlobalChatMessage {
-                    player_id: ctx.identity(),
-                    id: 0,
-                    message: format!("Failed to send message: {}", chat_window.text.clone()),
-                    created_at: Timestamp::now(),
-                });
-            } else {
-                chat_window.text.clear();
-            }
-        }
-        GlobalChatMessageType::Sector => {
-            let sector_id = get_player_ship(ctx).unwrap().sector_id;
-            if let Err(error) = ctx
-                .reducers
-                .send_sector_chat(chat_window.text.clone(), sector_id)
-            {
-                info!("Failed to send message: {}", error);
-                // TODO Add a message to chat log or do SOMETHING to alert the user it failed.
-                chat_window.sector_chat_channel.push(SectorChatMessage {
-                    player_id: ctx.identity(),
-                    id: 0,
-                    sector_id: sector_id,
-                    message: format!("Failed to send message: {}", chat_window.text.clone()),
-                    created_at: Timestamp::now(),
-                });
-            } else {
-                chat_window.text.clear();
-            }
-        }
-        GlobalChatMessageType::Server => {
-            // Server messages are read-only, so we don't allow sending messages
-            // Just clear the text if user tries to send
-            chat_window.text.clear();
-        }
-        GlobalChatMessageType::Alliance => todo!(),
-        GlobalChatMessageType::Faction => {
-            let faction_id = {
-                if let Some(player) = get_current_player(ctx) {
-                    player.faction_id
-                } else {
-                    FactionId::from(0)
-                }
-            };
-            if let Err(error) = ctx
-                .reducers
-                .send_faction_chat(chat_window.text.clone(), faction_id.clone())
-            {
-                info!("Failed to send message: {}", error);
-                // TODO Add a message to chat log or do SOMETHING to alert the user it failed.
-                chat_window.faction_chat_channel.push(FactionChatMessage {
-                    player_id: ctx.identity(),
-                    id: 0,
-                    message: format!("Failed to send message: {}", chat_window.text.clone()),
-                    created_at: Timestamp::now(),
-                    faction_id: faction_id.value,
-                });
-            } else {
-                chat_window.text.clear();
-            }
-        }
+    let body = chat_window.text.clone();
+    let result = match chat_window.selected_tab {
+        ChatTab::Galaxy => ctx.reducers.send_galaxy_chat(body),
+        ChatTab::System => ctx.reducers.send_star_system_chat(body),
+        ChatTab::Sector => ctx.reducers.send_sector_chat(body),
+        ChatTab::Faction => ctx.reducers.send_faction_chat(body),
+        // Read-only tabs are filtered out before send_message is called.
+        ChatTab::Server | ChatTab::DirectMessages => return,
+    };
+    if let Err(error) = result {
+        info!("Failed to send message: {}", error);
+        // No fallback local-echo: a failed send surfaces in logs only — the
+        // reducer `_then` callback can carry it into a future toast.
+    } else {
+        chat_window.text.clear();
     }
 }
 
-fn draw_global_chat(ctx: &DbConnection, chat_window: &mut State, ui: &mut Ui) {
-    let text_style = TextStyle::Body;
-    let row_height = ui.text_style_height(&text_style);
-    ScrollArea::vertical()
-        .auto_shrink([false, true])
-        .stick_to_bottom(true)
-        //.max_height(screen_height() / 4.0)
-        .show_rows(
-            ui,
-            row_height,
-            chat_window.global_chat_channel.len(),
-            |ui, row_range| {
-                let mut count = 0;
-                let mut last_timestamp = "".to_string();
-                for message in &chat_window.global_chat_channel {
-                    if row_range.contains(&count) {
-                        // Timestamp
-                        let timestamp_text =
-                            ServerMessageUtils::format_timestamp_short(&message.created_at);
-                        if timestamp_text.cmp(&last_timestamp) != Ordering::Equal {
-                            ui.label(
-                                RichText::new(format!("[{}]", timestamp_text))
-                                    .color(Color32::GRAY)
-                                    .size(10.0),
-                            );
-                            last_timestamp = timestamp_text;
-                        }
-
-                        // Message
-                        ui.label(format!(
-                            "[{}]: {}",
-                            get_username(ctx, &message.player_id),
-                            message.message
-                        ));
-                    }
-                    count += 1;
-                }
-            },
-        );
+fn unread_dm_count(ctx: &DbConnection, chat_window: &State) -> usize {
+    let last_login = get_current_player(ctx).and_then(|p| p.last_login);
+    DirectServerMessageUtils::get_unread_count(ctx, last_login, chat_window.dms_dismissed_at)
 }
 
-fn draw_sector_chat(ctx: &DbConnection, chat_window: &mut State, ui: &mut Ui) {
-    let text_style = TextStyle::Body;
-    let row_height = ui.text_style_height(&text_style);
-
-    ScrollArea::vertical()
-        .auto_shrink([false, true])
-        .stick_to_bottom(true)
-        //.max_height(screen_height() / 4.0)
-        .show_rows(
-            ui,
-            row_height,
-            chat_window.sector_chat_channel.len(),
-            |ui, row_range| {
-                let mut count = 0;
-                let mut last_timestamp = "".to_string();
-                for message in &chat_window.sector_chat_channel {
-                    if row_range.contains(&count) {
-                        // Timestamp
-                        let timestamp_text =
-                            ServerMessageUtils::format_timestamp_short(&message.created_at);
-                        if timestamp_text.cmp(&last_timestamp) != Ordering::Equal {
-                            ui.label(
-                                RichText::new(format!("[{}]", timestamp_text))
-                                    .color(Color32::GRAY)
-                                    .size(10.0),
-                            );
-                            last_timestamp = timestamp_text;
-                        }
-
-                        // Message
-                        ui.label(format!(
-                            "({}): {}",
-                            get_username(ctx, &message.player_id),
-                            message.message
-                        ));
-                    }
-                    count += 1;
-                }
-            },
-        );
+fn draw_galaxy_channel(ctx: &DbConnection, ui: &mut Ui) {
+    let mut messages: Vec<GalaxyChannelMessage> = ctx.db().my_galaxy_chat().iter().collect();
+    messages.sort_by_key(|m| m.created_at);
+    draw_scrolling_list(ui, messages.len(), |ui, idx| {
+        let message = &messages[idx];
+        let timestamp = DirectServerMessageUtils::format_timestamp_short(&message.created_at);
+        (timestamp, format!("[{}]: {}", render_sender(ctx, &message.sender), message.body))
+    });
 }
 
-fn draw_faction_chat(ctx: &DbConnection, chat_window: &mut State, ui: &mut Ui) {
-    let text_style = TextStyle::Body;
-    let row_height = ui.text_style_height(&text_style);
-
-    ScrollArea::vertical()
-        .auto_shrink([false, true])
-        .stick_to_bottom(true)
-        //.max_height(screen_height() / 4.0)
-        .show_rows(
-            ui,
-            row_height,
-            chat_window.faction_chat_channel.len(),
-            |ui, row_range| {
-                let mut count = 0;
-                let mut last_timestamp = "".to_string();
-                for message in &chat_window.faction_chat_channel {
-                    if row_range.contains(&count) {
-                        // Timestamp
-                        let timestamp_text =
-                            ServerMessageUtils::format_timestamp_short(&message.created_at);
-                        if timestamp_text.cmp(&last_timestamp) != Ordering::Equal {
-                            ui.label(
-                                RichText::new(format!("[{}]", timestamp_text))
-                                    .color(Color32::GRAY)
-                                    .size(10.0),
-                            );
-                            last_timestamp = timestamp_text;
-                        }
-
-                        // Message
-                        ui.label(format!(
-                            "{}: {}",
-                            get_username(ctx, &message.player_id),
-                            message.message
-                        ));
-                    }
-                    count += 1;
-                }
-            },
-        );
+fn draw_system_channel(ctx: &DbConnection, ui: &mut Ui) {
+    let mut messages: Vec<StarSystemChannelMessage> =
+        ctx.db().my_star_system_chat().iter().collect();
+    messages.sort_by_key(|m| m.created_at);
+    draw_scrolling_list(ui, messages.len(), |ui, idx| {
+        let message = &messages[idx];
+        let timestamp = DirectServerMessageUtils::format_timestamp_short(&message.created_at);
+        (timestamp, format!("({}): {}", render_sender(ctx, &message.sender), message.body))
+    });
 }
 
-fn draw_server_messages(ctx: &DbConnection, ui: &mut Ui) {
-    let text_style = TextStyle::Body;
-    let row_height = ui.text_style_height(&text_style) * 1.5; // Slightly taller for better readability
+fn draw_sector_channel(ctx: &DbConnection, ui: &mut Ui) {
+    let mut messages: Vec<SectorChannelMessage> = ctx.db().my_sector_chat().iter().collect();
+    messages.sort_by_key(|m| m.created_at);
+    draw_scrolling_list(ui, messages.len(), |ui, idx| {
+        let message = &messages[idx];
+        let timestamp = DirectServerMessageUtils::format_timestamp_short(&message.created_at);
+        (timestamp, format!("({}): {}", render_sender(ctx, &message.sender), message.body))
+    });
+}
 
-    // Get server messages for the current player
-    let mut messages = ServerMessageUtils::get_messages_for_player(ctx, &ctx.identity());
-    messages.sort_by(|a, b| a.0.created_at.cmp(&b.0.created_at));
+fn draw_faction_channel(ctx: &DbConnection, ui: &mut Ui) {
+    let mut messages: Vec<FactionChannelMessage> = ctx.db().my_faction_chat().iter().collect();
+    messages.sort_by_key(|m| m.created_at);
+    draw_scrolling_list(ui, messages.len(), |ui, idx| {
+        let message = &messages[idx];
+        let timestamp = DirectServerMessageUtils::format_timestamp_short(&message.created_at);
+        (timestamp, format!("{}: {}", render_sender(ctx, &message.sender), message.body))
+    });
+}
 
-    if ui.button("Mark all as read").clicked() {
-        messages
-            .iter()
-            .filter_map(|(m, r)| if r.read_at.is_none() { Some(m) } else { None })
-            .for_each(|m| {
-                let _ = ServerMessageUtils::mark_message_as_read(ctx, m.id);
-            });
-    }
+fn draw_server_channel(ctx: &DbConnection, ui: &mut Ui) {
+    let mut messages: Vec<ServerChannelMessage> = ctx.db().server_channel_message().iter().collect();
+    messages.sort_by_key(|m| m.created_at);
+    draw_scrolling_list(ui, messages.len(), |ui, idx| {
+        let message = &messages[idx];
+        let timestamp = DirectServerMessageUtils::format_timestamp_short(&message.created_at);
+        (timestamp, format!("[MOTD] {}", message.body))
+    });
+}
+
+fn draw_direct_messages(ctx: &DbConnection, chat_window: &mut State, ui: &mut Ui) {
+    let last_login = get_current_player(ctx).and_then(|p| p.last_login);
+
+    // Newest-at-bottom to match every other chat tab. `get_messages` returns
+    // newest-first; reverse here so the ScrollArea (stick_to_bottom) keeps
+    // the latest visible.
+    let mut messages = DirectServerMessageUtils::get_messages(ctx);
+    messages.reverse();
+
+    // "Read" header: clears the unread highlight + count for this session.
+    // Session-local — the next login resumes login-relative tracking.
+    let unread_count = DirectServerMessageUtils::get_unread_count(
+        ctx,
+        last_login,
+        chat_window.dms_dismissed_at,
+    );
+    ui.horizontal(|ui| {
+        if unread_count > 0 {
+            ui.label(
+                RichText::new(format!("{} unread", unread_count))
+                    .color(Color32::from_rgb(255, 215, 0)),
+            );
+            if ui.button("Read").clicked() {
+                chat_window.dms_dismissed_at = Some(Timestamp::now());
+            }
+        } else {
+            ui.label(RichText::new("No unread").color(Color32::DARK_GRAY));
+        }
+    });
     ui.separator();
 
+    let text_style = TextStyle::Body;
+    let row_height = ui.text_style_height(&text_style) * 1.5;
+
+    let dismissed_at = chat_window.dms_dismissed_at;
     ScrollArea::vertical()
         .auto_shrink([false, true])
         .stick_to_bottom(true)
-        //.max_height(screen_height() / 4.0)
         .show_rows(ui, row_height, messages.len(), |ui, row_range| {
-            let mut count = 0;
-            let mut last_timestamp = "".to_string();
-            for (message, recipient) in &messages {
-                if row_range.contains(&count) {
-                    // Timestamp
-                    let timestamp_text =
-                        ServerMessageUtils::format_timestamp_short(&message.created_at);
-                    if timestamp_text.cmp(&last_timestamp) != Ordering::Equal {
-                        ui.label(
-                            RichText::new(format!("[{}]", timestamp_text))
-                                .color(Color32::GRAY)
-                                .size(10.0),
-                        );
-                        last_timestamp = timestamp_text;
-                    }
-
-                    ui.horizontal(|ui| {
-                        // Unread indicator
-                        if recipient.read_at.is_none() {
-                            // Make the indicator clickable to mark as read
-                            if ui
-                                .label(RichText::new("!").color(Color32::from_rgb(255, 215, 0)))
-                                .clicked()
-                            {
-                                let _ = ServerMessageUtils::mark_message_as_read(ctx, message.id);
-                            }
-                        }
-
-                        // Message type prefix with color
-                        let type_prefix = match message.message_type {
-                            ServerMessageType::Error => "[ERROR]",
-                            ServerMessageType::Info => "[INFO]",
-                            ServerMessageType::Warning => "[WARNING]",
-                            ServerMessageType::Admin => "[ADMIN]",
-                            ServerMessageType::System => "[SYSTEM]",
-                        };
-
-                        let type_color =
-                            ServerMessageUtils::get_message_color(&message.message_type);
-                        let mut type_text = RichText::new(type_prefix).color(type_color);
-
-                        // Make urgent message types bold
-                        if ServerMessageUtils::is_urgent_message(&message.message_type) {
-                            type_text = type_text.strong();
-                        }
-
-                        ui.label(type_text);
-
-                        // Context if available
-                        if let Some(context) = &message.sender_context {
-                            ui.label(
-                                RichText::new(format!("{}:", context))
-                                    .color(Color32::DARK_GRAY)
-                                    .strong(),
-                            );
-                        }
-
-                        // Main message content
-                        let mut message_text = RichText::new(&message.message);
-
-                        // Style based on read status
-                        if recipient.read_at.is_none() {
-                            message_text = message_text.strong(); // Unread messages are bold
-                        } else {
-                            message_text = message_text.color(Color32::GRAY); // Read messages are dimmed
-                        }
-
-                        // Make the message clickable to mark as read
-                        let response = ui.label(message_text);
-                        if response.clicked() && recipient.read_at.is_none() {
-                            let _ = ServerMessageUtils::mark_message_as_read(ctx, message.id);
-                        }
-
-                        // Group name if available (without showing other recipients)
-                        if let Some(group_name) = &message.group_name {
-                            ui.label(
-                                RichText::new(format!("(Group: {})", group_name))
-                                    .color(Color32::from_rgb(100, 150, 200))
-                                    .size(10.0),
-                            );
-                        }
-                    });
-
-                    // Add some spacing between messages
-                    ui.add_space(2.0);
+            let mut last_timestamp = String::new();
+            for idx in row_range {
+                let message = &messages[idx];
+                let timestamp = DirectServerMessageUtils::format_timestamp_short(&message.created_at);
+                if timestamp.cmp(&last_timestamp) != Ordering::Equal {
+                    ui.label(
+                        RichText::new(format!("[{}]", timestamp))
+                            .color(Color32::GRAY)
+                            .size(10.0),
+                    );
+                    last_timestamp = timestamp;
                 }
-                count += 1;
+                let cutoff = match (last_login, dismissed_at) {
+                    (Some(a), Some(b)) => Some(if a > b { a } else { b }),
+                    (Some(t), None) | (None, Some(t)) => Some(t),
+                    (None, None) => None,
+                };
+                let is_unread = cutoff.map(|c| message.created_at > c).unwrap_or(true);
+                let severity_color =
+                    DirectServerMessageUtils::color_for_severity(&message.severity);
+                let prefix = match message.severity {
+                    MessageSeverity::Info => "[INFO]",
+                    MessageSeverity::Warning => "[WARNING]",
+                    MessageSeverity::Critical => "[CRITICAL]",
+                };
+                ui.horizontal(|ui| {
+                    if is_unread {
+                        ui.label(RichText::new("●").color(Color32::from_rgb(255, 215, 0)));
+                    }
+                    let mut prefix_text = RichText::new(prefix).color(severity_color);
+                    if matches!(message.severity, MessageSeverity::Critical) {
+                        prefix_text = prefix_text.strong();
+                    }
+                    ui.label(prefix_text);
+                    let mut body_text = RichText::new(&message.body);
+                    if is_unread {
+                        body_text = body_text.strong();
+                    } else {
+                        body_text = body_text.color(Color32::GRAY);
+                    }
+                    ui.label(body_text);
+                });
+                ui.add_space(2.0);
+            }
+        });
+}
+
+/// Shared scroll-list scaffolding with grouped timestamp gutters.
+fn draw_scrolling_list<F>(ui: &mut Ui, total: usize, mut row: F)
+where
+    F: FnMut(&mut Ui, usize) -> (String, String),
+{
+    let text_style = TextStyle::Body;
+    let row_height = ui.text_style_height(&text_style);
+    ScrollArea::vertical()
+        .auto_shrink([false, true])
+        .stick_to_bottom(true)
+        .show_rows(ui, row_height, total, |ui, row_range| {
+            let mut last_timestamp = String::new();
+            for idx in row_range {
+                let (timestamp, text) = row(ui, idx);
+                if timestamp.cmp(&last_timestamp) != Ordering::Equal {
+                    ui.label(
+                        RichText::new(format!("[{}]", timestamp))
+                            .color(Color32::GRAY)
+                            .size(10.0),
+                    );
+                    last_timestamp = timestamp;
+                }
+                ui.label(text);
             }
         });
 }

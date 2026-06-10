@@ -21,6 +21,12 @@
 //! ship traffic are all out of MVP scope, so these would only ever read zero.
 //! We omit them rather than print honest-but-useless zeros — see #92 for the
 //! decision. Re-add them here when the systems that move those numbers ship.
+//!
+//! ## How the client identifies *the* welcome-back DM
+//! Post-#101, `DirectServerMessage` carries no discriminator. The client picks
+//! the most recent DM whose `created_at` is at-or-after the player's
+//! `last_login` and treats it as the welcome-back. That's the message this
+//! function emits exactly once per connect.
 
 use spacetimedb::Timestamp;
 use spacetimedsl::*;
@@ -28,16 +34,10 @@ use spacetimedsl::*;
 // Glob-import the table modules whose generated DSL extension traits we call —
 // the per-table `Get*` traits must be in scope, not just the row/ID types.
 use crate::tables::{
-    items::*, players::Player, server_messages::*, ships::*, stations::*,
+    items::*, messages::send_direct_server_info, players::Player, ships::*, stations::*,
 };
 
-/// Stable discriminator stamped on the welcome-back message's `sender_context`.
-/// The client (#100) keys off this to route the message into the dedicated
-/// welcome-back panel instead of the generic notification list. Keep it in
-/// sync with the client-side matcher.
-pub const WELCOME_BACK_CONTEXT: &str = "welcome_back";
-
-/// Compose and deliver the welcome-back `ServerMessage` for `player`.
+/// Compose and deliver the welcome-back `DirectServerMessage` for `player`.
 ///
 /// `player` must be read with the *pre-connect* `last_login` still intact —
 /// that timestamp is the "while you were away" boundary. The caller is
@@ -65,13 +65,7 @@ pub fn send_welcome_back_message<T: spacetimedsl::WriteContext>(
 
     lines.push(compose_cargo_summary(dsl, player));
 
-    send_server_message_to_player(
-        dsl,
-        &player.get_id(),
-        lines.join("\n"),
-        ServerMessageType::Info,
-        Some(WELCOME_BACK_CONTEXT.to_string()),
-    )
+    send_direct_server_info(dsl, &player.get_id(), lines.join("\n"))
 }
 
 /// One line per construction site still under way, own-faction sites flagged.
