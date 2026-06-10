@@ -71,13 +71,48 @@ fn nearest_construction_site(ctx: &DbConnection) -> Option<(Station, StationUnde
     best.map(|(s, u, _)| (s, u))
 }
 
+/// Display color for a faction (Lrak red, Rediar blue — CONTEXT.md §3).
+/// Faction colors are not stored in the Faction table, so the mapping lives
+/// client-side. (A copy exists in `creation_window.rs` from #93; consolidate
+/// into `stdb/utils.rs` when a third caller appears.)
+fn faction_color(faction_id: u32) -> Color32 {
+    match faction_id {
+        1 => Color32::from_rgb(230, 90, 90),   // Lrak Combine — red
+        4 => Color32::from_rgb(100, 150, 255), // Rediar Federation — blue
+        _ => Color32::LIGHT_GRAY,
+    }
+}
+
 fn draw_site(
     ui: &mut egui::Ui,
     ctx: &DbConnection,
     station: &Station,
     under_construction: &StationUnderConstruction,
 ) {
-    ui.heading(station_display_name(ctx, station));
+    // Faction-flag affordance (#104): own-faction sites carry the faction's
+    // color and a "(your faction)" tag; other factions' sites render muted.
+    // Contribution stays open to everyone — this is emphasis, not a gate.
+    let own_faction_id = get_current_player(ctx).map(|p| p.faction_id.value);
+    let is_own = own_faction_id == Some(station.owner_faction_id);
+    let heading_color = if is_own {
+        faction_color(station.owner_faction_id)
+    } else {
+        Color32::GRAY
+    };
+
+    ui.horizontal(|ui| {
+        ui.heading(RichText::new(station_display_name(ctx, station)).color(heading_color));
+        if is_own {
+            ui.label(
+                RichText::new("(your faction)")
+                    .color(heading_color)
+                    .small(),
+            );
+        }
+    });
+    if let Some(faction) = ctx.db().faction().id().find(&station.owner_faction_id) {
+        ui.small(format!("Owned by {}", faction.name));
+    }
     ui.separator();
 
     if under_construction.is_operational {

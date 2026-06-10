@@ -68,14 +68,16 @@ pub fn send_welcome_back_message<T: spacetimedsl::WriteContext>(
     send_direct_server_info(dsl, &player.get_id(), lines.join("\n"))
 }
 
-/// One line per construction site still under way, own-faction sites flagged.
+/// One line per construction site still under way — own-faction sites flagged
+/// and listed first (#104).
 fn compose_construction_summary<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     player: &Player,
 ) -> String {
     let own_faction = player.faction_id.value();
 
-    let mut site_lines: Vec<String> = Vec::new();
+    let mut own_lines: Vec<String> = Vec::new();
+    let mut other_lines: Vec<String> = Vec::new();
     for uc in dsl.get_all_stations_under_construction() {
         if *uc.get_is_operational() {
             continue; // Already finished — not "under construction" any more.
@@ -85,18 +87,23 @@ fn compose_construction_summary<T: spacetimedsl::WriteContext>(
             Err(_) => continue, // Station row gone; skip rather than bail.
         };
         let progress = *uc.get_construction_progress_percentage();
-        let flag = if station.get_owner_faction_id().value() == own_faction {
-            " (your faction)"
-        } else {
-            ""
-        };
-        site_lines.push(format!(
+        let is_own = station.get_owner_faction_id().value() == own_faction;
+        let flag = if is_own { " (your faction)" } else { "" };
+        let line = format!(
             "  • {} — {:.0}% complete{}",
             station.get_name(),
             progress,
             flag
-        ));
+        );
+        if is_own {
+            own_lines.push(line);
+        } else {
+            other_lines.push(line);
+        }
     }
+
+    let mut site_lines = own_lines;
+    site_lines.extend(other_lines);
 
     if site_lines.is_empty() {
         "No construction sites are active right now.".to_string()
