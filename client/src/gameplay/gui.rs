@@ -12,3 +12,16 @@ pub mod out_of_play_screen;
 pub mod ship_details_window;
 pub mod status_widget;
 pub mod welcome_back_widget;
+
+/// Display color for a faction (Lrak red, Rediar blue — CONTEXT.md §3).
+/// Faction colors are a design commitment but are not stored in the Faction
+/// table, so the canonical id → color mapping lives here for every window
+/// that tints by faction (creation picker, construction sites, map, …).
+/// Unknown / colorless factions render light gray.
+pub fn faction_color(faction_id: u32) -> egui::Color32 {
+    match faction_id {
+        1 => egui::Color32::from_rgb(230, 90, 90), // Lrak Combine — red
+        4 => egui::Color32::from_rgb(100, 150, 255), // Rediar Federation — blue
+        _ => egui::Color32::LIGHT_GRAY,
+    }
+}
