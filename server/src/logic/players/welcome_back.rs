@@ -34,7 +34,7 @@ use spacetimedsl::*;
 // Glob-import the table modules whose generated DSL extension traits we call —
 // the per-table `Get*` traits must be in scope, not just the row/ID types.
 use crate::tables::{
-    items::*, messages::send_direct_server_info, players::Player, ships::*, stations::*,
+    items::*, messages::send_direct_server_info, players::Player, sectors::GetSectorRowOptionById, ships::*, stations::*
 };
 
 /// Compose and deliver the welcome-back `DirectServerMessage` for `player`.
@@ -86,12 +86,17 @@ fn compose_construction_summary<T: spacetimedsl::WriteContext>(
             Ok(s) => s,
             Err(_) => continue, // Station row gone; skip rather than bail.
         };
+        let sector = match dsl.get_sector_by_id(station.get_sector_id()){
+            Ok(s) => s,
+            Err(_) => continue, // Sector row gone, somehow; skip rather than bail.
+        };
         let progress = *uc.get_construction_progress_percentage();
         let is_own = station.get_owner_faction_id().value() == own_faction;
         let flag = if is_own { " (your faction)" } else { "" };
         let line = format!(
-            "  • {} — {:.0}% complete{}",
+            "  • {} in {} — {:.0}% complete{}",
             station.get_name(),
+            sector.get_name(),
             progress,
             flag
         );
