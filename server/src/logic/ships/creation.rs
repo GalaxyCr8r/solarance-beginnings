@@ -11,7 +11,7 @@ use crate::{
         stellarobjects::stellar_object_creation::create_sobj,
     },
     tables::{
-        factions::FactionId,
+        factions::*,
         items::*,
         players::*,
         sectors::SectorId,
@@ -25,10 +25,54 @@ use crate::{
 ///////////////////////////////////
 ///  Reducers
 
-/// Default starting pose for a freshly-registered player ship. Eventually
-/// chosen from the joinable faction's home station.
+/// Fallback spawn pose for players whose faction has no Capital station
+/// (e.g. Factionless). Factions *with* a Capital spawn beside it instead —
+/// see [`capital_spawn_for_faction`].
 const STARTING_SPAWN_POS: Vec2 = Vec2 { x: 64.0, y: 64.0 };
 const STARTING_SPAWN_ROTATION: f32 = 0.0;
+const FALLBACK_SPAWN_SECTOR: u64 = 0;
+
+/// Offset from the Capital station's position so new ships don't spawn inside
+/// the station sprite.
+const CAPITAL_SPAWN_OFFSET: Vec2 = Vec2 { x: 400.0, y: 250.0 };
+
+/// Resolve where a new player's ship should spawn: their faction's Capital
+/// station's sector, right beside the station (#105). Falls back to the
+/// default sector/pose when the faction has no Capital (Factionless) or the
+/// Capital row is missing — a wrong-but-playable spawn beats a failed one.
+fn capital_spawn_for_faction(
+    dsl: &DSL<'_, ReducerContext>,
+    faction_id: &FactionId,
+) -> (SectorId, Vec2) {
+    let fallback = (SectorId::new(FALLBACK_SPAWN_SECTOR), STARTING_SPAWN_POS);
+
+    let faction = match dsl.get_faction_by_id(faction_id) {
+        Ok(f) => f,
+        Err(_) => return fallback,
+    };
+    let station_id = match faction.get_capital_station_id() {
+        Some(id) => StationId::new(*id),
+        None => return fallback,
+    };
+    match dsl.get_station_by_id(&station_id) {
+        Ok(station) => (
+            SectorId::new(station.get_sector_id().value()),
+            Vec2 {
+                x: station.get_position().x + CAPITAL_SPAWN_OFFSET.x,
+                y: station.get_position().y + CAPITAL_SPAWN_OFFSET.y,
+            },
+        ),
+        Err(_) => {
+            log::warn!(
+                "Faction {} names capital station {} but the station row is missing; spawning at fallback sector {}",
+                faction_id.value(),
+                station_id.value(),
+                FALLBACK_SPAWN_SECTOR
+            );
+            fallback
+        }
+    }
+}
 
 /// Creates a new ship for a registered player with starting equipment and cargo.
 /// Sets up the ship's stellar object, controller, and initial inventory.
@@ -56,22 +100,29 @@ pub fn create_player_controlled_ship(
         }
     };
 
-    if let Ok(sobj) = create_sobj(
-        &dsl,
-        StellarObjectKinds::Ship,
-        &SectorId::new(0), // TODO: Make this the proper sector id! Needs to be picked based on the joinable faction's home station.
-    ) {
+    // One ship per player (#103). The client only offers ship creation when
+    // no ship exists, but the reducer must hold the line on its own.
+    if dsl.get_ships_by_player_id(&player_id).next().is_some() {
+        return Err(format!(
+            "Player {} already owns a ship — one Column per player in MVP (#103); rejecting create_player_controlled_ship",
+            username
+        ));
+    }
+
+    let faction_id = player.get_faction_id().clone();
+    let (spawn_sector, spawn_pos) = capital_spawn_for_faction(&dsl, &faction_id);
+
+    if let Ok(sobj) = create_sobj(&dsl, StellarObjectKinds::Ship, &spawn_sector) {
         initialize_controller_for_player(&dsl, &player_id, &sobj)?;
 
         let ship_type = dsl.get_ship_type_definition_by_id(ShipTypeDefinitionId::new(1001))?;
-        let faction_id = player.get_faction_id().clone();
         let (ship, mut status) = create_ship_from_sobj(
             &dsl,
             &ship_type,
             &player_id,
             &faction_id,
             &sobj,
-            STARTING_SPAWN_POS,
+            spawn_pos,
             STARTING_SPAWN_ROTATION,
         )?;
 
