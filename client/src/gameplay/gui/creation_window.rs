@@ -150,8 +150,27 @@ fn create_player(ctx: &DbConnection, game_state: &mut GameState<'_>, ui: &mut eg
         for faction in &joinable_factions {
             let is_selected = game_state.creation_window.selected_faction_id == Some(faction.id);
 
-            if ui.selectable_label(is_selected, &faction.name).clicked() {
+            // Only factions with a Capital station are pickable (#93) — new
+            // players spawn at their faction's Capital, so a faction without
+            // one has nowhere to put them. In MVP that is exactly Lrak
+            // Combine and Rediar Federation.
+            let pickable = faction.capital_station_id.is_some();
+
+            let color = if pickable {
+                crate::gameplay::gui::faction_color(faction.id)
+            } else {
+                Color32::DARK_GRAY
+            };
+            let label = RichText::new(&faction.name).color(color);
+            let response =
+                ui.add_enabled(pickable, egui::SelectableLabel::new(is_selected, label));
+            if response.clicked() {
                 game_state.creation_window.selected_faction_id = Some(faction.id);
+            }
+            if !pickable {
+                response.on_disabled_hover_text(
+                    "This faction has no Capital station yet — not joinable in the MVP.",
+                );
             }
 
             if is_selected {
