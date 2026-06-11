@@ -117,20 +117,6 @@ fn create_ship(
     }
 }
 
-/// Display color for a faction's picker entry. Faction colors are a design
-/// commitment (CONTEXT.md §3: Lrak / red, Rediar / blue) but are not stored
-/// in the Faction table, so the mapping lives here.
-fn faction_color(faction_id: u32, pickable: bool) -> Color32 {
-    if !pickable {
-        return Color32::DARK_GRAY;
-    }
-    match faction_id {
-        1 => Color32::from_rgb(230, 90, 90),  // Lrak Combine — red
-        4 => Color32::from_rgb(100, 150, 255), // Rediar Federation — blue
-        _ => Color32::LIGHT_GRAY,
-    }
-}
-
 fn create_player(ctx: &DbConnection, game_state: &mut GameState<'_>, ui: &mut egui::Ui) {
     // Create an account
     ui.heading("Player Creation");
@@ -170,7 +156,12 @@ fn create_player(ctx: &DbConnection, game_state: &mut GameState<'_>, ui: &mut eg
             // Combine and Rediar Federation.
             let pickable = faction.capital_station_id.is_some();
 
-            let label = RichText::new(&faction.name).color(faction_color(faction.id, pickable));
+            let color = if pickable {
+                crate::gameplay::gui::faction_color(faction.id)
+            } else {
+                Color32::DARK_GRAY
+            };
+            let label = RichText::new(&faction.name).color(color);
             let response =
                 ui.add_enabled(pickable, egui::SelectableLabel::new(is_selected, label));
             if response.clicked() {
