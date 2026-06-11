@@ -6,7 +6,7 @@ use solarance_shared::Vec2;
 
 use crate::{
     definitions::{
-        factions::FACTION_LRAK_COMBINE,
+        factions::{FACTION_LRAK_COMBINE, FACTION_REDIAR_FEDERATION},
         item_types::{ITEM_IRON_ORE, ITEM_SILICON_ORE},
     },
     logic::sectors::asteroid_fields::fill_asteroid_sector,
@@ -35,12 +35,15 @@ pub fn init(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
 
 fn demo_sectors(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
     let faction_lrak = FactionId::new(FACTION_LRAK_COMBINE);
+    let faction_rediar = FactionId::new(FACTION_REDIAR_FEDERATION);
     let procyon = create_procyon_star_system(dsl, &faction_lrak)?;
     let (alpha, beta, gamma) = create_procyon_sectors(dsl, &procyon, &faction_lrak)?;
+    let delta = create_rediar_sector(dsl, &procyon, &faction_rediar)?;
 
-    setup_sector_connections(dsl, &alpha, &beta, &gamma)?;
+    setup_sector_connections(dsl, &alpha, &beta, &gamma, &delta)?;
     populate_sectors_with_asteroids(dsl, &alpha, &beta)?;
     create_sector_stations(dsl, &alpha, &beta, &gamma, &faction_lrak)?;
+    create_delta_capital_station(dsl, &delta, &faction_rediar)?;
     Ok(())
 }
 
@@ -162,15 +165,45 @@ fn create_procyon_sectors(
     Ok((alpha, beta, gamma))
 }
 
+/// Creates the Rediar Federation home sector (#105). Sits on the far side of
+/// the system from Lrak's Homeworld Sector so the two capitals bracket the
+/// neutral middle sectors.
+fn create_rediar_sector(
+    dsl: &DSL<'_, ReducerContext>,
+    procyon: &StarSystem,
+    faction_rediar: &FactionId,
+) -> Result<Sector, String> {
+    let delta = dsl.create_sector(CreateSector {
+        id: 3,
+        system_id: procyon.get_id(),
+        name: "Federation Prime Sector".to_string(),
+        description: None,
+        controlling_faction_id: faction_rediar.clone(),
+        security_level: 10,
+        sunlight: 0.8,
+        anomalous: 0.1,
+        nebula: 0.2,
+        rare_ore: 0.1,
+        x: -120.0,
+        y: 8.0,
+        background_gfx_key: None,
+    })?;
+    Ok(delta)
+}
+
 /// Sets up warp gate connections between sectors
 fn setup_sector_connections(
     dsl: &DSL<'_, ReducerContext>,
     alpha: &Sector,
     beta: &Sector,
     gamma: &Sector,
+    delta: &Sector,
 ) -> Result<(), String> {
     connect_sectors_with_warpgates(dsl, alpha, beta)?;
     connect_sectors_with_warpgates(dsl, beta, gamma)?;
+    // Rediar's capital connects through Alpha — both faction capitals sit two
+    // jumps apart with the neutral sectors between them.
+    connect_sectors_with_warpgates(dsl, delta, alpha)?;
     Ok(())
 }
 
@@ -311,6 +344,35 @@ fn create_gamma_capital_station(
     )?;
 
     let mut faction = dsl.get_faction_by_id(faction_id)?;
+    faction.set_capital_station_id(Some(station.get_id().value()));
+
+    dsl.update_faction_by_id(faction)?;
+
+    Ok(())
+}
+
+/// Creates the Rediar Federation capital station in Federation Prime Sector
+/// and stamps it as the faction's Capital — the spawn anchor for new Rediar
+/// players (#105).
+fn create_delta_capital_station(
+    dsl: &DSL<'_, ReducerContext>,
+    delta: &Sector,
+    faction_rediar: &FactionId,
+) -> Result<(), String> {
+    let station = create_station_with_modules(
+        dsl,
+        StationSize::Capital,
+        delta,
+        &create_sobj(dsl, StellarObjectKinds::Station, &delta.get_id())?,
+        faction_rediar.clone(),
+        "Federation Prime",
+        None,
+        Vec2::new(-455.0, 1337.0),
+        0.0,
+        vec![create_trading_module()],
+    )?;
+
+    let mut faction = dsl.get_faction_by_id(faction_rediar)?;
     faction.set_capital_station_id(Some(station.get_id().value()));
 
     dsl.update_faction_by_id(faction)?;
