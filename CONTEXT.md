@@ -25,7 +25,10 @@ Strict hierarchical containers for the game world.
 
 ## 3. Player & Entities (Nouns)
 *   **Player / Client:** The human interacting with the game. Designed around "David" (intermittent play, requires pause-able progression).
-*   **Ship:** The player's avatar. In MVP, this is strictly a jack-of-all-trades **Corvette**. 
+*   **Ship:** The player's avatar. In MVP, this is strictly a jack-of-all-trades **Corvette**. A Ship is always in exactly one of two states — say which one you mean (see ADR-0002):
+    *   **Piloted Ship:** `location == Sector`. Has a `StellarObject` + `MovementState`; the **only** kind of ship the sector simulation (movement, dead-reckoning, sector subscriptions, range checks, HUD/minimap) can see. *(Code: `get_player_ship` returns this — `None` while docked.)*
+    *   **Docked Ship:** `location == Station`. Its `StellarObject` is **deleted** on dock (`sobj_id` is a `0` sentinel — not a FK); cargo/status/equipment persist on the `Ship` row. Invisible to all sector-scoped queries; reachable only via the `Ship` table by player/station id.
+    *   *Avoid:* the bare phrase "the player's ship" in code or issues — it hides the piloted-vs-owned distinction that caused #149. UI that should always show (welcome-back, assets, notifications) must gate on **ownership**, not on a Piloted Ship existing.
 *   **Faction:** A team identifier. In MVP, strictly limited to a string name and a color (`Lrak Combine` / Red, `Rediar Federation` / Blue). Determines which Stations a player can `Contribute` to.
 *   **Contribution Pool:** The required list of resources a Station or Module needs to reach the next growth stage. 
 *   **Welcome-Back Summary:** A text-only data payload delivered to the client upon login, detailing offline ticks, station progress, and personal asset state. *(Code: `WelcomeBackPayload`, `OfflineTickCalculator`)*
