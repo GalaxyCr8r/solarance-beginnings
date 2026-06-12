@@ -77,7 +77,30 @@ fn draw_site(
     station: &Station,
     under_construction: &StationUnderConstruction,
 ) {
-    ui.heading(station_display_name(ctx, station));
+    // Faction-flag affordance (#104): own-faction sites carry the faction's
+    // color and a "(your faction)" tag; other factions' sites render muted.
+    // Contribution stays open to everyone — this is emphasis, not a gate.
+    let own_faction_id = get_current_player(ctx).map(|p| p.faction_id.value);
+    let is_own = own_faction_id == Some(station.owner_faction_id);
+    let heading_color = if is_own {
+        crate::gameplay::gui::faction_color(station.owner_faction_id)
+    } else {
+        Color32::GRAY
+    };
+
+    ui.horizontal(|ui| {
+        ui.heading(RichText::new(station_display_name(ctx, station)).color(heading_color));
+        if is_own {
+            ui.label(
+                RichText::new("(your faction)")
+                    .color(heading_color)
+                    .small(),
+            );
+        }
+    });
+    if let Some(faction) = ctx.db().faction().id().find(&station.owner_faction_id) {
+        ui.small(format!("Owned by {}", faction.name));
+    }
     ui.separator();
 
     if under_construction.is_operational {
