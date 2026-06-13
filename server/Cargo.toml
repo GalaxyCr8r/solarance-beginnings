@@ -11,7 +11,7 @@ authors = ["Karl Nyborg"]
 crate-type = ["cdylib"]
 
 [dependencies]
-spacetimedb = { version = "2.3.0" }
+spacetimedb = { version = "2.5.0" }
 spacetimedsl = "0.20.1"
 log = "0.4"
 glam = "0.30.2"

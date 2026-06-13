@@ -22,7 +22,7 @@ reqwest = { version = "0.12.15", features = [
     "blocking",
     "rustls-tls",
 ], default-features = false }
-spacetimedb-sdk = "2.3.0"
+spacetimedb-sdk = "2.5.0"
 url = "2.5.4"
 solarance-shared = { path = "../solarance-shared" }
 
