@@ -27,6 +27,7 @@ Cargo.lock
 /.spacetime
 
 client/src/server/bindings/
+client-admin/src/server/bindings/
 
 **/.env
 .DS_Store
