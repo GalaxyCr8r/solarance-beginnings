@@ -47,13 +47,11 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
         WHERE s.player_id = '{}'",
         ctx.identity()
     );
-    let jump_gate = format!(
-        "SELECT j.*
-        FROM ship s
-        JOIN jump_gate j ON s.sector_id = j.current_sector_id
-        WHERE s.player_id = '{}'",
-        ctx.identity()
-    );
+    // Galaxy map (#120) needs the whole jumpgate network, not just gates in the
+    // player's current sector. Gate positions are static public map data, so a
+    // full-table subscription is fine (the galaxy has only a handful of gates).
+    // This is a superset of the old current-sector filter, so in-sector gate
+    // rendering / `use_jumpgate` still work.
     let ship = format!(
         "SELECT * from ship" // "SELECT o.*
                              // FROM ship o
@@ -110,7 +108,7 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
             "SELECT * FROM faction_standing",
             "SELECT * FROM item_definition",
             cargo_crate.as_str(),
-            jump_gate.as_str(),
+            "SELECT * FROM jump_gate",
             "SELECT * FROM player",
             player_ship_controller.as_str(),
             "SELECT * FROM star_system",
