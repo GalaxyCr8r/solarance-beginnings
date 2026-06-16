@@ -1,0 +1,17 @@
+version: '3'
+
+tasks:
+  build:
+    desc: "Galaxy Creator: Build"
+    cmds:
+      - cargo build
+
+  run:
+    desc: "Galaxy Creator: Run"
+    cmds:
+      - cargo run
+
+  generate:
+    desc: "Galaxy Creator: Generate Bindings"
+    cmds:
+      - spacetime generate --lang rust --out-dir src/server/bindings --module-path ../server -y

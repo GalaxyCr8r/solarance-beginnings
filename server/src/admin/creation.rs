@@ -5,7 +5,10 @@ use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 
 use crate::logic::stellarobjects::stellar_object_creation::create_sobj;
-use crate::tables::{jumpgates::*, sectors::SectorId, stellarobjects::StellarObjectKinds};
+use crate::tables::{
+    factions::FactionId, jumpgates::*, sectors::*, star_system::StarSystemId,
+    stellarobjects::StellarObjectKinds,
+};
 use crate::utility::try_server_only;
 
 pub fn create_jumpgate_internal<T: spacetimedsl::WriteContext>(
@@ -96,4 +99,101 @@ pub fn create_jumpgate_in_sector(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
     create_jumpgate_internal(&dsl, sector_id, x, y, target_sector_id, t_x, t_y)
+}
+
+/// Galaxy Creator (#34): drop a brand-new sector into an existing star system
+/// at runtime, mirroring the init-time seed in `definitions/galaxy.rs` so the
+/// designer can lay out the MVP sectors without republishing the module.
+///
+/// Sector IDs are NOT auto-increment (so a sector can be reloaded as-is), so we
+/// assign the next free ID ourselves: `max(existing) + 1`, or 0 for the first.
+#[spacetimedb::reducer]
+pub fn admin_create_sector(
+    ctx: &ReducerContext,
+    system_id: u32,
+    name: String,
+    controlling_faction_id: u32,
+    security_level: u8,
+    sunlight: f32,
+    anomalous: f32,
+    nebula: f32,
+    rare_ore: f32,
+    x: f32,
+    y: f32,
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
+    try_server_only(&dsl)?;
+
+    if name.trim().is_empty() {
+        return Err("admin_create_sector: name must not be empty".to_string());
+    }
+
+    let next_id = dsl
+        .get_all_sectors()
+        .map(|s| s.get_id().value())
+        .max()
+        .map(|max| max + 1)
+        .unwrap_or(0);
+
+    let sector = dsl.create_sector(CreateSector {
+        id: next_id,
+        system_id: StarSystemId::new(system_id),
+        name: name.clone(),
+        description: None,
+        controlling_faction_id: FactionId::new(controlling_faction_id),
+        security_level,
+        sunlight,
+        anomalous,
+        nebula,
+        rare_ore,
+        x,
+        y,
+        background_gfx_key: None,
+    })?;
+
+    log::info!(
+        "admin_create_sector: caller={} sector_id={} name={:?} system_id={} faction={} pos=({:.1},{:.1})",
+        ctx.sender().to_abbreviated_hex(),
+        sector.get_id().value(),
+        name,
+        system_id,
+        controlling_faction_id,
+        x,
+        y,
+    );
+    Ok(())
+}
+
+/// Galaxy Creator (#34): link two existing sectors with a bidirectional pair of
+/// jump gates. Wraps `connect_sectors_with_warpgates`, which places one gate on
+/// each side, orienting each toward the other sector based on their star-system
+/// positions.
+#[spacetimedb::reducer]
+pub fn admin_connect_sectors(
+    ctx: &ReducerContext,
+    sector_a_id: u64,
+    sector_b_id: u64,
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
+    try_server_only(&dsl)?;
+
+    if sector_a_id == sector_b_id {
+        return Err(format!(
+            "admin_connect_sectors: cannot connect sector {} to itself",
+            sector_a_id
+        ));
+    }
+
+    let a = dsl.get_sector_by_id(&SectorId::new(sector_a_id))?;
+    let b = dsl.get_sector_by_id(&SectorId::new(sector_b_id))?;
+
+    connect_sectors_with_warpgates(&dsl, &a, &b)?;
+
+    log::info!(
+        "admin_connect_sectors: caller={} connected sector {} <-> {}",
+        ctx.sender().to_abbreviated_hex(),
+        sector_a_id,
+        sector_b_id,
+    );
+    Ok(())
 }
