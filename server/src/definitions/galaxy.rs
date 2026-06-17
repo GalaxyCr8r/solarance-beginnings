@@ -7,13 +7,11 @@ use solarance_shared::Vec2;
 use crate::{
     definitions::{
         factions::{
-            FACTION_INDEPENDENT_WORLDS_ALLIANCE, FACTION_LRAK_COMBINE, FACTION_REDIAR_FEDERATION,
+            FACTION_FACTIONLESS, FACTION_INDEPENDENT_WORLDS_ALLIANCE, FACTION_LRAK_COMBINE, FACTION_REDIAR_FEDERATION
         },
         item_types::{ITEM_CARBON_ORE, ITEM_GOLD_ORE, ITEM_IRON_ORE, ITEM_SILICON_ORE},
     },
-    logic::sectors::asteroid_fields::fill_asteroid_sector,
-    logic::stations::{contribution::create_construction_site, *},
-    logic::stellarobjects::stellar_object_creation::create_sobj,
+    logic::{sectors::asteroid_fields::fill_asteroid_sector, stations::{contribution::create_construction_site, *}, stellarobjects::stellar_object_creation::create_sobj},
     tables::{
         economy::ResourceAmount, factions::*, sectors::*, star_system::*, stations::*,
         stellarobjects::*,
@@ -46,7 +44,7 @@ pub fn init(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
 fn demo_sectors(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
     let lrak = FactionId::new(FACTION_LRAK_COMBINE);
     let rediar = FactionId::new(FACTION_REDIAR_FEDERATION);
-    let neutral = FactionId::new(FACTION_INDEPENDENT_WORLDS_ALLIANCE);
+    let neutral = FactionId::new(FACTION_FACTIONLESS);
 
     let procyon = create_procyon_star_system(dsl, &lrak)?;
     let sectors = create_procyon_sectors(dsl, &procyon, &lrak, &rediar, &neutral)?;
@@ -174,13 +172,13 @@ fn create_procyon_sectors(
     };
 
     // Pre-existing four (IDs kept; Tarol's Belt flipped Lrak -> neutral).
-    let tarols_belt = mk(0, "Tarol's Belt", neutral, 5, 0.9, 0.1, 0.1, 0.2, 4.0, 0.0)?;
+    let tarols_belt = mk(0, "Tarol's Belt", neutral, 5, 0.9, 0.1, 0.1, 0.2, 4.0, -30.0)?;
     let ore_trench = mk(1, "Ore Trench", lrak, 6, 0.8, 0.0, 0.1, 0.6, 75.0, -20.0)?;
-    let lrakhold = mk(2, "Lrakhold", lrak, 10, 0.9, 0.1, 0.1, 0.1, 126.0, 0.0)?;
+    let lrakhold = mk(2, "Lrakhold", lrak, 10, 0.9, 0.1, 0.1, 0.1, 126.0, 8.0)?;
     let echo_bay = mk(3, "Echo Bay", rediar, 9, 0.9, 0.0, 0.1, 0.1, -120.0, 8.0)?;
 
     // Six new MVP sectors.
-    let the_hinge = mk(4, "The Hinge", neutral, 5, 0.4, 0.0, 0.6, 0.0, -20.0, 10.0)?;
+    let the_hinge = mk(4, "The Hinge", neutral, 5, 0.4, 0.0, 0.6, 0.0, -4.0, 10.0)?;
     let karrens_reach = mk(5, "Karren's Reach", lrak, 7, 0.7, 0.0, 0.1, 0.2, 100.0, 30.0)?;
     let stilwater = mk(6, "Stilwater", rediar, 8, 0.6, 0.4, 0.3, 0.0, -70.0, 40.0)?;
     let quiet_belt = mk(7, "Quiet Belt", neutral, 4, 0.5, 0.1, 0.2, 0.8, 40.0, -12.0)?;
