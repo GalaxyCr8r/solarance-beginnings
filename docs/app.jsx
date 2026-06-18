@@ -144,7 +144,7 @@ function Nav({ route }) {
     { id: "home",      label: "Bridge" },
     { id: "manifesto", label: "Manifesto" },
     { id: "roadmap",   label: "Roadmap" },
-    { id: "map",       label: "Sector Map" },
+    { id: "map",       label: "System Map" },
     { id: "devlog",    label: "Devlog" },
     { id: "community", label: "Pilot's Lounge" },
   ];

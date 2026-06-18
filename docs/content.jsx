@@ -200,7 +200,7 @@ function HomePage() {
         </div>
 
         <p style={{ color: "var(--fg-muted)", fontSize: 12, marginTop: 18, maxWidth: "70ch" }}>
-          ▸ The website you're reading is <em>just a website</em>. The Sector Map will eventually pull
+          ▸ The website you're reading is <em>just a website</em>. The System Map pulls
           live state from the public SpacetimeDB module — but the cockpit is the native client.
         </p>
       </section>

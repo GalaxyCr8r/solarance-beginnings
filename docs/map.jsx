@@ -196,6 +196,7 @@ function MapPage() {
   const [hoverEdge, setHoverEdge] = useStateM(null);
   const [host, setHost] = useStateM(DEFAULT_HOST);
   const [err, setErr] = useStateM(null);
+  const [detailOpen, setDetailOpen] = useStateM(true);
 
   // Connect: read the live galaxy off the public SQL endpoint and swap it in.
   // The renderer below is unchanged — live data is reshaped to match MOCK.
@@ -356,40 +357,48 @@ function MapPage() {
         {/* Selected sector detail */}
         {selected && (
           <div className="map-overlay br">
-            <h4 style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-              <span>// {selected.name}</span>
+            <h4 style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, cursor: "pointer" }}
+                onClick={() => setDetailOpen(o => !o)}
+                title={detailOpen ? "Collapse" : "Expand"}>
+              <span>{detailOpen ? "▾" : "▸"} // {selected.name}</span>
               <span className={"tag " + factionClassFor(selected.controlling_faction_id, factions).replace("neutral","dim")}>
                 {factionNameFor(selected.controlling_faction_id, factions)}
               </span>
             </h4>
-            <p style={{ color: "var(--fg-dim)", fontSize: 12, marginBottom: 10, marginTop: 4 }}>
-              {selected.description}
-            </p>
-            <div className="detail-row"><span className="k">Security</span><span className="v">Level {selected.security_level} / 10</span></div>
-            <div className="detail-row"><span className="k">Sunlight</span><span className="v">{(selected.sunlight*100).toFixed(0)}%</span></div>
-            <div className="detail-row"><span className="k">Nebula</span><span className="v">{(selected.nebula*100).toFixed(0)}%</span></div>
-            <div className="detail-row"><span className="k">Rare ore</span><span className="v">{(selected.rare_ore*100).toFixed(0)}%</span></div>
-            <div className="detail-row"><span className="k">Anomalous</span><span className="v">{(selected.anomalous*100).toFixed(0)}%</span></div>
-
-            {selectedConstruction.length > 0 && (
+            {detailOpen && (
               <>
-                <hr style={{ margin: "10px 0" }} />
-                <div style={{ fontSize: 11, color: "var(--accent)", letterSpacing: ".18em", textTransform: "uppercase", marginBottom: 6 }}>
-                  Stations ({selectedConstruction.length})
-                </div>
-                {selectedConstruction.map(({ station, prog }) => (
-                  <div key={station.id} style={{ marginBottom: 8 }}>
-                    <div className="detail-row" style={{ paddingBottom: 2, fontSize: 12 }}>
-                      <span style={{ color: "var(--fg)" }}>{station.name}</span>
-                      <span style={{ color: prog?.is_operational ? "var(--green)" : "var(--accent)" }}>
-                        {prog ? (prog.is_operational ? "OPERATIONAL" : `${prog.construction_progress_percentage.toFixed(0)}%`) : "—"}
-                      </span>
+                {selected.description && (
+                  <p style={{ color: "var(--fg-dim)", fontSize: 12, marginBottom: 10, marginTop: 4 }}>
+                    {selected.description}
+                  </p>
+                )}
+                <div className="detail-row"><span className="k">Security</span><span className="v">Level {selected.security_level} / 10</span></div>
+                <div className="detail-row"><span className="k">Sunlight</span><span className="v">{(selected.sunlight*100).toFixed(0)}%</span></div>
+                <div className="detail-row"><span className="k">Nebula</span><span className="v">{(selected.nebula*100).toFixed(0)}%</span></div>
+                <div className="detail-row"><span className="k">Rare ore</span><span className="v">{(selected.rare_ore*100).toFixed(0)}%</span></div>
+                <div className="detail-row"><span className="k">Anomalous</span><span className="v">{(selected.anomalous*100).toFixed(0)}%</span></div>
+
+                {selectedConstruction.length > 0 && (
+                  <>
+                    <hr style={{ margin: "10px 0" }} />
+                    <div style={{ fontSize: 11, color: "var(--accent)", letterSpacing: ".18em", textTransform: "uppercase", marginBottom: 6 }}>
+                      Stations ({selectedConstruction.length})
                     </div>
-                    {prog && !prog.is_operational && (
-                      <div className="progress"><div className="fill" style={{ width: prog.construction_progress_percentage + "%" }} /></div>
-                    )}
-                  </div>
-                ))}
+                    {selectedConstruction.map(({ station, prog }) => (
+                      <div key={station.id} style={{ marginBottom: 8 }}>
+                        <div className="detail-row" style={{ paddingBottom: 2, fontSize: 12 }}>
+                          <span style={{ color: "var(--fg)" }}>{station.name}</span>
+                          <span style={{ color: prog?.is_operational ? "var(--green)" : "var(--accent)" }}>
+                            {prog ? (prog.is_operational ? "OPERATIONAL" : `${prog.construction_progress_percentage.toFixed(0)}%`) : "—"}
+                          </span>
+                        </div>
+                        {prog && !prog.is_operational && (
+                          <div className="progress"><div className="fill" style={{ width: prog.construction_progress_percentage + "%" }} /></div>
+                        )}
+                      </div>
+                    ))}
+                  </>
+                )}
               </>
             )}
           </div>
