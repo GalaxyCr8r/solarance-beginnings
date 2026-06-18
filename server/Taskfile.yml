@@ -20,17 +20,17 @@ tasks:
   publish-mc:
     desc: "Server: Publish to Maincloud ST (Keeps DB)"
     cmds:
-      - spacetime publish solarance-beginnings -y
+      - spacetime publish --server maincloud solarance-beginnings -y
 
   publish-clear-mc:
     desc: "Server: Publish to Local ST & Clears DB"
     cmds:
-      - spacetime publish -c solarance-beginnings -y
+      - spacetime publish --server maincloud -c solarance-beginnings -y
 
   delete-mc:
     desc: "Server: Delete Maincloud ST"
     cmds:
-      - spacetime delete solarance-beginnings
+      - spacetime delete --server maincloud solarance-beginnings
 
   clear:
     desc: "Server: Clear ST Database"

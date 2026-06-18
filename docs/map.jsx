@@ -2,40 +2,18 @@
 const { useState: useStateM, useEffect: useEffectM, useRef: useRefM, useMemo: useMemoM } = React;
 
 /* ============================================================
-   SECTOR MAP — honest single-system view (the MVP)
+   SYSTEM MAP — the current star system: its sectors + orbital objects.
 
-   This page is *designed* to swap to a live SpacetimeDB connection.
-   The mock data below has the exact shape your generated bindings emit
-   (snake_case → camelCase keys: see ts_client_bindings/sector_table.ts).
+   Renders the MOCK snapshot below until you connect. "Connect" then reads
+   the live galaxy from SpacetimeDB's anonymous, read-only HTTP `/sql`
+   endpoint (no SDK, no build step, no bindings — see `fetchGalaxy`), and
+   reshapes the rows into the same structure MOCK uses so the renderer is
+   unchanged. Public tables only:
+     star_system · sector · star_system_object · jump_gate · station ·
+     station_under_construction · faction
 
-   To go live, replace the mock store with:
-
-   ----------------------------------------------------------------
-   import { DbConnection } from "../ts_client_bindings";
-
-   const conn = DbConnection.builder()
-     .withUri("wss://maincloud.spacetimedb.com")
-     .withModuleName("solarance-beginnings")
-     // No .withToken(...) → server issues an anonymous identity.
-     .onConnect((ctx, identity, token) => {
-       // For a public read-only galaxy map: subscribe to PUBLIC tables only.
-       ctx.subscriptionBuilder().subscribe([
-         "SELECT * FROM star_system",
-         "SELECT * FROM sector",
-         "SELECT * FROM faction",
-         "SELECT * FROM jump_gate",
-         "SELECT * FROM station",
-         "SELECT * FROM station_under_construction",
-       ]);
-     })
-     .build();
-
-   // Read live state from the local cache:
-   const sectors = [...conn.db.sector.iter()];
-   conn.db.sector.onInsert((ctx, row) => setSectors(s => [...s, row]));
-   ----------------------------------------------------------------
-
-   Until then, this page renders MOCK rows that match the bindings shape.
+   Host defaults to maincloud; override via the input or ?host=… .
+   If a host ever gates `/sql`, swap `sqlQuery` for a websocket subscription.
    ============================================================ */
 
 const FACTION_LRAK_ID = 1;
@@ -107,42 +85,151 @@ const MOCK = {
   online_pilots: 6, // mock
 };
 
-function factionClassFor(id) {
-  if (id === FACTION_LRAK_ID)      return "lrak";
-  if (id === FACTION_REDIAR_ID)    return "rediar";
-  if (id === FACTION_CONTESTED)    return "contested";
+// ---- Live data (issue #162) ----------------------------------------------
+// No-build site, so we read the public tables straight off SpacetimeDB's
+// anonymous read-only HTTP `/sql` endpoint and reshape them like MOCK above —
+// one fetch per connect, no SDK/bundler/bindings. If a host ever gates `/sql`,
+// `sqlQuery` is the single function to swap for a websocket subscription.
+const LIVE_DB = "solarance-beginnings";
+const DEFAULT_HOST =
+  new URLSearchParams(location.search).get("host") || "https://maincloud.spacetimedb.com";
+
+// star_system_object.kind is a sum type; SQL JSON encodes it as [index, payload].
+const ORBIT_KINDS = ["Star", "Planet", "Moon", "AsteroidBelt", "NebulaBelt"];
+function kindName(v) {
+  const idx = Array.isArray(v) ? v[0] : v;
+  return ORBIT_KINDS[idx] ?? String(idx);
+}
+
+// One SQL statement -> [{ col: value }]. Rows come back positional with a schema.
+function sqlRows(result) {
+  const t = Array.isArray(result) ? result[0] : result;
+  if (!t || !t.schema) return [];
+  const cols = t.schema.elements.map(e => (e.name && e.name.some) || e.name);
+  return t.rows.map(r => Object.fromEntries(cols.map((c, i) => [c, r[i]])));
+}
+async function sqlQuery(host, sql) {
+  const res = await fetch(`${host}/v1/database/${LIVE_DB}/sql`, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    body: sql,
+  });
+  if (!res.ok) throw new Error(`SQL ${res.status}: ${(await res.text()).slice(0, 120)}`);
+  return sqlRows(await res.json());
+}
+
+// Pull the whole galaxy and reshape into MOCK's structure so the renderer is
+// unchanged. Sector x/y are system-space; normalise to the 0..100 percent grid
+// the layout uses, and project the orbital objects with the same transform.
+async function fetchGalaxy(host) {
+  const [star_system, sectorsRaw, gatesRaw, station, station_under_construction, faction, orbitsRaw] =
+    await Promise.all([
+      sqlQuery(host, "SELECT id, name FROM star_system"),
+      sqlQuery(host, "SELECT id, name, system_id, controlling_faction_id, security_level, sunlight, anomalous, nebula, rare_ore, x, y FROM sector"),
+      sqlQuery(host, "SELECT current_sector_id, target_sector_id FROM jump_gate"),
+      sqlQuery(host, "SELECT id, name, sector_id, owner_faction_id FROM station"),
+      sqlQuery(host, "SELECT id, is_operational, construction_progress_percentage FROM station_under_construction"),
+      sqlQuery(host, "SELECT id, name, short_name FROM faction"),
+      sqlQuery(host, "SELECT system_id, kind, orbit_au, rotation_or_width_km FROM star_system_object"),
+    ]);
+
+  if (!sectorsRaw.length) throw new Error("No sectors returned from this host/database.");
+
+  // Normalise sector coords -> 0..100 percent (uniform scale, padded).
+  const PAD = 12, SPAN_PCT = 100 - 2 * PAD;
+  const xs = sectorsRaw.map(s => s.x), ys = sectorsRaw.map(s => s.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const span = Math.max(maxX - minX, maxY - minY, 1);
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+  const nx = x => 50 + ((x - cx) / span) * SPAN_PCT;
+  const ny = y => 50 + ((y - cy) / span) * SPAN_PCT;
+
+  const sector = sectorsRaw.map(s => ({ ...s, x: nx(s.x), y: ny(s.y) }));
+
+  // Dedup bidirectional gates into single from/to pairs.
+  const seen = new Set();
+  const jump_gate = [];
+  let gid = 1;
+  for (const g of gatesRaw) {
+    const a = Number(g.current_sector_id), b = Number(g.target_sector_id);
+    const key = a < b ? `${a}:${b}` : `${b}:${a}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    jump_gate.push({ id: gid++, from_sector_id: a, to_sector_id: b });
+  }
+
+  // Orbital backdrop: belts are rings on the system origin, the rest are points.
+  const originX = nx(0), originY = ny(0);
+  const orbital = orbitsRaw.map((o, i) => {
+    const kind = kindName(o.kind);
+    const belt = kind === "AsteroidBelt" || kind === "NebulaBelt";
+    return {
+      id: i, kind, belt,
+      px: belt ? originX : nx(Math.cos(o.rotation_or_width_km) * o.orbit_au),
+      py: belt ? originY : ny(Math.sin(o.rotation_or_width_km) * o.orbit_au),
+      r: (Math.abs(o.orbit_au) / span) * SPAN_PCT,
+    };
+  });
+
+  return {
+    star_system, sector, jump_gate, station, station_under_construction,
+    faction, orbital,
+    online_pilots: 0, contribution_log_recent: 0,
+  };
+}
+
+function factionClassFor(id, factions) {
+  const name = (factions.find(f => f.id === id) || {}).name || "";
+  if (/lrak/i.test(name)) return "lrak";
+  if (/rediar/i.test(name)) return "rediar";
   return "neutral";
 }
-function factionNameFor(id) {
-  return MOCK.faction.find(f => f.id === id)?.name || "Unaligned";
+function factionNameFor(id, factions) {
+  return (factions.find(f => f.id === id) || {}).name || "Unaligned";
 }
 
 function MapPage() {
-  const [selectedId, setSelectedId] = useStateM(7); // default focus: Karren's Reach
+  const [data, setData] = useStateM(MOCK);
+  const [selectedId, setSelectedId] = useStateM(7); // default focus
   const [conn, setConn] = useStateM("snapshot"); // 'snapshot' | 'live' | 'connecting'
   const [hoverEdge, setHoverEdge] = useStateM(null);
+  const [host, setHost] = useStateM(DEFAULT_HOST);
+  const [err, setErr] = useStateM(null);
+  const [detailOpen, setDetailOpen] = useStateM(true);
 
-  // Simulate a "connect to live galaxy" pretend-action (UI only).
-  const tryLiveConnect = () => {
+  // Connect: read the live galaxy off the public SQL endpoint and swap it in.
+  // The renderer below is unchanged — live data is reshaped to match MOCK.
+  const tryLiveConnect = async () => {
     setConn("connecting");
-    setTimeout(() => {
-      // In reality: DbConnection.builder()...build() would resolve here.
-      // For now we stay in snapshot mode but flip the pill to "live (mock)" for the demo.
+    setErr(null);
+    try {
+      const live = await fetchGalaxy(host.trim().replace(/\/+$/, ""));
+      setData(live);
+      if (live.sector[0]) setSelectedId(live.sector[0].id);
       setConn("live");
-    }, 1400);
+    } catch (e) {
+      setErr(String(e && e.message ? e.message : e));
+      setConn("snapshot");
+    }
   };
 
-  const selected = MOCK.sector.find(s => s.id === selectedId);
-  const selectedStations = MOCK.station.filter(st => st.sector_id === selectedId);
+  const factions = data.faction || [];
+  const orbital = data.orbital || [];
+  const systemName =
+    (data.star_system && data.star_system[0] && data.star_system[0].name) || "Sol Veridian";
+
+  const selected = data.sector.find(s => s.id === selectedId);
+  const selectedStations = data.station.filter(st => st.sector_id === selectedId);
   const selectedConstruction = selectedStations.map(st => ({
     station: st,
-    prog: MOCK.station_under_construction.find(c => c.id === st.id),
+    prog: data.station_under_construction.find(c => c.id === st.id),
   }));
 
   // Compute edge positions
-  const edges = MOCK.jump_gate.map(g => {
-    const a = MOCK.sector.find(s => s.id === g.from_sector_id);
-    const b = MOCK.sector.find(s => s.id === g.to_sector_id);
+  const edges = data.jump_gate.map(g => {
+    const a = data.sector.find(s => s.id === g.from_sector_id);
+    const b = data.sector.find(s => s.id === g.to_sector_id);
     if (!a || !b) return null;
     return { id: g.id, ax: a.x, ay: a.y, bx: b.x, by: b.y, a, b };
   }).filter(Boolean);
@@ -151,24 +238,50 @@ function MapPage() {
     <main className="container" style={{ padding: "44px 18px 60px" }}>
       <div style={{ display: "flex", alignItems: "end", gap: 18, flexWrap: "wrap", marginBottom: 18 }}>
         <div style={{ flex: 1, minWidth: 260 }}>
-          <div className="kicker accent-bloom">▸ One system. Ten sectors. Hand-placed.</div>
-          <h1 style={{ marginTop: 6 }}>Sol Veridian</h1>
+          <div className="kicker accent-bloom">▸ System Map · sectors + orbital objects</div>
+          <h1 style={{ marginTop: 6 }}>{systemName}</h1>
           <p style={{ color: "var(--fg-dim)", marginTop: 8, maxWidth: "62ch" }}>
-            The MVP galaxy is one system. That's a feature, not a limitation —
-            the social gravity is what makes shared building meaningful.
+            One system: every sector and its jumpgate network, with the orbital
+            objects as a faded backdrop. Connect to a live SpacetimeDB host to
+            replace this snapshot with the real galaxy.
           </p>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-end" }}>
           <ConnPill state={conn} onConnect={tryLiveConnect} />
+          <input
+            value={host}
+            onChange={e => setHost(e.target.value)}
+            spellCheck={false}
+            style={{ width: 240, fontFamily: "inherit", fontSize: 11, padding: "4px 6px",
+                     background: "#111", color: "var(--fg)", border: "1px solid var(--line)" }}
+            title="SpacetimeDB host (HTTP). Append ?host=… to the URL to preset it."
+          />
+          {err && <span className="tag" style={{ color: "#f66" }}>connect failed: {err}</span>}
           <div style={{ display: "flex", gap: 8 }}>
-            <span className="tag dim">10 sectors</span>
-            <span className="tag dim">12 jumpgates</span>
-            <span className="tag accent">{MOCK.online_pilots} pilots online</span>
+            <span className="tag dim">{data.sector.length} sectors</span>
+            <span className="tag dim">{edges.length} jumpgates</span>
+            <span className="tag accent">{data.online_pilots} pilots online</span>
           </div>
         </div>
       </div>
 
       <div className="map-shell">
+        {/* Orbital backdrop (faded): star/planets/moons as dots, belts as rings */}
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none"
+             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 0, opacity: 0.5 }}>
+          {orbital.map(o => o.belt ? (
+            <circle key={o.id} cx={o.px} cy={o.py} r={o.r} fill="none"
+                    stroke={o.kind === "NebulaBelt" ? "#b545ff" : "#7a4628"}
+                    strokeWidth="0.15" opacity="0.6" vectorEffect="non-scaling-stroke" />
+          ) : (
+            <circle key={o.id} cx={o.px} cy={o.py}
+                    r={o.kind === "Star" ? 1.6 : o.kind === "Planet" ? 0.9 : 0.5}
+                    fill="none"
+                    stroke={o.kind === "Star" ? "#ffd34d" : o.kind === "Moon" ? "#999" : "#9cc7ff"}
+                    strokeWidth="0.2" vectorEffect="non-scaling-stroke" />
+          ))}
+        </svg>
+
         {/* SVG edge layer */}
         <svg viewBox="0 0 100 100" preserveAspectRatio="none"
              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 1 }}>
@@ -197,8 +310,8 @@ function MapPage() {
         </svg>
 
         {/* Sector nodes */}
-        {MOCK.sector.map(s => {
-          const cls = factionClassFor(s.controlling_faction_id);
+        {data.sector.map(s => {
+          const cls = factionClassFor(s.controlling_faction_id, factions);
           const isSel = s.id === selectedId;
           return (
             <div key={s.id}
@@ -208,16 +321,16 @@ function MapPage() {
               <div className="ring" />
               <div className="pip" />
               <div className="lab" style={{ color: isSel ? "var(--accent)" : "var(--fg)" }}>{s.name}</div>
-              <div className="sub">SEC {s.security_level} · {factionNameFor(s.controlling_faction_id).split(" ")[0]}</div>
+              <div className="sub">SEC {s.security_level} · {factionNameFor(s.controlling_faction_id, factions).split(" ")[0]}</div>
             </div>
           );
         })}
 
         {/* Overlays */}
         <div className="map-overlay tl">
-          <h4>// Sol Veridian</h4>
-          <div className="detail-row"><span className="k">Spectral</span><span className="v">G-class</span></div>
-          <div className="detail-row"><span className="k">Sectors</span><span className="v">10 / 10</span></div>
+          <h4>// {systemName}</h4>
+          <div className="detail-row"><span className="k">Sectors</span><span className="v">{data.sector.length}</span></div>
+          <div className="detail-row"><span className="k">Jumpgates</span><span className="v">{edges.length}</span></div>
           <div className="detail-row"><span className="k">Status</span><span className="v" style={{color:"var(--green)"}}>Active</span></div>
           <hr style={{ margin: "10px 0" }} />
           <div className="detail-row" style={{ fontSize: 11 }}>
@@ -244,40 +357,48 @@ function MapPage() {
         {/* Selected sector detail */}
         {selected && (
           <div className="map-overlay br">
-            <h4 style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-              <span>// {selected.name}</span>
-              <span className={"tag " + factionClassFor(selected.controlling_faction_id).replace("contested","warn").replace("neutral","dim")}>
-                {factionNameFor(selected.controlling_faction_id)}
+            <h4 style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, cursor: "pointer" }}
+                onClick={() => setDetailOpen(o => !o)}
+                title={detailOpen ? "Collapse" : "Expand"}>
+              <span>{detailOpen ? "▾" : "▸"} // {selected.name}</span>
+              <span className={"tag " + factionClassFor(selected.controlling_faction_id, factions).replace("neutral","dim")}>
+                {factionNameFor(selected.controlling_faction_id, factions)}
               </span>
             </h4>
-            <p style={{ color: "var(--fg-dim)", fontSize: 12, marginBottom: 10, marginTop: 4 }}>
-              {selected.description}
-            </p>
-            <div className="detail-row"><span className="k">Security</span><span className="v">Level {selected.security_level} / 10</span></div>
-            <div className="detail-row"><span className="k">Sunlight</span><span className="v">{(selected.sunlight*100).toFixed(0)}%</span></div>
-            <div className="detail-row"><span className="k">Nebula</span><span className="v">{(selected.nebula*100).toFixed(0)}%</span></div>
-            <div className="detail-row"><span className="k">Rare ore</span><span className="v">{(selected.rare_ore*100).toFixed(0)}%</span></div>
-            <div className="detail-row"><span className="k">Anomalous</span><span className="v">{(selected.anomalous*100).toFixed(0)}%</span></div>
-
-            {selectedConstruction.length > 0 && (
+            {detailOpen && (
               <>
-                <hr style={{ margin: "10px 0" }} />
-                <div style={{ fontSize: 11, color: "var(--accent)", letterSpacing: ".18em", textTransform: "uppercase", marginBottom: 6 }}>
-                  Stations ({selectedConstruction.length})
-                </div>
-                {selectedConstruction.map(({ station, prog }) => (
-                  <div key={station.id} style={{ marginBottom: 8 }}>
-                    <div className="detail-row" style={{ paddingBottom: 2, fontSize: 12 }}>
-                      <span style={{ color: "var(--fg)" }}>{station.name}</span>
-                      <span style={{ color: prog?.is_operational ? "var(--green)" : "var(--accent)" }}>
-                        {prog ? (prog.is_operational ? "OPERATIONAL" : `${prog.construction_progress_percentage.toFixed(0)}%`) : "—"}
-                      </span>
+                {selected.description && (
+                  <p style={{ color: "var(--fg-dim)", fontSize: 12, marginBottom: 10, marginTop: 4 }}>
+                    {selected.description}
+                  </p>
+                )}
+                <div className="detail-row"><span className="k">Security</span><span className="v">Level {selected.security_level} / 10</span></div>
+                <div className="detail-row"><span className="k">Sunlight</span><span className="v">{(selected.sunlight*100).toFixed(0)}%</span></div>
+                <div className="detail-row"><span className="k">Nebula</span><span className="v">{(selected.nebula*100).toFixed(0)}%</span></div>
+                <div className="detail-row"><span className="k">Rare ore</span><span className="v">{(selected.rare_ore*100).toFixed(0)}%</span></div>
+                <div className="detail-row"><span className="k">Anomalous</span><span className="v">{(selected.anomalous*100).toFixed(0)}%</span></div>
+
+                {selectedConstruction.length > 0 && (
+                  <>
+                    <hr style={{ margin: "10px 0" }} />
+                    <div style={{ fontSize: 11, color: "var(--accent)", letterSpacing: ".18em", textTransform: "uppercase", marginBottom: 6 }}>
+                      Stations ({selectedConstruction.length})
                     </div>
-                    {prog && !prog.is_operational && (
-                      <div className="progress"><div className="fill" style={{ width: prog.construction_progress_percentage + "%" }} /></div>
-                    )}
-                  </div>
-                ))}
+                    {selectedConstruction.map(({ station, prog }) => (
+                      <div key={station.id} style={{ marginBottom: 8 }}>
+                        <div className="detail-row" style={{ paddingBottom: 2, fontSize: 12 }}>
+                          <span style={{ color: "var(--fg)" }}>{station.name}</span>
+                          <span style={{ color: prog?.is_operational ? "var(--green)" : "var(--accent)" }}>
+                            {prog ? (prog.is_operational ? "OPERATIONAL" : `${prog.construction_progress_percentage.toFixed(0)}%`) : "—"}
+                          </span>
+                        </div>
+                        {prog && !prog.is_operational && (
+                          <div className="progress"><div className="fill" style={{ width: prog.construction_progress_percentage + "%" }} /></div>
+                        )}
+                      </div>
+                    ))}
+                  </>
+                )}
               </>
             )}
           </div>
@@ -285,8 +406,8 @@ function MapPage() {
 
         <div className="map-overlay bl">
           <h4>// Live counters</h4>
-          <div className="detail-row"><span className="k">Pilots online</span><span className="v" style={{color:"var(--accent)"}}>{MOCK.online_pilots}</span></div>
-          <div className="detail-row"><span className="k">Contributions (24h)</span><span className="v" style={{color:"var(--accent)"}}>{MOCK.contribution_log_recent}</span></div>
+          <div className="detail-row"><span className="k">Pilots online</span><span className="v" style={{color:"var(--accent)"}}>{data.online_pilots}</span></div>
+          <div className="detail-row"><span className="k">Contributions (24h)</span><span className="v" style={{color:"var(--accent)"}}>{data.contribution_log_recent}</span></div>
           <div className="detail-row" style={{ fontSize: 10.5 }}><span className="k" style={{whiteSpace:"nowrap"}}>Galactic time</span><span className="v"><GalTime /></span></div>
         </div>
       </div>
@@ -297,38 +418,30 @@ function MapPage() {
           <div className="kicker">// data source</div>
           <h3 style={{ marginTop: 8 }}>Pulled from SpacetimeDB. Eventually.</h3>
           <p style={{ color: "var(--fg-dim)", marginTop: 8 }}>
-            The map above is a <b>snapshot</b> shaped exactly like the public tables in your dev module:
+            Until you connect, the map is a <b>snapshot</b>. Hit connect and it
+            reads the live galaxy straight from the public tables —
             <code style={{ color: "var(--accent)" }}> star_system</code>,&nbsp;
             <code style={{ color: "var(--accent)" }}>sector</code>,&nbsp;
             <code style={{ color: "var(--accent)" }}>faction</code>,&nbsp;
             <code style={{ color: "var(--accent)" }}>jump_gate</code>,&nbsp;
             <code style={{ color: "var(--accent)" }}>station</code>,&nbsp;
-            <code style={{ color: "var(--accent)" }}>station_under_construction</code>.
+            <code style={{ color: "var(--accent)" }}>star_system_object</code>.
           </p>
           <p style={{ color: "var(--fg-dim)" }}>
-            When the public testnet is up, this page swaps in an anonymous
-            <code style={{ color: "var(--accent)" }}> DbConnection</code> with read-only subscriptions
-            over those tables. The renderer doesn't change.
+            No SDK, no build step: a single anonymous, read-only POST to
+            SpacetimeDB's <code style={{ color: "var(--accent)" }}>/sql</code> HTTP
+            endpoint, reshaped into the same structure the renderer already draws.
           </p>
         </div>
         <div className="terminal">
-          <div style={{ color: "var(--fg-muted)", marginBottom: 6 }}>// solarance/map-conn.ts (drop-in)</div>
-          <div><span style={{color:"var(--accent)"}}>import</span> {"{ DbConnection }"} <span style={{color:"var(--accent)"}}>from</span> "../ts_client_bindings";</div>
-          <div style={{ marginTop: 8 }}><span style={{color:"var(--accent)"}}>const</span> conn = DbConnection.builder()</div>
-          <div>{"  "}.withUri(<span style={{color:"var(--green)"}}>"wss://maincloud.spacetimedb.com"</span>)</div>
-          <div>{"  "}.withModuleName(<span style={{color:"var(--green)"}}>"solarance-beginnings"</span>)</div>
-          <div>{"  "}<span style={{color:"var(--fg-muted)"}}>// no .withToken → anonymous identity</span></div>
-          <div>{"  "}.onConnect((ctx) =&gt; {"{"}</div>
-          <div>{"    "}ctx.subscriptionBuilder().subscribe([</div>
-          <div>{"      "}<span style={{color:"var(--green)"}}>"SELECT * FROM sector"</span>,</div>
-          <div>{"      "}<span style={{color:"var(--green)"}}>"SELECT * FROM jump_gate"</span>,</div>
-          <div>{"      "}<span style={{color:"var(--green)"}}>"SELECT * FROM station"</span>,</div>
-          <div>{"      "}<span style={{color:"var(--green)"}}>"SELECT * FROM station_under_construction"</span>,</div>
-          <div>{"      "}<span style={{color:"var(--green)"}}>"SELECT * FROM faction"</span>,</div>
-          <div>{"    "}]);</div>
-          <div>{"  "}{"}"})</div>
-          <div>{"  "}.build();</div>
-          <div style={{ marginTop: 6, color: "var(--fg-muted)" }}>// then: [...conn.db.sector.iter()] gives you the live state.</div>
+          <div style={{ color: "var(--fg-muted)", marginBottom: 6 }}>// how the map goes live (no build step)</div>
+          <div><span style={{color:"var(--accent)"}}>POST</span> {"{host}"}/v1/database/solarance-beginnings/sql</div>
+          <div>{"  "}<span style={{color:"var(--fg-muted)"}}>body:</span> <span style={{color:"var(--green)"}}>"SELECT * FROM sector"</span></div>
+          <div style={{ marginTop: 8, color: "var(--fg-muted)" }}>// anonymous · read-only · public tables only:</div>
+          <div>{"  "}<span style={{color:"var(--green)"}}>star_system</span> · <span style={{color:"var(--green)"}}>sector</span> · <span style={{color:"var(--green)"}}>star_system_object</span></div>
+          <div>{"  "}<span style={{color:"var(--green)"}}>jump_gate</span> · <span style={{color:"var(--green)"}}>station</span> · <span style={{color:"var(--green)"}}>faction</span></div>
+          <div style={{ marginTop: 8, color: "var(--fg-muted)" }}>// rows come back positional + a schema →</div>
+          <div style={{ color: "var(--fg-muted)" }}>// reshape to objects, normalise x/y, draw.</div>
         </div>
       </div>
     </main>
