@@ -45,13 +45,14 @@ fn demo_sectors(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
     let lrak = FactionId::new(FACTION_LRAK_COMBINE);
     let rediar = FactionId::new(FACTION_REDIAR_FEDERATION);
     let neutral = FactionId::new(FACTION_FACTIONLESS);
+    let iwa = FactionId::new(FACTION_INDEPENDENT_WORLDS_ALLIANCE);
 
     let procyon = create_procyon_star_system(dsl, &lrak)?;
     let sectors = create_procyon_sectors(dsl, &procyon, &lrak, &rediar, &neutral)?;
 
     setup_sector_connections(dsl, &sectors)?;
     populate_sectors_with_asteroids(dsl, &sectors)?;
-    create_sector_stations(dsl, &sectors, &lrak, &rediar, &neutral)?;
+    create_sector_stations(dsl, &sectors, &lrak, &rediar, &iwa)?;
     Ok(())
 }
 
