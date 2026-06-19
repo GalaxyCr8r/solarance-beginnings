@@ -17,7 +17,7 @@ use log::info;
 use spacetimedsl::*;
 
 use crate::{
-    logic::{cargo_crates::*, combat::combat_cooldown::*, factions::*, sectors::*},
+    logic::{cargo_crates::*, factions::*, sectors::*},
     tables::factions::*,
 };
 
@@ -31,11 +31,9 @@ pub fn initialize<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), Str
     // Factions
     faction_timers(dsl)?;
 
-    // Combat
-    // Schedule the cooldown update timer to run every 100ms
-    let _cooldown_timer = dsl.create_combat_cooldown_timer(CreateCombatCooldownTimer {
-        scheduled_at: spacetimedb::ScheduleAt::Interval(Duration::from_micros(100_000).into()), // 100ms = 100,000 microseconds
-    })?;
+    // Combat cooldowns intentionally have no timer: the 100ms decrement tick
+    // (update_combat_cooldowns) was removed as the top CPU consumer and isn't
+    // needed for the MVP — combat will be reworked later (#167).
 
     // Cargo crate despawn sweeper (every 30 minutes). Replaces the per-crate
     // despawn check that used to ride on the 20 Hz transform tick.
