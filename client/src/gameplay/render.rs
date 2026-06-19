@@ -28,11 +28,33 @@ pub fn sector(game_state: &mut GameState) {
     let db = &game_state.ctx.db;
     let now_micros = now_unix_micros();
 
+    // (#89) The player's current sector is wherever their in-sector ship is.
+    // Used below to drop any stellar object whose `sector_id` doesn't match —
+    // see the wrong-sector filter in the first pass. `None` while docked /
+    // out-of-play, in which case we don't filter (nothing to anchor to).
+    let player_sector = player_ship.as_ref().map(|s| s.sector_id);
+
     // Collect ships to draw after stations
     let mut ships_to_draw: Vec<(Ship, RenderPose, ShipTypeDefinition)> = Vec::new();
 
     // First pass: Draw everything except ships
     for object in db.stellar_object().iter() {
+        // (#89) Wrong-sector render filter (approach (b)). `try_to_use_jumpgate`
+        // flips Ship/ShipStatus/StellarObject.sector_id + the movement snapshot
+        // in one server transaction, but the rows can briefly land out of order
+        // on the client — and pre-#84 the cache holds other sectors' objects
+        // outright. Skipping any object not in the player's sector kills the
+        // cross-sector ghost/flicker for every kind, and during the transient
+        // it hides the player's own ship for at most a frame rather than drawing
+        // it at a stale position. Cosmetic only: server state is consistent.
+        // ponytail: StellarObject.sector_id is atomic with the row's pose, so
+        // this subsumes approach (a) — there is no client-side prediction
+        // buffer to separately invalidate.
+        if let Some(ps) = player_sector {
+            if object.sector_id != ps {
+                continue;
+            }
+        }
         // Build a render pose for this object — predicts forward for ships
         // and cargo crates, reads the static position column for asteroids /
         // stations / jumpgates.
