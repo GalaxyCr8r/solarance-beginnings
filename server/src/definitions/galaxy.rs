@@ -9,7 +9,10 @@ use crate::{
         factions::{
             FACTION_FACTIONLESS, FACTION_INDEPENDENT_WORLDS_ALLIANCE, FACTION_LRAK_COMBINE, FACTION_REDIAR_FEDERATION
         },
-        item_types::{ITEM_CARBON_ORE, ITEM_GOLD_ORE, ITEM_IRON_ORE, ITEM_SILICON_ORE},
+        item_types::{
+            ITEM_CARBON_ORE, ITEM_GOLD_ORE, ITEM_ICE_ORE, ITEM_IRON_ORE, ITEM_SILICON_ORE,
+            ITEM_URANIUM_ORE, ITEM_VIVEIUM_ORE,
+        },
     },
     logic::{sectors::asteroid_fields::fill_asteroid_sector, stations::{contribution::create_construction_site, *}, stellarobjects::stellar_object_creation::create_sobj},
     tables::{
@@ -232,20 +235,31 @@ fn setup_sector_connections(
     Ok(())
 }
 
-/// Stocks the mining sectors with asteroid fields. Yield "type" is approximated
-/// via density (`sparseness`) and rare-ore skew (`rarity`) — the spawn roll
-/// distribution is global, so per-sector ore *composition* (e.g. "water +
-/// viveium") isn't expressible yet; tracked as a follow-up to the asteroid
-/// spawn logic.
+/// Stocks the mining sectors with asteroid fields. Each field can declare an
+/// explicit per-sector ore composition (`ore_weights`); sectors left with an
+/// empty composition fall back to the global rarity-skewed distribution, so
+/// `sparseness`/`rarity` still drive density and rare-ore skew there.
 fn populate_sectors_with_asteroids(
     dsl: &DSL<'_, ReducerContext>,
     s: &ProcyonSectors,
 ) -> Result<(), String> {
+    // Relative ore weights within a sector — values need not sum to 100.
+    let ore = |pairs: &[(u32, u16)]| -> Vec<OreWeight> {
+        pairs
+            .iter()
+            .map(|(item_id, weight)| OreWeight {
+                item_id: *item_id,
+                weight: *weight,
+            })
+            .collect()
+    };
+
     let field = |sector: &Sector,
                  sparseness: u8,
                  rarity: u8,
                  cluster_extent: f32,
-                 cluster_inner: Option<f32>|
+                 cluster_inner: Option<f32>,
+                 ore_weights: Vec<OreWeight>|
      -> Result<(), String> {
         let created = dsl.create_asteroid_sector(CreateAsteroidSector {
             id: sector.get_id(),
@@ -253,15 +267,63 @@ fn populate_sectors_with_asteroids(
             rarity,
             cluster_extent,
             cluster_inner,
+            ore_weights,
         })?;
         fill_asteroid_sector(dsl, &created)
     };
 
-    field(&s.tarols_belt, 2, 25, 3000.0, Some(1000.0))?; // moderate, mixed
-    field(&s.ore_trench, 5, 50, 5000.0, None)?; // dense, rare-ore rich
-    field(&s.quiet_belt, 6, 70, 5000.0, None)?; // high yield
-    field(&s.iron_furrow, 4, 10, 4000.0, None)?; // iron-heavy, common
-    field(&s.karrens_reach, 3, 40, 3500.0, Some(800.0))?; // medium
+    // Empty composition → global default distribution (rarity-skewed).
+    field(&s.tarols_belt, 2, 25, 3000.0, Some(1000.0), vec![])?; // moderate, mixed (default mix)
+    field(
+        &s.ore_trench,
+        5,
+        50,
+        5000.0,
+        None,
+        ore(&[
+            (ITEM_URANIUM_ORE, 30),
+            (ITEM_VIVEIUM_ORE, 25),
+            (ITEM_GOLD_ORE, 20),
+            (ITEM_IRON_ORE, 25),
+        ]),
+    )?; // dense, rare-ore rich
+    field(
+        &s.quiet_belt,
+        6,
+        70,
+        5000.0,
+        None,
+        ore(&[
+            (ITEM_GOLD_ORE, 30),
+            (ITEM_SILICON_ORE, 30),
+            (ITEM_VIVEIUM_ORE, 20),
+            (ITEM_ICE_ORE, 20),
+        ]),
+    )?; // high yield
+    field(
+        &s.iron_furrow,
+        4,
+        10,
+        4000.0,
+        None,
+        ore(&[
+            (ITEM_IRON_ORE, 70),
+            (ITEM_SILICON_ORE, 20),
+            (ITEM_GOLD_ORE, 10),
+        ]),
+    )?; // iron-heavy, common
+    field(
+        &s.karrens_reach,
+        3,
+        40,
+        3500.0,
+        Some(800.0),
+        ore(&[
+            (ITEM_CARBON_ORE, 50),
+            (ITEM_ICE_ORE, 30),
+            (ITEM_IRON_ORE, 20),
+        ]),
+    )?; // carbon-bearing
 
     Ok(())
 }

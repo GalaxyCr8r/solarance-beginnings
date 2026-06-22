@@ -17,9 +17,59 @@ fn target_population(asteroid_sector: &AsteroidSector) -> usize {
     (asteroid_sector.get_sparseness() * 10).into()
 }
 
+/// Picks an ore `item_id` from `weights` given `roll` in `0..sum(weights)`.
+/// Returns `None` when `weights` is empty or every weight is zero, signalling
+/// the caller to fall back to the global distribution. Pure (no RNG) so it can
+/// be unit-tested directly.
+fn pick_weighted_ore(weights: &[OreWeight], roll: u32) -> Option<u32> {
+    let mut remaining = roll;
+    for w in weights {
+        let weight = w.weight as u32;
+        if weight == 0 {
+            continue;
+        }
+        if remaining < weight {
+            return Some(w.item_id);
+        }
+        remaining -= weight;
+    }
+    None
+}
+
+/// Rolls the ore type for a new asteroid. Uses the sector's explicit
+/// `ore_weights` composition when set; otherwise falls back to the global
+/// rarity-skewed distribution (the historical behaviour).
+fn roll_ore_item(dsl: &DSL<'_, ReducerContext>, asteroid_sector: &AsteroidSector) -> u32 {
+    let weights = asteroid_sector.get_ore_weights();
+    let total: u32 = weights.iter().map(|w| w.weight as u32).sum();
+    if total > 0 {
+        let roll = dsl.ctx().rng().gen_range(0..total);
+        if let Some(item_id) = pick_weighted_ore(weights, roll) {
+            return item_id;
+        }
+    }
+
+    // Fallback: global rarity-skewed distribution. Only ONE of the two rolls is
+    // skewed by rarity, so lower rarities always retain a chance.
+    let a = dsl.ctx().rng().gen_range(0..100);
+    let b = dsl
+        .ctx()
+        .rng()
+        .gen_range((*asteroid_sector.get_rarity() as i32)..100);
+    match a.min(b) {
+        0..25 => ITEM_ICE_ORE,
+        25..60 => ITEM_IRON_ORE,
+        60..75 => ITEM_SILICON_ORE,
+        75..85 => ITEM_GOLD_ORE,
+        85..90 => ITEM_VIVEIUM_ORE,
+        _ => ITEM_URANIUM_ORE,
+    }
+}
+
 /// Spawns a single asteroid at a random position inside the field, with ore
-/// type skewed by the sector's rarity. Pure spawn logic — authorization is the
-/// calling reducer's responsibility. Returns `None` if the creation failed.
+/// type drawn from the sector's composition (or the global fallback). Pure spawn
+/// logic — authorization is the calling reducer's responsibility. Returns `None`
+/// if the creation failed.
 fn spawn_random_asteroid_in_field(
     dsl: &DSL<'_, ReducerContext>,
     asteroid_sector: &AsteroidSector,
@@ -31,27 +81,7 @@ fn spawn_random_asteroid_in_field(
     };
     let pos = Vec2::from_glam(glam::Vec2::from_angle(dsl.ctx().rng().gen_range(0.0..2.0 * PI)) * dist);
 
-    let roll_with_disadvantage = {
-        let a = dsl.ctx().rng().gen_range(0..100);
-        // Only ONE of the 'rolls' should be effected by rarity, so that there's always a chance for lower rarities.
-        let b = dsl.ctx()
-            .rng()
-            .gen_range((*asteroid_sector.get_rarity() as i32)..100);
-        if a < b {
-            a
-        } else {
-            b
-        }
-    };
-
-    let item = ItemDefinitionId::new(match roll_with_disadvantage {
-        0..25 => ITEM_ICE_ORE,
-        25..60 => ITEM_IRON_ORE,
-        60..75 => ITEM_SILICON_ORE,
-        75..85 => ITEM_GOLD_ORE,
-        85..90 => ITEM_VIVEIUM_ORE,
-        _ => ITEM_URANIUM_ORE,
-    });
+    let item = ItemDefinitionId::new(roll_ore_item(dsl, asteroid_sector));
 
     let amount = dsl.ctx().rng().gen_range(500..2000);
 
@@ -88,6 +118,35 @@ pub fn fill_asteroid_sector(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::pick_weighted_ore;
+    use crate::tables::sectors::OreWeight;
+
+    fn w(item_id: u32, weight: u16) -> OreWeight {
+        OreWeight { item_id, weight }
+    }
+
+    #[test]
+    fn weighted_pick_respects_boundaries() {
+        // total = 5; rolls 0,1,2 -> item 10; rolls 3,4 -> item 20.
+        let weights = vec![w(10, 3), w(20, 2)];
+        assert_eq!(pick_weighted_ore(&weights, 0), Some(10));
+        assert_eq!(pick_weighted_ore(&weights, 2), Some(10));
+        assert_eq!(pick_weighted_ore(&weights, 3), Some(20));
+        assert_eq!(pick_weighted_ore(&weights, 4), Some(20));
+    }
+
+    #[test]
+    fn empty_or_zero_weights_fall_through() {
+        assert_eq!(pick_weighted_ore(&[], 0), None);
+        // zero-weight entries are skipped, not selected.
+        let weights = vec![w(1, 0), w(2, 1)];
+        assert_eq!(pick_weighted_ore(&weights, 0), Some(2));
+        assert_eq!(pick_weighted_ore(&vec![w(1, 0)], 0), None);
+    }
 }
 
 /// Maintains asteroid populations in a sector. When a field has dropped below
