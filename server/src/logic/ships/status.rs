@@ -49,26 +49,33 @@ pub fn ship_status_timer_reducer(
     try_server_only(&dsl)?;
 
     // Get ship rows
+    let mut changes = false;
     let ship_type = dsl.get_ship_type_definition_by_id(timer.get_ship_type_id())?;
     let mut ship_status = dsl.get_ship_status_by_id(timer.get_ship_id())?;
 
     // TODO: Grab shield regen from attached shield modules and the current ship type
     if *ship_status.get_shields() < (*ship_type.get_max_shields() as f32) {
         ship_status.set_shields(*ship_status.get_shields() + 0.525175);
+        changes = true;
     }
     if *ship_status.get_energy() > (*ship_type.get_max_shields() as f32) {
         ship_status.set_shields(*ship_type.get_max_shields() as f32);
+        changes = true;
     }
 
     // TODO: Grab energy regen from attached special modules and the current ship type
     if *ship_status.get_energy() < (*ship_type.get_max_energy() as f32) {
         ship_status.set_energy(ship_status.get_energy() + 0.1275);
+        changes = true;
     }
     if *ship_status.get_energy() > (*ship_type.get_max_energy() as f32) {
         ship_status.set_energy(*ship_type.get_max_energy() as f32);
+        changes = true;
     }
 
-    dsl.update_ship_status_by_id(ship_status)?;
+    if (changes) {
+        dsl.update_ship_status_by_id(ship_status)?;
+    }
 
     Ok(())
 }
