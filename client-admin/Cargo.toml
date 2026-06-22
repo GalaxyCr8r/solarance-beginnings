@@ -23,4 +23,4 @@ path = "src/main.rs"
 egui = "0.31.1"
 egui-macroquad = "0.17.3"
 macroquad = { version = "0.4.14", features = ["backtrace"] }
-spacetimedb-sdk = "2.5.0"
+spacetimedb-sdk = "2.6.0"
