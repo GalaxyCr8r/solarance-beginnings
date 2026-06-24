@@ -1,4 +1,4 @@
-use spacetimedb::table;
+use spacetimedb::{table, SpacetimeType};
 use spacetimedsl::*;
 
 use crate::{
@@ -66,6 +66,16 @@ pub struct Sector {
     background_gfx_key: Option<String>, // Key for client to look up background image
 }
 
+/// One entry in a sector's asteroid ore composition: the relative `weight`
+/// with which `item_id` (an ore `ItemDefinition` id) is rolled when spawning an
+/// asteroid. Weights are relative *within* a sector's `ore_weights` list — they
+/// need not sum to any particular total.
+#[derive(SpacetimeType, Debug, Clone, PartialEq)]
+pub struct OreWeight {
+    pub item_id: u32,
+    pub weight: u16,
+}
+
 #[dsl(plural_name = asteroid_sectors, method(update = false))]
 #[table(accessor = asteroid_sector)]
 pub struct AsteroidSector {
@@ -78,6 +88,10 @@ pub struct AsteroidSector {
     rarity: u8,                 // Skews the amount of spawned asteroids with high rarity ores
     cluster_extent: f32,        // How far from 0,0 can asteroids spawn
     cluster_inner: Option<f32>, // How far from 0,0 can asteroids NOT spawn
+    /// Per-sector ore composition. When non-empty the spawn roll picks an ore
+    /// weighted by this list (ignoring `rarity`); when empty it falls back to
+    /// the global rarity-skewed distribution. See `asteroid_fields::roll_ore_item`.
+    ore_weights: Vec<OreWeight>,
 }
 
 //////////////////////////////////////////////////////////////
