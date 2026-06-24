@@ -121,7 +121,11 @@ fn subscribe_to_tables(ctx: &DbConnection) {
             "SELECT * FROM sector",
             "SELECT * FROM faction",
             "SELECT * FROM station",
+            "SELECT * FROM station_under_construction",
             "SELECT * FROM jump_gate",
             "SELECT * FROM item_definition",
+            // Live-state snapshot tables for the read-only galaxy overview (#145).
+            "SELECT * FROM player",
+            "SELECT * FROM ship",
         ]);
 }
