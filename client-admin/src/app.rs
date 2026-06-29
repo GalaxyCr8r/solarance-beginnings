@@ -148,6 +148,9 @@ struct GalaxyData {
     sector_lines: Vec<String>,
     station_lines: Vec<String>,
     gate_lines: Vec<String>,
+    /// Read-only live-state snapshot (#145): players and ships (grouped by sector).
+    player_lines: Vec<String>,
+    ship_lines: Vec<String>,
 }
 
 pub struct AdminApp {
@@ -367,13 +370,73 @@ fn gather_galaxy(conn: &DbConnection) -> GalaxyData {
         .station()
         .iter()
         .map(|st| {
+            // Append a build-progress suffix while a matching construction site
+            // is still in progress (id is shared with the station).
+            let suffix = match db.station_under_construction().id().find(&st.id) {
+                Some(uc) if !uc.is_operational => {
+                    format!("  [building {:.0}%]", uc.construction_progress_percentage)
+                }
+                _ => String::new(),
+            };
             format!(
-                "#{} {:?} \"{}\"  sector {}  fac {}",
-                st.id, st.size, st.name, st.sector_id, st.owner_faction_id
+                "#{} {:?} \"{}\"  sector {}  fac {}{}",
+                st.id, st.size, st.name, st.sector_id, st.owner_faction_id, suffix
             )
         })
         .collect();
     station_lines.sort();
+
+    // Players: identity, username, faction, online status, credits, last login.
+    let faction_name = |fid: u32| {
+        factions
+            .iter()
+            .find(|(id, _)| *id == fid)
+            .map(|(_, n)| n.clone())
+            .unwrap_or_else(|| format!("fac {fid}"))
+    };
+    let mut player_lines: Vec<String> = db
+        .player()
+        .iter()
+        .map(|p| {
+            let status = if p.logged_in { "online" } else { "offline" };
+            let last = match p.last_login {
+                Some(t) => format!("  last {}", t.to_micros_since_unix_epoch()),
+                None => "  never logged in".to_string(),
+            };
+            format!(
+                "{}  [{}]  {}  {}  {}cr{}",
+                p.username,
+                p.id.to_abbreviated_hex(),
+                status,
+                faction_name(p.faction_id.value),
+                p.credits,
+                last,
+            )
+        })
+        .collect();
+    player_lines.sort();
+
+    // Ships, grouped by sector (sector_id then ship id).
+    let mut ships: Vec<(u64, u64, String)> = db
+        .ship()
+        .iter()
+        .map(|s| {
+            (
+                s.sector_id,
+                s.id,
+                format!(
+                    "sector {}  ship #{}  {:?}  type {}  owner {}",
+                    s.sector_id,
+                    s.id,
+                    s.location,
+                    s.shiptype_id,
+                    s.player_id.to_abbreviated_hex(),
+                ),
+            )
+        })
+        .collect();
+    ships.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
+    let ship_lines: Vec<String> = ships.into_iter().map(|(_, _, line)| line).collect();
 
     let mut gate_lines: Vec<String> = db
         .jump_gate()
@@ -391,6 +454,8 @@ fn gather_galaxy(conn: &DbConnection) -> GalaxyData {
         sector_lines,
         station_lines,
         gate_lines,
+        player_lines,
+        ship_lines,
     }
 }
 
@@ -529,14 +594,18 @@ fn connected_ui(
         .show(egui_ctx, |ui| {
             ui.heading("Current galaxy");
             ui.label(format!(
-                "{} systems · {} sectors · {} stations · {} gates",
+                "{} systems · {} sectors · {} stations · {} gates · {} players · {} ships",
                 galaxy.systems.len(),
                 galaxy.sectors.len(),
                 galaxy.station_lines.len(),
                 galaxy.gate_lines.len(),
+                galaxy.player_lines.len(),
+                galaxy.ship_lines.len(),
             ));
             ui.separator();
             egui::ScrollArea::vertical().show(ui, |ui| {
+                section_list(ui, "Players", &galaxy.player_lines);
+                section_list(ui, "Ships", &galaxy.ship_lines);
                 section_list(ui, "Sectors", &galaxy.sector_lines);
                 section_list(ui, "Stations", &galaxy.station_lines);
                 section_list(ui, "Jumpgates", &galaxy.gate_lines);
