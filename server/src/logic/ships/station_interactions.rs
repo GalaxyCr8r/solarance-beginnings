@@ -130,6 +130,7 @@ pub fn use_jumpgate(ctx: &ReducerContext, jumpgate_sobj_id: u64) -> Result<(), S
 /// (pixels). Matches the dock range in spirit — you have to fly up to the
 /// gate before it'll fire.
 const JUMPGATE_USE_RANGE: f32 = 300.0;
+const JUMPGATE_USE_ENERGY: f32 = 50.0;
 
 pub fn try_to_use_jumpgate(ctx: &ReducerContext, jumpgate: &JumpGate) -> Result<(), String> {
     let dsl = dsl(ctx);
@@ -151,13 +152,13 @@ pub fn try_to_use_jumpgate(ctx: &ReducerContext, jumpgate: &JumpGate) -> Result<
         ));
     }
 
-    // Jump once they have more than 100 energy
-    if *ship_status.get_energy() > 100.0 {
+    // Jump once they have more than JUMPGATE_USE_ENERGY energy
+    if *ship_status.get_energy() > JUMPGATE_USE_ENERGY {
         let arrival_pos = *jumpgate.get_target_gate_arrival_pos();
         let arrival_rotation = *jumpgate.get_target_gate_arrival_rotation();
         let destination_sector = dsl.get_sector_by_id(jumpgate.get_target_sector_id())?;
 
-        ship_status.set_energy(ship_status.get_energy() - 100.0);
+        ship_status.set_energy(ship_status.get_energy() - JUMPGATE_USE_ENERGY);
         dsl.update_ship_status_by_id(ship_status)?;
 
         // Single helper does all the sector_id updates + clean-stop snapshot
@@ -179,6 +180,8 @@ pub fn try_to_use_jumpgate(ctx: &ReducerContext, jumpgate: &JumpGate) -> Result<
                 destination_sector.get_name()
             ),
         )?;
+    } else {
+        // TODO: Send a message to the player saying they don't have JUMPGATE_USE_ENERGY
     }
 
     Ok(())
