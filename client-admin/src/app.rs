@@ -670,23 +670,18 @@ fn connected_ui(
         egui::ScrollArea::vertical().show(ui, |ui| {
             // ①, ②, etc. aren't shown properly in egui
             egui::CollapsingHeader::new("1: Create sector")
-                .default_open(true)
                 .show(ui, |ui| sector_panel(ui, conn, sector_form, galaxy));
 
             egui::CollapsingHeader::new("2: Place station")
-                .default_open(true)
                 .show(ui, |ui| station_panel(ui, conn, station_form, galaxy));
 
             egui::CollapsingHeader::new("3: Connect sectors with a jumpgate")
-                .default_open(true)
                 .show(ui, |ui| connect_panel(ui, conn, connect_form, galaxy));
 
             egui::CollapsingHeader::new("4: Add module to existing station")
-                .default_open(true)
                 .show(ui, |ui| add_module_panel(ui, conn, add_module_form, galaxy));
 
             egui::CollapsingHeader::new("5: Send server message")
-                .default_open(true)
                 .show(ui, |ui| message_panel(ui, conn, message_form, galaxy));
         });
     });
