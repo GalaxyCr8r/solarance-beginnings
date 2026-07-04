@@ -9,6 +9,7 @@ pub struct Resources {
     pub effect_textures: HashMap<&'static str, Texture2D>,
     pub sun_textures: HashMap<&'static str, Texture2D>,
     pub planet_textures: HashMap<&'static str, Texture2D>,
+    pub nebula_textures: HashMap<&'static str, Texture2D>,
 }
 
 impl Resources {
@@ -21,6 +22,7 @@ impl Resources {
             effect_textures: HashMap::new(),
             sun_textures: HashMap::new(),
             planet_textures: HashMap::new(),
+            nebula_textures: HashMap::new(),
         };
 
         // Load asset textures
@@ -93,6 +95,32 @@ impl Resources {
             load_linear_sprite("stations/station_satellite.png").await?
         );
 
+        // Under-construction variants of the generic station sizes
+        resources.station_textures.insert(
+            "station.capital.uc",
+            load_linear_sprite("stations/station_capital_uc.png").await?
+        );
+        resources.station_textures.insert(
+            "station.large.uc",
+            load_linear_sprite("stations/station_large_uc.png").await?
+        );
+        resources.station_textures.insert(
+            "station.medium.uc",
+            load_linear_sprite("stations/station_medium_uc.png").await?
+        );
+        resources.station_textures.insert(
+            "station.small.uc",
+            load_linear_sprite("stations/station_small_uc.png").await?
+        );
+        resources.station_textures.insert(
+            "station.outpost.uc",
+            load_linear_sprite("stations/station_outpost_uc.png").await?
+        );
+        resources.station_textures.insert(
+            "station.satellite.uc",
+            load_linear_sprite("stations/station_satellite_uc.png").await?
+        );
+
         resources.jumpgate_textures.insert(
             "warpgate_north",
             load_linear_sprite("stations/warpgate_north.png").await?
@@ -121,6 +149,44 @@ impl Resources {
         resources.effect_textures.insert(
             "engineflare",
             load_linear_sprite("ships/engineflare.png").await?
+        );
+        resources.effect_textures.insert(
+            "shockwave.2",
+            load_linear_sprite("ships/shockwave_2.png").await?
+        );
+
+        // Nebula backgrounds — keys match the source file numbering
+        resources.nebula_textures.insert(
+            "nebula.1",
+            load_linear_sprite("nebula/nebula01.png").await?
+        );
+        resources.nebula_textures.insert(
+            "nebula.2",
+            load_linear_sprite("nebula/nebula02.png").await?
+        );
+        resources.nebula_textures.insert(
+            "nebula.3",
+            load_linear_sprite("nebula/nebula03.png").await?
+        );
+        resources.nebula_textures.insert(
+            "nebula.5",
+            load_linear_sprite("nebula/nebula05.png").await?
+        );
+        resources.nebula_textures.insert(
+            "nebula.6",
+            load_linear_sprite("nebula/nebula06.png").await?
+        );
+        resources.nebula_textures.insert(
+            "nebula.7",
+            load_linear_sprite("nebula/nebula07.png").await?
+        );
+        resources.nebula_textures.insert(
+            "nebula.9",
+            load_linear_sprite("nebula/nebula09.png").await?
+        );
+        resources.nebula_textures.insert(
+            "nebula.10",
+            load_linear_sprite("nebula/nebula10.png").await?
         );
 
         resources.asteroid_textures.insert(
