@@ -14,7 +14,7 @@
 //! each reducer as the subscription updates stream back in.
 
 use macroquad::prelude::*;
-use spacetimedb_sdk::{DbContext, Table};
+use spacetimedb_sdk::{DbContext, Identity, Table};
 
 use crate::server::bindings::*;
 use crate::stdb::connector;
@@ -134,6 +134,29 @@ impl Default for AddModuleForm {
     }
 }
 
+/// State for the "send server message" admin panel (#145 increment 2).
+struct MessageForm {
+    /// `false` → single recipient (`admin_send_direct_server_message`);
+    /// `true` → multi-recipient group (`admin_send_direct_server_message_to_group`).
+    to_group: bool,
+    target: Option<Identity>,
+    group_targets: Vec<Identity>,
+    severity: MessageSeverity,
+    body: String,
+}
+
+impl Default for MessageForm {
+    fn default() -> Self {
+        Self {
+            to_group: false,
+            target: None,
+            group_targets: Vec::new(),
+            severity: MessageSeverity::Info,
+            body: String::new(),
+        }
+    }
+}
+
 /// Owned snapshot of the galaxy used to populate dropdowns and listings for a
 /// single frame, so the egui closure never holds a borrow on the connection's
 /// table cache.
@@ -151,6 +174,8 @@ struct GalaxyData {
     /// Read-only live-state snapshot (#145): players and ships (grouped by sector).
     player_lines: Vec<String>,
     ship_lines: Vec<String>,
+    /// Players as `(identity, label)` for the message-recipient picker.
+    players: Vec<(Identity, String)>,
 }
 
 pub struct AdminApp {
@@ -170,6 +195,7 @@ pub struct AdminApp {
     station_form: StationForm,
     connect_form: ConnectForm,
     add_module_form: AddModuleForm,
+    message_form: MessageForm,
 }
 
 impl AdminApp {
@@ -186,6 +212,7 @@ impl AdminApp {
             station_form: StationForm::default(),
             connect_form: ConnectForm::default(),
             add_module_form: AddModuleForm::default(),
+            message_form: MessageForm::default(),
         }
     }
 
@@ -244,6 +271,7 @@ impl AdminApp {
             station_form,
             connect_form,
             add_module_form,
+            message_form,
         } = self;
 
         let mut requested_connect = false;
@@ -260,6 +288,7 @@ impl AdminApp {
                     station_form,
                     connect_form,
                     add_module_form,
+                    message_form,
                 );
             } else {
                 requested_connect = connection_dialog(
@@ -416,6 +445,21 @@ fn gather_galaxy(conn: &DbConnection) -> GalaxyData {
         .collect();
     player_lines.sort();
 
+    // Players as (identity, label) for the message-recipient picker — online
+    // status in the label so admins can target logged-in players.
+    let mut players: Vec<(Identity, String)> = db
+        .player()
+        .iter()
+        .map(|p| {
+            let status = if p.logged_in { "online" } else { "offline" };
+            (
+                p.id,
+                format!("{} [{}] {}", p.username, p.id.to_abbreviated_hex(), status),
+            )
+        })
+        .collect();
+    players.sort_by(|a, b| a.1.cmp(&b.1));
+
     // Ships, grouped by sector (sector_id then ship id).
     let mut ships: Vec<(u64, u64, String)> = db
         .ship()
@@ -456,6 +500,7 @@ fn gather_galaxy(conn: &DbConnection) -> GalaxyData {
         gate_lines,
         player_lines,
         ship_lines,
+        players,
     }
 }
 
@@ -568,6 +613,7 @@ fn connected_ui(
     station_form: &mut StationForm,
     connect_form: &mut ConnectForm,
     add_module_form: &mut AddModuleForm,
+    message_form: &mut MessageForm,
 ) -> bool {
     let mut disconnect = false;
 
@@ -624,20 +670,19 @@ fn connected_ui(
         egui::ScrollArea::vertical().show(ui, |ui| {
             // ①, ②, etc. aren't shown properly in egui
             egui::CollapsingHeader::new("1: Create sector")
-                .default_open(true)
                 .show(ui, |ui| sector_panel(ui, conn, sector_form, galaxy));
 
             egui::CollapsingHeader::new("2: Place station")
-                .default_open(true)
                 .show(ui, |ui| station_panel(ui, conn, station_form, galaxy));
 
             egui::CollapsingHeader::new("3: Connect sectors with a jumpgate")
-                .default_open(true)
                 .show(ui, |ui| connect_panel(ui, conn, connect_form, galaxy));
 
             egui::CollapsingHeader::new("4: Add module to existing station")
-                .default_open(true)
                 .show(ui, |ui| add_module_panel(ui, conn, add_module_form, galaxy));
+
+            egui::CollapsingHeader::new("5: Send server message")
+                .show(ui, |ui| message_panel(ui, conn, message_form, galaxy));
         });
     });
 
@@ -1026,6 +1071,107 @@ fn add_module_panel(
                 move |_ctx, result| log_reducer_result(label, result),
             );
             log_send_error(res);
+        }
+    });
+}
+
+fn message_panel(
+    ui: &mut egui::Ui,
+    conn: &DbConnection,
+    form: &mut MessageForm,
+    galaxy: &GalaxyData,
+) {
+    ui.weak("Send a direct server message to a player or a group. Solves the Identity/enum-entry problem the CLI can't express (#145).");
+
+    ui.horizontal(|ui| {
+        ui.label("To:");
+        ui.selectable_value(&mut form.to_group, false, "Single player");
+        ui.selectable_value(&mut form.to_group, true, "Group");
+    });
+
+    ui.horizontal(|ui| {
+        ui.label("Severity:");
+        for sev in [
+            MessageSeverity::Info,
+            MessageSeverity::Warning,
+            MessageSeverity::Critical,
+        ] {
+            ui.selectable_value(&mut form.severity, sev, format!("{sev:?}"));
+        }
+    });
+
+    if form.to_group {
+        ui.label("Recipients:");
+        egui::ScrollArea::vertical()
+            .max_height(140.0)
+            .show(ui, |ui| {
+                if galaxy.players.is_empty() {
+                    ui.weak("(no players)");
+                }
+                for (id, label) in &galaxy.players {
+                    let mut checked = form.group_targets.contains(id);
+                    if ui.checkbox(&mut checked, label).changed() {
+                        if checked {
+                            form.group_targets.push(*id);
+                        } else {
+                            form.group_targets.retain(|x| x != id);
+                        }
+                    }
+                }
+            });
+    } else {
+        ui.horizontal(|ui| {
+            ui.label("Recipient:");
+            let selected_text = form
+                .target
+                .and_then(|id| galaxy.players.iter().find(|(pid, _)| *pid == id))
+                .map(|(_, l)| l.clone())
+                .unwrap_or_else(|| "— select —".to_string());
+            egui::ComboBox::from_id_salt("dm_target")
+                .selected_text(selected_text)
+                .show_ui(ui, |ui| {
+                    for (id, label) in &galaxy.players {
+                        ui.selectable_value(&mut form.target, Some(*id), label.clone());
+                    }
+                });
+        });
+    }
+
+    ui.label("Message:");
+    ui.text_edit_multiline(&mut form.body);
+
+    let ready = !form.body.trim().is_empty()
+        && if form.to_group {
+            !form.group_targets.is_empty()
+        } else {
+            form.target.is_some()
+        };
+
+    ui.add_space(4.0);
+    ui.add_enabled_ui(ready, |ui| {
+        if ui.button("Send message").clicked() {
+            let severity = form.severity;
+            let body = form.body.clone();
+            if form.to_group {
+                let ids = form.group_targets.clone();
+                let label = format!("send {severity:?} to {} players", ids.len());
+                let res = conn.reducers.admin_send_direct_server_message_to_group_then(
+                    ids,
+                    severity,
+                    body,
+                    move |_ctx, result| log_reducer_result(label, result),
+                );
+                log_send_error(res);
+            } else if let Some(target) = form.target {
+                let label = format!("send {severity:?} to {}", target.to_abbreviated_hex());
+                let res = conn.reducers.admin_send_direct_server_message_then(
+                    target,
+                    severity,
+                    body,
+                    move |_ctx, result| log_reducer_result(label, result),
+                );
+                log_send_error(res);
+            }
         }
     });
 }
