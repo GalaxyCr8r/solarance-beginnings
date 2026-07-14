@@ -56,6 +56,7 @@ fn demo_sectors(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
     setup_sector_connections(dsl, &sectors)?;
     populate_sectors_with_asteroids(dsl, &sectors)?;
     create_sector_stations(dsl, &sectors, &lrak, &rediar, &iwa)?;
+    place_sector_nebulae(dsl, &sectors)?;
     Ok(())
 }
 
@@ -445,6 +446,48 @@ fn create_sector_stations(
             ResourceAmount::new(ITEM_GOLD_ORE, 50),
         ],
     )?;
+
+    Ok(())
+}
+
+/// Seeds decorative in-sector nebulae (#107). The Hinge sits inside the
+/// system's nebula belt (orbit_au 12.0) and gets significant coverage;
+/// Lrakhold and Echo Bay each get a single wisp. Pure render flavor —
+/// nothing reads these rows server-side.
+fn place_sector_nebulae(
+    dsl: &DSL<'_, ReducerContext>,
+    s: &ProcyonSectors,
+) -> Result<(), String> {
+    let nebula = |sector: &Sector,
+                  x: f32,
+                  y: f32,
+                  gfx_key: &str,
+                  scale: f32,
+                  rotation_deg: f32,
+                  tint: u32|
+     -> Result<(), String> {
+        dsl.create_sector_nebula(CreateSectorNebula {
+            sector_id: sector.get_id(),
+            position: Vec2::new(x, y),
+            gfx_key: gfx_key.to_string(),
+            scale,
+            rotation_radians: rotation_deg.to_radians(),
+            tint,
+        })
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+    };
+
+    // The Hinge — the only sector within the nebula belt; blanket it.
+    nebula(&s.the_hinge, -2600.0, 1900.0, "nebula.1", 6.0, 20.0, 0xFFFFFFA0)?;
+    nebula(&s.the_hinge, 1400.0, -2300.0, "nebula.1", 5.0, 140.0, 0xE0E8FF90)?;
+    nebula(&s.the_hinge, 3300.0, 1000.0, "nebula.1", 4.0, 275.0, 0xFFFFFF80)?;
+    nebula(&s.the_hinge, -900.0, -3400.0, "nebula.1", 4.5, 65.0, 0xD8E0FF88)?;
+    nebula(&s.the_hinge, 400.0, 2900.0, "nebula.1", 3.5, 200.0, 0xFFFFFF70)?;
+
+    // Single wisps on the belt-adjacent capitals.
+    nebula(&s.lrakhold, 2800.0, -1600.0, "nebula.7", 4.0, 310.0, 0xFFFFFF90)?;
+    nebula(&s.echo_bay, -2200.0, 2400.0, "nebula.6", 4.0, 45.0, 0xFFFFFF90)?;
 
     Ok(())
 }

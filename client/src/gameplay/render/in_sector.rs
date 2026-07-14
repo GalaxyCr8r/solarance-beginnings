@@ -224,6 +224,29 @@ pub fn draw_ship(
     }
 }
 
+/// Decorative in-sector nebula (#107). Pure flavor: no pose, no radar entry,
+/// no targeting — drawn under everything else in the sector pass.
+pub fn draw_nebula(nebula: &SectorNebula) {
+    let resources = storage::get::<Resources>();
+    let Some(tex) = resources.nebula_textures.get(nebula.gfx_key.as_str()) else {
+        return; // Unknown key — decorative, so silently skip rather than panic.
+    };
+    let w = tex.width() * nebula.scale;
+    let h = tex.height() * nebula.scale;
+    let t = nebula.tint; // 0xRRGGBBAA
+    draw_texture_ex(
+        tex,
+        nebula.position.x - w * 0.5,
+        nebula.position.y - h * 0.5,
+        Color::from_rgba((t >> 24) as u8, (t >> 16) as u8, (t >> 8) as u8, t as u8),
+        DrawTextureParams {
+            rotation: nebula.rotation_radians,
+            dest_size: Some(vec2(w, h)),
+            ..DrawTextureParams::default()
+        },
+    );
+}
+
 pub fn draw_asteroid(pose: &RenderPose, asteroid: Asteroid, game_state: &mut GameState) {
     let resources = storage::get::<Resources>();
     let position = pose.pos;
