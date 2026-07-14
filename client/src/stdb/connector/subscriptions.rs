@@ -66,6 +66,14 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
         WHERE s.player_id = '{}'",
         ctx.identity()
     );
+    // Decorative in-sector nebulae (#107) — static flavor rows, current sector only.
+    let sector_nebula = format!(
+        "SELECT n.*
+        FROM sector_nebula n
+        JOIN ship s ON s.sector_id = n.sector_id
+        WHERE s.player_id = '{}'",
+        ctx.identity()
+    );
     let cargo_crate = format!(
         "SELECT c.* 
         FROM cargo_crate c
@@ -114,6 +122,7 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
             "SELECT * FROM star_system",
             "SELECT * FROM star_system_object",
             "SELECT * FROM sector",
+            sector_nebula.as_str(),
             //"SELECT * FROM asteroid_sector",
             "SELECT * FROM ship_type_definition",
             "SELECT * FROM ship_status",

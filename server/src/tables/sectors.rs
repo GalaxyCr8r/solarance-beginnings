@@ -1,3 +1,4 @@
+use solarance_shared::Vec2;
 use spacetimedb::{table, SpacetimeType};
 use spacetimedsl::*;
 
@@ -20,6 +21,7 @@ pub struct Sector {
     #[referenced_by(path = crate::tables::combat, table = visual_effect)]
     #[referenced_by(path = crate::tables::messages, table = sector_channel_message)]
     #[referenced_by(path = crate::tables::items, table = cargo_crate)]
+    #[referenced_by(path = crate::tables::sectors, table = sector_nebula)]
     id: u64,
 
     #[index(btree)]
@@ -92,6 +94,33 @@ pub struct AsteroidSector {
     /// weighted by this list (ignoring `rarity`); when empty it falls back to
     /// the global rarity-skewed distribution. See `asteroid_fields::roll_ore_item`.
     ore_weights: Vec<OreWeight>,
+}
+
+/// Decorative in-sector nebula sprite (#107). Pure render flavor — no stellar
+/// object, no collision, no game mechanic. Ships fly straight through them.
+#[dsl(plural_name = sector_nebulae, method(update = false))]
+#[table(accessor = sector_nebula, public)]
+pub struct SectorNebula {
+    #[primary_key]
+    #[auto_inc]
+    #[create_wrapper]
+    id: u64,
+
+    #[index(btree)] // To find nebulae in a specific sector
+    #[use_wrapper(SectorId)]
+    #[foreign_key(path = crate::tables::sectors, table = sector, column = id, on_delete = Delete)]
+    /// FK to Sector
+    sector_id: u64,
+
+    /// World-space position of the sprite center. Static — nebulae don't move.
+    position: Vec2,
+    /// Client texture key, e.g. "nebula.1"
+    gfx_key: String,
+    /// Sprite scale multiplier applied to the texture's native size
+    scale: f32,
+    rotation_radians: f32,
+    /// Packed 0xRRGGBBAA tint the client multiplies the texture by
+    tint: u32,
 }
 
 //////////////////////////////////////////////////////////////

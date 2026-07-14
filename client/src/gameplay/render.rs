@@ -34,6 +34,15 @@ pub fn sector(game_state: &mut GameState) {
     // out-of-play, in which case we don't filter (nothing to anchor to).
     let player_sector = player_ship.as_ref().map(|s| s.sector_id);
 
+    // Decorative nebulae (#107) — drawn first so every real object sits on top.
+    // Same wrong-sector filter as the stellar-object pass below.
+    for nebula in db.sector_nebula().iter() {
+        if player_sector.is_some_and(|ps| nebula.sector_id != ps) {
+            continue;
+        }
+        draw_nebula(&nebula);
+    }
+
     // Collect ships to draw after stations
     let mut ships_to_draw: Vec<(Ship, RenderPose, ShipTypeDefinition)> = Vec::new();
 
