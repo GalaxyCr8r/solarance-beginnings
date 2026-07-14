@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 use egui::*;
 use macroquad::prelude::*;
@@ -29,6 +29,21 @@ pub struct State {
     /// Accumulated pan offset (screen px) from dragging the galaxy map canvas.
     /// Reset by the "Recenter" button. Zoom is intentionally not supported (#120).
     pan: egui::Vec2,
+
+    /// Sector selected by clicking its dot (#121); drives the details side
+    /// panel. Clicking empty canvas clears it.
+    selected_sector_id: Option<u64>,
+}
+
+/// Faction tint for map sector dots (#121). IDs are locked by the M3 seed:
+/// FACTION_LRAK_COMBINE = 1, FACTION_REDIAR_FEDERATION = 4 (see
+/// `server/src/definitions/factions.rs`). Everything else renders desaturated.
+fn faction_color(faction_id: u32) -> Color32 {
+    match faction_id {
+        1 => Color32::from_rgb(214, 92, 66),  // Lrak Combine — rust red
+        4 => Color32::from_rgb(86, 148, 216), // Rediar Federation — federation blue
+        _ => Color32::from_gray(140),         // neutral / other
+    }
 }
 
 impl State {
@@ -39,6 +54,8 @@ impl State {
             stroke: Stroke::new(2.0, Color32::from_rgb(25, 200, 100)),
 
             pan: egui::Vec2::ZERO,
+
+            selected_sector_id: None,
         }
     }
 
@@ -95,6 +112,14 @@ impl State {
         });
 
         ui.separator();
+
+        // Sectors with active builds — derived fresh each frame from the
+        // subscribed tables, so the indicators and panel update live (#121).
+        let construction_sectors = sectors_with_active_construction(ctx);
+
+        // Details side panel for the clicked sector — drawn before the canvas
+        // so the canvas consumes the remaining width.
+        self.draw_sector_details(ui, ctx, &construction_sectors);
 
         Frame::canvas(ui.style()).show(ui, |ui| {
             let (response, painter) = ui.allocate_painter(
@@ -219,31 +244,76 @@ impl State {
             // Build the dot shapes now; labels are drawn last so they sit on
             // top of every other layer.
             let hover = response.hover_pos();
+            let time = ui.input(|i| i.time) as f32;
+            let corners = CornerRadius {
+                nw: 0,
+                ne: 4,
+                sw: 4,
+                se: 4,
+            };
             let mut sector_screens: Vec<(&Sector, Pos2)> = Vec::with_capacity(sectors.len());
             for sector in &sectors {
                 let center = to_screen(sector.x, sector.y);
                 sector_screens.push((sector, center));
 
+                // Faction tint (#121): faint faction fill on every dot; the
+                // current sector keeps its green "you are here" stroke on top.
+                let tint = faction_color(sector.controlling_faction_id);
                 let stroke = if current_sector.id == sector.id {
                     self.stroke // preserved green highlight for the current sector
                 } else {
-                    Stroke::new(1.5, Color32::from_gray(180))
+                    Stroke::new(1.5, tint)
                 };
                 let rect = egui::Rect::from_center_size(
                     center,
                     egui::Vec2::splat(2.0 * MAP_SECTOR_RADIUS),
                 );
-                markers.push(Shape::rect_stroke(
+                markers.push(Shape::rect_filled(
                     rect,
-                    CornerRadius {
-                        nw: 0,
-                        ne: 4,
-                        sw: 4,
-                        se: 4,
-                    },
-                    stroke,
-                    StrokeKind::Middle,
+                    corners,
+                    Color32::from_rgba_unmultiplied(tint.r(), tint.g(), tint.b(), 48),
                 ));
+                markers.push(Shape::rect_stroke(rect, corners, stroke, StrokeKind::Middle));
+
+                // Ring around the sector the details panel is showing.
+                if self.selected_sector_id == Some(sector.id) {
+                    markers.push(Shape::rect_stroke(
+                        rect.expand(3.0),
+                        corners,
+                        Stroke::new(1.0, Color32::WHITE),
+                        StrokeKind::Middle,
+                    ));
+                }
+
+                // Construction-site indicator (#121): slow amber pulse ring.
+                if construction_sectors.contains(&sector.id) {
+                    let pulse = 0.5 + 0.5 * (time * 2.5).sin();
+                    markers.push(Shape::circle_stroke(
+                        center,
+                        MAP_SECTOR_RADIUS + 4.0 + 3.0 * pulse,
+                        Stroke::new(
+                            1.5,
+                            Color32::from_rgba_unmultiplied(
+                                255,
+                                176,
+                                64,
+                                (90.0 + 130.0 * pulse) as u8,
+                            ),
+                        ),
+                    ));
+                }
+            }
+
+            // Click → select the dot under the pointer; clicking empty canvas
+            // clears the selection. egui only reports `clicked()` when the
+            // press wasn't a drag, so panning never changes the selection.
+            if response.clicked() {
+                if let Some(click) = response.interact_pointer_pos() {
+                    self.selected_sector_id = sector_screens
+                        .iter()
+                        .find(|(_, center)| (click - *center).length() <= MAP_SECTOR_RADIUS + 4.0)
+                        .map(|(sector, _)| sector.id);
+                }
             }
 
             // Paint in z-order: backdrop, edges, sector dots.
@@ -273,6 +343,79 @@ impl State {
                 }
             }
         });
+    }
+
+    /// Right-hand details panel for the clicked sector (#121): name, coords,
+    /// controlling faction, security, description, and the adjacent-sector
+    /// list derived from `jump_gate` edges (links re-target the panel). If the
+    /// selected row vanishes from the cache the selection silently clears.
+    fn draw_sector_details(
+        &mut self,
+        ui: &mut egui::Ui,
+        ctx: &DbConnection,
+        construction_sectors: &HashSet<u64>,
+    ) {
+        let Some(selected_id) = self.selected_sector_id else {
+            return;
+        };
+        let Some(sector) = ctx.db().sector().id().find(&selected_id) else {
+            self.selected_sector_id = None;
+            return;
+        };
+
+        egui::SidePanel::right("map_sector_details")
+            .resizable(false)
+            .exact_width(190.0)
+            .show_inside(ui, |ui| {
+                ui.horizontal(|ui| {
+                    ui.heading(&sector.name);
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if ui.small_button("✕").clicked() {
+                            self.selected_sector_id = None;
+                        }
+                    });
+                });
+                ui.weak(format!("({:.0}, {:.0})", sector.x, sector.y));
+                ui.separator();
+
+                let faction_text = ctx
+                    .db()
+                    .faction()
+                    .id()
+                    .find(&sector.controlling_faction_id)
+                    .map(|f| format!("{} [{}]", f.name, f.short_name))
+                    .unwrap_or_else(|| format!("Faction #{}", sector.controlling_faction_id));
+                ui.colored_label(faction_color(sector.controlling_faction_id), faction_text);
+                ui.label(format!("Security: {} / 10", sector.security_level));
+                if construction_sectors.contains(&sector.id) {
+                    ui.colored_label(
+                        Color32::from_rgb(255, 176, 64),
+                        "⚠ Station under construction",
+                    );
+                }
+
+                if let Some(description) = &sector.description {
+                    ui.separator();
+                    ui.label(description);
+                }
+
+                ui.separator();
+                ui.strong("Connected sectors");
+                // Gates are bidirectional (two rows per pair); collecting the
+                // outbound targets into a BTreeSet dedups and sorts stably.
+                let adjacent: BTreeSet<u64> = ctx
+                    .db()
+                    .jump_gate()
+                    .iter()
+                    .filter(|gate| gate.current_sector_id == sector.id)
+                    .map(|gate| gate.target_sector_id)
+                    .collect();
+                for adjacent_id in adjacent {
+                    if ui.link(get_sector_name(ctx, &adjacent_id)).clicked() {
+                        self.selected_sector_id = Some(adjacent_id);
+                    }
+                }
+            });
     }
 }
 
