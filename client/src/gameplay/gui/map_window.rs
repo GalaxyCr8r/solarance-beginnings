@@ -411,7 +411,23 @@ impl State {
                     .map(|gate| gate.target_sector_id)
                     .collect();
                 for adjacent_id in adjacent {
-                    if ui.link(get_sector_name(ctx, &adjacent_id)).clicked() {
+                    // Cross-system gates carry the destination system in
+                    // front of the sector name, e.g. "[Kingdom's End] Spacefalls".
+                    let label = match ctx.db().sector().id().find(&adjacent_id) {
+                        Some(adj) if adj.system_id != sector.system_id => {
+                            let system_name = ctx
+                                .db()
+                                .star_system()
+                                .id()
+                                .find(&adj.system_id)
+                                .map(|s| s.name)
+                                .unwrap_or_else(|| format!("#{}", adj.system_id));
+                            format!("[{}] {}", system_name, adj.name)
+                        }
+                        Some(adj) => adj.name,
+                        None => format!("Sector #{}", adjacent_id),
+                    };
+                    if ui.link(label).clicked() {
                         self.selected_sector_id = Some(adjacent_id);
                     }
                 }
