@@ -57,6 +57,12 @@ fn demo_sectors(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
     populate_sectors_with_asteroids(dsl, &sectors)?;
     create_sector_stations(dsl, &sectors, &lrak, &rediar, &iwa)?;
     place_sector_nebulae(dsl, &sectors)?;
+
+    // Omicron — the second star system (#121). One cross-system gate out of
+    // The Hinge exercises every multi-system code path (system-map filtering,
+    // "[System] Sector" gate labels, cross-system travel).
+    let omicron = seed_omicron_system(dsl, &neutral)?;
+    connect_sectors_with_warpgates(dsl, &sectors.the_hinge, &omicron.dark_sun)?;
     Ok(())
 }
 
@@ -490,6 +496,98 @@ fn place_sector_nebulae(
     nebula(&s.echo_bay, -2200.0, 2400.0, "nebula.6", 4.0, 45.0, 0xFFFFFF90)?;
 
     Ok(())
+}
+
+/// The Omicron sectors, mirrored from `ProcyonSectors` so future wiring reads
+/// the same way. Sector IDs continue after Procyon's 0..9.
+struct OmicronSectors {
+    dark_sun: Sector, // 10 — factionless, the lightless inner sector
+    ashfall: Sector,  // 11 — factionless, dim outer ember
+}
+
+/// Seeds the Omicron star system (#121): a dim M-dwarf neighbor of Procyon
+/// holding two factionless frontier sectors, wired to each other by a normal
+/// gate. Kept as structured as the Procyon seed so multi-system testing
+/// (map filtering, cross-system labels, travel) has a real second system to
+/// lean on. The cross-system gate (Dark Sun <-> The Hinge) is wired by
+/// `demo_sectors`, next to the rest of the gate network.
+fn seed_omicron_system(
+    dsl: &DSL<'_, ReducerContext>,
+    neutral: &FactionId,
+) -> Result<OmicronSectors, String> {
+    let omicron = dsl.create_star_system(CreateStarSystem {
+        name: "Omicron".to_string(),
+        map_coordinates: Vec2::new(21.0, 34.0),
+        spectral: SpectralKind::M,
+        luminosity: 6,
+        controlling_faction_id: neutral.clone(),
+    })?;
+
+    let _star = dsl.create_star_system_object(CreateStarSystemObject {
+        system_id: omicron.get_id(),
+        kind: StarSystemObjectKind::Star,
+        orbit_au: 0.0,
+        rotation_or_width_km: 0.0,
+        gfx_key: Some("star.1".to_string()),
+    });
+    let _planet = dsl.create_star_system_object(CreateStarSystemObject {
+        system_id: omicron.get_id(),
+        kind: StarSystemObjectKind::Planet,
+        orbit_au: 60.0,
+        rotation_or_width_km: (210f32).to_radians(),
+        gfx_key: Some("planet.2".to_string()),
+    });
+    let _nebbelt = dsl.create_star_system_object(CreateStarSystemObject {
+        system_id: omicron.get_id(),
+        kind: StarSystemObjectKind::NebulaBelt,
+        orbit_au: 30.0,
+        rotation_or_width_km: 14.0,
+        gfx_key: None,
+    });
+
+    // Same one-line-per-sector helper shape as `create_procyon_sectors`,
+    // plus a description so the map details panel's description path has
+    // seeded data to render.
+    let mk = |id: u64,
+              name: &str,
+              description: Option<&str>,
+              security: u8,
+              sunlight: f32,
+              anomalous: f32,
+              nebula: f32,
+              rare_ore: f32,
+              x: f32,
+              y: f32|
+     -> Result<Sector, String> {
+        dsl.create_sector(CreateSector {
+            id,
+            system_id: omicron.get_id(),
+            name: name.to_string(),
+            description: description.map(str::to_string),
+            controlling_faction_id: neutral.clone(),
+            security_level: security,
+            sunlight,
+            anomalous,
+            nebula,
+            rare_ore,
+            x,
+            y,
+            background_gfx_key: None,
+        })
+        .map_err(|e| e.to_string())
+    };
+
+    let dark_sun = mk(
+        10,
+        "Dark Sun",
+        Some("Omicron's failing ember barely reaches this sector. Sensor returns are unreliable, and nobody polices what they can't see."),
+        1, 0.1, 0.6, 0.3, 0.3, 0.0, 0.0,
+    )?;
+    let ashfall = mk(11, "Ashfall", None, 1, 0.2, 0.3, 0.2, 0.4, 45.0, 20.0)?;
+
+    connect_sectors_with_warpgates(dsl, &dark_sun, &ashfall)?;
+
+    Ok(OmicronSectors { dark_sun, ashfall })
 }
 
 /// Stamps a station as the faction's capital — the spawn anchor for that

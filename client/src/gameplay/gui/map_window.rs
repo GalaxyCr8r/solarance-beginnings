@@ -130,8 +130,17 @@ impl State {
             // Pan the whole map by dragging anywhere on the canvas.
             self.pan += response.drag_delta();
 
-            // Collect sectors once; bail if the world hasn't loaded yet.
-            let sectors: Vec<Sector> = ctx.db().sector().iter().collect();
+            // Collect the *current system's* sectors only — the galaxy holds
+            // more than one system, and this is the system map. Cross-system
+            // gate edges drop out automatically (their far end never lands in
+            // `positions`); the details panel still lists them with a
+            // "[System] Sector" prefix. Bail if the world hasn't loaded yet.
+            let sectors: Vec<Sector> = ctx
+                .db()
+                .sector()
+                .iter()
+                .filter(|s| s.system_id == current_sector.system_id)
+                .collect();
             if sectors.is_empty() {
                 return;
             }
