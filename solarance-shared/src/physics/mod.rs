@@ -33,15 +33,15 @@
 
 use std::hash::Hasher;
 
-use spacetimedb::SpacetimeType;
-
 // ---------------------------------------------------------------------------
 // Data types
 // ---------------------------------------------------------------------------
 
-/// World-space 2D vector. Shared between server tables (via `SpacetimeType`)
-/// and client renderers — the single canonical position/heading type.
-#[derive(SpacetimeType, Clone, Copy, Debug, Default)]
+/// World-space 2D vector. Shared between server tables (via `SpacetimeType`,
+/// behind the `spacetimedb` feature) and client renderers — the single
+/// canonical position/heading type.
+#[cfg_attr(feature = "spacetimedb", derive(spacetimedb::SpacetimeType))]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct Vec2 {
     pub x: f32,
     pub y: f32,
@@ -127,7 +127,8 @@ impl From<Vec2> for glam::Vec2 {
 /// `angular_acceleration == 0` and `angular_velocity != 0`, ω bleeds toward
 /// zero at `max_turn_rate / 2` rad/s². To opt out (spin-forever objects),
 /// set `max_turn_rate = 0` (decel_rate becomes 0 and no event fires).
-#[derive(SpacetimeType, Clone, Copy, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "spacetimedb", derive(spacetimedb::SpacetimeType))]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct MovementState {
     /// World-space position at `last_update_time`.
     pub pos: Vec2,

@@ -15,4 +15,4 @@ spacetimedb = { version = "2.6.0" }
 spacetimedsl = "0.20.1"
 log = "0.4"
 glam = "0.30.2"
-solarance-shared = { path = "../solarance-shared" }
+solarance-shared = { path = "../solarance-shared", features = ["spacetimedb"] }
