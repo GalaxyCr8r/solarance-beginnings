@@ -51,18 +51,19 @@ fn demo_sectors(dsl: &DSL<'_, ReducerContext>) -> Result<(), String> {
     let iwa = FactionId::new(FACTION_INDEPENDENT_WORLDS_ALLIANCE);
 
     let procyon = create_procyon_star_system(dsl, &lrak)?;
-    let sectors = create_procyon_sectors(dsl, &procyon, &lrak, &rediar, &neutral)?;
+    let procyon_sectors = create_procyon_sectors(dsl, &procyon, &lrak, &rediar, &neutral)?;
 
-    setup_sector_connections(dsl, &sectors)?;
-    populate_sectors_with_asteroids(dsl, &sectors)?;
-    create_sector_stations(dsl, &sectors, &lrak, &rediar, &iwa)?;
-    place_sector_nebulae(dsl, &sectors)?;
+    setup_sector_connections(dsl, &procyon_sectors)?;
+    populate_sectors_with_asteroids(dsl, &procyon_sectors)?;
+    create_sector_stations(dsl, &procyon_sectors, &lrak, &rediar, &iwa)?;
+    place_sector_nebulae(dsl, &procyon_sectors)?;
 
     // Omicron — the second star system (#121). One cross-system gate out of
     // The Hinge exercises every multi-system code path (system-map filtering,
     // "[System] Sector" gate labels, cross-system travel).
-    let omicron = seed_omicron_system(dsl, &neutral)?;
-    connect_sectors_with_warpgates(dsl, &sectors.the_hinge, &omicron.dark_sun)?;
+    let omicron_sectors = seed_omicron_system(dsl, &neutral)?;
+    connect_sectors_with_warpgates(dsl, &procyon_sectors.the_hinge, &omicron_sectors.dark_sun)?;
+
     Ok(())
 }
 
@@ -528,14 +529,14 @@ fn seed_omicron_system(
         kind: StarSystemObjectKind::Star,
         orbit_au: 0.0,
         rotation_or_width_km: 0.0,
-        gfx_key: Some("star.1".to_string()),
+        gfx_key: Some("star.2".to_string()),
     });
     let _planet = dsl.create_star_system_object(CreateStarSystemObject {
         system_id: omicron.get_id(),
         kind: StarSystemObjectKind::Planet,
         orbit_au: 60.0,
         rotation_or_width_km: (210f32).to_radians(),
-        gfx_key: Some("planet.2".to_string()),
+        gfx_key: Some("planet.3".to_string()),
     });
     let _nebbelt = dsl.create_star_system_object(CreateStarSystemObject {
         system_id: omicron.get_id(),
