@@ -4,5 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-spacetimedb = "2.6.0"
+spacetimedb = { version = "2.6.0", optional = true }
 glam = "0.30.2"
+
+[features]
+# Enables the SpacetimeType derives so shared types can be stored in server
+# tables. Only the server module may enable this — the `spacetimedb` module
+# crate targets the WASM runtime and cannot link into native client builds.
+server = ["dep:spacetimedb"]
