@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use macroquad::{miniquad::date::now, prelude::glam};
 use spacetimedb_sdk::{DbContext, Identity, Table};
 
@@ -165,6 +167,18 @@ pub fn station_display_name(ctx: &DbConnection, station: &Station) -> String {
         Some(_) => format!("{} (Under Construction)", station.name),
         None => station.name.clone(),
     }
+}
+
+/// IDs of every sector containing at least one active (not yet operational)
+/// construction site. Domain query per the client architecture review §5 —
+/// the map window's build indicators read this instead of joining inline.
+pub fn sectors_with_active_construction(ctx: &DbConnection) -> HashSet<u64> {
+    ctx.db()
+        .station_under_construction()
+        .iter()
+        .filter(|uc| !uc.is_operational)
+        .filter_map(|uc| ctx.db().station().id().find(&uc.id).map(|s| s.sector_id))
+        .collect()
 }
 
 pub fn get_sector_name(ctx: &DbConnection, id: &u64) -> String {

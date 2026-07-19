@@ -29,7 +29,7 @@ impl Resources {
         info!("Loading textures...");
 
         resources.sun_textures.insert("star.1", load_linear_sprite("stars/star.png").await?);
-        //resources.sun_textures.insert("star.2", load_linear_sprite("stars/star02.png").await?);
+        resources.sun_textures.insert("star.2", load_linear_sprite("stars/star02.png").await?);
 
         resources.planet_textures.insert(
             "planet.1",
@@ -38,6 +38,10 @@ impl Resources {
         resources.planet_textures.insert(
             "planet.2",
             load_linear_sprite("planets/GasGiant1.png").await?
+        );
+        resources.planet_textures.insert(
+            "planet.3",
+            load_linear_sprite("planets/desertplanet2.png").await?
         );
         resources.planet_textures.insert(
             "planet.shadow.1",
