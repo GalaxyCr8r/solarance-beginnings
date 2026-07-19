@@ -1,4 +1,4 @@
-use log::warn;
+use log::{warn, info};
 use spacetimedsl::*;
 
 use crate::{ships::*, stellarobjects::*};
@@ -13,8 +13,10 @@ const IS_SERVER_OR_OWNER_ERROR: &str =
 /// Checks if the context sender is the server. ONLY for spacetimedb reducer functions!
 pub fn try_server_only<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     let sender = dsl.ctx().sender()?.to_string();
+    info!("Sender: {}", sender);
     if sender.contains("c2009ba0980240569a0be51")
         || sender.contains("c20029638c4f24cb63494c49b28b533e")
+        || sender.contains("c200bd933b6c70cefa975a42ae0b")
         || sender.contains("c2001b668b8b961618fb1271998d5be0789eff815e5e82b69cd146ef0370be66")
     {
         return Ok(());
