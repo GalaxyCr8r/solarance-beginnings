@@ -114,9 +114,9 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
             "SELECT * FROM my_direct_server_messages",
             "SELECT * FROM faction",
             "SELECT * FROM faction_standing",
-            // Public game config; the client reads `version` for the login-time
-            // version-mismatch check (see login.rs `confirm_version_match`).
-            "SELECT * FROM global_config",
+            // Anonymous view over GlobalConfig (3 public columns only); the client
+            // reads `version` for the login-time version-mismatch check (login.rs).
+            "SELECT * FROM public_global_config",
             "SELECT * FROM item_definition",
             cargo_crate.as_str(),
             "SELECT * FROM jump_gate",

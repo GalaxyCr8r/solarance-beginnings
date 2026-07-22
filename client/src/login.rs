@@ -425,19 +425,19 @@ pub async fn loading_screen(token: Option<String>) -> Option<DbConnection> {
     return connection;
 }
 
-/// Compares this binary's version against the server's (written to the
-/// `global_config` table at init) and, on mismatch, asks the player whether to
+/// Compares this binary's version against the server's (exposed via the
+/// `public_global_config` view) and, on mismatch, asks the player whether to
 /// continue. Returns `true` to proceed into the game, `false` to abort to the menu.
 ///
-/// The `global_config` row arrives via subscription shortly after connect, so we
-/// poll a few seconds for it; if it never shows we proceed rather than block the
-/// player on a check we can't complete.
+/// The view row arrives via subscription shortly after connect, so we poll a few
+/// seconds for it; if it never shows we proceed rather than block the player on a
+/// check we can't complete.
 async fn confirm_version_match(connection: &DbConnection) -> bool {
     let client_version = env!("CARGO_PKG_VERSION");
 
     let deadline = get_time() + 5.0;
     let server_version = loop {
-        if let Some(config) = connection.db().global_config().iter().next() {
+        if let Some(config) = connection.db().public_global_config().iter().next() {
             break Some(config.version);
         }
         if get_time() > deadline {
