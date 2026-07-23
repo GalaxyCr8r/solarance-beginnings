@@ -731,8 +731,8 @@ spacetime logs <module-name>
 ## Imports
 
 ```rust
-use spacetimedsl::*;        // Always — pulls in DSL, dsl(), WriteContext, etc.
-use spacetimedb::*;         // For ReducerContext, ScheduleAt, etc.
+use crate::spacetimedsl::prelude::*;        // Always — pulls in DSL, dsl(), WriteContext, etc.
+use spacetimedb::*;                         // For ReducerContext, ScheduleAt, etc.
 ```
 
 ---
