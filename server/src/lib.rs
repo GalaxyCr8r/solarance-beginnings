@@ -8,3 +8,5 @@ pub mod tables;
 pub mod utility;
 
 pub mod lifecycle;
+
+::spacetimedsl::spacetimedsl!();
