@@ -3,6 +3,7 @@ use crate::{
     tables::{items::*, messages::*, ships::*, stations::*},
     utility::is_server_or_ship_owner,
 };
+use crate::spacetimedsl::prelude::*;
 use spacetimedb::{log::info, ReducerContext};
 
 ///////////////////////////////////////////////////////////
