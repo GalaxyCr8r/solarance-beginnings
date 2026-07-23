@@ -1,6 +1,6 @@
 use log::info;
 use spacetimedb::ReducerContext;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::{
     logic::{

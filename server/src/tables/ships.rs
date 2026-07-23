@@ -1,6 +1,6 @@
 use log::info;
 use spacetimedb::{table, Identity, SpacetimeType};
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use solarance_shared::{MovementState, Vec2};
 
@@ -44,7 +44,7 @@ pub enum EquipmentSlotType {
     CargoExpansion,
 }
 
-#[dsl(plural_name = ship_type_definitions, method(update = true))] // One could argue that this should be false. idk atm - Karl
+#[spacetimedsl::dsl(plural_name = ship_type_definitions, method(update = true))] // One could argue that this should be false. idk atm - Karl
 #[table(accessor = ship_type_definition, public)]
 pub struct ShipTypeDefinition {
     #[primary_key] // NOT Auto-inc so it can be reloaded as-is
@@ -113,7 +113,7 @@ impl ShipTypeDefinition {
     }
 }
 
-#[dsl(plural_name = ship_statuses, method(update = true))]
+#[spacetimedsl::dsl(plural_name = ship_statuses, method(update = true))]
 #[table(accessor = ship_status, public)]
 /// The status of a ship agnostic of where it is physically.
 pub struct ShipStatus {
@@ -177,7 +177,7 @@ impl ShipStatus {
     }
 }
 
-#[dsl(plural_name = ship_movement_controllers, method(update = true))]
+#[spacetimedsl::dsl(plural_name = ship_movement_controllers, method(update = true))]
 #[table(accessor = ship_movement_controller, public)]
 /// Input-state mirror for a player's ship. The dead-reckoning rewrite
 /// narrowed this row's role: it only feeds the no-op early-return inside
@@ -195,7 +195,7 @@ pub struct ShipMovementController {
     pub right: bool,
 }
 
-#[dsl(plural_name = ships, method(update = true))]
+#[spacetimedsl::dsl(plural_name = ships, method(update = true))]
 #[table(accessor = ship, public)]
 pub struct Ship {
     #[primary_key]
@@ -249,7 +249,7 @@ pub struct Ship {
     pub movement: MovementState,
 }
 
-#[dsl(plural_name = ship_cargo_items, method(update = true))]
+#[spacetimedsl::dsl(plural_name = ship_cargo_items, method(update = true))]
 #[table(accessor = ship_cargo_item, public)]
 pub struct ShipCargoItem {
     #[primary_key]
@@ -273,7 +273,7 @@ pub struct ShipCargoItem {
                        //pub stack_size: u8, // TODO: Do we keep this value here to save query time?
 }
 
-#[dsl(plural_name = ship_equipment_slots, method(update = true))]
+#[spacetimedsl::dsl(plural_name = ship_equipment_slots, method(update = true))]
 #[table(accessor = ship_equipment_slot, public)]
 pub struct ShipEquipmentSlot {
     #[primary_key]

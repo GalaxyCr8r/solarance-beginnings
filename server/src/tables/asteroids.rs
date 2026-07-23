@@ -1,12 +1,12 @@
 use log::info;
 use solarance_shared::Vec2;
 use spacetimedb::table;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::logic::stellarobjects::stellar_object_creation::create_sobj;
 use crate::tables::{items::ItemDefinitionId, sectors::SectorId, stellarobjects::*};
 
-#[dsl(plural_name = asteroids, method(update = true))]
+#[spacetimedsl::dsl(plural_name = asteroids, method(update = true))]
 #[table(accessor = asteroid, public)]
 pub struct Asteroid {
     #[primary_key]

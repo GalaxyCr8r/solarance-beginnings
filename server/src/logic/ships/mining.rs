@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use log::{info, warn};
 use spacetimedb::*;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::{
     logic::ships::add_cargo_timer::*,
@@ -16,7 +16,7 @@ use crate::{
 /// drift away while extraction continues.
 pub const MINING_RANGE: f32 = 300.0;
 
-#[dsl(plural_name = ship_mining_timers, method(update = true))]
+#[spacetimedsl::dsl(plural_name = ship_mining_timers, method(update = true))]
 #[spacetimedb::table(accessor = ship_mining_timer, scheduled(ship_mining_timer_reducer))]
 pub struct ShipMiningTimer {
     #[primary_key]

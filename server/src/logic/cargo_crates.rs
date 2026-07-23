@@ -1,6 +1,6 @@
 use log::info;
 use spacetimedb::*;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::{
     logic::ships::add_cargo_timer::*,
@@ -54,7 +54,7 @@ pub fn attempt_to_pickup_cargo_crate<T: spacetimedsl::WriteContext>(
 
 /// Periodic sweeper that removes expired cargo crates. Replaces the per-crate
 /// despawn check that used to ride on the (now-removed) 20 Hz transform tick.
-#[dsl(plural_name = cargo_crate_despawn_sweeper_timers, method(update = false))]
+#[spacetimedsl::dsl(plural_name = cargo_crate_despawn_sweeper_timers, method(update = false))]
 #[spacetimedb::table(
     accessor = cargo_crate_despawn_sweeper_timer,
     scheduled(cargo_crate_despawn_sweeper)

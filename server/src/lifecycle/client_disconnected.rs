@@ -1,5 +1,5 @@
 use spacetimedb::*;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::tables::{global_config::*, players::*};
 

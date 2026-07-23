@@ -1,5 +1,5 @@
 use spacetimedb::ReducerContext;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::{
     logic::stellarobjects::movement::write_ship_movement_snapshot,

@@ -1,7 +1,7 @@
 use log::info;
 use solarance_shared::physics::predict_movement;
 use spacetimedb::*;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::{physics::*, sectors::observe_all_public_sectors, tables::*};
 

@@ -14,7 +14,7 @@ Rough draft of timings/tiers:
 use std::time::Duration;
 
 use log::info;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::{
     logic::{cargo_crates::*, factions::*, sectors::*},

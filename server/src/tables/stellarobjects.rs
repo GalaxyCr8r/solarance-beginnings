@@ -1,5 +1,5 @@
 use spacetimedb::{table, SpacetimeType};
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 /// What kind of stellar object it is. OBE with the advent of asteroid/ship/station tables?
 #[derive(SpacetimeType, Debug, Clone, Copy, PartialEq, Eq, PartialOrd)]
@@ -17,7 +17,7 @@ pub enum StellarObjectKinds {
 /// and sector — position/rotation live on the per-kind tables
 /// (`Ship.movement`, `CargoCrate.movement`, `Asteroid.position`,
 /// `Station.position`/`rotation`, `JumpGate.position`/`rotation`).
-#[dsl(plural_name = stellar_objects, method(update = true))]
+#[spacetimedsl::dsl(plural_name = stellar_objects, method(update = true))]
 #[table(accessor = stellar_object, public)]
 pub struct StellarObject {
     #[primary_key]

@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 
 use solarance_shared::Vec2;
 use spacetimedb::ReducerContext;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::logic::stellarobjects::stellar_object_creation::create_sobj;
 use crate::tables::{

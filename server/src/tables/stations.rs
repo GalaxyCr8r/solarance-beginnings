@@ -75,7 +75,7 @@ pub enum StationModuleSpecificType {
 /////////////////////////////////////
 // Tables
 
-#[dsl(plural_name = station_module_blueprints, method(update = true))]
+#[spacetimedsl::dsl(plural_name = station_module_blueprints, method(update = true))]
 #[table(accessor = station_module_blueprint, public)]
 pub struct StationModuleBlueprint {
     #[primary_key]
@@ -110,7 +110,7 @@ pub struct StationModuleBlueprint {
     pub operational_hp: u32,  // Max HP when fully built
 }
 
-#[dsl(plural_name = station_modules, method(update = true))]
+#[spacetimedsl::dsl(plural_name = station_modules, method(update = true))]
 #[table(accessor = station_module, public)]
 pub struct StationModule {
     #[primary_key]
@@ -138,7 +138,7 @@ pub struct StationModule {
     pub last_status_update_timestamp: Timestamp,
 }
 
-#[dsl(plural_name = stations_under_construction, method(update = true))]
+#[spacetimedsl::dsl(plural_name = stations_under_construction, method(update = true))]
 #[table(accessor = station_under_construction, public)]
 pub struct StationUnderConstruction {
     #[primary_key]
@@ -155,7 +155,7 @@ pub struct StationUnderConstruction {
 /// Together these rows define the "spec" — the pure progress engine compares
 /// this spec against the rows in `construction_contribution_log` to derive
 /// the percentage stored on `StationUnderConstruction`.
-#[dsl(plural_name = construction_requirements, method(update = true))]
+#[spacetimedsl::dsl(plural_name = construction_requirements, method(update = true))]
 #[table(accessor = construction_requirement, public)]
 pub struct ConstructionRequirement {
     #[primary_key]
@@ -181,7 +181,7 @@ pub struct ConstructionRequirement {
 
 /// Append-only log of every contribution event. Source of truth for both
 /// real-time progress recomputation and the welcome-back screen query (#82b).
-#[dsl(plural_name = construction_contribution_logs, method(update = false))]
+#[spacetimedsl::dsl(plural_name = construction_contribution_logs, method(update = false))]
 #[table(accessor = construction_contribution_log, public)]
 pub struct ConstructionContributionLog {
     #[primary_key]
@@ -213,7 +213,7 @@ pub struct ConstructionContributionLog {
     contributed_at: Timestamp,
 }
 
-#[dsl(plural_name = station_modules_under_construction, method(update = true))]
+#[spacetimedsl::dsl(plural_name = station_modules_under_construction, method(update = true))]
 #[table(accessor = station_module_under_construction, public)]
 pub struct StationModuleUnderConstruction {
     #[primary_key]
@@ -227,7 +227,7 @@ pub struct StationModuleUnderConstruction {
 }
 
 /// Stores items used for a module's operation or as temporary input/output buffers.
-#[dsl(plural_name = station_module_inventory_items, method(update = true))]
+#[spacetimedsl::dsl(plural_name = station_module_inventory_items, method(update = true))]
 #[table(accessor = station_module_inventory_item, public)]
 pub struct StationModuleInventoryItem {
     #[primary_key]
@@ -257,7 +257,7 @@ pub struct StationModuleInventoryItem {
     pub cached_price: u32,
 }
 
-#[dsl(plural_name = stations, method(update = true))]
+#[spacetimedsl::dsl(plural_name = stations, method(update = true))]
 #[table(accessor = station, public)]
 pub struct Station {
     #[primary_key]
@@ -305,7 +305,7 @@ pub struct Station {
     pub rotation: f32,
 }
 
-#[dsl(plural_name = station_statuses, method(update = true))]
+#[spacetimedsl::dsl(plural_name = station_statuses, method(update = true))]
 #[table(accessor = station_status, public)]
 pub struct StationStatus {
     #[primary_key]

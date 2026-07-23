@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use log::info;
 use spacetimedb::*;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::{
     logic::ships::cargo::attempt_to_load_cargo_into_ship,
@@ -11,7 +11,7 @@ use crate::{
 };
 
 /// Adds a cargo item to a ship's cargo after a delay. If there isn't room, it creates a cargo crate instead.
-#[dsl(plural_name = ship_add_cargo_timers, method(update = false))]
+#[spacetimedsl::dsl(plural_name = ship_add_cargo_timers, method(update = false))]
 #[spacetimedb::table(accessor = ship_add_cargo_timer, scheduled(ship_add_cargo_timer_reducer))]
 pub struct ShipAddCargoTimer {
     #[primary_key]

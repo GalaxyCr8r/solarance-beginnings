@@ -28,8 +28,8 @@
 //! `last_login` and treats it as the welcome-back. That's the message this
 //! function emits exactly once per connect.
 
+use crate::spacetimedsl::prelude::*;
 use spacetimedb::Timestamp;
-use spacetimedsl::*;
 
 // Glob-import the table modules whose generated DSL extension traits we call —
 // the per-table `Get*` traits must be in scope, not just the row/ID types.

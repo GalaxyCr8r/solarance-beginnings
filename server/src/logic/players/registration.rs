@@ -1,5 +1,5 @@
 use spacetimedb::{Identity, ReducerContext, log};
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::definitions::factions::FACTION_FACTIONLESS;
 use crate::tables::{

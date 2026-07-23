@@ -1,5 +1,5 @@
 use spacetimedb::table;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::tables::sectors::*;
 use crate::tables::stations::*;
@@ -19,7 +19,7 @@ pub const MODULE_SOLAR_ARRAY_MEDIUM: u32 = 7_001;
 pub const MODULE_SOLAR_ARRAY_LARGE: u32 = 7_002;
 pub const MODULE_SOLAR_ARRAY_INDUSTRIAL: u32 = 7_003;
 
-#[dsl(plural_name = solar_array_modules, method(update = true))]
+#[spacetimedsl::dsl(plural_name = solar_array_modules, method(update = true))]
 #[table(accessor = solar_array_module, public)]
 pub struct SolarArray {
     #[primary_key]
