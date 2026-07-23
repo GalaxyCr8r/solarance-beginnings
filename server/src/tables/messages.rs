@@ -20,17 +20,11 @@
 //! no natural key, so it carries a constant indexed `galaxy_id` (always `0`)
 //! that the view filters on, plus an in-body "is the caller a player?" gate.
 
+use crate::spacetimedsl::prelude::*;
 use spacetimedb::{table, view, Identity, SpacetimeType, Timestamp, ViewContext};
-use spacetimedsl::*;
 
-// Glob-import the per-table DSL extension traits the view bodies need
-// (`get_player_by_id`, `get_ships_by_player_id`, `get_sector_by_id`, …).
 use crate::tables::{
-    factions::FactionId,
-    players::{PlayerId, *},
-    sectors::{SectorId, *},
-    ships::*,
-    star_system::StarSystemId,
+    factions::FactionId, players::PlayerId, sectors::SectorId, star_system::StarSystemId,
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -71,7 +65,7 @@ pub enum MessageSeverity {
 /// **Public** table — readable by anyone connected (including not-logged-in
 /// and banned identities), and is the only message table safe to surface
 /// outside the game client (e.g. a website status page).
-#[dsl(plural_name = server_channel_messages, method(update = false))]
+#[spacetimedsl::dsl(plural_name = server_channel_messages, method(update = false))]
 #[table(accessor = server_channel_message, public)]
 pub struct ServerChannelMessage {
     #[primary_key]
@@ -87,7 +81,7 @@ pub struct ServerChannelMessage {
 /// `galaxy_id` is a constant (`0`) indexed column whose only job is to keep
 /// the view legal under the "no full scan" rule — single-galaxy MVP, but the
 /// column is real domain shape so it survives the eventual multi-galaxy add.
-#[dsl(plural_name = galaxy_channel_messages, method(update = false))]
+#[spacetimedsl::dsl(plural_name = galaxy_channel_messages, method(update = false))]
 #[table(accessor = galaxy_channel_message)]
 pub struct GalaxyChannelMessage {
     #[primary_key]
@@ -106,7 +100,7 @@ pub struct GalaxyChannelMessage {
 /// Scoped to one StarSystem. Audience: players whose Ship is in a Sector of
 /// that StarSystem. In MVP one StarSystem exists, so this is effectively
 /// galaxy-wide today; correctly scopes when system #2 ships.
-#[dsl(plural_name = star_system_channel_messages, method(update = false))]
+#[spacetimedsl::dsl(plural_name = star_system_channel_messages, method(update = false))]
 #[table(accessor = star_system_channel_message)]
 pub struct StarSystemChannelMessage {
     #[primary_key]
@@ -125,7 +119,7 @@ pub struct StarSystemChannelMessage {
 }
 
 /// Scoped to one Sector. Audience: players whose Ship is in that Sector.
-#[dsl(plural_name = sector_channel_messages, method(update = false))]
+#[spacetimedsl::dsl(plural_name = sector_channel_messages, method(update = false))]
 #[table(accessor = sector_channel_message)]
 pub struct SectorChannelMessage {
     #[primary_key]
@@ -144,7 +138,7 @@ pub struct SectorChannelMessage {
 }
 
 /// Scoped to one Faction. Audience: players of that Faction.
-#[dsl(plural_name = faction_channel_messages, method(update = false))]
+#[spacetimedsl::dsl(plural_name = faction_channel_messages, method(update = false))]
 #[table(accessor = faction_channel_message)]
 pub struct FactionChannelMessage {
     #[primary_key]
@@ -173,7 +167,7 @@ pub struct FactionChannelMessage {
 /// **Read state is *not* stored here.** A message is "unread" if its
 /// `created_at` is later than the player's `last_login`; the client highlights
 /// those and clears the highlight when the player next sends a chat message.
-#[dsl(plural_name = direct_server_messages, method(update = false))]
+#[spacetimedsl::dsl(plural_name = direct_server_messages, method(update = false))]
 #[table(accessor = direct_server_message)]
 pub struct DirectServerMessage {
     #[primary_key]
@@ -214,7 +208,7 @@ pub fn my_direct_server_messages(ctx: &ViewContext) -> Vec<DirectServerMessage> 
 /// Non-players (not-logged-in / banned) get `vec![]`.
 #[view(accessor = my_galaxy_chat, public)]
 pub fn my_galaxy_chat(ctx: &ViewContext) -> Vec<GalaxyChannelMessage> {
-    let dsl = spacetimedsl::read_only_dsl(ctx);
+    let dsl = read_only_dsl(ctx);
     if dsl.get_player_by_id(PlayerId::new(ctx.sender())).is_err() {
         return Vec::new();
     }
@@ -229,7 +223,7 @@ pub fn my_galaxy_chat(ctx: &ViewContext) -> Vec<GalaxyChannelMessage> {
 /// ship's sector). No ship → no view contents.
 #[view(accessor = my_star_system_chat, public)]
 pub fn my_star_system_chat(ctx: &ViewContext) -> Vec<StarSystemChannelMessage> {
-    let dsl = spacetimedsl::read_only_dsl(ctx);
+    let dsl = read_only_dsl(ctx);
     let ship = match dsl
         .get_ships_by_player_id(&PlayerId::new(ctx.sender()))
         .next()
@@ -252,7 +246,7 @@ pub fn my_star_system_chat(ctx: &ViewContext) -> Vec<StarSystemChannelMessage> {
 /// Sector chat for the caller's *current* Sector (derived via their ship).
 #[view(accessor = my_sector_chat, public)]
 pub fn my_sector_chat(ctx: &ViewContext) -> Vec<SectorChannelMessage> {
-    let dsl = spacetimedsl::read_only_dsl(ctx);
+    let dsl = read_only_dsl(ctx);
     let ship = match dsl
         .get_ships_by_player_id(&PlayerId::new(ctx.sender()))
         .next()
@@ -271,7 +265,7 @@ pub fn my_sector_chat(ctx: &ViewContext) -> Vec<SectorChannelMessage> {
 /// Faction chat for the caller's Faction.
 #[view(accessor = my_faction_chat, public)]
 pub fn my_faction_chat(ctx: &ViewContext) -> Vec<FactionChannelMessage> {
-    let dsl = spacetimedsl::read_only_dsl(ctx);
+    let dsl = read_only_dsl(ctx);
     let player = match dsl.get_player_by_id(PlayerId::new(ctx.sender())) {
         Ok(p) => p,
         Err(_) => return Vec::new(),

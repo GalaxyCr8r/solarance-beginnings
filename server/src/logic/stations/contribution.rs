@@ -1,5 +1,5 @@
 use spacetimedb::ReducerContext;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::{
     logic::ships::cargo::remove_cargo_from_ship,
@@ -14,7 +14,6 @@ use crate::{
         },
         players::*,
         sectors::Sector,
-        ships::*,
         stations::*,
         stellarobjects::StellarObject,
     },

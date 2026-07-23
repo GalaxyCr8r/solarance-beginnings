@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use log::info;
 use spacetimedb::{ReducerContext, Timestamp};
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::{
     tables::{factions::*, stations::*},
@@ -13,7 +13,7 @@ use crate::{
 /// Timers
 
 /// Timer for periodic faction station checks - runs every 4 hours
-#[dsl(plural_name = faction_station_check_timers, method(update = true))]
+#[spacetimedsl::dsl(plural_name = faction_station_check_timers, method(update = true))]
 #[spacetimedb::table(
     accessor = faction_station_check_timer,
     scheduled(faction_station_check_timer_reducer)
@@ -35,7 +35,7 @@ pub struct FactionStationCheckTimer {
 }
 
 /// Overall faction management timer - runs every 12 hours to maintain faction timers
-#[dsl(plural_name = faction_management_timers, method(update = true))]
+#[spacetimedsl::dsl(plural_name = faction_management_timers, method(update = true))]
 #[spacetimedb::table(accessor = faction_management_timer, scheduled(faction_management_timer_reducer))]
 pub struct FactionManagementTimer {
     #[primary_key]

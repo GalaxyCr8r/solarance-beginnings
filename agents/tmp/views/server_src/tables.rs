@@ -1,5 +1,5 @@
 use spacetimedb::*;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::physics;
 
@@ -23,7 +23,7 @@ impl VisitedStatus {
     }
 }
 
-#[dsl(plural_name = ship_configs, method(update = false, delete = true))]
+#[spacetimedsl::dsl(plural_name = ship_configs, method(update = false, delete = true))]
 #[table(accessor = ship_config, public)]
 pub struct ShipConfig {
     #[primary_key]
@@ -36,7 +36,7 @@ pub struct ShipConfig {
     max_angular_acceleration: f32, // radians per second²
 }
 
-#[dsl(plural_name = space_ships, method(update = true, delete = true))]
+#[spacetimedsl::dsl(plural_name = space_ships, method(update = true, delete = true))]
 #[table(accessor = space_ship)]
 pub struct SpaceShip {
     #[primary_key]
@@ -63,7 +63,7 @@ pub struct SpaceShip {
     pub last_fired: spacetimedb::Timestamp,
 }
 
-#[dsl(plural_name = bullets, method(update = true, delete = true))]
+#[spacetimedsl::dsl(plural_name = bullets, method(update = true, delete = true))]
 #[table(accessor = bullet)]
 pub struct Bullet {
     #[primary_key]
@@ -87,7 +87,7 @@ pub struct Bullet {
     created_at: spacetimedb::Timestamp,
 }
 
-#[dsl(plural_name = systems, method(update = false, delete = true))]
+#[spacetimedsl::dsl(plural_name = systems, method(update = false, delete = true))]
 #[table(accessor = system)]
 pub struct System {
     #[primary_key]
@@ -97,7 +97,7 @@ pub struct System {
     name: String,
 }
 
-#[dsl(plural_name = sectors, method(update = true, delete = true), unique_index(name = position))]
+#[spacetimedsl::dsl(plural_name = sectors, method(update = true, delete = true), unique_index(name = position))]
 #[table(accessor = sector, index(accessor = position, btree(columns=[x,y])))]
 pub struct Sector {
     #[primary_key]
@@ -117,7 +117,7 @@ pub struct Sector {
 }
 
 /// Tracks where a player's ship is currently located.
-#[dsl(plural_name = player_states, method(update = true, delete = true))]
+#[spacetimedsl::dsl(plural_name = player_states, method(update = true, delete = true))]
 #[table(accessor = player_state)]
 pub struct PlayerState {
     #[primary_key]
@@ -136,7 +136,7 @@ pub struct PlayerState {
 }
 
 /// Private relationship table: Who has visited which system.
-#[dsl(plural_name = visited_systems, method(update = true, delete = false))]
+#[spacetimedsl::dsl(plural_name = visited_systems, method(update = true, delete = false))]
 #[table(accessor = visited_system)]
 pub struct VisitedSystem {
     #[primary_key]
@@ -150,7 +150,7 @@ pub struct VisitedSystem {
 }
 
 /// Private relationship table: Who has visited which specific sector.
-#[dsl(plural_name = visited_sectors, method(update = true, delete = false))]
+#[spacetimedsl::dsl(plural_name = visited_sectors, method(update = true, delete = false))]
 #[table(accessor = visited_sector)]
 pub struct VisitedSector {
     #[primary_key]
@@ -172,7 +172,7 @@ pub enum EventType {
 }
 
 /// A short-lived event used to broadcast visual effects to players in a sector.
-#[dsl(plural_name = damage_events, method(update = true, delete = false))]
+#[spacetimedsl::dsl(plural_name = damage_events, method(update = true, delete = false))]
 #[table(accessor = damage_event, public, event)]
 pub struct DamageEvent {
     #[primary_key]

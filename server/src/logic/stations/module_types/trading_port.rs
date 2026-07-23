@@ -1,12 +1,12 @@
 use spacetimedb::*;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::definitions::item_types::*;
 use crate::definitions::station_module_types::*;
 use crate::tables::items::*;
 use crate::tables::stations::*;
 
-#[dsl(plural_name = trading_port_modules, method(update = true))]
+#[spacetimedsl::dsl(plural_name = trading_port_modules, method(update = true))]
 #[table(accessor = trading_port_module, public)]
 pub struct TradingPort {
     #[primary_key]
@@ -20,7 +20,7 @@ pub struct TradingPort {
 
 /// Represents items the Trading Port module is actively buying or selling.
 /// This is distinct from general market orders placed by players at a station.
-#[dsl(plural_name = trading_port_listings, method(update = true))]
+#[spacetimedsl::dsl(plural_name = trading_port_listings, method(update = true))]
 #[table(accessor = trading_port_listing, public)]
 pub struct TradingPortListing {
     #[primary_key]

@@ -10,7 +10,7 @@ use crate::tables::sectors::SectorId;
 use crate::tables::stellarobjects::*;
 use crate::utility::try_server_only;
 use spacetimedb::ReducerContext;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 /// Creates a stellar object with no position payload. The caller is
 /// responsible for populating the per-kind position field on the

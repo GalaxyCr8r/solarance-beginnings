@@ -1,7 +1,7 @@
 use std::u8;
 
 use log::info;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::{
     definitions::item_types::*,

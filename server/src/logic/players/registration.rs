@@ -1,5 +1,5 @@
 use spacetimedb::{Identity, ReducerContext, log};
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::definitions::factions::FACTION_FACTIONLESS;
 use crate::tables::{
@@ -7,7 +7,6 @@ use crate::tables::{
     messages::{post_faction_channel, MessageSender},
 };
 
-use crate::players::*;
 use crate::tables::players::{CreatePlayer, PlayerId};
 
 //////////////////////////////////////////////////////////////

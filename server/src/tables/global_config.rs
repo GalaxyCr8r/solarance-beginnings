@@ -1,7 +1,7 @@
 use spacetimedb::{table, Timestamp};
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
-#[dsl(plural_name = global_configurations, method(update = true))]
+#[spacetimedsl::dsl(plural_name = global_configurations, method(update = true))]
 #[table(accessor = global_config)]
 pub struct GlobalConfig {
     #[primary_key]

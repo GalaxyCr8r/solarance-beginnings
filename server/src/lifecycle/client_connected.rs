@@ -1,13 +1,13 @@
 use spacetimedb::*;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::logic::players::welcome_back::send_welcome_back_message;
-use crate::tables::{global_config::*, players::*};
+use crate::tables::players::*;
 
 #[spacetimedb::reducer(client_connected)]
 pub fn identity_connected(ctx: &ReducerContext) -> Result<(), String> {
     let dsl = dsl(ctx);
-    // Called everytime a new client connects
+    // Called every time a new client connects
 
     // TODO: When someone logs in set their player to online
 

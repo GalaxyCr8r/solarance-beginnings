@@ -1,7 +1,7 @@
 use std::f32::consts::PI;
 
 use log::info;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::tables::ships::*;
 

@@ -1,11 +1,11 @@
 use std::time::Duration;
 
 use spacetimedb::*;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::{tables::ships::*, utility::try_server_only};
 
-#[dsl(plural_name = ship_status_timers, method(update = false))]
+#[spacetimedsl::dsl(plural_name = ship_status_timers, method(update = false))]
 #[spacetimedb::table(accessor = ship_status_timer, scheduled(ship_status_timer_reducer))]
 pub struct ShipStatusTimer {
     #[primary_key]

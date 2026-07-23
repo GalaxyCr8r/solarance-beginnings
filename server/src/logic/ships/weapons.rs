@@ -1,12 +1,12 @@
 
 use log::info;
 use spacetimedb::{reducer, ReducerContext};
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::{
     logic::combat::actions::*,
     tables::{
-        players::*, ships::*,
+        players::*,
         stellarobjects::*,
     },
 };

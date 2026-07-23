@@ -1,9 +1,9 @@
 use spacetimedb::table;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use solarance_shared::Vec2;
 
-#[dsl(plural_name = jump_gates, method(update = true))]
+#[spacetimedsl::dsl(plural_name = jump_gates, method(update = true))]
 #[table(accessor = jump_gate, public)]
 pub struct JumpGate {
     #[primary_key]

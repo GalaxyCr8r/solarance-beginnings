@@ -2,12 +2,11 @@ use std::str::FromStr;
 
 use log::info;
 use spacetimedb::{Identity, ReducerContext};
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::logic::ships::cargo::attempt_to_load_cargo_into_ship;
 use crate::tables::items::*;
 use crate::tables::players::{get_player_ship_and_sobj, PlayerId};
-use crate::tables::ships::*;
 use crate::utility::try_server_only;
 
 /// Admin/seed reducer for M1 spike testing: spawn `quantity` units of

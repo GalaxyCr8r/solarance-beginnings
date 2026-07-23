@@ -12,10 +12,10 @@
 //! `CargoCrate.movement`. The Phase 6 audit confirms no caller bypasses them.
 
 use solarance_shared::{predict_movement, MovementState, Vec2};
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::tables::{
-    asteroids::*, global_config::*, items::*, jumpgates::*, sectors::*, ships::*, stations::*,
+    global_config::*, items::*, sectors::*, ships::*,
     stellarobjects::*,
 };
 

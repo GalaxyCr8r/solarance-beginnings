@@ -28,14 +28,10 @@
 //! `last_login` and treats it as the welcome-back. That's the message this
 //! function emits exactly once per connect.
 
+use crate::spacetimedsl::prelude::*;
 use spacetimedb::Timestamp;
-use spacetimedsl::*;
 
-// Glob-import the table modules whose generated DSL extension traits we call —
-// the per-table `Get*` traits must be in scope, not just the row/ID types.
-use crate::tables::{
-    items::*, messages::send_direct_server_info, players::Player, sectors::GetSectorRowOptionById, ships::*, stations::*
-};
+use crate::tables::{items::ItemDefinitionId, messages::send_direct_server_info, players::Player};
 
 /// Compose and deliver the welcome-back `DirectServerMessage` for `player`.
 ///

@@ -1,5 +1,5 @@
 use spacetimedb::{table, SpacetimeType};
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::tables::{sectors::*, ships::*, stations::*};
 
@@ -19,7 +19,7 @@ pub enum FactionTier {
     Squad, // e.g., local corporation, pirate clan
 }
 
-#[dsl(plural_name = factions, method(update = true))]
+#[spacetimedsl::dsl(plural_name = factions, method(update = true))]
 #[table(accessor = faction, public)]
 pub struct Faction {
     #[primary_key]
@@ -53,7 +53,7 @@ pub struct Faction {
     // Other faction-specific data like relations, home sector, etc.
 }
 
-#[dsl(plural_name = faction_standings, method(update = true))]
+#[spacetimedsl::dsl(plural_name = faction_standings, method(update = true))]
 #[table(accessor = faction_standing, public)]
 pub struct FactionStanding {
     #[primary_key]
@@ -81,7 +81,7 @@ pub struct FactionStanding {
 
 // We are ignoring player-level faction standings at the moment.
 
-// #[dsl(plural_name = player_faction_standings, method(update = true))]
+// #[spacetimedsl::dsl(plural_name = player_faction_standings, method(update = true))]
 // #[table(accessor = player_faction_standing, public)]
 // pub struct PlayerFactionStanding {
 //     #[primary_key]

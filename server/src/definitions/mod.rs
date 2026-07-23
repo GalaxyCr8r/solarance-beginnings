@@ -1,5 +1,5 @@
 use spacetimedb::ReducerContext;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 pub mod factions;
 pub mod galaxy;
