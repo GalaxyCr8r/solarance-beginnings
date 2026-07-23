@@ -214,7 +214,7 @@ pub fn my_direct_server_messages(ctx: &ViewContext) -> Vec<DirectServerMessage> 
 /// Non-players (not-logged-in / banned) get `vec![]`.
 #[view(accessor = my_galaxy_chat, public)]
 pub fn my_galaxy_chat(ctx: &ViewContext) -> Vec<GalaxyChannelMessage> {
-    let dsl = spacetimedsl::read_only_dsl(ctx);
+    let dsl = read_only_dsl(ctx);
     if dsl.get_player_by_id(PlayerId::new(ctx.sender())).is_err() {
         return Vec::new();
     }
@@ -229,7 +229,7 @@ pub fn my_galaxy_chat(ctx: &ViewContext) -> Vec<GalaxyChannelMessage> {
 /// ship's sector). No ship → no view contents.
 #[view(accessor = my_star_system_chat, public)]
 pub fn my_star_system_chat(ctx: &ViewContext) -> Vec<StarSystemChannelMessage> {
-    let dsl = spacetimedsl::read_only_dsl(ctx);
+    let dsl = read_only_dsl(ctx);
     let ship = match dsl
         .get_ships_by_player_id(&PlayerId::new(ctx.sender()))
         .next()
@@ -252,7 +252,7 @@ pub fn my_star_system_chat(ctx: &ViewContext) -> Vec<StarSystemChannelMessage> {
 /// Sector chat for the caller's *current* Sector (derived via their ship).
 #[view(accessor = my_sector_chat, public)]
 pub fn my_sector_chat(ctx: &ViewContext) -> Vec<SectorChannelMessage> {
-    let dsl = spacetimedsl::read_only_dsl(ctx);
+    let dsl = read_only_dsl(ctx);
     let ship = match dsl
         .get_ships_by_player_id(&PlayerId::new(ctx.sender()))
         .next()
@@ -271,7 +271,7 @@ pub fn my_sector_chat(ctx: &ViewContext) -> Vec<SectorChannelMessage> {
 /// Faction chat for the caller's Faction.
 #[view(accessor = my_faction_chat, public)]
 pub fn my_faction_chat(ctx: &ViewContext) -> Vec<FactionChannelMessage> {
-    let dsl = spacetimedsl::read_only_dsl(ctx);
+    let dsl = read_only_dsl(ctx);
     let player = match dsl.get_player_by_id(PlayerId::new(ctx.sender())) {
         Ok(p) => p,
         Err(_) => return Vec::new(),
