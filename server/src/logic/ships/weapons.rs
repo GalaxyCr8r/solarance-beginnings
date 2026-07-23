@@ -6,7 +6,7 @@ use crate::spacetimedsl::prelude::*;
 use crate::{
     logic::combat::actions::*,
     tables::{
-        players::*, ships::*,
+        players::*,
         stellarobjects::*,
     },
 };

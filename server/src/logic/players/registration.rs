@@ -7,7 +7,6 @@ use crate::tables::{
     messages::{post_faction_channel, MessageSender},
 };
 
-use crate::players::*;
 use crate::tables::players::{CreatePlayer, PlayerId};
 
 //////////////////////////////////////////////////////////////

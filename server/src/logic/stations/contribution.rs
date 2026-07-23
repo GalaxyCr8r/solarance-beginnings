@@ -14,7 +14,6 @@ use crate::{
         },
         players::*,
         sectors::Sector,
-        ships::*,
         stations::*,
         stellarobjects::StellarObject,
     },

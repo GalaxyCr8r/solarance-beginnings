@@ -2,7 +2,7 @@ use spacetimedb::*;
 use crate::spacetimedsl::prelude::*;
 
 use crate::logic::players::welcome_back::send_welcome_back_message;
-use crate::tables::{global_config::*, players::*};
+use crate::tables::players::*;
 
 #[spacetimedb::reducer(client_connected)]
 pub fn identity_connected(ctx: &ReducerContext) -> Result<(), String> {

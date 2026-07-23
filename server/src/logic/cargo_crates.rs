@@ -4,7 +4,7 @@ use crate::spacetimedsl::prelude::*;
 
 use crate::{
     logic::ships::add_cargo_timer::*,
-    tables::{items::*, ships::*, stellarobjects::*},
+    tables::{items::*, ships::*},
     utility::try_server_only,
 };
 

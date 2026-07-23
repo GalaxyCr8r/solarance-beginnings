@@ -14,8 +14,7 @@ use crate::tables::{
         post_star_system_channel, MessageSender,
     },
     players::*,
-    sectors::{SectorId, *},
-    ships::*,
+    sectors::SectorId,
 };
 
 /// Send a message to the **Galaxy** channel — visible to every logged-in player.

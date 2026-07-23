@@ -1,10 +1,9 @@
 use solarance_shared::Vec2;
 use spacetimedb::{table, Identity, SpacetimeType, Timestamp};
-use spacetimedsl::*;
+use crate::{sectors, stellarobjects, factions};
 
 use crate::tables::economy::ResourceAmount;
 use crate::tables::items::*;
-use crate::*;
 
 //////////////////////////////////
 // Enums

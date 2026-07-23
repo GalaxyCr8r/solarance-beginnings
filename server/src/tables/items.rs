@@ -1,6 +1,5 @@
 use solarance_shared::MovementState;
 use spacetimedb::{table, SpacetimeType, Timestamp};
-use spacetimedsl::*;
 
 use crate::tables::{
     combat::{MissileType, WeaponType},

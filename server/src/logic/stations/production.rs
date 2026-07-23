@@ -1,5 +1,4 @@
-use crate::*;
-use spacetimedb::{log::info, *};
+use spacetimedb::log::info;
 
 use super::*;
 

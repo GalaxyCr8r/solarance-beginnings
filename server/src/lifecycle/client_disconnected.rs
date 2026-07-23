@@ -1,7 +1,7 @@
 use spacetimedb::*;
 use crate::spacetimedsl::prelude::*;
 
-use crate::tables::{global_config::*, players::*};
+use crate::tables::players::*;
 
 #[spacetimedb::reducer(client_disconnected)]
 pub fn identity_disconnected(ctx: &ReducerContext) -> Result<(), String> {

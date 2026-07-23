@@ -2,7 +2,7 @@ use log::warn;
 use spacetimedb::ReducerContext;
 use crate::spacetimedsl::prelude::*;
 
-use crate::{logic::sectors::asteroid_fields::*, tables::sectors::*, utility::try_server_only};
+use crate::{logic::sectors::asteroid_fields::*, utility::try_server_only};
 
 pub mod asteroid_fields;
 

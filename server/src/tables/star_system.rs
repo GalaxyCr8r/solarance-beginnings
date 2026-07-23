@@ -1,5 +1,4 @@
 use spacetimedb::{table, SpacetimeType};
-use spacetimedsl::*;
 
 use solarance_shared::Vec2;
 

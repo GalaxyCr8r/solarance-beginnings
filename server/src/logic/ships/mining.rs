@@ -6,7 +6,7 @@ use crate::spacetimedsl::prelude::*;
 
 use crate::{
     logic::ships::add_cargo_timer::*,
-    tables::{asteroids::*, items::*, messages::*, players::*, ships::*, stellarobjects::*},
+    tables::{items::*, messages::*, players::*, ships::*, stellarobjects::*},
     utility::try_server_only,
 };
 
