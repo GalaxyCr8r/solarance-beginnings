@@ -23,14 +23,8 @@
 use crate::spacetimedsl::prelude::*;
 use spacetimedb::{table, view, Identity, SpacetimeType, Timestamp, ViewContext};
 
-// Glob-import the per-table DSL extension traits the view bodies need
-// (`get_player_by_id`, `get_ships_by_player_id`, `get_sector_by_id`, …).
 use crate::tables::{
-    factions::FactionId,
-    players::{PlayerId, *},
-    sectors::{SectorId, *},
-    ships::*,
-    star_system::StarSystemId,
+    factions::FactionId, players::PlayerId, sectors::SectorId, star_system::StarSystemId,
 };
 
 ////////////////////////////////////////////////////////////////////////////////
