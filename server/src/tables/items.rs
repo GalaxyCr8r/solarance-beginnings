@@ -1,6 +1,5 @@
 use solarance_shared::MovementState;
 use spacetimedb::{table, SpacetimeType, Timestamp};
-use spacetimedsl::*;
 
 use crate::tables::{
     combat::{MissileType, WeaponType},
@@ -117,7 +116,7 @@ pub enum ItemMetadata {
     Quality(u8),
 }
 
-#[dsl(plural_name = item_definitions, method(update = true))]
+#[spacetimedsl::dsl(plural_name = item_definitions, method(update = true))]
 #[table(accessor = item_definition, public)]
 pub struct ItemDefinition {
     #[primary_key]
@@ -147,7 +146,7 @@ pub struct ItemDefinition {
     pub gfx_key: Option<String>, // For items that have a visual representation
 }
 
-#[dsl(plural_name = cargo_crates, method(update = true))]
+#[spacetimedsl::dsl(plural_name = cargo_crates, method(update = true))]
 #[table(accessor = cargo_crate, public)]
 pub struct CargoCrate {
     #[primary_key]

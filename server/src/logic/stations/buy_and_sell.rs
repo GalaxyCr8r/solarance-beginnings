@@ -1,9 +1,9 @@
 use crate::{
     logic::ships::cargo::{attempt_to_load_cargo_into_ship, remove_cargo_from_ship},
-    tables::{items::*, messages::*, players::*, ships::*, stations::*},
+    tables::{items::*, messages::*, ships::*, stations::*},
     utility::is_server_or_ship_owner,
-    *,
 };
+use crate::spacetimedsl::prelude::*;
 use spacetimedb::{log::info, ReducerContext};
 
 ///////////////////////////////////////////////////////////

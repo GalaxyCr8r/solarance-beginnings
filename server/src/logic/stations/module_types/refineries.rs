@@ -1,13 +1,13 @@
 use log::info;
 use spacetimedb::*;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::definitions::station_module_types::*;
 use crate::tables::items::*;
 use crate::tables::stations::*;
 
 /// An instance of a refinery module
-#[dsl(plural_name = refinery_modules, method(update = true))]
+#[spacetimedsl::dsl(plural_name = refinery_modules, method(update = true))]
 #[table(accessor = refinery_module, public)]
 pub struct Refinery {
     #[primary_key]

@@ -1,5 +1,5 @@
 use log::info;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::{
     logic::{

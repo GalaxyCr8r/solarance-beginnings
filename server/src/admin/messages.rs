@@ -10,7 +10,7 @@
 //! - Server is the implicit sender on every DSM, so no sender field is passed.
 
 use spacetimedb::{Identity, ReducerContext};
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::{
     tables::{

@@ -1,9 +1,8 @@
-use crate::*;
-use spacetimedb::{log::info, *};
+use spacetimedb::log::info;
 
 use super::*;
 
-#[dsl(plural_name = station_production_schedules, method(update = true))]
+#[spacetimedsl::dsl(plural_name = station_production_schedules, method(update = true))]
 #[spacetimedb::table(accessor = station_production_schedule, scheduled(station_production_schedule_reducer))]
 pub struct StationProductionSchedule {
     #[primary_key]

@@ -1,6 +1,6 @@
 use log::info;
 use spacetimedb::*;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::definitions::item_types::*;
 use crate::tables::economy::ResourceAmount;
@@ -8,7 +8,7 @@ use crate::tables::items::*;
 use crate::tables::stations::*;
 
 /// Defines a recipe that a manufacturing module can use.
-#[dsl(plural_name = production_recipe_definitions, method(update = false))]
+#[spacetimedsl::dsl(plural_name = production_recipe_definitions, method(update = false))]
 #[table(accessor = production_recipe_definition, public)]
 pub struct ProductionRecipeDefinition {
     #[primary_key]
@@ -33,7 +33,7 @@ pub struct ProductionRecipeDefinition {
 }
 
 /// Data for a generic manufacturing module instance (Factory, Assembler, Fabricator).
-#[dsl(plural_name = manufacturing_modules, method(update = true))]
+#[spacetimedsl::dsl(plural_name = manufacturing_modules, method(update = true))]
 #[table(accessor = manufacturing_module, public)]
 pub struct Manufacturing {
     #[primary_key]

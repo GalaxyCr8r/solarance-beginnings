@@ -1,4 +1,4 @@
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::tables::{players::*, stellarobjects::*};
 

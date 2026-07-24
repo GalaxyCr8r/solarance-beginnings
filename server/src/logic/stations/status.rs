@@ -1,8 +1,8 @@
 use crate::tables::stations::StationId;
 use spacetimedb::*;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
-#[dsl(plural_name = station_status_schedules, method(update = true))]
+#[spacetimedsl::dsl(plural_name = station_status_schedules, method(update = true))]
 #[spacetimedb::table(accessor = station_status_schedule, scheduled(station_status_schedule_reducer))]
 pub struct StationStatusSchedule {
     #[primary_key]

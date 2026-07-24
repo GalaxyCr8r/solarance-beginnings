@@ -3,7 +3,7 @@ use std::f32::consts::PI;
 use solarance_shared::Vec2;
 use spacetimedb::rand::Rng;
 use spacetimedb::ReducerContext;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::{
     definitions::item_types::*,

@@ -1,6 +1,6 @@
 use log::info;
 use spacetimedb::*;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use solarance_shared::Vec2;
 

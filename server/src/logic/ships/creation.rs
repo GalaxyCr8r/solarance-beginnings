@@ -1,7 +1,7 @@
 use log::info;
 use solarance_shared::Vec2;
 use spacetimedb::{Identity, ReducerContext};
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::{
     definitions::item_types::*,

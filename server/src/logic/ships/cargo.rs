@@ -5,7 +5,7 @@ use log::info;
 use solarance_shared::{MovementState, Vec2};
 use spacetimedb::rand::Rng;
 use spacetimedb::*;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::logic::cargo_crates::attempt_to_pickup_cargo_crate;
 use crate::logic::stellarobjects::stellar_object_creation::create_sobj;

@@ -1,5 +1,4 @@
 use spacetimedb::{table, SpacetimeType};
-use spacetimedsl::*;
 
 use solarance_shared::Vec2;
 
@@ -32,7 +31,7 @@ pub enum StarSystemObjectKind {
     NebulaBelt,
 }
 
-#[dsl(plural_name = star_systems, method(update = true))] // Keeping it true in case we want to edit the galaxy
+#[spacetimedsl::dsl(plural_name = star_systems, method(update = true))] // Keeping it true in case we want to edit the galaxy
 #[table(accessor = star_system, public)]
 pub struct StarSystem {
     #[primary_key]
@@ -59,7 +58,7 @@ pub struct StarSystem {
     //pub discovered_by_faction_id: Option<u32>, // First faction to chart it
 }
 
-#[dsl(plural_name = star_system_objects, method(update = true))] // Keeping it true in case we want to edit the galaxy
+#[spacetimedsl::dsl(plural_name = star_system_objects, method(update = true))] // Keeping it true in case we want to edit the galaxy
 #[table(accessor = star_system_object, public)]
 pub struct StarSystemObject {
     #[primary_key]

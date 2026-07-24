@@ -1,13 +1,13 @@
 use solarance_shared::Vec2;
 use spacetimedb::{table, SpacetimeType};
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::{
     admin::creation::create_jumpgate_internal,
     tables::{factions::*, star_system::*},
 };
 
-#[dsl(plural_name = sectors, method(update = true))]
+#[spacetimedsl::dsl(plural_name = sectors, method(update = true))]
 #[table(accessor = sector, public)]
 pub struct Sector {
     #[primary_key] // NOT Auto-inc so it can be reloaded as-is
@@ -78,7 +78,7 @@ pub struct OreWeight {
     pub weight: u16,
 }
 
-#[dsl(plural_name = asteroid_sectors, method(update = false))]
+#[spacetimedsl::dsl(plural_name = asteroid_sectors, method(update = false))]
 #[table(accessor = asteroid_sector)]
 pub struct AsteroidSector {
     #[primary_key] // NOT Auto-inc so it can be reloaded as-is
@@ -98,7 +98,7 @@ pub struct AsteroidSector {
 
 /// Decorative in-sector nebula sprite (#107). Pure render flavor — no stellar
 /// object, no collision, no game mechanic. Ships fly straight through them.
-#[dsl(plural_name = sector_nebulae, method(update = false))]
+#[spacetimedsl::dsl(plural_name = sector_nebulae, method(update = false))]
 #[table(accessor = sector_nebula, public)]
 pub struct SectorNebula {
     #[primary_key]
