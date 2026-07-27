@@ -16,7 +16,8 @@ use macroquad::{
 };
 
 use solarance_beginnings::{server::bindings::DbConnection, stdb::connector::connect_to_spacetime};
-use spacetimedb_sdk::DbContext;
+use solarance_beginnings::server::bindings::*;
+use spacetimedb_sdk::{DbContext, Table};
 
 pub struct MenuAssets {
     pub rings: Vec<Texture2D>,
@@ -406,7 +407,13 @@ pub async fn loading_screen(token: Option<String>) -> Option<DbConnection> {
                 sleep(Duration::from_secs(1));
             }
 
-            // TODO - if the version of this binary and the version in GlobalConfig table is different, ask the user if they want to continue.
+            // Warn the player if this binary's version differs from the server's
+            // (stamped into `global_config` at init). They may continue or abort.
+            if let Some(cnx) = connection.as_ref() {
+                if !confirm_version_match(cnx).await {
+                    return None;
+                }
+            }
         } else if resources_loading.is_none() {
             // Only after the connection is alive do we actually load the resources.
             resources_loading = Some(start_coroutine(async move {
@@ -416,4 +423,101 @@ pub async fn loading_screen(token: Option<String>) -> Option<DbConnection> {
         }
     }
     return connection;
+}
+
+/// Compares this binary's version against the server's (exposed via the
+/// `public_global_config` view) and, on mismatch, asks the player whether to
+/// continue. Returns `true` to proceed into the game, `false` to abort to the menu.
+///
+/// The view row arrives via subscription shortly after connect, so we poll a few
+/// seconds for it; if it never shows we proceed rather than block the player on a
+/// check we can't complete.
+async fn confirm_version_match(connection: &DbConnection) -> bool {
+    let client_version = env!("CARGO_PKG_VERSION");
+
+    let deadline = get_time() + 5.0;
+    let server_version = loop {
+        if let Some(config) = connection.db().public_global_config().iter().next() {
+            break Some(config.version);
+        }
+        if get_time() > deadline {
+            break None;
+        }
+        draw_login_screen_background();
+        next_frame().await;
+    };
+
+    let Some(server_version) = server_version else {
+        warn!("Could not read server version from global_config within timeout; skipping version check.");
+        return true;
+    };
+
+    if server_version == client_version {
+        return true;
+    }
+
+    warn!(
+        "Version mismatch: client v{}, server v{}. Prompting player.",
+        client_version, server_version
+    );
+    show_version_mismatch_modal(client_version, &server_version).await
+}
+
+/// Modal shown when the client and server versions differ. Returns `true` if the
+/// player chooses to continue anyway, `false` to quit back to the menu.
+async fn show_version_mismatch_modal(client_version: &str, server_version: &str) -> bool {
+    let mut choice: Option<bool> = None;
+    loop {
+        draw_login_screen_background();
+
+        egui_macroquad::ui(|egui_ctx| {
+            egui::Window::new("Version Mismatch")
+                .title_bar(false)
+                .resizable(false)
+                .collapsible(false)
+                .movable(false)
+                .anchor(Align2::CENTER_CENTER, egui::Vec2::new(0.0, 0.0))
+                .frame(
+                    Frame::group(&egui_ctx.style())
+                        .fill(Color32::from_rgba_unmultiplied(15, 15, 15, 245))
+                        .shadow(Shadow::NONE),
+                )
+                .show(egui_ctx, |ui| {
+                    ui.vertical_centered(|ui| {
+                        ui.heading(
+                            RichText::new("Version Mismatch")
+                                .size(32.0)
+                                .color(Color32::from_rgb(255, 200, 0)),
+                        );
+                        ui.separator();
+                        ui.label(format!(
+                            "This client is v{client_version}, but the server is running v{server_version}."
+                        ));
+                        ui.label(
+                            "Playing on a mismatched version may cause errors or unexpected behavior.",
+                        );
+                        ui.separator();
+                        if ui
+                            .button(RichText::new("    Continue anyway    ").size(24.0))
+                            .clicked()
+                        {
+                            choice = Some(true);
+                        }
+                        if ui
+                            .button(RichText::new("    Quit to menu    ").size(24.0))
+                            .clicked()
+                        {
+                            choice = Some(false);
+                        }
+                    });
+                });
+        });
+
+        egui_macroquad::draw();
+        next_frame().await;
+
+        if let Some(c) = choice {
+            return c;
+        }
+    }
 }
