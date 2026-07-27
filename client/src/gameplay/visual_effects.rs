@@ -50,6 +50,10 @@ pub fn update_visual_effects(game_state: &mut GameState) {
                 VisualEffectType::WeaponFire => config.weapon_fire_duration,
                 VisualEffectType::MissileFire => config.missile_fire_duration,
                 VisualEffectType::Explosion => config.explosion_duration,
+                // Mining lasers are sustained (the row lives for the whole
+                // session) and are drawn straight from the table by
+                // `draw_mining_lasers` — they never enter the transient map.
+                VisualEffectType::MiningLaser => continue,
             };
 
             // Create new firing effect
@@ -99,6 +103,9 @@ pub fn render_visual_effects(game_state: &GameState) {
                 VisualEffectType::Explosion => {
                     render_explosion_effect(effect, progress);
                 }
+                // Never enters `firing_effects` (skipped in update); rendered
+                // directly from the table by `draw_mining_lasers`.
+                VisualEffectType::MiningLaser => {}
             }
         }
     }

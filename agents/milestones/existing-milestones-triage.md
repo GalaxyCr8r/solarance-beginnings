@@ -11,6 +11,8 @@ Disposition for each currently-open GitHub milestone, measured against the [MVP 
 
 Issues tagged `future-vision` are *not* in the agent queue and should not carry `agent-eligible` or other agent-triage labels.
 
+> **Update — 2026-07-27 (post-review).** The new roadmap milestones (M1–M7) now exist in GitHub, and **M5 — Mining Loop + Polish (#16)** has been populated, triaged, and reviewed by the owner. After review the milestone holds **17 open issues** tagged for the agent queue: **15 `agent-eligible`, 2 `agent-human-needed`, 0 `agent-blocked`**. Decisions resolved on review: #81 rescoped to the client-render half of #87; #122 confirmed art-complete → eligible; #165 split into #204 (debug-toggle, eligible) + #205 (Help window, human-needed), both in M5; #179 bounded to a small schema change (one-module stations + later additions); #109 & #141 sequenced to milestone close. Full breakdown: [`../reports/m5-triage-2026-07-27.html`](../reports/m5-triage-2026-07-27.html). Note the new **M5** below is the *Mining Loop + Polish* milestone from `proposed-roadmap.md` — not the old **M5 🏗️ Base-Building** milestone whose disposition (RESCOPE) is recorded here.
+
 ---
 
 ## Milestone 4 👥 — *Factions, Players, and NPC Fleets!*

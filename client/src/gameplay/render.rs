@@ -120,7 +120,7 @@ pub fn sector(game_state: &mut GameState) {
     if let (Some(actual_player_pose), Some(player_ship_type), Some(player_ship)) =
         (player_pose, player_ship_type, player_ship)
     {
-        draw_mining_laser(game_state, &actual_player_pose);
+        draw_mining_lasers(game_state);
 
         // Draw the controlled ship so its always on top.
         draw_ship(&player_ship, &actual_player_pose, &player_ship_type, game_state);

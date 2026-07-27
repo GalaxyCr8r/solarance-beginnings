@@ -1,12 +1,13 @@
 use std::time::Duration;
 
 use log::{info, warn};
+use solarance_shared::Vec2;
 use spacetimedb::*;
 use crate::spacetimedsl::prelude::*;
 
 use crate::{
     logic::ships::add_cargo_timer::*,
-    tables::{items::*, messages::*, players::*, ships::*, stellarobjects::*},
+    tables::{combat::*, items::*, messages::*, players::*, sectors::*, ships::*, stellarobjects::*},
     utility::try_server_only,
 };
 
@@ -64,6 +65,47 @@ pub fn create_mining_timer_for_ship<T: spacetimedsl::WriteContext>(
     })?)
 }
 
+/// Broadcasts the sustained mining beam for a ship→asteroid pair.
+///
+/// Unlike the transient combat effects (which schedule their own 10ms cleanup),
+/// this `visual_effect` row has **no** cleanup timer — its lifetime is the whole
+/// mining session. [`clear_mining_effect`] removes it on every stop path, so the
+/// row's presence in the public `visual_effect` table is the client's
+/// authoritative "this ship is mining" signal (#87 server half → #81 client half).
+fn create_mining_effect<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    ship_sobj_id: &StellarObjectId,
+    sector_id: SectorId,
+    source: Vec2,
+    target: Vec2,
+) -> Result<(), String> {
+    // Clear any stale beam first so a restart never leaves two rows behind.
+    clear_mining_effect(dsl, ship_sobj_id)?;
+    dsl.create_visual_effect(CreateVisualEffect {
+        sector_id,
+        source_sobj_id: ship_sobj_id.clone(),
+        source,
+        target,
+        effect_type: VisualEffectType::MiningLaser,
+    })?;
+    Ok(())
+}
+
+/// Deletes any mining beam originating from `ship_sobj_id`. Idempotent — safe to
+/// call on every stop path (out-of-range, energy, exhaustion, manual). Removing
+/// this row is the single unambiguous "mining ended" event the client sees.
+fn clear_mining_effect<T: spacetimedsl::WriteContext>(
+    dsl: &DSL<T>,
+    ship_sobj_id: &StellarObjectId,
+) -> Result<(), String> {
+    for effect in dsl.get_visual_effects_by_source_sobj_id(ship_sobj_id) {
+        if *effect.get_effect_type() == VisualEffectType::MiningLaser {
+            dsl.delete_visual_effect_by_id(effect.get_id())?;
+        }
+    }
+    Ok(())
+}
+
 /// Scheduled reducer that processes ship mining operations against asteroids.
 /// Runs every 3 seconds to extract resources based on mining equipment and energy consumption.
 #[spacetimedb::reducer]
@@ -92,6 +134,7 @@ pub fn ship_mining_timer_reducer(
         > MINING_RANGE.powi(2)
     {
         dsl.delete_ship_mining_timer_by_id(timer.get_id())?;
+        clear_mining_effect(&dsl, &timer.get_ship_sobj_id())?;
 
         let _ = send_direct_server_info(
             &dsl,
@@ -108,6 +151,7 @@ pub fn ship_mining_timer_reducer(
 
     if *asteroid_object.get_current_resources() == 0 {
         dsl.delete_ship_mining_timer_by_id(timer.get_id())?;
+        clear_mining_effect(&dsl, &timer.get_ship_sobj_id())?;
 
         let _ = dsl.delete_stellar_object_by_id(&asteroid_object.get_id());
 
@@ -152,6 +196,7 @@ pub fn ship_mining_timer_reducer(
         dsl.get_ship_status_by_id(ship_object.get_id())
             .or_else(|_stdsl_error| {
                 dsl.delete_ship_mining_timer_by_id(timer.get_id())?;
+                clear_mining_effect(&dsl, &timer.get_ship_sobj_id())?;
                 Err(format!(
                     "Failed to find ship instance object for mining timer: {:?} Removed timer.",
                     ship_object.get_id()
@@ -256,8 +301,6 @@ pub fn try_mining_asteroid(
             .get_ship_mining_timers_by_ship_sobj_id(&ship_object.get_sobj_id())
             .any(|timer| timer.get_asteroid_sobj_id().value() == asteroid_sobj.get_id().value())
         {
-            // TODO: Start 'mining asteroid' effect
-
             // Only add if there is no mining timer for this ship and asteroid.
             let _ = send_direct_server_info(
                 &dsl,
@@ -275,6 +318,17 @@ pub fn try_mining_asteroid(
             );
             let _ =
                 create_mining_timer_for_ship(&dsl, &ship_sobj.get_id(), &asteroid_sobj.get_id())?;
+
+            // Broadcast the sustained mining beam. This row lives for the whole
+            // session and is cleared on every stop path above — the client reads
+            // mining state straight from this public row (#87/#81).
+            create_mining_effect(
+                &dsl,
+                &ship_sobj.get_id(),
+                SectorId::new(ship_object.get_sector_id().value()),
+                ship_snapshot.pos.clone(),
+                asteroid.get_position().clone(),
+            )?;
         }
 
         Ok(())
@@ -299,7 +353,7 @@ pub fn stop_mining_asteroid(ctx: &ReducerContext) -> Result<(), String> {
         }
     }
 
-    // TODO: Remove asteroid mining effect
+    clear_mining_effect(&dsl, &ship_sobj.get_id())?;
 
     Ok(())
 }

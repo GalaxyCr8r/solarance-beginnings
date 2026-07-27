@@ -484,6 +484,7 @@ pub fn process_weapon_fire<T: spacetimedsl::WriteContext>(
     // Create visual effect
     create_visual_effect(
         dsl,
+        source_sobj_id,
         source_pos,
         actual_location.into(),
         VisualEffectType::WeaponFire,
@@ -565,6 +566,7 @@ pub fn process_missile_fire<T: spacetimedsl::WriteContext>(
     let source_sector_id = source_ship.get_sector_id().value();
     create_visual_effect(
         dsl,
+        source_sobj_id,
         source_pos,
         actual_location,
         VisualEffectType::MissileFire,
@@ -904,18 +906,19 @@ pub fn is_target_in_range(
     distance_squared <= max_range.powi(2)
 }
 
-/// Create a visual effect and schedule its cleanup
+/// Create a transient combat visual effect and schedule its cleanup.
 fn create_visual_effect<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
+    source_sobj_id: &StellarObjectId,
     source_pos: glam::Vec2,
     target_pos: glam::Vec2,
     effect_type: VisualEffectType,
     sector_id: u64,
 ) -> Result<(), CombatError> {
     // Create visual effect
-    // Create visual effect
     let visual_effect = dsl.create_visual_effect(CreateVisualEffect {
         sector_id: SectorId::new(sector_id),
+        source_sobj_id: source_sobj_id.clone(),
         source: source_pos.into(),
         target: target_pos.into(),
         effect_type,

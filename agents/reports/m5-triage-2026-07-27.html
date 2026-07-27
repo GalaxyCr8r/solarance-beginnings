@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Solarance — M5 Mining Loop + Polish · Triage</title>
+<link rel="icon" type="image/png" href="../assets/Solarance_Icon.png" />
+<style>
+  :root {
+    --bg: #05070d;
+    --panel: rgba(14, 20, 34, 0.72);
+    --panel-strong: rgba(14, 20, 34, 0.92);
+    --panel-border: rgba(120, 160, 220, 0.14);
+    --text: #d6e1f5;
+    --text-dim: #8a9bbd;
+    --text-muted: #5f6f8e;
+    --accent: #6cf0c2;   /* mint — eligible / good */
+    --accent-2: #7aa8ff; /* blue — info */
+    --warn: #ffb066;     /* amber — human-needed */
+    --bad: #ff7a8a;      /* red — blocked */
+    --gold: #f5d57a;
+    --purple: #b89eff;
+    --cyan: #8de0ff;
+    --code-bg: #0c1322;
+    --code-border: rgba(120, 160, 220, 0.18);
+    --shadow: 0 20px 60px rgba(0,0,0,0.5);
+    --mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  html, body {
+    margin: 0; padding: 0; color: var(--text);
+    font-family: var(--sans); font-size: 16px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  #stars {
+    position: fixed; inset: 0; z-index: -1;
+    background:
+      radial-gradient(ellipse at 15% -10%, rgba(108, 240, 194, 0.10), transparent 60%),
+      radial-gradient(ellipse at 85% 40%, rgba(122, 168, 255, 0.08), transparent 60%),
+      radial-gradient(ellipse at 50% 120%, rgba(184, 158, 255, 0.06), transparent 60%),
+      linear-gradient(180deg, #05070d 0%, #060a14 100%);
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 56px 28px 120px; }
+
+  /* Hero */
+  .eyebrow {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--accent-2); margin: 0 0 14px;
+  }
+  h1 { font-size: 40px; line-height: 1.1; margin: 0 0 16px; font-weight: 700; letter-spacing: -0.02em; }
+  h1 .dim { color: var(--text-dim); font-weight: 400; }
+  .lede { color: var(--text-dim); font-size: 17px; max-width: 68ch; margin: 0 0 8px; }
+  .meta { font-family: var(--mono); font-size: 12.5px; color: var(--text-muted); margin-top: 18px; }
+  .meta a { color: var(--accent-2); text-decoration: none; }
+
+  /* Stat row */
+  .stats { display: flex; flex-wrap: wrap; gap: 14px; margin: 40px 0 8px; }
+  .stat {
+    flex: 1 1 130px; background: var(--panel); border: 1px solid var(--panel-border);
+    border-radius: 12px; padding: 18px 20px;
+  }
+  .stat .n { font-size: 30px; font-weight: 700; font-family: var(--mono); line-height: 1; }
+  .stat .l { font-size: 12px; color: var(--text-dim); margin-top: 8px; letter-spacing: 0.04em; }
+  .stat.eligible .n { color: var(--accent); }
+  .stat.human .n { color: var(--warn); }
+  .stat.blocked .n { color: var(--bad); }
+  .stat.total .n { color: var(--text); }
+
+  /* Legend */
+  .legend {
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 14px;
+    padding: 22px 26px; margin: 40px 0;
+  }
+  .legend h3 { margin: 0 0 14px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-muted); font-weight: 600; }
+  .legend ul { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: 1fr; gap: 10px; }
+  @media (min-width: 720px) { .legend ul { grid-template-columns: 1fr 1fr; } }
+  .legend li { font-size: 14px; color: var(--text-dim); }
+  .legend code { color: var(--text); }
+
+  /* Section */
+  section { margin-top: 56px; }
+  h2 {
+    font-size: 21px; margin: 0 0 6px; font-weight: 650; letter-spacing: -0.01em;
+    display: flex; align-items: baseline; gap: 12px;
+  }
+  h2 .count { font-family: var(--mono); font-size: 13px; color: var(--text-muted); font-weight: 400; }
+  .sec-note { color: var(--text-muted); font-size: 14px; margin: 0 0 22px; }
+
+  /* Issue card */
+  .card {
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px;
+    padding: 18px 20px; margin-bottom: 14px; position: relative;
+    border-left: 3px solid var(--panel-border);
+  }
+  .card.eligible { border-left-color: var(--accent); }
+  .card.human { border-left-color: var(--warn); }
+  .card.blocked { border-left-color: var(--bad); }
+  .card-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .num { font-family: var(--mono); font-size: 13px; color: var(--text-muted); }
+  .num a { color: var(--accent-2); text-decoration: none; }
+  .title { font-weight: 600; font-size: 15.5px; color: var(--text); }
+  .disp {
+    margin-left: auto; font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em;
+    text-transform: uppercase; padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+  }
+  .disp.eligible { color: var(--accent); background: rgba(108,240,194,0.10); border: 1px solid rgba(108,240,194,0.28); }
+  .disp.human { color: var(--warn); background: rgba(255,176,102,0.10); border: 1px solid rgba(255,176,102,0.28); }
+  .disp.blocked { color: var(--bad); background: rgba(255,122,138,0.10); border: 1px solid rgba(255,122,138,0.28); }
+  .rationale { color: var(--text-dim); font-size: 14px; margin: 0; }
+  .rationale .flag { color: var(--gold); }
+  .rationale .ok { color: var(--accent); }
+  .order { display: inline-block; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: var(--cyan); background: rgba(141,224,255,0.08); border: 1px solid rgba(141,224,255,0.24); padding: 2px 8px; border-radius: 6px; margin-bottom: 8px; }
+  .tags { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag {
+    font-family: var(--mono); font-size: 10.5px; color: var(--text-muted);
+    background: var(--code-bg); border: 1px solid var(--code-border);
+    padding: 2px 8px; border-radius: 6px;
+  }
+  .tag.agent { color: var(--purple); border-color: rgba(184,158,255,0.28); }
+  .tag.new { color: var(--accent); border-color: rgba(108,240,194,0.28); }
+
+  /* Decisions callout */
+  .decisions { background: var(--panel-strong); border: 1px solid rgba(108,240,194,0.22); border-radius: 14px; padding: 24px 28px; margin-top: 20px; }
+  .decisions h2 { margin-top: 0; }
+  .decisions ol { margin: 0; padding-left: 20px; }
+  .decisions li { margin-bottom: 14px; color: var(--text-dim); font-size: 14.5px; }
+  .decisions li b { color: var(--text); }
+  .decisions .res { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+
+  footer { margin-top: 72px; padding-top: 24px; border-top: 1px solid var(--panel-border); color: var(--text-muted); font-size: 12.5px; font-family: var(--mono); }
+  footer a { color: var(--accent-2); text-decoration: none; }
+</style>
+</head>
+<body>
+<div id="stars"></div>
+<div class="wrap">
+
+  <p class="eyebrow">Milestone Triage · Agent Queue</p>
+  <h1>M5 — Mining Loop + Polish <span class="dim">/ triage</span></h1>
+  <p class="lede">
+    Every open issue in <b>M5 (GitHub milestone #16)</b> read, scope-confirmed, grouped into logical
+    tracks, and tagged for the agent queue per the state machine in
+    <code>agents/issues/CONTEXT.md</code>. Dispositions and decisions were posted as comments on the
+    individual issues.
+  </p>
+  <p class="meta">
+    Triaged 2026-07-27, updated after owner review · reference:
+    <a href="../milestones/issue-disposition.md">issue-disposition.md</a>,
+    <a href="../milestones/existing-milestones-triage.md">existing-milestones-triage.md</a> ·
+    17 open · 4 closed
+  </p>
+
+  <div class="stats">
+    <div class="stat total"><div class="n">17</div><div class="l">open issues</div></div>
+    <div class="stat eligible"><div class="n">15</div><div class="l">agent-eligible</div></div>
+    <div class="stat human"><div class="n">2</div><div class="l">agent-human-needed</div></div>
+    <div class="stat blocked"><div class="n">0</div><div class="l">agent-blocked</div></div>
+  </div>
+
+  <div class="legend">
+    <h3>Agent-queue labels applied</h3>
+    <ul>
+      <li><code>agent-triaged</code> — read, scope confirmed, context added. Applied to all.</li>
+      <li><code>agent-eligible</code> — well-scoped, low blast radius, no live judgement. Pick it up.</li>
+      <li><code>agent-human-needed</code> — triaged, but the work itself needs a human (copy, interactive QA).</li>
+      <li><code>agent-blocked</code> — needs a human decision first. <b>All cleared after review.</b></li>
+    </ul>
+  </div>
+
+  <!-- 1 -->
+  <section>
+    <h2>Mining Loop <span class="count">core M5 pillar · 5</span></h2>
+    <p class="sec-note">The milestone's namesake: making Find → Extract → Haul → Contribute observable and shared. #87 (server) → #81 (client) is the visual spine; the two verification items land last.</p>
+
+    <div class="card eligible">
+      <div class="card-head"><span class="num"><a href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/87">#87</a></span><span class="title">Generalize visual_effects for mining-laser broadcast</span><span class="disp eligible">eligible</span></div>
+      <p class="rationale"><b>Server half.</b> Generalize the <code>visual_effect</code> table, emit a <code>MiningLaser</code> row on start, delete it on all four stop paths so the row's lifetime = the mining session. Do this first — #81 consumes its row.</p>
+      <div class="tags"><span class="tag">server-side</span><span class="tag">polish</span><span class="tag agent">agent-eligible</span></div>
+    </div>
+
+    <div class="card eligible">
+      <div class="card-head"><span class="num"><a href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/81">#81</a></span><span class="title">Render mining from the shared visual_effect row (client half of #87)</span><span class="disp eligible">eligible</span></div>
+      <p class="rationale"><span class="ok">✓ Rescoped</span> from "create/remove mining effect" to the <b>client render half</b>. Replace local-only <code>draw_mining_laser</code> with a render driven by <code>MiningLaser</code> rows, and derive the "am I mining?" indicator from the row's presence. Depends on #87.</p>
+      <div class="tags"><span class="tag">client-side</span><span class="tag">polish</span><span class="tag agent">agent-eligible</span></div>
+    </div>
+
+    <div class="card eligible">
+      <div class="card-head"><span class="num"><a href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/176">#176</a></span><span class="title">Show ore type name when targeting an asteroid</span><span class="disp eligible">eligible</span></div>
+      <p class="rationale">Small, self-contained. Look up the ore's <code>ItemDefinition</code> by <code>resource_item_id</code> and label it — the same lookup the widget already does for cargo crates. Fix sketch in the body.</p>
+      <div class="tags"><span class="tag">client-side</span><span class="tag">polish</span><span class="tag agent">agent-eligible</span></div>
+    </div>
+
+    <div class="card eligible">
+      <div class="card-head"><span class="num"><a href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/141">#141</a></span><span class="title">Mining state desync on reconnect</span><span class="disp eligible">eligible</span></div>
+      <span class="order">⏱ sequenced last — after #87 / #81</span>
+      <p class="rationale">Falls out of #81/#87: once the mining effect is a public row whose lifetime = the session, derive the client indicator from that row instead of the reducer-call event. Verify against the finished loop near milestone close.</p>
+      <div class="tags"><span class="tag">bug</span><span class="tag">client-side</span><span class="tag">server-side</span><span class="tag agent">agent-eligible</span></div>
+    </div>
+
+    <div class="card human">
+      <div class="card-head"><span class="num"><a href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/109">#109</a></span><span class="title">Mining loop end-to-end verification</span><span class="disp human">human-needed</span></div>
+      <span class="order">⏱ milestone exit checklist — run last</span>
+      <p class="rationale">Manual QA pass (target → mine → haul → contribute → progress-bar-moves, plus the shared laser visible to others). Live interactive session + human confirmation; runs after the loop-touching items land. Bugs found spawn their own (likely eligible) issues.</p>
+      <div class="tags"><span class="tag">documentation</span><span class="tag">client-side</span><span class="tag">server-side</span><span class="tag agent">agent-human-needed</span></div>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section>
+    <h2>Stations &amp; Construction <span class="count">2</span></h2>
+    <p class="sec-note">Making a "finished" station actually function, and making an in-progress one read as under-construction for the launch screenshot.</p>
+
+    <div class="card eligible">
+      <div class="card-head"><span class="num"><a href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/179">#179</a></span><span class="title">Finished construction stations have no modules</span><span class="disp eligible">eligible</span></div>
+      <p class="rationale"><span class="ok">✓ Scope set:</span> small schema change so a station can exist with <b>only one module</b> and modules can be added later. On completion, grant one purpose-appropriate module (never empty). The live "add/construct modules" gameplay is explicitly the <b>next</b> slice — out of scope here.</p>
+      <div class="tags"><span class="tag">enhancement</span><span class="tag">server-side</span><span class="tag agent">agent-eligible</span></div>
+    </div>
+
+    <div class="card eligible">
+      <div class="card-head"><span class="num"><a href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/122">#122</a></span><span class="title">Under-construction station art variants + render swap</span><span class="disp eligible">eligible</span></div>
+      <p class="rationale"><span class="ok">✓ Art confirmed committed &amp; loaded</span> (<code>resources.rs:102</code>, keys <code>station.{size}.uc</code>). Only remaining work: <code>draw_station</code> (<code>in_sector.rs:342</code>) picks the <code>.uc</code> key when a <code>station_under_construction</code> row exists. Human/art half done → dropped to eligible wiring.</p>
+      <div class="tags"><span class="tag">enhancement</span><span class="tag">client-side</span><span class="tag">polish</span><span class="tag agent">agent-eligible</span></div>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section>
+    <h2>Rendering &amp; Visual Feel <span class="count">2</span></h2>
+    <p class="sec-note">Two star-system background passes — one new feel enhancement, one correctness bug in the same render loop.</p>
+
+    <div class="card eligible">
+      <div class="card-head"><span class="num"><a href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/203">#203</a></span><span class="title">Intersystem/intra-system sector warp effect</span><span class="disp eligible">eligible</span></div>
+      <p class="rationale">~1s background transition on sector change (slide-past within a system; blue fade between systems). Detection + scaffolding are mechanical; <span class="flag">⚑ the "feel" (motion curve, tint, fade) needs a human review pass</span> before closing.</p>
+      <div class="tags"><span class="tag">enhancement</span><span class="tag">client-side</span><span class="tag">polish</span><span class="tag agent">agent-eligible</span></div>
+    </div>
+
+    <div class="card eligible">
+      <div class="card-head"><span class="num"><a href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/201">#201</a></span><span class="title">render_star_system() draws objects from other systems</span><span class="disp eligible">eligible</span></div>
+      <p class="rationale">The render loop iterates every cached <code>star_system_object</code> with no <code>system_id</code> filter, so foreign planets bleed into the current background. Deterministic filter, same pattern as the #170 sector skip. Full fix sketch in the body. <em>(Added <code>bug</code>, <code>client-side</code>.)</em></p>
+      <div class="tags"><span class="tag">bug</span><span class="tag">client-side</span><span class="tag agent">agent-eligible</span></div>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section>
+    <h2>Login &amp; Onboarding <span class="count">4</span></h2>
+    <p class="sec-note">First-run clarity — the two login-button polish items, plus the debug/help split (#165 → #204 + #205, both still in M5).</p>
+
+    <div class="card eligible">
+      <div class="card-head"><span class="num"><a href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/172">#172</a></span><span class="title">Auth0 return flow — "Play via Auth0" looks identical to "Login"</span><span class="disp eligible">eligible</span></div>
+      <p class="rationale">Post-callback button is indistinguishable from the pre-auth one. Make it visually distinct (primary fill / ✓ label) and hide "Continue" while it's showing. Clear acceptance criteria.</p>
+      <div class="tags"><span class="tag">client-side</span><span class="tag">polish</span><span class="tag agent">agent-eligible</span></div>
+    </div>
+
+    <div class="card eligible">
+      <div class="card-head"><span class="num"><a href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/171">#171</a></span><span class="title">"Continue" button doesn't say who you'll continue as</span><span class="disp eligible">eligible</span></div>
+      <p class="rationale">Persist the last pilot's username beside the cred token; label the resume button <code>Continue as {name}</code>, fall back to <code>Continue</code>. Body already scopes it to one extra file next to the token.</p>
+      <div class="tags"><span class="tag">client-side</span><span class="tag">polish</span><span class="tag agent">agent-eligible</span></div>
+    </div>
+
+    <div class="card eligible">
+      <div class="card-head"><span class="num"><a href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/204">#204</a></span><span class="title">Debug widget: make it toggleable, default off</span><span class="disp eligible">eligible</span></div>
+      <p class="rationale"><span class="tag new">split from #165</span> Mechanical half — add an <code>on: bool</code> (default false) + a toggle affordance (pause menu / keybind). Client-only, no gameplay coupling.</p>
+      <div class="tags"><span class="tag">enhancement</span><span class="tag">client-side</span><span class="tag">polish</span><span class="tag agent">agent-eligible</span></div>
+    </div>
+
+    <div class="card human">
+      <div class="card-head"><span class="num"><a href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/205">#205</a></span><span class="title">Add a concise Help / hints window for new players</span><span class="disp human">human-needed</span></div>
+      <p class="rationale"><span class="tag new">split from #165</span> The value is the content + onboarding flow — copy, hint timing, which beats to surface — in the designer's voice. Writing/design task; scaffolding is small once decided.</p>
+      <div class="tags"><span class="tag">enhancement</span><span class="tag">client-side</span><span class="tag agent">agent-human-needed</span></div>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section>
+    <h2>UI Fixes &amp; Affordances <span class="count">2</span></h2>
+    <p class="sec-note">Two concrete, well-diagnosed client fixes — a missing glyph and a missing button.</p>
+
+    <div class="card eligible">
+      <div class="card-head"><span class="num"><a href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/195">#195</a></span><span class="title">egui bundled fonts don't cover ✕ / ● (tofu box)</span><span class="disp eligible">eligible</span></div>
+      <p class="rationale">Root cause fully verified (per-font cmap coverage) and ADR-0003 written. Fix is ASCII/shape swaps at three call sites, leaving ⚠ alone. Prime agent work.</p>
+      <div class="tags"><span class="tag">bug</span><span class="tag">client-side</span><span class="tag">polish</span><span class="tag agent">agent-eligible</span></div>
+    </div>
+
+    <div class="card eligible">
+      <div class="card-head"><span class="num"><a href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/144">#144</a></span><span class="title">Cargo crate pickup: no client UI to invoke the reducer</span><span class="disp eligible">eligible</span></div>
+      <p class="rationale">The <code>try_to_pickup_crate</code> reducer + binding exist but nothing calls them (the action UI was lost in the M4 movement refactor). Wire a "Collect" button into the targeted-crate branch of the status widget. Server enforces range.</p>
+      <div class="tags"><span class="tag">enhancement</span><span class="tag">client-side</span><span class="tag agent">agent-eligible</span></div>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section>
+    <h2>Admin &amp; Tooling <span class="count">1</span></h2>
+    <p class="sec-note">Removes a real time sink from testing every other multi-sector item in this milestone.</p>
+
+    <div class="card eligible">
+      <div class="card-head"><span class="num"><a href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/193">#193</a></span><span class="title">Admin: teleport-ship-to-sector reducer + admin client control</span><span class="disp eligible">eligible</span></div>
+      <p class="rationale">Admin-gated reducer that reuses the exact set of writes <code>try_to_use_jumpgate</code> performs (extract one deep helper), plus a "Teleport Ship" control in <code>client-admin</code> + regenerated bindings. Clear success criterion.</p>
+      <div class="tags"><span class="tag">enhancement</span><span class="tag">client-side</span><span class="tag">server-side</span><span class="tag agent">agent-eligible</span></div>
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section>
+    <h2>Client Tech Debt <span class="count">1</span></h2>
+    <p class="sec-note">Mechanical but high-churn — the body itself flags it as the safest M5 item to defer past launch.</p>
+
+    <div class="card eligible">
+      <div class="card-head"><span class="num"><a href="https://github.com/GalaxyCr8r/solarance-beginnings/issues/125">#125</a></span><span class="title">Shrink GameState: move open flags into window state, group into WindowsState</span><span class="disp eligible">eligible</span></div>
+      <p class="rationale">Mechanical refactor with crisp acceptance criteria (no window takes <code>&amp;mut GameState</code>; ≤5 top-level fields). <span class="flag">⚑ High-churn across ~12 windows</span> and sequenced last (after #123/#124) — deferrable if launch stability is a concern.</p>
+      <div class="tags"><span class="tag">enhancement</span><span class="tag">client-side</span><span class="tag">polish</span><span class="tag agent">agent-eligible</span></div>
+    </div>
+  </section>
+
+  <!-- Decisions -->
+  <section class="decisions">
+    <h2>Decisions <span class="count">resolved on review · 2026-07-27</span></h2>
+    <ol>
+      <li><b>#81 vs #87 → split.</b> #81 rescoped to the <b>client render half</b> (render mining from the subscribed <code>visual_effect</code> row); #87 keeps the <b>server half</b> (emit/delete the row on all stop paths). #81 unblocked → eligible. <span class="res">✓ resolved</span></li>
+      <li><b>#122 → eligible.</b> Art confirmed committed and loaded at runtime; only the <code>draw_station</code> swap remains. <span class="res">✓ resolved</span></li>
+      <li><b>#165 → split into #204 + #205</b> (both stay in M5): debug-widget toggle (eligible) and Help window (human-needed). Parent closed. <span class="res">✓ resolved</span></li>
+      <li><b>#179 → bounded schema change.</b> Allow a station to exist with one module and support adding modules later; grant one module on completion so it's never empty. Live module-construction gameplay is the next slice, out of scope. <span class="res">✓ resolved</span></li>
+      <li><b>#109 &amp; #141 → sequenced last.</b> Both ordered to the end of M5 (verification/reconnect edge case), run after the mining-visual work lands. <span class="res">✓ resolved</span></li>
+    </ol>
+  </section>
+
+  <footer>
+    Generated for milestone #16 · closed: #165 (split → #204/#205), #199 (version-mismatch warn), #130 (mining range), #128 (asteroid spawn).
+    See <a href="milestones.html">milestones.html</a> for the full roadmap.
+  </footer>
+
+</div>
+</body>
+</html>

@@ -28,6 +28,7 @@ pub struct StellarObject {
     #[referenced_by(path = crate::tables::stations, table = station)]
     #[referenced_by(path = crate::tables::jumpgates, table = jump_gate)]
     #[referenced_by(path = crate::tables::items, table = cargo_crate)]
+    #[referenced_by(path = crate::tables::combat, table = visual_effect)]
     id: u64,
 
     #[index(btree)]
