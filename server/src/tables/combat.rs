@@ -7,6 +7,11 @@ pub enum VisualEffectType {
     WeaponFire,
     MissileFire,
     Explosion,
+    /// Sustained ship→asteroid mining beam. Unlike the combat variants, its row
+    /// lives for the whole mining session (no cleanup timer) and is deleted on
+    /// every mining stop path — its presence is the client's authoritative
+    /// "this ship is mining" signal. Emitted/cleared in `logic/ships/mining.rs`.
+    MiningLaser,
 }
 
 #[derive(SpacetimeType, Debug, Clone, PartialEq, Eq)]
@@ -73,6 +78,17 @@ pub struct VisualEffect {
     #[use_wrapper(crate::tables::sectors::SectorId)]
     #[foreign_key(path = crate::tables::sectors, table = sector, column = id, on_delete = Delete)]
     sector_id: u64,
+
+    #[index(btree)]
+    #[use_wrapper(crate::tables::stellarobjects::StellarObjectId)]
+    #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
+    /// Ship (stellar object) this effect originates from. For `MiningLaser` the
+    /// server finds the row to delete by this column on every stop path, and the
+    /// client keys the beam + mining-state off it. `on_delete = Delete` doubles
+    /// as a safety net: if the ship's sobj vanishes, its mining beam goes too.
+    // ponytail: every current effect creator has a real source ship; if a
+    // sourceless effect (e.g. a placed Explosion) is ever needed, make this Option.
+    source_sobj_id: u64,
 
     source: Vec2,
     target: Vec2,
