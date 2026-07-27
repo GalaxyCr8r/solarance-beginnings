@@ -5,41 +5,68 @@ use macroquad::{
 
 use crate::server::bindings::*;
 use crate::stdb::utils::*;
+use spacetimedb_sdk::Table;
 
 use crate::gameplay::{resources::Resources, state::GameState};
 
-pub fn draw_mining_laser(game_state: &mut GameState<'_>, player_pose: &RenderPose) {
-    if !game_state.mining_active {
-        return;
-    }
-    // Re-query the target fresh; `get_current_target` is the row we'd otherwise
-    // have cached and dereferenced. None ⇒ target gone, nothing to draw.
-    let Some(target) = get_current_target(game_state.ctx, &mut game_state.current_target_sobj_id)
-    else {
+/// Renders every active mining beam in the player's current sector, driven
+/// straight from the public `visual_effect` table (#87 server half → this #81).
+///
+/// Each `MiningLaser` row lives for the whole mining session, so its presence
+/// is what we draw — no local `mining_active` flag, no per-frame timer. The beam
+/// origin tracks the source ship's live (predicted) pose, so it follows a miner
+/// that nudges around and renders identically for the player and everyone else
+/// in the sector.
+pub fn draw_mining_lasers(game_state: &GameState<'_>) {
+    // Wrong-sector filter, mirroring the stellar-object pass (#170): the
+    // `visual_effect` table is public (all sectors), so skip anything outside
+    // the player's current sector. No ship ⇒ no anchor ⇒ draw nothing.
+    let Some(player_sector) = get_player_ship(game_state.ctx).map(|s| s.sector_id) else {
         return;
     };
-    if target.kind != StellarObjectKinds::Asteroid {
-        return;
-    }
     let now_micros = now_unix_micros();
-    if let Some(target_pose) = pose_for_object(game_state.ctx, &target, now_micros) {
-        draw_line(
-            target_pose.pos.x,
-            target_pose.pos.y,
-            player_pose.pos.x,
-            player_pose.pos.y,
-            6.0,
-            Color::from_rgba(128, 0, 0, ((now() * 100.0) % 255.0) as u8),
-        );
-        draw_line(
-            target_pose.pos.x,
-            target_pose.pos.y,
-            player_pose.pos.x,
-            player_pose.pos.y,
-            ((now() as f32) * 100.0) % 3.0,
-            RED,
+
+    for effect in game_state.ctx.db.visual_effect().iter() {
+        if effect.effect_type != VisualEffectType::MiningLaser || effect.sector_id != player_sector {
+            continue;
+        }
+        // Origin = the mining ship's live pose; target = the asteroid, which
+        // doesn't move, so the row's stored `target` is exact.
+        let Some(ship_sobj) = game_state.ctx.db.stellar_object().id().find(&effect.source_sobj_id)
+        else {
+            continue;
+        };
+        let Some(source_pose) = pose_for_object(game_state.ctx, &ship_sobj, now_micros) else {
+            continue;
+        };
+        draw_mining_beam(
+            source_pose.pos.x,
+            source_pose.pos.y,
+            effect.target.x,
+            effect.target.y,
         );
     }
+}
+
+/// The mining beam itself — a dark pulsing outer line with a thin bright core.
+/// Kept visually identical to the pre-broadcast local render.
+fn draw_mining_beam(source_x: f32, source_y: f32, target_x: f32, target_y: f32) {
+    draw_line(
+        target_x,
+        target_y,
+        source_x,
+        source_y,
+        6.0,
+        Color::from_rgba(128, 0, 0, ((now() * 100.0) % 255.0) as u8),
+    );
+    draw_line(
+        target_x,
+        target_y,
+        source_x,
+        source_y,
+        ((now() as f32) * 100.0) % 3.0,
+        RED,
+    );
 }
 
 pub fn draw_radar(
