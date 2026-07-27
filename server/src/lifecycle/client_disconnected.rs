@@ -1,15 +1,15 @@
 use spacetimedb::*;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
-use crate::tables::{global_config::*, players::*};
+use crate::tables::players::*;
 
 #[spacetimedb::reducer(client_disconnected)]
 pub fn identity_disconnected(ctx: &ReducerContext) -> Result<(), String> {
     let dsl = dsl(ctx);
-    // Called everytime a client disconnects
+    // Called every time a client disconnects
 
     if let Ok(_player) = dsl.get_player_by_id(PlayerId::new(ctx.sender())) {
-        // Remove unneccessary timers and etc.
+        // Remove unnecessary timers and etc.
     }
 
     if let Some(mut config) = dsl.get_all_global_configurations().next() {

@@ -1,11 +1,11 @@
 use spacetimedb::{table, Identity, Timestamp};
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::tables::{factions::FactionId, ships::*};
 
 use super::stellarobjects::*;
 
-#[dsl(plural_name = players, method(update = true))]
+#[spacetimedsl::dsl(plural_name = players, method(update = true))]
 #[table(accessor = player, public)]
 pub struct Player {
     #[primary_key]

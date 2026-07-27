@@ -1,5 +1,4 @@
 use spacetimedb::{table, SpacetimeType, Timestamp};
-use spacetimedsl::*;
 
 use solarance_shared::Vec2;
 
@@ -61,7 +60,7 @@ impl From<spacetimedsl::SpacetimeDSLError> for CombatError {
     }
 }
 
-#[dsl(plural_name = visual_effects, method(update = false))]
+#[spacetimedsl::dsl(plural_name = visual_effects, method(update = false))]
 #[table(accessor = visual_effect, public)]
 pub struct VisualEffect {
     #[primary_key]

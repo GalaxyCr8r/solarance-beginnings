@@ -10,7 +10,7 @@ use crate::{
 
 use log::info;
 use spacetimedb::*;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 use std::time::Duration;
 
 pub mod buy_and_sell;

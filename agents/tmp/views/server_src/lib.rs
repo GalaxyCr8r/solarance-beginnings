@@ -1,5 +1,5 @@
 use spacetimedb::*;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 mod physics;
 

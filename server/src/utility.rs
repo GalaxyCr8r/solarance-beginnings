@@ -1,5 +1,5 @@
 use log::{warn, info};
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::{ships::*, stellarobjects::*};
 

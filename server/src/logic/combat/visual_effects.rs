@@ -1,10 +1,10 @@
 use spacetimedb::*;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::logic::stellarobjects::movement::get_sobj_pose;
 use crate::tables::{combat::*, items::*, sectors::SectorId, ships::*, stellarobjects::*};
 
-#[dsl(plural_name = visual_effect_timers,
+#[spacetimedsl::dsl(plural_name = visual_effect_timers,
     method(update = false, delete = true)
 )]
 #[spacetimedb::table(accessor = visual_effect_timer, scheduled(cleanup_visual_effect))]

@@ -1,7 +1,7 @@
 use spacetimedb::{AnonymousViewContext, SpacetimeType, Timestamp, ViewContext, table, view};
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
-#[dsl(plural_name = global_configurations, method(update = true))]
+#[spacetimedsl::dsl(plural_name = global_configurations, method(update = true))]
 #[table(accessor = global_config)]
 pub struct GlobalConfig {
     #[primary_key]
@@ -46,7 +46,7 @@ pub struct PublicGlobalConfig {
 /// Anonymous (not per-caller) view over the single GlobalConfig row.
 #[view(accessor = public_global_config, public)]
 pub fn public_global_config(ctx: &AnonymousViewContext) -> Vec<PublicGlobalConfig> {
-    let dsl = spacetimedsl::read_only_dsl(ctx);
+    let dsl = read_only_dsl(ctx);
     match dsl.get_global_config_by_id(GlobalConfigId::new(0)) {
         Ok(config) => vec![PublicGlobalConfig {
             active_players: config.active_players,

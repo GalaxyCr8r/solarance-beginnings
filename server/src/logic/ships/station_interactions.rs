@@ -1,6 +1,6 @@
 use log::info;
 use spacetimedb::ReducerContext;
-use spacetimedsl::*;
+use crate::spacetimedsl::prelude::*;
 
 use crate::{
     logic::{
@@ -13,7 +13,6 @@ use crate::{
     tables::{
         jumpgates::*,
         players::{get_player_ship_and_sobj, PlayerId},
-        sectors::GetSectorRowOptionById,
         messages::{send_direct_server_warning, send_direct_server_info},
         ships::*,
         stations::*,
