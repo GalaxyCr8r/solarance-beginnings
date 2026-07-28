@@ -1,4 +1,4 @@
-use spacetimedb::{AnonymousViewContext, SpacetimeType, Timestamp, ViewContext, table, view};
+use spacetimedb::{AnonymousViewContext, SpacetimeType, Timestamp, table, view};
 use crate::spacetimedsl::prelude::*;
 
 #[spacetimedsl::dsl(plural_name = global_configurations, method(update = true))]
