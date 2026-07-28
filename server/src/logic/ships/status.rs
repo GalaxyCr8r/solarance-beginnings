@@ -73,7 +73,7 @@ pub fn ship_status_timer_reducer(
         changes = true;
     }
 
-    if (changes) {
+    if changes {
         dsl.update_ship_status_by_id(ship_status)?;
     }
 

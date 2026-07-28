@@ -9,7 +9,6 @@
 //! mutate.
 
 use egui::{Align2, Color32, Context, RichText};
-use spacetimedb_sdk::DbContext;
 
 use crate::{
     gameplay::direct_server_messages::DirectServerMessageUtils,

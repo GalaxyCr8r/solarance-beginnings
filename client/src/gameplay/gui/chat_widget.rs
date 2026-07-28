@@ -225,7 +225,7 @@ fn unread_dm_count(ctx: &DbConnection, chat_window: &State) -> usize {
 fn draw_galaxy_channel(ctx: &DbConnection, ui: &mut Ui) {
     let mut messages: Vec<GalaxyChannelMessage> = ctx.db().my_galaxy_chat().iter().collect();
     messages.sort_by_key(|m| m.created_at);
-    draw_scrolling_list(ui, messages.len(), |ui, idx| {
+    draw_scrolling_list(ui, messages.len(), |_ui, idx| {
         let message = &messages[idx];
         let timestamp = DirectServerMessageUtils::format_timestamp_short(&message.created_at);
         (timestamp, format!("[{}]: {}", render_sender(ctx, &message.sender), message.body))
@@ -236,7 +236,7 @@ fn draw_system_channel(ctx: &DbConnection, ui: &mut Ui) {
     let mut messages: Vec<StarSystemChannelMessage> =
         ctx.db().my_star_system_chat().iter().collect();
     messages.sort_by_key(|m| m.created_at);
-    draw_scrolling_list(ui, messages.len(), |ui, idx| {
+    draw_scrolling_list(ui, messages.len(), |_ui, idx| {
         let message = &messages[idx];
         let timestamp = DirectServerMessageUtils::format_timestamp_short(&message.created_at);
         (timestamp, format!("({}): {}", render_sender(ctx, &message.sender), message.body))
@@ -246,7 +246,7 @@ fn draw_system_channel(ctx: &DbConnection, ui: &mut Ui) {
 fn draw_sector_channel(ctx: &DbConnection, ui: &mut Ui) {
     let mut messages: Vec<SectorChannelMessage> = ctx.db().my_sector_chat().iter().collect();
     messages.sort_by_key(|m| m.created_at);
-    draw_scrolling_list(ui, messages.len(), |ui, idx| {
+    draw_scrolling_list(ui, messages.len(), |_ui, idx| {
         let message = &messages[idx];
         let timestamp = DirectServerMessageUtils::format_timestamp_short(&message.created_at);
         (timestamp, format!("({}): {}", render_sender(ctx, &message.sender), message.body))
@@ -256,7 +256,7 @@ fn draw_sector_channel(ctx: &DbConnection, ui: &mut Ui) {
 fn draw_faction_channel(ctx: &DbConnection, ui: &mut Ui) {
     let mut messages: Vec<FactionChannelMessage> = ctx.db().my_faction_chat().iter().collect();
     messages.sort_by_key(|m| m.created_at);
-    draw_scrolling_list(ui, messages.len(), |ui, idx| {
+    draw_scrolling_list(ui, messages.len(), |_ui, idx| {
         let message = &messages[idx];
         let timestamp = DirectServerMessageUtils::format_timestamp_short(&message.created_at);
         (timestamp, format!("{}: {}", render_sender(ctx, &message.sender), message.body))
@@ -266,7 +266,7 @@ fn draw_faction_channel(ctx: &DbConnection, ui: &mut Ui) {
 fn draw_server_channel(ctx: &DbConnection, ui: &mut Ui) {
     let mut messages: Vec<ServerChannelMessage> = ctx.db().server_channel_message().iter().collect();
     messages.sort_by_key(|m| m.created_at);
-    draw_scrolling_list(ui, messages.len(), |ui, idx| {
+    draw_scrolling_list(ui, messages.len(), |_ui, idx| {
         let message = &messages[idx];
         let timestamp = DirectServerMessageUtils::format_timestamp_short(&message.created_at);
         (timestamp, format!("[MOTD] {}", message.body))

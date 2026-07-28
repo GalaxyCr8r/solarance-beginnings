@@ -241,6 +241,15 @@ fn add_targeted_object_status(
     match target.kind {
         StellarObjectKinds::Asteroid => {
             if let Some(asteroid) = ctx.db().asteroid().id().find(&target.id) {
+                // Name the ore so the player can tell iron from gold before
+                // mining. Same item_definition lookup the cargo-crate branch
+                // does below, so the table is already subscribed; no row cached
+                // ⇒ just skip the label (no panic), leaving the resources bar.
+                if let Some(item_def) =
+                    ctx.db().item_definition().id().find(&asteroid.resource_item_id)
+                {
+                    ui.label(format!("Ore: {}", item_def.name));
+                }
                 add_status_bar(
                     ui,
                     "Resources",
