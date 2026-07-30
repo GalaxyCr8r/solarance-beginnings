@@ -207,10 +207,22 @@ pub async fn login_screen() -> (bool, Option<String>) {
                                         }));
                                     }
                                 }
+                                // (#172) Post-callback the player must click again;
+                                // a green primary fill + "Ready" label makes it read
+                                // as a distinct authenticated action, not the same
+                                // "Login" button that appeared to do nothing. ASCII
+                                // label only — no ✓ glyph (ADR-0003 tofu box).
                                 if id_token.is_some()
                                     && ui
-                                        .button(
-                                            RichText::new("\n    Play via Auth0    \n").size(24.0),
+                                        .add(
+                                            egui::Button::new(
+                                                RichText::new(
+                                                    "\n    Ready - Play via Auth0    \n",
+                                                )
+                                                .size(24.0)
+                                                .color(Color32::WHITE),
+                                            )
+                                            .fill(Color32::from_rgb(46, 160, 67)),
                                         )
                                         .clicked()
                                 {
@@ -237,9 +249,21 @@ pub async fn login_screen() -> (bool, Option<String>) {
                                 info!("CLICKED!");
                                 end_loop = BreakLoop;
                             }
+                            // (#172) Hide Continue once "Ready - Play via Auth0" is
+                            // showing, so there's one obvious action to enter the game.
+                            // Continue is that action when a prior token exists, so give
+                            // it the same green primary fill as "Ready - Play via Auth0".
                             if has_prior_token
+                                && id_token.is_none()
                                 && ui
-                                    .button(RichText::new("\n    Continue    \n").size(24.0))
+                                    .add(
+                                        egui::Button::new(
+                                            RichText::new("\n    Continue    \n")
+                                                .size(24.0)
+                                                .color(Color32::WHITE),
+                                        )
+                                        .fill(Color32::from_rgb(46, 160, 67)),
+                                    )
                                     .clicked()
                             {
                                 info!("CLICKED!");
