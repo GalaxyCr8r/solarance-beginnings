@@ -15,7 +15,20 @@ pub fn render_star_system(game_state: &mut GameState) {
 
     let camera = game_state.bg_camera.target;
 
+    // (#201) The client subscribes to the whole star_system_object table, so the
+    // cache holds objects for every system. Anchor on the player's current system
+    // — ship.sector_id → Sector.system_id — and skip foreign rows, the same
+    // wrong-sector filter approach as the stellar-object pass in render.rs. `None`
+    // while docked / out-of-play (no ship), in which case we don't filter.
+    let current_system_id = get_player_ship(game_state.ctx)
+        .and_then(|ship| game_state.ctx.db().sector().id().find(&ship.sector_id))
+        .map(|sector| sector.system_id);
+
     for sso in game_state.ctx.db().star_system_object().iter() {
+        if current_system_id.is_some_and(|sys| sso.system_id != sys) {
+            continue;
+        }
+
         let (image, secondary) = match sso.kind {
             StarSystemObjectKind::Star => (&resources.sun_textures["star.1"], None),
             StarSystemObjectKind::Planet => (
