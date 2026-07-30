@@ -329,7 +329,14 @@ fn add_targeted_object_status(
                         cargo_crate.quantity, item_def.name
                     ));
                 }
-                //add_status_bar(ui, "Health", crate_.max_health as f32, crate_.health, Color32::from_rgb(242, 0, 32));
+                // (#144) The pickup action was lost in the M4 movement refactor.
+                // Server enforces the range check, so the button is unconditional;
+                // a cosmetic client-side range gate is out of scope.
+                if ui.button("Collect").clicked() {
+                    let _ = ctx
+                        .reducers
+                        .try_to_pickup_crate(CargoCrateId { value: cargo_crate.id });
+                }
             }
         }
         StellarObjectKinds::JumpGate => {
