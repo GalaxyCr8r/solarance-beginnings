@@ -121,7 +121,9 @@ pub async fn gameplay(connection: Option<DbConnection>) {
                 return;
             }
 
-            gui::debug_widget::draw(egui_ctx, &mut game_state);
+            if game_state.debug_window_open {
+                gui::debug_widget::draw(egui_ctx, &mut game_state);
+            }
 
             if player_ship.is_some() {
                 // Widgets
@@ -203,6 +205,10 @@ pub async fn gameplay(connection: Option<DbConnection>) {
             }
             if is_key_pressed(KeyCode::B) {
                 game_state.construction_window_open = !game_state.construction_window_open;
+            }
+            // (#204) Debug overlay is opt-in — hidden on fresh launch, toggled here.
+            if is_key_pressed(KeyCode::F3) {
+                game_state.debug_window_open = !game_state.debug_window_open;
             }
         }
 
