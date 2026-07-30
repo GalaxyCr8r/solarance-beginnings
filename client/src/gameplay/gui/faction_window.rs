@@ -228,7 +228,10 @@ fn draw_members_tab(ui: &mut egui::Ui, ctx: &DbConnection) {
                     Color32::GRAY
                 };
 
-                ui.colored_label(status_color, "●");
+                // (#195) Drawn dot, not a "●" glyph — U+25CF isn't in any of
+                // egui's Proportional bundled fonts, so it renders as tofu. See ADR-0003.
+                let (rect, _) = ui.allocate_exact_size(egui::vec2(10.0, 10.0), egui::Sense::hover());
+                ui.painter().circle_filled(rect.center(), 4.0, status_color);
                 ui.label(&member.username);
                 ui.label(format!("Credits: {}", member.credits));
             });
