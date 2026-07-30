@@ -31,7 +31,17 @@ pub fn attempt_to_pickup_cargo_crate<T: spacetimedsl::WriteContext>(
             item_def.get_id(),
             *cargo_crate.get_quantity(),
         ) {
-            Ok(_) => Ok(()),
+            Ok(_) => {
+                // The crate's contents are now in transit to the ship (the
+                // add-cargo timer above). Remove the crate now so it can't be
+                // collected twice — without this it stays floating and every
+                // Collect click schedules another load: an item dupe.
+                // Deleting the StellarObject cascades to the CargoCrate row via
+                // the `on_delete = Delete` FK (same idiom as the despawn sweeper).
+                let sobj_id = cargo_crate.get_sobj_id();
+                dsl.delete_stellar_object_by_id(&sobj_id)?;
+                Ok(())
+            }
             Err(e) => Err(format!(
                 "ERROR {} : Ship {:?} could not fit {}x #{:?} items",
                 e,
