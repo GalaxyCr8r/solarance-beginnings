@@ -120,6 +120,14 @@ struct ConnectForm {
     sector_b: Option<u64>,
 }
 
+/// State for the "teleport ship" admin panel (#193): pick a live ship and a
+/// target sector, fire `admin_teleport_ship_to_sector`.
+#[derive(Default)]
+struct TeleportForm {
+    ship_id: Option<u64>,
+    sector_id: Option<u64>,
+}
+
 struct AddModuleForm {
     station_id: Option<u64>,
     module_key: String,
@@ -174,6 +182,8 @@ struct GalaxyData {
     /// Read-only live-state snapshot (#145): players and ships (grouped by sector).
     player_lines: Vec<String>,
     ship_lines: Vec<String>,
+    /// Live ships as `(id, label)` for the teleport-ship picker (#193).
+    ships: Vec<(u64, String)>,
     /// Players as `(identity, label)` for the message-recipient picker.
     players: Vec<(Identity, String)>,
 }
@@ -196,6 +206,7 @@ pub struct AdminApp {
     connect_form: ConnectForm,
     add_module_form: AddModuleForm,
     message_form: MessageForm,
+    teleport_form: TeleportForm,
 }
 
 impl AdminApp {
@@ -213,6 +224,7 @@ impl AdminApp {
             connect_form: ConnectForm::default(),
             add_module_form: AddModuleForm::default(),
             message_form: MessageForm::default(),
+            teleport_form: TeleportForm::default(),
         }
     }
 
@@ -272,6 +284,7 @@ impl AdminApp {
             connect_form,
             add_module_form,
             message_form,
+            teleport_form,
         } = self;
 
         let mut requested_connect = false;
@@ -289,6 +302,7 @@ impl AdminApp {
                     connect_form,
                     add_module_form,
                     message_form,
+                    teleport_form,
                 );
             } else {
                 requested_connect = connection_dialog(
@@ -480,6 +494,8 @@ fn gather_galaxy(conn: &DbConnection) -> GalaxyData {
         })
         .collect();
     ships.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
+    let ships_picker: Vec<(u64, String)> =
+        ships.iter().map(|(_, id, line)| (*id, line.clone())).collect();
     let ship_lines: Vec<String> = ships.into_iter().map(|(_, _, line)| line).collect();
 
     let mut gate_lines: Vec<String> = db
@@ -500,6 +516,7 @@ fn gather_galaxy(conn: &DbConnection) -> GalaxyData {
         gate_lines,
         player_lines,
         ship_lines,
+        ships: ships_picker,
         players,
     }
 }
@@ -614,6 +631,7 @@ fn connected_ui(
     connect_form: &mut ConnectForm,
     add_module_form: &mut AddModuleForm,
     message_form: &mut MessageForm,
+    teleport_form: &mut TeleportForm,
 ) -> bool {
     let mut disconnect = false;
 
@@ -683,6 +701,9 @@ fn connected_ui(
 
             egui::CollapsingHeader::new("5: Send server message")
                 .show(ui, |ui| message_panel(ui, conn, message_form, galaxy));
+
+            egui::CollapsingHeader::new("6: Teleport ship to sector")
+                .show(ui, |ui| teleport_panel(ui, conn, teleport_form, galaxy));
         });
     });
 
@@ -988,6 +1009,36 @@ fn station_requirements_editor(ui: &mut egui::Ui, form: &mut StationForm, galaxy
                 }
             }
         });
+    });
+}
+
+fn teleport_panel(
+    ui: &mut egui::Ui,
+    conn: &DbConnection,
+    form: &mut TeleportForm,
+    galaxy: &GalaxyData,
+) {
+    egui::Grid::new("teleport_grid")
+        .num_columns(2)
+        .spacing([12.0, 6.0])
+        .show(ui, |ui| {
+            u64_combo(ui, "teleport_ship", "Ship", &mut form.ship_id, &galaxy.ships);
+            u64_combo(ui, "teleport_sector", "Target sector", &mut form.sector_id, &galaxy.sectors);
+        });
+
+    let valid = form.ship_id.is_some() && form.sector_id.is_some();
+    ui.add_space(4.0);
+    ui.add_enabled_ui(valid, |ui| {
+        if ui.button("Teleport ship").clicked() {
+            let (ship, sector) = (form.ship_id.unwrap(), form.sector_id.unwrap());
+            let label = format!("teleport_ship #{ship} -> sector #{sector}");
+            let res = conn.reducers.admin_teleport_ship_to_sector_then(
+                ship,
+                sector,
+                move |_ctx, result| log_reducer_result(label, result),
+            );
+            log_send_error(res);
+        }
     });
 }
 
