@@ -120,12 +120,15 @@ struct ConnectForm {
     sector_b: Option<u64>,
 }
 
-/// State for the "teleport ship" admin panel (#193): pick a live ship and a
-/// target sector, fire `admin_teleport_ship_to_sector`.
+/// State for the "ship control" admin panel (#193): pick a live ship, then send
+/// it to a sector (`admin_teleport_ship_to_sector`) or dock/undock it at a
+/// station (`admin_dock_ship` / `admin_undock_ship`). One ship picker drives all
+/// three, so they share a form.
 #[derive(Default)]
 struct TeleportForm {
     ship_id: Option<u64>,
     sector_id: Option<u64>,
+    station_id: Option<u64>,
 }
 
 struct AddModuleForm {
@@ -405,7 +408,14 @@ fn gather_galaxy(conn: &DbConnection) -> GalaxyData {
     let mut stations: Vec<(u64, String)> = db
         .station()
         .iter()
-        .map(|st| (st.id, format!("{} (#{}, {:?})", st.name, st.id, st.size)))
+        // Sector in the label so the dock panel's same-sector guard is visible
+        // up front rather than discovered by a rejected reducer call.
+        .map(|st| {
+            (
+                st.id,
+                format!("{} (#{}, {:?}, sector {})", st.name, st.id, st.size, st.sector_id),
+            )
+        })
         .collect();
     stations.sort_by_key(|(id, _)| *id);
 
@@ -702,7 +712,7 @@ fn connected_ui(
             egui::CollapsingHeader::new("5: Send server message")
                 .show(ui, |ui| message_panel(ui, conn, message_form, galaxy));
 
-            egui::CollapsingHeader::new("6: Teleport ship to sector")
+            egui::CollapsingHeader::new("6: Ship control (teleport / dock / undock)")
                 .show(ui, |ui| teleport_panel(ui, conn, teleport_form, galaxy));
         });
     });
@@ -1024,21 +1034,50 @@ fn teleport_panel(
         .show(ui, |ui| {
             u64_combo(ui, "teleport_ship", "Ship", &mut form.ship_id, &galaxy.ships);
             u64_combo(ui, "teleport_sector", "Target sector", &mut form.sector_id, &galaxy.sectors);
+            u64_combo(ui, "teleport_station", "Target station", &mut form.station_id, &galaxy.stations);
         });
 
-    let valid = form.ship_id.is_some() && form.sector_id.is_some();
     ui.add_space(4.0);
-    ui.add_enabled_ui(valid, |ui| {
-        if ui.button("Teleport ship").clicked() {
-            let (ship, sector) = (form.ship_id.unwrap(), form.sector_id.unwrap());
-            let label = format!("teleport_ship #{ship} -> sector #{sector}");
-            let res = conn.reducers.admin_teleport_ship_to_sector_then(
-                ship,
-                sector,
-                move |_ctx, result| log_reducer_result(label, result),
-            );
-            log_send_error(res);
-        }
+    ui.horizontal(|ui| {
+        ui.add_enabled_ui(form.ship_id.is_some() && form.sector_id.is_some(), |ui| {
+            if ui.button("Teleport to sector").clicked() {
+                let (ship, sector) = (form.ship_id.unwrap(), form.sector_id.unwrap());
+                let label = format!("teleport_ship #{ship} -> sector #{sector}");
+                let res = conn.reducers.admin_teleport_ship_to_sector_then(
+                    ship,
+                    sector,
+                    move |_ctx, result| log_reducer_result(label, result),
+                );
+                log_send_error(res);
+            }
+        });
+
+        ui.add_enabled_ui(form.ship_id.is_some() && form.station_id.is_some(), |ui| {
+            if ui.button("Dock at station").clicked() {
+                let (ship, station) = (form.ship_id.unwrap(), form.station_id.unwrap());
+                let label = format!("dock_ship #{ship} -> station #{station}");
+                let res = conn.reducers.admin_dock_ship_then(
+                    ship,
+                    station,
+                    move |_ctx, result| log_reducer_result(label, result),
+                );
+                log_send_error(res);
+            }
+        });
+
+        // Undock needs no target — the ship already knows its station.
+        ui.add_enabled_ui(form.ship_id.is_some(), |ui| {
+            if ui.button("Undock").clicked() {
+                let ship = form.ship_id.unwrap();
+                let label = format!("undock_ship #{ship}");
+                let res = conn
+                    .reducers
+                    .admin_undock_ship_then(ship, move |_ctx, result| {
+                        log_reducer_result(label, result)
+                    });
+                log_send_error(res);
+            }
+        });
     });
 }
 
