@@ -37,6 +37,7 @@ pub struct GameState<'a> {
     // GUI Window Booleans
     pub assets_window_open: bool,
     pub construction_window_open: bool,
+    pub debug_window_open: bool,
     pub details_window_open: bool,
     pub faction_window_open: bool,
     pub map_window_open: bool,
@@ -86,6 +87,7 @@ pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
 
         assets_window_open: false,
         construction_window_open: false,
+        debug_window_open: false, // (#204) developer overlay, opt-in via F3
         details_window_open: false,
         faction_window_open: false,
         map_window_open: false,

@@ -379,7 +379,7 @@ impl State {
                 ui.horizontal(|ui| {
                     ui.heading(&sector.name);
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if ui.small_button("✕").clicked() {
+                        if ui.small_button("X").clicked() {
                             self.selected_sector_id = None;
                         }
                     });

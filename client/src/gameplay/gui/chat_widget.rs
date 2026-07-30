@@ -339,7 +339,11 @@ fn draw_direct_messages(ctx: &DbConnection, chat_window: &mut State, ui: &mut Ui
                 };
                 ui.horizontal(|ui| {
                     if is_unread {
-                        ui.label(RichText::new("●").color(Color32::from_rgb(255, 215, 0)));
+                        // (#195) Drawn dot, not a "●" glyph (tofu in egui's fonts). See ADR-0003.
+                        let (rect, _) =
+                            ui.allocate_exact_size(egui::vec2(10.0, 10.0), egui::Sense::hover());
+                        ui.painter()
+                            .circle_filled(rect.center(), 4.0, Color32::from_rgb(255, 215, 0));
                     }
                     let mut prefix_text = RichText::new(prefix).color(severity_color);
                     if matches!(message.severity, MessageSeverity::Critical) {
