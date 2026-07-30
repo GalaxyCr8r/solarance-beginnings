@@ -366,7 +366,7 @@ pub fn draw_station(pose: &RenderPose, station: Station, game_state: &mut GameSt
     let resources = storage::get::<Resources>();
     let position = pose.pos;
 
-    let gfx_key = match station.size {
+    let base_key = match station.size {
         StationSize::Capital => "station.capital",
         StationSize::Large => "station.large",
         StationSize::Medium => "station.medium",
@@ -374,7 +374,23 @@ pub fn draw_station(pose: &RenderPose, station: Station, game_state: &mut GameSt
         StationSize::Outpost => "station.outpost",
         StationSize::Satellite => "station.satellite",
     };
-    let tex = &resources.station_textures[gfx_key];
+    // (#122) Swap to the skeletal `.uc` sprite while a station_under_construction
+    // row exists for this station (its PK == Station.id). The row is deleted
+    // server-side on completion, so this flips back to the finished sprite on the
+    // next frame with no client reload.
+    let gfx_key = if game_state
+        .ctx
+        .db
+        .station_under_construction()
+        .id()
+        .find(&station.id)
+        .is_some()
+    {
+        format!("{base_key}.uc")
+    } else {
+        base_key.to_string()
+    };
+    let tex = &resources.station_textures[gfx_key.as_str()];
     draw_texture(
         tex,
         position.x - tex.width() * 0.5,
