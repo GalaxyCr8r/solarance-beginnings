@@ -11,8 +11,8 @@ authors = ["Karl Nyborg"]
 crate-type = ["cdylib"]
 
 [dependencies]
-spacetimedb = { version = "2.6.0" }
-spacetimedsl = "0.21.1"
+spacetimedb = { version = "2.7.0" }
+spacetimedsl = "0.22.0"
 log = "0.4"
 glam = "0.30.2"
 solarance-shared = { path = "../solarance-shared", features = ["server"] }
