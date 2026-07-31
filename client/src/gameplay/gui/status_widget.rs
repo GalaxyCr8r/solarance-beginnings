@@ -122,7 +122,9 @@ fn mining_beam_button(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameStat
         return;
     }
 
-    if game_state.mining_active {
+    // Derived from the server's mining-beam row, never a local flag, so the
+    // button still reads "On" after a reconnect mid-mining (#141).
+    if is_player_mining(ctx) {
         if ui
             .button(RichText::new("[X] Mining Beam: On").color({
                 if now() % 1.0 < 0.45 {
@@ -134,7 +136,6 @@ fn mining_beam_button(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameStat
             .clicked()
         {
             let _ = ctx.reducers.stop_mining_asteroid();
-            game_state.mining_active = false;
         }
     } else {
         let target = get_current_target(ctx, &mut game_state.current_target_sobj_id);
@@ -150,7 +151,6 @@ fn mining_beam_button(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameStat
                     let _ = ctx
                         .reducers
                         .try_mining_asteroid(StellarObjectId { value: target.id });
-                    game_state.mining_active = true;
                 }
             }
         });

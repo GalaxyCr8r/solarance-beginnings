@@ -225,6 +225,30 @@ pub fn get_current_target(
     }
 }
 
+/// Is the player's ship mining right now?
+///
+/// Derived from the public `visual_effect` table rather than remembered from
+/// the `try_mining_asteroid` / `stop_mining_asteroid` call, for the same reason
+/// [`get_current_target`] re-queries instead of caching a row (#123): a local
+/// flag only knows about state changes this client witnessed. Reconnect
+/// mid-mining and the flag reads `false` while the server happily keeps
+/// extracting ore (#141).
+///
+/// The server treats a `MiningLaser` row as the lifetime of the mining session —
+/// created on start, deleted on every stop path — so its presence is the
+/// authoritative answer, and it is the same signal `draw_mining_lasers` renders
+/// the beam from. That shared source is what keeps the button and the beam from
+/// disagreeing.
+pub fn is_player_mining(ctx: &DbConnection) -> bool {
+    let Some(sobj_id) = get_player_ship(ctx).map(|ship| ship.sobj_id) else {
+        return false;
+    };
+    ctx.db()
+        .visual_effect()
+        .iter()
+        .any(|e| e.effect_type == VisualEffectType::MiningLaser && e.source_sobj_id == sobj_id)
+}
+
 /// A ship plus its type definition for an in-sector stellar-object id, hiding
 /// the `ship` → `ship_type_definition` join. Returns `None` if either row is
 /// absent from the cache. Replaces the duplicated lookup the renderer and the
