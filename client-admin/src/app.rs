@@ -13,6 +13,8 @@
 //! side panel lists current galaxy state so the designer can see the effect of
 //! each reducer as the subscription updates stream back in.
 
+use std::collections::HashMap;
+
 use macroquad::prelude::*;
 use spacetimedb_sdk::{DbContext, Identity, Table};
 
@@ -187,8 +189,23 @@ struct GalaxyData {
     ship_lines: Vec<String>,
     /// Live ships as `(id, label)` for the teleport-ship picker (#193).
     ships: Vec<(u64, String)>,
+    /// Where each ship currently is, so the ship-control panel can enable only
+    /// the actions that are legal for the selection (#193).
+    ship_locations: Vec<(u64, ShipLocation)>,
     /// Players as `(identity, label)` for the message-recipient picker.
     players: Vec<(Identity, String)>,
+}
+
+impl GalaxyData {
+    /// Location of the selected ship in this frame's snapshot, or `None` if
+    /// nothing is selected (or the row vanished between frames).
+    fn ship_location(&self, ship_id: Option<u64>) -> Option<ShipLocation> {
+        let ship_id = ship_id?;
+        self.ship_locations
+            .iter()
+            .find(|(id, _)| *id == ship_id)
+            .map(|(_, location)| *location)
+    }
 }
 
 pub struct AdminApp {
@@ -484,6 +501,14 @@ fn gather_galaxy(conn: &DbConnection) -> GalaxyData {
         .collect();
     players.sort_by(|a, b| a.1.cmp(&b.1));
 
+    // Owner identities are unreadable at a glance, so ship rows show the
+    // username instead — see `owner_label`.
+    let usernames: HashMap<Identity, String> = db
+        .player()
+        .iter()
+        .map(|p| (p.id, p.username.clone()))
+        .collect();
+
     // Ships, grouped by sector (sector_id then ship id).
     let mut ships: Vec<(u64, u64, String)> = db
         .ship()
@@ -498,7 +523,7 @@ fn gather_galaxy(conn: &DbConnection) -> GalaxyData {
                     s.id,
                     s.location,
                     s.shiptype_id,
-                    s.player_id.to_abbreviated_hex(),
+                    owner_label(&usernames, s.player_id),
                 ),
             )
         })
@@ -506,6 +531,8 @@ fn gather_galaxy(conn: &DbConnection) -> GalaxyData {
     ships.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
     let ships_picker: Vec<(u64, String)> =
         ships.iter().map(|(_, id, line)| (*id, line.clone())).collect();
+    let ship_locations: Vec<(u64, ShipLocation)> =
+        db.ship().iter().map(|s| (s.id, s.location)).collect();
     let ship_lines: Vec<String> = ships.into_iter().map(|(_, _, line)| line).collect();
 
     let mut gate_lines: Vec<String> = db
@@ -527,6 +554,7 @@ fn gather_galaxy(conn: &DbConnection) -> GalaxyData {
         player_lines,
         ship_lines,
         ships: ships_picker,
+        ship_locations,
         players,
     }
 }
@@ -762,6 +790,18 @@ fn u32_combo(
             }
         });
     ui.end_row();
+}
+
+/// `username (…9f3c)` — the username is what an admin actually scans for, with
+/// the last four identity hex chars kept as a tiebreak between similar names.
+/// Falls back to the raw tail for a ship whose owner has no `player` row.
+fn owner_label(usernames: &HashMap<Identity, String>, owner: Identity) -> String {
+    let hex = owner.to_hex().to_string();
+    let tail = hex.get(hex.len().saturating_sub(4)..).unwrap_or(hex.as_str());
+    match usernames.get(&owner) {
+        Some(username) => format!("{username} (…{tail})"),
+        None => format!("<unregistered> (…{tail})"),
+    }
 }
 
 fn u64_combo(
@@ -1037,9 +1077,16 @@ fn teleport_panel(
             u64_combo(ui, "teleport_station", "Target station", &mut form.station_id, &galaxy.stations);
         });
 
+    // Only offer the actions the server would actually accept for this ship, so
+    // the guards in `admin/docking.rs` are a backstop rather than the first
+    // feedback the admin gets.
+    let location = galaxy.ship_location(form.ship_id);
+    let in_sector = location == Some(ShipLocation::Sector);
+    let docked = location == Some(ShipLocation::Station);
+
     ui.add_space(4.0);
     ui.horizontal(|ui| {
-        ui.add_enabled_ui(form.ship_id.is_some() && form.sector_id.is_some(), |ui| {
+        ui.add_enabled_ui(in_sector && form.sector_id.is_some(), |ui| {
             if ui.button("Teleport to sector").clicked() {
                 let (ship, sector) = (form.ship_id.unwrap(), form.sector_id.unwrap());
                 let label = format!("teleport_ship #{ship} -> sector #{sector}");
@@ -1052,7 +1099,7 @@ fn teleport_panel(
             }
         });
 
-        ui.add_enabled_ui(form.ship_id.is_some() && form.station_id.is_some(), |ui| {
+        ui.add_enabled_ui(in_sector && form.station_id.is_some(), |ui| {
             if ui.button("Dock at station").clicked() {
                 let (ship, station) = (form.ship_id.unwrap(), form.station_id.unwrap());
                 let label = format!("dock_ship #{ship} -> station #{station}");
@@ -1066,7 +1113,7 @@ fn teleport_panel(
         });
 
         // Undock needs no target — the ship already knows its station.
-        ui.add_enabled_ui(form.ship_id.is_some(), |ui| {
+        ui.add_enabled_ui(docked, |ui| {
             if ui.button("Undock").clicked() {
                 let ship = form.ship_id.unwrap();
                 let label = format!("undock_ship #{ship}");
