@@ -28,7 +28,11 @@ pub struct ShipMiningTimer {
 
     #[index(btree)]
     #[use_wrapper(StellarObjectId)]
-    /// FK to StellarObject
+    #[foreign_key(path = crate::tables::stellarobjects, table = stellar_object, column = id, on_delete = Delete)]
+    /// FK to StellarObject. `on_delete = Delete` matches the mining beam's own
+    /// cascade, so docking (which deletes the ship's sobj) can't leave a timer
+    /// behind that fails "Couldn't find ship." every 3s forever — after undock
+    /// the ship gets a *new* sobj id, so an orphan never recovers (#141).
     ship_sobj_id: u64,
 
     #[use_wrapper(StellarObjectId)]
