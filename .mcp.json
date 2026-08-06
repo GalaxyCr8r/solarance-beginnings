@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "blastradius": {
+      "type": "stdio",
+      "command": "/Users/knyborg/.local/bin/blastradius",
+      "args": [
+        "serve",
+        "--mcp"
+      ],
+      "env": {}
+    }
+  }
+}

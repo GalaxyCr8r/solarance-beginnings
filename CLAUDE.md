@@ -926,3 +926,21 @@ pub fn timer_update_all_ship_movement_controllers(
 5. **Type helper `dsl` params as `&DSL<'_, ReducerContext>`** — never pass `ctx` alongside `dsl`; reach the context via `dsl.ctx()`. Generic `&DSL<T>` is reserved for cross-reducer/procedure reuse.
 6. **Use generated CRUD methods** — don't call `ctx.db.*` for tables covered by DSL
 7. **Use ID wrappers** — `PlayerId::new(identity)`, not raw `Identity` where typed ID exists
+
+---
+
+# Blast Radius
+
+Each module's `CLAUDE.md` (`server/`, `client/`, `client-admin/`, `solarance-shared/`) carries a
+`symbolindex` block listing every fn/struct/enum as `file: symbol:kind:line`.
+
+**Use it to locate definitions before reaching for grep.** The `lookup_symbol` MCP tool resolves a
+name to file + line in one call; the inline block is the same data when the MCP server isn't running.
+
+- Regenerate after adding, renaming, or moving symbols: `task br-update-symbols`
+- Line numbers drift with any edit above them — trust the **file path**, re-confirm the line.
+
+**Ignore the blast scores.** The Rust analyzer resolves `mod` declarations only, not `use crate::...`,
+so every file scores 1.0–2.5 and `get_impact` reports LOW risk for everything — including files a
+dozen others depend on. It describes the directory tree, not coupling. `task br-analyze` refreshes
+that data; nothing currently relies on it.

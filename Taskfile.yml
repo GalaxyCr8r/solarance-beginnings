@@ -50,3 +50,21 @@ tasks:
     desc: "STDB: View Logs for Solarance"
     cmds:
       - spacetime logs solarance-beginnings
+
+  # /// Blast Radius ///
+
+  br-analyze:
+    desc: "BR: Re-analyze"
+    cmds:
+      - blastradius analyze ./client
+      - blastradius analyze ./client-admin
+      - blastradius analyze ./server
+      - blastradius analyze ./solarance-shared
+
+  br-update-symbols:
+    desc: "BR: Update the Symbols in CLAUDE.md"
+    cmds:
+      - blastradius symbols ./client --inline --claude-md
+      - blastradius symbols ./client-admin --inline --claude-md
+      - blastradius symbols ./server --inline --claude-md
+      - blastradius symbols ./solarance-shared --inline --claude-md
