@@ -49,7 +49,9 @@ pub struct GameState<'a> {
     // fresh and clears this field when the row is gone.
     pub current_target_sobj_id: Option<u64>,
     pub combat_mode: bool,
-    pub mining_active: bool,
+    // No `mining_active` here on purpose (#141): mining state is derived from
+    // the server's beam row via `stdb::utils::is_player_mining`, so it survives
+    // a reconnect. A local flag only knew what this client had witnessed.
     pub movement_flags: (bool, bool, bool, bool), // (forward, backward, left, right)
 
     // Visual Effects
@@ -94,7 +96,6 @@ pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
 
         current_target_sobj_id: None,
         combat_mode: false,
-        mining_active: false,
         movement_flags: (false, false, false, false),
 
         firing_effects: HashMap::new(),
