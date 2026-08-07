@@ -437,6 +437,14 @@ fn create_sector_stations(
             ResourceAmount::new(ITEM_SILICON_ORE, 100),
             ResourceAmount::new(ITEM_CARBON_ORE, 50),
         ],
+        // Fittings mirror what the site asks players to haul, so finishing it
+        // pays off in the ore you were already mining (#179). Trading gives the
+        // refined output somewhere to go.
+        vec![
+            "iron_refinery".to_string(),
+            "silicon_refinery".to_string(),
+            "trading".to_string(),
+        ],
     )?;
 
     let _furrow_site = create_construction_site(
@@ -452,6 +460,8 @@ fn create_sector_stations(
             ResourceAmount::new(ITEM_IRON_ORE, 200),
             ResourceAmount::new(ITEM_GOLD_ORE, 50),
         ],
+        // Iron-only intake, so a single refinery plus a market for the ingots.
+        vec!["iron_refinery".to_string(), "trading".to_string()],
     )?;
 
     Ok(())

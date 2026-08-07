@@ -39,7 +39,10 @@ const STATION_SIZES: [StationSize; 6] = [
     StationSize::Satellite,
 ];
 
-/// Module keys understood by `admin_place_station`, paired with UI labels.
+/// Module keys understood by `admin_place_station` and (as the fitting applied
+/// on completion) `admin_create_construction_site`, paired with UI labels.
+/// Mirrors `MODULE_KEYS` in `server/src/logic/stations/mod.rs` — the server
+/// rejects anything not in that list, so a key added there belongs here too.
 const STATION_MODULES: [(&str, &str); 6] = [
     ("trading", "Trading port"),
     ("iron_refinery", "Iron refinery"),
@@ -953,9 +956,13 @@ fn station_panel(
         });
 
     ui.add_space(4.0);
-    if form.finished {
-        station_modules_editor(ui, form);
-    } else {
+    // Both station kinds pick modules from the same list — a finished station
+    // gets them now, a construction site gets them on completion (#179). Leaving
+    // a site's list empty is legal; the server fits a trading module so it can
+    // never finish as an empty shell.
+    station_modules_editor(ui, form);
+    if !form.finished {
+        ui.add_space(4.0);
         station_requirements_editor(ui, form, galaxy);
     }
 
@@ -1002,6 +1009,7 @@ fn station_panel(
                     form.x,
                     form.y,
                     requirements,
+                    form.modules.clone(),
                     move |_ctx, result| log_reducer_result(label, result),
                 );
                 log_send_error(res);
@@ -1010,9 +1018,14 @@ fn station_panel(
     });
 }
 
-/// Checkbox list of modules to fit onto a finished station.
+/// Checkbox list of modules — fitted immediately on a finished station, or on
+/// completion for a construction site.
 fn station_modules_editor(ui: &mut egui::Ui, form: &mut StationForm) {
-    ui.label("Modules");
+    ui.label(if form.finished {
+        "Modules"
+    } else {
+        "Modules (fitted when construction completes)"
+    });
     for (key, label) in STATION_MODULES {
         let mut checked = form.modules.iter().any(|m| m == key);
         if ui.checkbox(&mut checked, label).changed() {
