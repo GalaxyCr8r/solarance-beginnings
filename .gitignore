@@ -35,3 +35,5 @@ client-admin/src/server/bindings/
 .DS_Store
 
 .claude/
+.blastradius/
+blastradius.json
