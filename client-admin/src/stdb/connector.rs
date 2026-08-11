@@ -122,6 +122,8 @@ fn subscribe_to_tables(ctx: &DbConnection) {
             "SELECT * FROM faction",
             "SELECT * FROM station",
             "SELECT * FROM station_under_construction",
+            // Drives the contribute panel's per-item buttons (#179).
+            "SELECT * FROM construction_requirement",
             "SELECT * FROM jump_gate",
             "SELECT * FROM item_definition",
             // Live-state snapshot tables for the read-only galaxy overview (#145).

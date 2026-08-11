@@ -2,12 +2,14 @@ use log::info;
 use spacetimedb::ReducerContext;
 use crate::spacetimedsl::prelude::*;
 
-use crate::logic::stations::contribution::{create_construction_site, reset_construction_site};
+use crate::logic::stations::contribution::{
+    create_construction_site, record_contribution_without_cargo, reset_construction_site,
+};
 use crate::logic::stations::*;
 use crate::logic::stellarobjects::stellar_object_creation::create_sobj;
 use crate::tables::{
-    economy::ResourceAmount, factions::FactionId, sectors::*, stations::*,
-    stellarobjects::StellarObjectKinds,
+    economy::ResourceAmount, factions::FactionId, items::ItemDefinitionId, players::PlayerId,
+    sectors::*, stations::*, stellarobjects::StellarObjectKinds,
 };
 use crate::utility::try_server_only;
 
@@ -165,6 +167,48 @@ pub fn admin_add_station_module(
         ctx.sender().to_abbreviated_hex(),
         station_id,
         module_key,
+    );
+    Ok(())
+}
+
+/// Push goods into a construction site without flying them there, so the
+/// completion moment — and the module fitting it now triggers (#179) — can be
+/// exercised from the Galaxy Creator alone.
+///
+/// Pairs with `admin_reset_construction_site`: contribute to completion, inspect
+/// the fitted modules, reset, repeat.
+///
+/// `player_id` must name a real player because the contribution log's
+/// contributor is a foreign key; the goods will appear in that player's
+/// contribution history, which is the truthful record of what happened.
+#[spacetimedb::reducer]
+pub fn admin_contribute_to_construction(
+    ctx: &ReducerContext,
+    station_id: u64,
+    player_id: Identity,
+    item_id: u32,
+    quantity: u32,
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
+    try_server_only(&dsl)?;
+
+    let station_id = StationId::new(station_id);
+    let progress = record_contribution_without_cargo(
+        &dsl,
+        &station_id,
+        &PlayerId::new(player_id),
+        &ItemDefinitionId::new(item_id),
+        quantity,
+    )?;
+
+    info!(
+        "admin_contribute_to_construction: caller={} station_id={} on_behalf_of={} item_id={} quantity={} progress={:.1}%",
+        ctx.sender().to_abbreviated_hex(),
+        station_id.value(),
+        player_id.to_abbreviated_hex(),
+        item_id,
+        quantity,
+        progress,
     );
     Ok(())
 }

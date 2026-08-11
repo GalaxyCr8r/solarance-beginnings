@@ -306,6 +306,90 @@ pub fn create_construction_site<T: spacetimedsl::WriteContext + 'static>(
     Ok(station)
 }
 
+/// Record a contribution that never passed through a ship's hold, then
+/// recompute progress exactly as a real delivery would — completion, module
+/// fitting and the galaxy announcement all included.
+///
+/// This exists so the construction endgame is testable without flying 200 units
+/// of iron across a sector (#179): it is the *same* tail the player path runs,
+/// entered past the ship, range and cargo checks rather than around them.
+///
+/// Deliberately does no remainder arithmetic. `compute_construction_progress`
+/// already clamps each requirement's ratio at 1.0, so an over-contribution is
+/// harmless here — the player path caps only to avoid eating cargo the player
+/// would never get back, and an injected contribution has no cargo to waste.
+///
+/// The log row is attributed to a real player because `player_id` is a foreign
+/// key, so injected goods do show up in that player's contribution history.
+/// That is the honest outcome: the log is an audit trail, and this really did
+/// happen.
+pub fn record_contribution_without_cargo<T: spacetimedsl::WriteContext + 'static>(
+    dsl: &DSL<T>,
+    station_id: &StationId,
+    player_id: &PlayerId,
+    item_id: &ItemDefinitionId,
+    quantity: u32,
+) -> Result<f32, String> {
+    if quantity == 0 {
+        return Err(format!(
+            "record_contribution_without_cargo rejected: quantity must be > 0 (station {}, item {})",
+            station_id.value(),
+            item_id.value()
+        ));
+    }
+
+    let under_construction = dsl
+        .get_station_under_construction_by_id(station_id)
+        .map_err(|e| {
+            format!(
+                "record_contribution_without_cargo rejected: station {} is not under construction ({})",
+                station_id.value(),
+                e
+            )
+        })?;
+
+    if *under_construction.get_is_operational() {
+        return Err(format!(
+            "record_contribution_without_cargo rejected: station {} is already operational",
+            station_id.value()
+        ));
+    }
+
+    // Reject an item the site doesn't want. Contributing it would insert a log
+    // row that `compute_construction_progress` ignores, so the progress bar
+    // wouldn't move and the caller would have no idea why.
+    let requires_item = dsl
+        .get_construction_requirements_by_station_id(station_id)
+        .any(|r| r.get_resource_item_id() == *item_id);
+    if !requires_item {
+        return Err(format!(
+            "record_contribution_without_cargo rejected: station {} does not require item {}",
+            station_id.value(),
+            item_id.value()
+        ));
+    }
+
+    // Fails cleanly if the identity has no Player row — `player_id` is an
+    // `on_delete = Error` foreign key, so an unknown contributor can't be logged.
+    dsl.get_player_by_id(player_id).map_err(|e| {
+        format!(
+            "record_contribution_without_cargo rejected: no player {} to attribute the contribution to ({})",
+            player_id.value().to_abbreviated_hex(),
+            e
+        )
+    })?;
+
+    dsl.create_construction_contribution_log(CreateConstructionContributionLog {
+        station_id: station_id.clone(),
+        player_id: player_id.clone(),
+        item_id: item_id.clone(),
+        quantity,
+        contributed_at: dsl.ctx().timestamp()?,
+    })?;
+
+    refresh_station_progress(dsl, station_id)
+}
+
 /// Wipe every contribution row for the station and zero the progress bar.
 /// Used by `admin_reset_construction_site` so the designer can replay the
 /// completion moment without re-publishing the module.

@@ -52,6 +52,27 @@ const STATION_MODULES: [(&str, &str); 6] = [
     ("advanced_manufacturing", "Advanced manufacturing"),
 ];
 
+/// Push goods into a construction site without hauling them (#179), so the
+/// completion path — and the module fitting it triggers — can be exercised from
+/// here alone.
+struct ContributeForm {
+    station_id: Option<u64>,
+    /// Whose contribution history this lands in. The log's contributor column is
+    /// a foreign key, so this has to name a real player.
+    player_id: Option<Identity>,
+    quantity: u32,
+}
+
+impl Default for ContributeForm {
+    fn default() -> Self {
+        Self {
+            station_id: None,
+            player_id: None,
+            quantity: 100,
+        }
+    }
+}
+
 struct SectorForm {
     system_id: Option<u32>,
     name: String,
@@ -197,6 +218,13 @@ struct GalaxyData {
     ship_locations: Vec<(u64, ShipLocation)>,
     /// Players as `(identity, label)` for the message-recipient picker.
     players: Vec<(Identity, String)>,
+    /// Sites still building, as `(station_id, label)` for the contribute picker
+    /// (#179). Operational sites are excluded — they reject contributions.
+    construction_sites: Vec<(u64, String)>,
+    /// What each site still wants: `(station_id, item_id, quantity_required)`.
+    /// Drives the per-item contribute buttons so the admin doesn't have to guess
+    /// which goods a site accepts.
+    construction_requirements: Vec<(u64, u32, u32)>,
 }
 
 impl GalaxyData {
@@ -230,6 +258,7 @@ pub struct AdminApp {
     add_module_form: AddModuleForm,
     message_form: MessageForm,
     teleport_form: TeleportForm,
+    contribute_form: ContributeForm,
 }
 
 impl AdminApp {
@@ -248,6 +277,7 @@ impl AdminApp {
             add_module_form: AddModuleForm::default(),
             message_form: MessageForm::default(),
             teleport_form: TeleportForm::default(),
+            contribute_form: ContributeForm::default(),
         }
     }
 
@@ -308,6 +338,7 @@ impl AdminApp {
             add_module_form,
             message_form,
             teleport_form,
+            contribute_form,
         } = self;
 
         let mut requested_connect = false;
@@ -326,6 +357,7 @@ impl AdminApp {
                     add_module_form,
                     message_form,
                     teleport_form,
+                    contribute_form,
                 );
             } else {
                 requested_connect = connection_dialog(
@@ -545,6 +577,33 @@ fn gather_galaxy(conn: &DbConnection) -> GalaxyData {
         .collect();
     gate_lines.sort();
 
+    // Construction sites still in progress. The station row carries the name,
+    // the under-construction row the progress — the two share an id.
+    let mut construction_sites: Vec<(u64, String)> = db
+        .station_under_construction()
+        .iter()
+        .filter(|uc| !uc.is_operational)
+        .filter_map(|uc| {
+            db.station().id().find(&uc.id).map(|st| {
+                (
+                    uc.id,
+                    format!(
+                        "{} (#{}, sector {}) — {:.0}%",
+                        st.name, st.id, st.sector_id, uc.construction_progress_percentage
+                    ),
+                )
+            })
+        })
+        .collect();
+    construction_sites.sort_by_key(|(id, _)| *id);
+
+    let mut construction_requirements: Vec<(u64, u32, u32)> = db
+        .construction_requirement()
+        .iter()
+        .map(|r| (r.station_id, r.resource_item_id, r.quantity_required))
+        .collect();
+    construction_requirements.sort();
+
     GalaxyData {
         systems,
         factions,
@@ -559,6 +618,8 @@ fn gather_galaxy(conn: &DbConnection) -> GalaxyData {
         ships: ships_picker,
         ship_locations,
         players,
+        construction_sites,
+        construction_requirements,
     }
 }
 
@@ -673,6 +734,7 @@ fn connected_ui(
     add_module_form: &mut AddModuleForm,
     message_form: &mut MessageForm,
     teleport_form: &mut TeleportForm,
+    contribute_form: &mut ContributeForm,
 ) -> bool {
     let mut disconnect = false;
 
@@ -745,6 +807,9 @@ fn connected_ui(
 
             egui::CollapsingHeader::new("6: Ship control (teleport / dock / undock)")
                 .show(ui, |ui| teleport_panel(ui, conn, teleport_form, galaxy));
+
+            egui::CollapsingHeader::new("7: Contribute goods to a construction site")
+                .show(ui, |ui| contribute_panel(ui, conn, contribute_form, galaxy));
         });
     });
 
@@ -1223,6 +1288,136 @@ fn add_module_panel(
             log_send_error(res);
         }
     });
+}
+
+/// Contribute goods to a construction site without flying them there (#179).
+///
+/// The per-requirement rows are the point: a site only accepts items it actually
+/// requires, so listing them removes the guesswork that an item-id box would
+/// leave. "Fill all requirements" sends each requirement's full quantity in one
+/// go, which is enough to cross 100% and trigger the module fitting.
+fn contribute_panel(
+    ui: &mut egui::Ui,
+    conn: &DbConnection,
+    form: &mut ContributeForm,
+    galaxy: &GalaxyData,
+) {
+    ui.weak(
+        "Inject goods into a site to test completion. Contributions are logged against \
+         the chosen player, and over-contributing is harmless — progress caps at 100%.",
+    );
+
+    if galaxy.construction_sites.is_empty() {
+        ui.add_space(4.0);
+        ui.weak("(no sites are currently under construction)");
+        return;
+    }
+
+    egui::Grid::new("contribute_grid")
+        .num_columns(2)
+        .spacing([12.0, 6.0])
+        .show(ui, |ui| {
+            u64_combo(
+                ui,
+                "contribute_station",
+                "Construction site",
+                &mut form.station_id,
+                &galaxy.construction_sites,
+            );
+
+            ui.label("Attribute to");
+            let selected_text = form
+                .player_id
+                .and_then(|id| galaxy.players.iter().find(|(pid, _)| *pid == id))
+                .map(|(_, l)| l.clone())
+                .unwrap_or_else(|| "— select —".to_string());
+            egui::ComboBox::from_id_salt("contribute_player")
+                .selected_text(selected_text)
+                .show_ui(ui, |ui| {
+                    for (id, label) in &galaxy.players {
+                        ui.selectable_value(&mut form.player_id, Some(*id), label.clone());
+                    }
+                });
+            ui.end_row();
+
+            ui.label("Quantity per click");
+            ui.add(
+                egui::DragValue::new(&mut form.quantity)
+                    .speed(1.0)
+                    .range(1..=100_000),
+            );
+            ui.end_row();
+        });
+
+    let (Some(station_id), Some(player_id)) = (form.station_id, form.player_id) else {
+        ui.add_space(4.0);
+        ui.weak("Pick a site and a player to enable contributing.");
+        return;
+    };
+
+    let requirements: Vec<(u32, u32)> = galaxy
+        .construction_requirements
+        .iter()
+        .filter(|(sid, _, _)| *sid == station_id)
+        .map(|(_, item_id, qty)| (*item_id, *qty))
+        .collect();
+
+    ui.add_space(4.0);
+    if requirements.is_empty() {
+        // A site with no requirements can never complete; the server refuses to
+        // create one, so this means the subscription hasn't caught up yet.
+        ui.weak("(no requirements known for this site yet)");
+        return;
+    }
+
+    let item_name = |item_id: u32| {
+        galaxy
+            .items
+            .iter()
+            .find(|(id, _)| *id == item_id)
+            .map(|(_, n)| n.clone())
+            .unwrap_or_else(|| format!("item #{item_id}"))
+    };
+
+    let contribute = |item_id: u32, quantity: u32| {
+        let label = format!(
+            "contribute {}x {} → site {}",
+            quantity,
+            item_name(item_id),
+            station_id
+        );
+        let res = conn.reducers.admin_contribute_to_construction_then(
+            station_id,
+            player_id,
+            item_id,
+            quantity,
+            move |_ctx, result| log_reducer_result(label, result),
+        );
+        log_send_error(res);
+    };
+
+    ui.label("Requirements");
+    for (item_id, required) in &requirements {
+        ui.horizontal(|ui| {
+            ui.monospace(format!("{} × {}", required, item_name(*item_id)));
+            if ui.small_button(format!("+{}", form.quantity)).clicked() {
+                contribute(*item_id, form.quantity);
+            }
+        });
+    }
+
+    ui.add_space(4.0);
+    if ui
+        .button("Fill all requirements (completes the site)")
+        .clicked()
+    {
+        // One call per requirement, each sending the full required amount. Any
+        // already-contributed cargo just makes this an over-contribution, which
+        // the progress engine clamps — so this always lands on 100%.
+        for (item_id, required) in &requirements {
+            contribute(*item_id, *required);
+        }
+    }
 }
 
 fn message_panel(
