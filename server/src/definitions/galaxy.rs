@@ -429,7 +429,11 @@ fn create_sector_stations(
         &s.karrens_reach,
         &create_sobj(dsl, StellarObjectKinds::Station, &s.karrens_reach.get_id())?,
         lrak.clone(),
-        "Karren Refinery (Under Construction)",
+        // No "(Under Construction)" in the stored name: that is a *lifecycle*
+        // state, and the client derives the suffix from the site's row via
+        // `station_display_name`. Baking it in showed the tag twice while
+        // building, and left it stuck on the name forever once finished.
+        "Karren Refinery",
         Vec2::new(1500.0, 0.0),
         0.0,
         vec![
@@ -453,7 +457,7 @@ fn create_sector_stations(
         &s.iron_furrow,
         &create_sobj(dsl, StellarObjectKinds::Station, &s.iron_furrow.get_id())?,
         rediar.clone(),
-        "Iron Furrow Refinery (Under Construction)",
+        "Iron Furrow Refinery",
         Vec2::new(-1500.0, 0.0),
         0.0,
         vec![
