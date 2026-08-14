@@ -148,6 +148,17 @@ pub struct StationUnderConstruction {
 
     pub is_operational: bool,
     pub construction_progress_percentage: f32,
+
+    /// Module keys to fit when the site completes, in the vocabulary of
+    /// `logic::stations::module_creator_from_key`. Declaring intent up front
+    /// (rather than inferring it at 100% from the station name) is what stops a
+    /// finished site from ending up an empty shell (#179). Validated at
+    /// creation, so an unknown key or an over-cap list fails when the designer
+    /// places the site, not weeks later when a player tips it over the line.
+    ///
+    /// Empty is legal and means "fall back to a trading module" — see
+    /// `modules_for_completion`.
+    pub planned_modules: Vec<String>,
 }
 
 /// One row per resource type required to complete a construction site.

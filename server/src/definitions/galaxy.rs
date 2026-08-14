@@ -429,13 +429,25 @@ fn create_sector_stations(
         &s.karrens_reach,
         &create_sobj(dsl, StellarObjectKinds::Station, &s.karrens_reach.get_id())?,
         lrak.clone(),
-        "Karren Refinery (Under Construction)",
+        // No "(Under Construction)" in the stored name: that is a *lifecycle*
+        // state, and the client derives the suffix from the site's row via
+        // `station_display_name`. Baking it in showed the tag twice while
+        // building, and left it stuck on the name forever once finished.
+        "Karren Refinery",
         Vec2::new(1500.0, 0.0),
         0.0,
         vec![
             ResourceAmount::new(ITEM_IRON_ORE, 150),
             ResourceAmount::new(ITEM_SILICON_ORE, 100),
             ResourceAmount::new(ITEM_CARBON_ORE, 50),
+        ],
+        // Fittings mirror what the site asks players to haul, so finishing it
+        // pays off in the ore you were already mining (#179). Trading gives the
+        // refined output somewhere to go.
+        vec![
+            "iron_refinery".to_string(),
+            "silicon_refinery".to_string(),
+            "trading".to_string(),
         ],
     )?;
 
@@ -445,13 +457,15 @@ fn create_sector_stations(
         &s.iron_furrow,
         &create_sobj(dsl, StellarObjectKinds::Station, &s.iron_furrow.get_id())?,
         rediar.clone(),
-        "Iron Furrow Refinery (Under Construction)",
+        "Iron Furrow Refinery",
         Vec2::new(-1500.0, 0.0),
         0.0,
         vec![
             ResourceAmount::new(ITEM_IRON_ORE, 200),
             ResourceAmount::new(ITEM_GOLD_ORE, 50),
         ],
+        // Iron-only intake, so a single refinery plus a market for the ingots.
+        vec!["iron_refinery".to_string(), "trading".to_string()],
     )?;
 
     Ok(())

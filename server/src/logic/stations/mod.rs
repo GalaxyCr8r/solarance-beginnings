@@ -25,6 +25,45 @@ pub mod status;
 /// Type alias for module creation functions
 pub type ModuleCreationFn<T> = Box<dyn Fn(&DSL<T>, &Station) -> Result<(), String>>;
 
+/// Every module key `module_creator_from_key` understands. Single source of
+/// truth for the error message so a typo diagnoses itself in the logs, and
+/// mirrored by `STATION_MODULES` in `client-admin`.
+pub const MODULE_KEYS: [&str; 6] = [
+    "trading",
+    "iron_refinery",
+    "ice_refinery",
+    "silicon_refinery",
+    "solar_array",
+    "advanced_manufacturing",
+];
+
+/// Map a well-known module key to its creator function.
+///
+/// Lives here rather than in `admin/` because three unrelated callers need it:
+/// fitting a new station (`admin_place_station`), fitting an existing one
+/// (`admin_add_station_module`), and — since #179 — fitting a construction site
+/// the moment it completes. Keeping one table of keys is what stops those paths
+/// from drifting.
+pub fn module_creator_from_key<T: spacetimedsl::WriteContext + 'static>(
+    key: &str,
+) -> Result<ModuleCreationFn<T>, String> {
+    Ok(match key {
+        "trading" => create_trading_module(),
+        "iron_refinery" => create_iron_refinery_module(),
+        "ice_refinery" => create_ice_refinery_module(),
+        "silicon_refinery" => create_silicon_refinery_module(),
+        "solar_array" => create_small_solar_array_module(),
+        "advanced_manufacturing" => create_advanced_manufacturing_module(),
+        other => {
+            return Err(format!(
+                "unknown module key {:?} (known: {})",
+                other,
+                MODULE_KEYS.join(", ")
+            ));
+        }
+    })
+}
+
 /// Helper function to create a basic trading module
 pub fn create_trading_module<T: spacetimedsl::WriteContext + 'static>() -> ModuleCreationFn<T> {
     Box::new(|dsl, station| trading_port::create_basic_bazaar(dsl, station, false))

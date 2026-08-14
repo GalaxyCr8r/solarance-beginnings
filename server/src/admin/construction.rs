@@ -2,18 +2,24 @@ use log::info;
 use spacetimedb::ReducerContext;
 use crate::spacetimedsl::prelude::*;
 
-use crate::logic::stations::contribution::{create_construction_site, reset_construction_site};
+use crate::logic::stations::contribution::{
+    create_construction_site, record_contribution_without_cargo, reset_construction_site,
+};
 use crate::logic::stations::*;
 use crate::logic::stellarobjects::stellar_object_creation::create_sobj;
 use crate::tables::{
-    economy::ResourceAmount, factions::FactionId, sectors::*, stations::*,
-    stellarobjects::StellarObjectKinds,
+    economy::ResourceAmount, factions::FactionId, items::ItemDefinitionId, players::PlayerId,
+    sectors::*, stations::*, stellarobjects::StellarObjectKinds,
 };
 use crate::utility::try_server_only;
 
 /// Drop a fresh construction site into the world at runtime. Mirrors the
 /// init-time seed in `definitions/galaxy.rs` so the designer can spawn extra
 /// test targets without republishing the module.
+///
+/// `planned_modules` is what the site becomes when it completes (#179); an
+/// unknown key or a list longer than the size's cap is rejected here rather
+/// than at 100%. Empty is legal and yields a trading module.
 #[spacetimedb::reducer]
 pub fn admin_create_construction_site(
     ctx: &ReducerContext,
@@ -24,6 +30,7 @@ pub fn admin_create_construction_site(
     x: f32,
     y: f32,
     requirements: Vec<ResourceAmount>,
+    planned_modules: Vec<String>,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
     try_server_only(&dsl)?;
@@ -44,10 +51,11 @@ pub fn admin_create_construction_site(
         solarance_shared::Vec2::new(x, y),
         0.0,
         requirements.clone(),
+        planned_modules.clone(),
     )?;
 
     info!(
-        "admin_create_construction_site: caller={} sector_id={} station_id={} name={:?} size={:?} faction={} pos=({:.1},{:.1}) requirements={}",
+        "admin_create_construction_site: caller={} sector_id={} station_id={} name={:?} size={:?} faction={} pos=({:.1},{:.1}) requirements={} planned_modules={:?}",
         ctx.sender().to_abbreviated_hex(),
         sector_id,
         station.get_id().value(),
@@ -57,29 +65,9 @@ pub fn admin_create_construction_site(
         x,
         y,
         requirements.len(),
+        planned_modules,
     );
     Ok(())
-}
-
-/// Map a well-known module key to its creator function. Shared by
-/// `admin_place_station` (fitting a new station) and `admin_add_station_module`
-/// (fitting an existing one) so the two paths can't drift. The error lists the
-/// valid keys so a typo is self-diagnosing in the logs.
-fn module_creator_from_key(key: &str) -> Result<ModuleCreationFn<ReducerContext>, String> {
-    Ok(match key {
-        "trading" => create_trading_module(),
-        "iron_refinery" => create_iron_refinery_module(),
-        "ice_refinery" => create_ice_refinery_module(),
-        "silicon_refinery" => create_silicon_refinery_module(),
-        "solar_array" => create_small_solar_array_module(),
-        "advanced_manufacturing" => create_advanced_manufacturing_module(),
-        other => {
-            return Err(format!(
-                "unknown module key {:?} (known: trading, iron_refinery, ice_refinery, silicon_refinery, solar_array, advanced_manufacturing)",
-                other
-            ));
-        }
-    })
 }
 
 /// Galaxy Creator (#34): place a *finished*, operational station directly —
@@ -147,11 +135,13 @@ pub fn admin_place_station(
 }
 
 /// Galaxy Creator (#34): fit a module onto an *existing* station. This is the
-/// counterpart to `admin_place_station` for stations that already exist — most
-/// importantly construction sites, which complete with **zero** modules
-/// (`create_construction_site` seeds an empty module list and completion only
-/// flips `is_operational`). Without this, a finished construction site would
-/// have nothing to produce.
+/// counterpart to `admin_place_station` for stations that already exist —
+/// retrofitting a station whose fitting turned out wrong, or topping up a
+/// completed construction site beyond its declared `planned_modules`.
+///
+/// Note this is no longer the *only* way a construction site gets modules:
+/// since #179 a site declares its fitting up front and applies it on
+/// completion, so a finished site is never an empty shell.
 ///
 /// `verify` runs afterward so the size's module cap is enforced — and because
 /// reducers are transactional, an over-cap add rolls back rather than
@@ -177,6 +167,48 @@ pub fn admin_add_station_module(
         ctx.sender().to_abbreviated_hex(),
         station_id,
         module_key,
+    );
+    Ok(())
+}
+
+/// Push goods into a construction site without flying them there, so the
+/// completion moment — and the module fitting it now triggers (#179) — can be
+/// exercised from the Galaxy Creator alone.
+///
+/// Pairs with `admin_reset_construction_site`: contribute to completion, inspect
+/// the fitted modules, reset, repeat.
+///
+/// `player_id` must name a real player because the contribution log's
+/// contributor is a foreign key; the goods will appear in that player's
+/// contribution history, which is the truthful record of what happened.
+#[spacetimedb::reducer]
+pub fn admin_contribute_to_construction(
+    ctx: &ReducerContext,
+    station_id: u64,
+    player_id: Identity,
+    item_id: u32,
+    quantity: u32,
+) -> Result<(), String> {
+    let dsl = dsl(ctx);
+    try_server_only(&dsl)?;
+
+    let station_id = StationId::new(station_id);
+    let progress = record_contribution_without_cargo(
+        &dsl,
+        &station_id,
+        &PlayerId::new(player_id),
+        &ItemDefinitionId::new(item_id),
+        quantity,
+    )?;
+
+    info!(
+        "admin_contribute_to_construction: caller={} station_id={} on_behalf_of={} item_id={} quantity={} progress={:.1}%",
+        ctx.sender().to_abbreviated_hex(),
+        station_id.value(),
+        player_id.to_abbreviated_hex(),
+        item_id,
+        quantity,
+        progress,
     );
     Ok(())
 }

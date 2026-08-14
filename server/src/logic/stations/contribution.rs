@@ -3,7 +3,7 @@ use crate::spacetimedsl::prelude::*;
 
 use crate::{
     logic::ships::cargo::remove_cargo_from_ship,
-    logic::stations::create_station_with_modules,
+    logic::stations::{create_station_with_modules, module_creator_from_key, verify},
     logic::stellarobjects::movement::get_ship_movement_snapshot,
     tables::{
         economy::ResourceAmount,
@@ -105,11 +105,95 @@ fn collect_requirements<T: spacetimedsl::WriteContext>(
         .collect()
 }
 
+/// The module keys a completing site should actually be fitted with.
+///
+/// Split out from the completion path because it carries the one guarantee
+/// #179 is about — a finished station is **never** an empty shell. A site with
+/// no declared fitting becomes a trading post: the least surprising default,
+/// and the only module that is useful in every sector regardless of what ore
+/// happens to be nearby.
+pub fn modules_for_completion(planned: &[String]) -> Vec<String> {
+    if planned.is_empty() {
+        return vec!["trading".to_string()];
+    }
+    planned.to_vec()
+}
+
+/// Reject a fitting the site could never legally apply, at the moment the
+/// designer declares it rather than weeks later when a player tips the site
+/// over 100%. Catches both halves: a key nothing can build, and a list longer
+/// than the hull can hold.
+fn validate_planned_modules<T: spacetimedsl::WriteContext + 'static>(
+    size: &StationSize,
+    name: &str,
+    planned: &[String],
+) -> Result<(), String> {
+    let max = size.max_module_amount() as usize;
+    if planned.len() > max {
+        return Err(format!(
+            "create_construction_site refused: '{}' declares {} modules but size {:?} allows {}",
+            name,
+            planned.len(),
+            size,
+            max
+        ));
+    }
+
+    for key in planned {
+        // Resolve rather than merely membership-test the key: this exercises the
+        // exact lookup completion will perform, so the two can't disagree. The
+        // creator itself is discarded — nothing is built until the site finishes.
+        let _ = module_creator_from_key::<T>(key).map_err(|e| {
+            format!("create_construction_site refused: '{}' declares an {}", name, e)
+        })?;
+    }
+
+    Ok(())
+}
+
+/// Fit the site's declared modules onto the now-operational station.
+///
+/// Runs inside the contributing player's transaction, so a failure here rolls
+/// their contribution back rather than leaving a half-fitted station — the same
+/// bargain `admin_add_station_module` makes. `validate_planned_modules` at
+/// creation is what keeps that from being reachable in practice.
+fn fit_planned_modules<T: spacetimedsl::WriteContext + 'static>(
+    dsl: &DSL<T>,
+    station: &Station,
+    planned: &[String],
+) -> Result<(), String> {
+    let keys = modules_for_completion(planned);
+
+    for key in &keys {
+        let creator = module_creator_from_key::<T>(key).map_err(|e| {
+            format!(
+                "station {} completed but its planned fitting is invalid: {}",
+                station.get_id().value(),
+                e
+            )
+        })?;
+        creator(dsl, station)?;
+    }
+
+    verify(dsl, station)?;
+
+    spacetimedb::log::info!(
+        "Construction complete: station {} ('{}') fitted with {:?}",
+        station.get_id().value(),
+        station.get_name(),
+        keys
+    );
+
+    Ok(())
+}
+
 /// Recompute progress for a single station from current table state and
 /// persist the new percentage. If progress hits 100% and the site was not
-/// already flagged operational, flip the bit and broadcast a system
-/// completion message to every logged-in player.
-fn refresh_station_progress<T: spacetimedsl::WriteContext>(
+/// already flagged operational, flip the bit, fit the station's declared
+/// modules (#179 — otherwise it goes operational as an empty shell that can
+/// neither trade nor refine), and broadcast a system completion message to
+/// every logged-in player.
+fn refresh_station_progress<T: spacetimedsl::WriteContext + 'static>(
     dsl: &DSL<T>,
     station_id: &StationId,
 ) -> Result<f32, String> {
@@ -119,6 +203,7 @@ fn refresh_station_progress<T: spacetimedsl::WriteContext>(
 
     let mut under_construction = dsl.get_station_under_construction_by_id(station_id)?;
     let was_operational = *under_construction.get_is_operational();
+    let planned_modules = under_construction.planned_modules.clone();
     under_construction.set_construction_progress_percentage(progress);
 
     let now_complete = progress >= 100.0 && !was_operational;
@@ -130,6 +215,7 @@ fn refresh_station_progress<T: spacetimedsl::WriteContext>(
 
     if now_complete {
         let station = dsl.get_station_by_id(station_id)?;
+        fit_planned_modules(dsl, &station, &planned_modules)?;
         // Construction completion is a genuinely async, everyone-relevant event:
         // post it to the Galaxy channel as System. Replaces the old per-player
         // fan-out via `send_server_message_to_group`.
@@ -151,10 +237,16 @@ fn refresh_station_progress<T: spacetimedsl::WriteContext>(
 // Construction site lifecycle helpers
 ///////////////////////////////////////////////////////////
 
-/// Create a station that starts life under construction: no modules, zero
+/// Create a station that starts life under construction: no modules *yet*, zero
 /// progress, with the given resource requirement spec. Used by both the
 /// init seeder in `definitions/galaxy.rs` and the admin reducer in
 /// `admin/construction.rs` so the two paths can't drift.
+///
+/// `planned_modules` is the fitting the site earns on completion (#179), stored
+/// rather than applied now — the station is a scaffold until the resources land.
+/// An empty list is legal and completes as a trading post; an *invalid* one is
+/// rejected here, because a fitting that can never be applied is a site that can
+/// never complete, and finding that out at 100% wastes the contributions.
 pub fn create_construction_site<T: spacetimedsl::WriteContext + 'static>(
     dsl: &DSL<T>,
     size: StationSize,
@@ -165,6 +257,7 @@ pub fn create_construction_site<T: spacetimedsl::WriteContext + 'static>(
     position: solarance_shared::Vec2,
     rotation: f32,
     requirements: Vec<ResourceAmount>,
+    planned_modules: Vec<String>,
 ) -> Result<Station, String> {
     if requirements.is_empty() {
         return Err(format!(
@@ -172,6 +265,8 @@ pub fn create_construction_site<T: spacetimedsl::WriteContext + 'static>(
             name
         ));
     }
+
+    validate_planned_modules::<T>(&size, name, &planned_modules)?;
 
     let station = create_station_with_modules(
         dsl,
@@ -190,6 +285,7 @@ pub fn create_construction_site<T: spacetimedsl::WriteContext + 'static>(
         id: station.get_id(),
         is_operational: false,
         construction_progress_percentage: 0.0,
+        planned_modules,
     })?;
 
     for req in requirements {
@@ -208,6 +304,90 @@ pub fn create_construction_site<T: spacetimedsl::WriteContext + 'static>(
     }
 
     Ok(station)
+}
+
+/// Record a contribution that never passed through a ship's hold, then
+/// recompute progress exactly as a real delivery would — completion, module
+/// fitting and the galaxy announcement all included.
+///
+/// This exists so the construction endgame is testable without flying 200 units
+/// of iron across a sector (#179): it is the *same* tail the player path runs,
+/// entered past the ship, range and cargo checks rather than around them.
+///
+/// Deliberately does no remainder arithmetic. `compute_construction_progress`
+/// already clamps each requirement's ratio at 1.0, so an over-contribution is
+/// harmless here — the player path caps only to avoid eating cargo the player
+/// would never get back, and an injected contribution has no cargo to waste.
+///
+/// The log row is attributed to a real player because `player_id` is a foreign
+/// key, so injected goods do show up in that player's contribution history.
+/// That is the honest outcome: the log is an audit trail, and this really did
+/// happen.
+pub fn record_contribution_without_cargo<T: spacetimedsl::WriteContext + 'static>(
+    dsl: &DSL<T>,
+    station_id: &StationId,
+    player_id: &PlayerId,
+    item_id: &ItemDefinitionId,
+    quantity: u32,
+) -> Result<f32, String> {
+    if quantity == 0 {
+        return Err(format!(
+            "record_contribution_without_cargo rejected: quantity must be > 0 (station {}, item {})",
+            station_id.value(),
+            item_id.value()
+        ));
+    }
+
+    let under_construction = dsl
+        .get_station_under_construction_by_id(station_id)
+        .map_err(|e| {
+            format!(
+                "record_contribution_without_cargo rejected: station {} is not under construction ({})",
+                station_id.value(),
+                e
+            )
+        })?;
+
+    if *under_construction.get_is_operational() {
+        return Err(format!(
+            "record_contribution_without_cargo rejected: station {} is already operational",
+            station_id.value()
+        ));
+    }
+
+    // Reject an item the site doesn't want. Contributing it would insert a log
+    // row that `compute_construction_progress` ignores, so the progress bar
+    // wouldn't move and the caller would have no idea why.
+    let requires_item = dsl
+        .get_construction_requirements_by_station_id(station_id)
+        .any(|r| r.get_resource_item_id() == *item_id);
+    if !requires_item {
+        return Err(format!(
+            "record_contribution_without_cargo rejected: station {} does not require item {}",
+            station_id.value(),
+            item_id.value()
+        ));
+    }
+
+    // Fails cleanly if the identity has no Player row — `player_id` is an
+    // `on_delete = Error` foreign key, so an unknown contributor can't be logged.
+    dsl.get_player_by_id(player_id).map_err(|e| {
+        format!(
+            "record_contribution_without_cargo rejected: no player {} to attribute the contribution to ({})",
+            player_id.value().to_abbreviated_hex(),
+            e
+        )
+    })?;
+
+    dsl.create_construction_contribution_log(CreateConstructionContributionLog {
+        station_id: station_id.clone(),
+        player_id: player_id.clone(),
+        item_id: item_id.clone(),
+        quantity,
+        contributed_at: dsl.ctx().timestamp()?,
+    })?;
+
+    refresh_station_progress(dsl, station_id)
 }
 
 /// Wipe every contribution row for the station and zero the progress bar.
@@ -417,16 +597,49 @@ pub fn contribute_to_station(
 }
 
 ///////////////////////////////////////////////////////////
-// Unit tests — pure progress engine only
+// Unit tests — pure functions only
 ///////////////////////////////////////////////////////////
 
 #[cfg(test)]
 mod tests {
-    use super::compute_construction_progress;
+    use super::{compute_construction_progress, modules_for_completion};
+    use crate::logic::stations::MODULE_KEYS;
 
     fn approx(a: f32, b: f32) -> bool {
         (a - b).abs() < 0.001
     }
+
+    /// The #179 guarantee: completion never yields a module-less station.
+    #[test]
+    fn undeclared_fitting_falls_back_to_trading() {
+        assert_eq!(modules_for_completion(&[]), vec!["trading".to_string()]);
+    }
+
+    #[test]
+    fn declared_fitting_is_applied_verbatim() {
+        let planned = vec!["iron_refinery".to_string(), "trading".to_string()];
+        assert_eq!(modules_for_completion(&planned), planned);
+    }
+
+    /// The fallback is only useful if something can actually build it — guards
+    /// against a rename of the module keys silently reintroducing empty shells.
+    #[test]
+    fn fallback_key_is_a_real_module() {
+        for key in modules_for_completion(&[]) {
+            assert!(
+                MODULE_KEYS.contains(&key.as_str()),
+                "fallback module key {key:?} is not buildable"
+            );
+        }
+    }
+
+    // No test resolves a key through `module_creator_from_key` on purpose: the
+    // creators close over DSL calls, and linking those into a native test binary
+    // fails on SpacetimeDB's WASM host symbols (`datastore_insert_bsatn` and
+    // friends). That is why this module is pure-functions-only. The key→creator
+    // match is instead pinned at runtime by `validate_planned_modules`, which
+    // resolves every declared key when a site is *created* — so a drifted key
+    // surfaces as a loud rejection at placement, not an empty shell at 100%.
 
     #[test]
     fn empty_requirements_returns_zero() {
