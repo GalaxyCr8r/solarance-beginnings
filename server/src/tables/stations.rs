@@ -146,6 +146,11 @@ pub struct StationUnderConstruction {
     /// FK to SpaceStation
     id: u64,
 
+    /// Vestigial since #221: the row is deleted the moment a site completes,
+    /// so while a row exists this is always `false`. Read *row present* as
+    /// "still building" and a missing row as "finished, or never a
+    /// construction site". Kept for now only because dropping a column from a
+    /// public table means regenerating bindings for both clients.
     pub is_operational: bool,
     pub construction_progress_percentage: f32,
 

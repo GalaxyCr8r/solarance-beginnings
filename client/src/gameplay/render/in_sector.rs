@@ -375,11 +375,11 @@ pub fn draw_station(pose: &RenderPose, station: Station, game_state: &mut GameSt
         StationSize::Satellite => "station.satellite",
     };
     // (#122) Swap to the skeletal `.uc` sprite while the station is still being
-    // built. Keyed on `!is_operational` rather than on the row existing: the row
-    // is *never* deleted — completion only flips the flag — so testing for its
-    // presence left every finished station wearing its scaffolding forever
-    // (#179). Same predicate `station_display_name` uses, so the sprite and the
-    // name now agree about when a station is done.
+    // built. Since #221 the row is deleted on completion, so its absence alone
+    // would do — the `!is_operational` test is kept because it stays correct
+    // under both regimes, and getting this wrong is what left every finished
+    // station wearing its scaffolding forever (#179). Same predicate
+    // `station_display_name` uses, so the sprite and the name agree.
     let gfx_key = if game_state
         .ctx
         .db

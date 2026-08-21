@@ -188,11 +188,10 @@ fn fit_planned_modules<T: spacetimedsl::WriteContext + 'static>(
 }
 
 /// Recompute progress for a single station from current table state and
-/// persist the new percentage. If progress hits 100% and the site was not
-/// already flagged operational, flip the bit, fit the station's declared
-/// modules (#179 — otherwise it goes operational as an empty shell that can
-/// neither trade nor refine), and broadcast a system completion message to
-/// every logged-in player.
+/// persist the new percentage. If progress hits 100%, fit the station's
+/// declared modules (#179 — otherwise it goes operational as an empty shell
+/// that can neither trade nor refine), broadcast a system completion message
+/// to every logged-in player, and retire the construction row.
 fn refresh_station_progress<T: spacetimedsl::WriteContext + 'static>(
     dsl: &DSL<T>,
     station_id: &StationId,
@@ -202,33 +201,42 @@ fn refresh_station_progress<T: spacetimedsl::WriteContext + 'static>(
     let progress = compute_construction_progress(&requirements, &contributions);
 
     let mut under_construction = dsl.get_station_under_construction_by_id(station_id)?;
-    let was_operational = *under_construction.get_is_operational();
+
+    if progress < 100.0 {
+        under_construction.set_construction_progress_percentage(progress);
+        dsl.update_station_under_construction_by_id(under_construction)?;
+        return Ok(progress);
+    }
+
+    // Completion. `planned_modules` is the last thing on the row anyone needs,
+    // and it is consumed right here — afterwards the row would only assert
+    // "this station finished building", which the station's own existence
+    // already says. Deleting it (#221) makes *a row exists* mean exactly one
+    // thing — still building — which is the predicate docking, the welcome-back
+    // summary, the name suffix and the sprite all actually want. It also stops
+    // one dead row accumulating per station ever built.
+    //
+    // Reaching here twice for the same station is impossible: the second call
+    // can't find the row, so it fails at the lookup above rather than
+    // double-fitting the modules.
     let planned_modules = under_construction.planned_modules.clone();
-    under_construction.set_construction_progress_percentage(progress);
+    let station = dsl.get_station_by_id(station_id)?;
+    fit_planned_modules(dsl, &station, &planned_modules)?;
 
-    let now_complete = progress >= 100.0 && !was_operational;
-    if now_complete {
-        under_construction.set_is_operational(true);
-    }
+    // Construction completion is a genuinely async, everyone-relevant event:
+    // post it to the Galaxy channel as System. Replaces the old per-player
+    // fan-out via `send_server_message_to_group`.
+    post_galaxy_channel(
+        dsl,
+        MessageSender::System,
+        format!(
+            "Construction complete: '{}' (station #{}) is now operational.",
+            station.get_name(),
+            station_id.value()
+        ),
+    )?;
 
-    dsl.update_station_under_construction_by_id(under_construction)?;
-
-    if now_complete {
-        let station = dsl.get_station_by_id(station_id)?;
-        fit_planned_modules(dsl, &station, &planned_modules)?;
-        // Construction completion is a genuinely async, everyone-relevant event:
-        // post it to the Galaxy channel as System. Replaces the old per-player
-        // fan-out via `send_server_message_to_group`.
-        post_galaxy_channel(
-            dsl,
-            MessageSender::System,
-            format!(
-                "Construction complete: '{}' (station #{}) is now operational.",
-                station.get_name(),
-                station_id.value()
-            ),
-        )?;
-    }
+    dsl.delete_station_under_construction_by_id(station_id)?;
 
     Ok(progress)
 }
@@ -338,8 +346,9 @@ pub fn record_contribution_without_cargo<T: spacetimedsl::WriteContext + 'static
         ));
     }
 
-    let under_construction = dsl
-        .get_station_under_construction_by_id(station_id)
+    // Covers both "never was a construction site" and "already completed" —
+    // since #221 a finished site has no row left to find.
+    dsl.get_station_under_construction_by_id(station_id)
         .map_err(|e| {
             format!(
                 "record_contribution_without_cargo rejected: station {} is not under construction ({})",
@@ -347,13 +356,6 @@ pub fn record_contribution_without_cargo<T: spacetimedsl::WriteContext + 'static
                 e
             )
         })?;
-
-    if *under_construction.get_is_operational() {
-        return Err(format!(
-            "record_contribution_without_cargo rejected: station {} is already operational",
-            station_id.value()
-        ));
-    }
 
     // Reject an item the site doesn't want. Contributing it would insert a log
     // row that `compute_construction_progress` ignores, so the progress bar
@@ -390,13 +392,47 @@ pub fn record_contribution_without_cargo<T: spacetimedsl::WriteContext + 'static
     refresh_station_progress(dsl, station_id)
 }
 
-/// Wipe every contribution row for the station and zero the progress bar.
-/// Used by `admin_reset_construction_site` so the designer can replay the
-/// completion moment without re-publishing the module.
+/// Wipe every contribution row for the station and zero the progress bar, so
+/// the designer can replay a build-up without re-publishing the module.
+///
+/// Works only *before* completion. Since #221 a finished site has no
+/// `station_under_construction` row left to rewind — and rewinding one was
+/// always a half-measure anyway: completion fits the station's modules, and
+/// this has never un-fitted them, so repeat reset→complete cycles quietly
+/// stacked duplicate modules until `verify` hit the size cap. Refusing makes
+/// that unreachable and costs the designer nothing, because
+/// `admin_create_construction_site` spawns a fresh site on demand.
 pub fn reset_construction_site<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     station_id: &StationId,
 ) -> Result<(), String> {
+    // Resolve the row before wiping anything — a reset that can't finish must
+    // not leave the contribution log half-cleared.
+    let mut under_construction = dsl
+        .get_station_under_construction_by_id(station_id)
+        .map_err(|e| {
+            // Requirement rows outlive completion, so they separate "this site
+            // finished" from "this was never a construction site". Worth the
+            // extra scan on a path that only runs when something already went
+            // wrong: the two cases need opposite fixes.
+            if dsl
+                .get_construction_requirements_by_station_id(station_id)
+                .next()
+                .is_some()
+            {
+                format!(
+                    "reset_construction_site: station {} has already completed construction and its modules are fitted — reset only works before completion; spawn a fresh site with admin_create_construction_site instead",
+                    station_id.value()
+                )
+            } else {
+                format!(
+                    "reset_construction_site: station {} is not a construction site ({})",
+                    station_id.value(),
+                    e
+                )
+            }
+        })?;
+
     let log_ids: Vec<_> = dsl
         .get_construction_contribution_logs_by_station_id(station_id)
         .map(|log| log.get_id().clone())
@@ -406,8 +442,6 @@ pub fn reset_construction_site<T: spacetimedsl::WriteContext>(
         dsl.delete_construction_contribution_log_by_id(&id)?;
     }
 
-    let mut under_construction = dsl.get_station_under_construction_by_id(station_id)?;
-    under_construction.set_is_operational(false);
     under_construction.set_construction_progress_percentage(0.0);
     dsl.update_station_under_construction_by_id(under_construction)?;
 
@@ -450,23 +484,18 @@ pub fn contribute_to_station(
 
     let (ship, _sobj) = get_player_ship_and_sobj(&dsl, &player_id)?;
     let station = dsl.get_station_by_id(&station_id)?;
-    let under_construction = dsl
-        .get_station_under_construction_by_id(&station_id)
-        .map_err(|e| {
-            format!(
-                "contribute_to_station rejected: station {} is not under construction ({})",
-                station_id.value(),
-                e
-            )
-        })?;
-
-    if *under_construction.get_is_operational() {
+    // A finished site has no construction row left (#221), so "row missing" is
+    // now the single rejection covering both "already operational" and "never
+    // a construction site". The player gets the same warning either way — from
+    // the cockpit the two are one fact: nothing here wants your cargo.
+    if let Err(e) = dsl.get_station_under_construction_by_id(&station_id) {
         let msg = format!(
-            "Station {} is already operational — no further contributions accepted.",
+            "Station '{}' (#{}) is not under construction — no contributions accepted.",
+            station.get_name(),
             station_id.value()
         );
         let _ = send_direct_server_warning(&dsl, &player_id, msg.clone());
-        return Err(msg);
+        return Err(format!("contribute_to_station rejected: {} ({})", msg, e));
     }
 
     if ship.get_sector_id().value() != station.get_sector_id().value() {

@@ -29,9 +29,10 @@ pub fn try_to_dock_to_station(ctx: &ReducerContext, station: &Station) -> Result
     let dsl = dsl(ctx);
     let (ship_object, ship_sobj) = get_player_ship_and_sobj(&dsl, &PlayerId::new(ctx.sender()))?;
 
-    // Reject docking with an under-construction site. The row only exists for
-    // stations that started life as construction sites; `is_operational` flips
-    // to true on completion, so a missing row also implies "operational".
+    // Reject docking with an under-construction site. Since #221 the row
+    // exists only while a site is still building — it is deleted on
+    // completion — so a missing row means the station is dockable, whether it
+    // finished building or never was a construction site.
     if let Ok(under_construction) = dsl.get_station_under_construction_by_id(&station.get_id()) {
         if !*under_construction.get_is_operational() {
             let msg = format!(
