@@ -291,7 +291,6 @@ pub fn create_construction_site<T: spacetimedsl::WriteContext + 'static>(
 
     dsl.create_station_under_construction(CreateStationUnderConstruction {
         id: station.get_id(),
-        is_operational: false,
         construction_progress_percentage: 0.0,
         planned_modules,
     })?;

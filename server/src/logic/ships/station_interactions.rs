@@ -29,24 +29,18 @@ pub fn try_to_dock_to_station(ctx: &ReducerContext, station: &Station) -> Result
     let dsl = dsl(ctx);
     let (ship_object, ship_sobj) = get_player_ship_and_sobj(&dsl, &PlayerId::new(ctx.sender()))?;
 
-    // Reject docking with an under-construction site. Since #221 the row
-    // exists only while a site is still building — it is deleted on
-    // completion — so a missing row means the station is dockable, whether it
-    // finished building or never was a construction site.
-    if let Ok(under_construction) = dsl.get_station_under_construction_by_id(&station.get_id()) {
-        if !*under_construction.get_is_operational() {
-            let msg = format!(
-                "Cannot dock at '{}' (station #{}): still under construction.",
-                station.get_name(),
-                station.get_id().value()
-            );
-            let _ = send_direct_server_warning(
-                &dsl,
-                &PlayerId::new(ctx.sender()),
-                msg.clone(),
-            );
-            return Err(msg);
-        }
+    // Reject docking with an under-construction site. The row exists only
+    // while a site is still building — it is deleted on completion (#221) —
+    // so its presence alone is the gate, and a missing row means dockable
+    // whether the station finished building or never was a construction site.
+    if dsl.get_station_under_construction_by_id(&station.get_id()).is_ok() {
+        let msg = format!(
+            "Cannot dock at '{}' (station #{}): still under construction.",
+            station.get_name(),
+            station.get_id().value()
+        );
+        let _ = send_direct_server_warning(&dsl, &PlayerId::new(ctx.sender()), msg.clone());
+        return Err(msg);
     }
 
     // TODO: Check if same faction

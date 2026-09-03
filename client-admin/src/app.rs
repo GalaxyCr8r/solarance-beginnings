@@ -476,12 +476,11 @@ fn gather_galaxy(conn: &DbConnection) -> GalaxyData {
         .iter()
         .map(|st| {
             // Append a build-progress suffix while a matching construction site
-            // is still in progress (id is shared with the station).
+            // is still in progress (id is shared with the station). The row is
+            // deleted on completion (#221), so finished stations have no suffix.
             let suffix = match db.station_under_construction().id().find(&st.id) {
-                Some(uc) if !uc.is_operational => {
-                    format!("  [building {:.0}%]", uc.construction_progress_percentage)
-                }
-                _ => String::new(),
+                Some(uc) => format!("  [building {:.0}%]", uc.construction_progress_percentage),
+                None => String::new(),
             };
             format!(
                 "#{} {:?} \"{}\"  sector {}  fac {}{}",
@@ -577,12 +576,12 @@ fn gather_galaxy(conn: &DbConnection) -> GalaxyData {
         .collect();
     gate_lines.sort();
 
-    // Construction sites still in progress. The station row carries the name,
-    // the under-construction row the progress — the two share an id.
+    // Construction sites still in progress — every row is one, since completion
+    // deletes the row (#221). The station row carries the name, the
+    // under-construction row the progress; the two share an id.
     let mut construction_sites: Vec<(u64, String)> = db
         .station_under_construction()
         .iter()
-        .filter(|uc| !uc.is_operational)
         .filter_map(|uc| {
             db.station().id().find(&uc.id).map(|st| {
                 (

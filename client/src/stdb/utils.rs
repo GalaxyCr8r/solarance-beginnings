@@ -151,32 +151,25 @@ pub fn get_faction_shortname(ctx: &DbConnection, id: &u32) -> String {
     }
 }
 
-/// Station name plus a lifecycle suffix when the station has a matching
-/// `StationUnderConstruction` row that hasn't flipped to operational yet.
-/// Construction state lives in tables, not in `Station.name`; this helper is
-/// the single place that derives the display string so callers don't each
-/// re-implement it.
+/// Station name plus a lifecycle suffix while the station still has a
+/// `StationUnderConstruction` row — the row is deleted on completion (#221),
+/// so its presence is the whole test. Construction state lives in tables, not
+/// in `Station.name`; this helper is the single place that derives the display
+/// string so callers don't each re-implement it.
 pub fn station_display_name(ctx: &DbConnection, station: &Station) -> String {
-    let under_construction = ctx
-        .db()
-        .station_under_construction()
-        .id()
-        .find(&station.id)
-        .filter(|uc| !uc.is_operational);
-    match under_construction {
+    match ctx.db().station_under_construction().id().find(&station.id) {
         Some(_) => format!("{} (Under Construction)", station.name),
         None => station.name.clone(),
     }
 }
 
-/// IDs of every sector containing at least one active (not yet operational)
-/// construction site. Domain query per the client architecture review §5 —
-/// the map window's build indicators read this instead of joining inline.
+/// IDs of every sector containing at least one construction site still being
+/// built. Domain query per the client architecture review §5 — the map
+/// window's build indicators read this instead of joining inline.
 pub fn sectors_with_active_construction(ctx: &DbConnection) -> HashSet<u64> {
     ctx.db()
         .station_under_construction()
         .iter()
-        .filter(|uc| !uc.is_operational)
         .filter_map(|uc| ctx.db().station().id().find(&uc.id).map(|s| s.sector_id))
         .collect()
 }
