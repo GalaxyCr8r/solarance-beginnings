@@ -103,17 +103,9 @@ fn draw_site(
     }
     ui.separator();
 
-    if under_construction.is_operational {
-        ui.add_space(8.0);
-        ui.label(
-            RichText::new("Construction Complete!")
-                .heading()
-                .color(Color32::from_rgb(120, 220, 120)),
-        );
-        ui.label("This station is now operational.");
-        return;
-    }
-
+    // No "Construction Complete!" state: since #221 the row is deleted on
+    // completion, so a finished site simply drops out of this window and the
+    // Galaxy channel carries the announcement instead.
     let pct = under_construction.construction_progress_percentage.clamp(0.0, 100.0);
     ui.add(
         ProgressBar::new(pct / 100.0)

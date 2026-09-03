@@ -137,6 +137,17 @@ pub struct StationModule {
     pub last_status_update_timestamp: Timestamp,
 }
 
+/// A station that is still being built. The row's *existence* is the state:
+/// it is created with the site and deleted the moment the site completes
+/// (#221), so every reader can treat "row present" as still building and a
+/// missing row as finished — or never a construction site at all, which for
+/// every consumer means the same thing.
+///
+/// There is deliberately no `is_operational` flag. One used to live here and
+/// was flipped on completion while the row stayed forever, which meant row
+/// existence and the flag disagreed — and readers that trusted existence
+/// (notably the station sprite, #179) were silently wrong. One representation
+/// of one fact can't drift from itself.
 #[spacetimedsl::dsl(plural_name = stations_under_construction, method(update = true))]
 #[table(accessor = station_under_construction, public)]
 pub struct StationUnderConstruction {
@@ -146,7 +157,6 @@ pub struct StationUnderConstruction {
     /// FK to SpaceStation
     id: u64,
 
-    pub is_operational: bool,
     pub construction_progress_percentage: f32,
 
     /// Module keys to fit when the site completes, in the vocabulary of

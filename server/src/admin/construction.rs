@@ -175,8 +175,9 @@ pub fn admin_add_station_module(
 /// completion moment — and the module fitting it now triggers (#179) — can be
 /// exercised from the Galaxy Creator alone.
 ///
-/// Pairs with `admin_reset_construction_site`: contribute to completion, inspect
-/// the fitted modules, reset, repeat.
+/// To run the loop again, spawn another site with
+/// `admin_create_construction_site` — `admin_reset_construction_site` only
+/// rewinds a site that is *still building* (see #221).
 ///
 /// `player_id` must name a real player because the contribution log's
 /// contributor is a foreign key; the goods will appear in that player's
@@ -213,8 +214,13 @@ pub fn admin_contribute_to_construction(
     Ok(())
 }
 
-/// Wipe the contribution log for a station and zero its progress bar so the
-/// completion moment can be replayed without `--clear-database`.
+/// Wipe the contribution log for a station *still building* and zero its
+/// progress bar, so a build-up can be replayed without `--clear-database`.
+///
+/// Not a rewind of completion: a completed site's construction row is gone
+/// (#221) and its modules are already fitted, so `reset_construction_site`
+/// refuses and says so. To exercise the completion moment again, spawn a new
+/// site with `admin_create_construction_site` and contribute to that.
 #[spacetimedb::reducer]
 pub fn admin_reset_construction_site(
     ctx: &ReducerContext,
@@ -224,15 +230,6 @@ pub fn admin_reset_construction_site(
     try_server_only(&dsl)?;
 
     let station_id = StationId::new(station_id);
-    // Surface a clean error if the target isn't actually a construction site.
-    dsl.get_station_under_construction_by_id(&station_id).map_err(|e| {
-        format!(
-            "admin_reset_construction_site: station {} is not under construction ({})",
-            station_id.value(),
-            e
-        )
-    })?;
-
     reset_construction_site(&dsl, &station_id)?;
 
     info!(

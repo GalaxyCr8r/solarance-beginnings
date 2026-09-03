@@ -74,10 +74,8 @@ fn compose_construction_summary<T: spacetimedsl::WriteContext>(
 
     let mut own_lines: Vec<String> = Vec::new();
     let mut other_lines: Vec<String> = Vec::new();
+    // Every row here is a site still building: completion deletes the row (#221).
     for uc in dsl.get_all_stations_under_construction() {
-        if *uc.get_is_operational() {
-            continue; // Already finished — not "under construction" any more.
-        }
         let station = match dsl.get_station_by_id(&uc.get_id()) {
             Ok(s) => s,
             Err(_) => continue, // Station row gone; skip rather than bail.
