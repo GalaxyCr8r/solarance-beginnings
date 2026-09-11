@@ -74,8 +74,22 @@ pub async fn gameplay(connection: Option<DbConnection>) {
         }
     });
 
+    // (#171) Remember who we played as, so the next login screen can offer
+    // "Continue as {name}". The player row streams in some frames after
+    // connect, so poll until it lands and then write once per session.
+    let mut pilot_name_saved = false;
+
     loop {
         clear_background(WHITE);
+
+        if !pilot_name_saved {
+            if let Some(player) = get_current_player(&ctx) {
+                if let Err(e) = crate::stdb::connector::pilot_name_store().save(&player.username) {
+                    warn!("Failed to save last-played pilot name: {:?}", e);
+                }
+                pilot_name_saved = true;
+            }
+        }
 
         game_state.camera.target = get_player_transform_vec2(&ctx, Vec2::ZERO); // - Vec2 { x: screen_width()/4.0, y: screen_height()/4.0 };
         set_camera(&game_state.camera);

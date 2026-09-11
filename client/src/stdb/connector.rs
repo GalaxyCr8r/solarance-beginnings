@@ -102,6 +102,17 @@ pub fn creds_store() -> credentials::File {
     credentials::File::new("solarance-beginnings-test")
 }
 
+/// The name of the pilot we last played as (#171), so the login screen can say
+/// "Continue as {name}" instead of a bare "Continue".
+///
+/// ponytail: this is a `credentials::File` holding a username rather than a
+/// token — same API, same directory, a sibling of the cred file. A pilot name
+/// is not a secret, so nothing is lost by storing it this way, and it saves
+/// inventing a second persistence path for one string.
+pub fn pilot_name_store() -> credentials::File {
+    credentials::File::new("solarance-beginnings-test-pilot")
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Connection Callbacks
