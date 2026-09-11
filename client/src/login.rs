@@ -5,7 +5,10 @@ use std::{
     time::Duration,
 };
 
-use solarance_beginnings::{stdb::connector::creds_store, *};
+use solarance_beginnings::{
+    stdb::connector::{creds_store, pilot_name_store},
+    *,
+};
 
 use egui::{Align2, Color32, Frame, RichText, Shadow};
 use gameplay::resources::Resources;
@@ -18,6 +21,29 @@ use macroquad::{
 use solarance_beginnings::{server::bindings::DbConnection, stdb::connector::connect_to_spacetime};
 use solarance_beginnings::server::bindings::*;
 use spacetimedb_sdk::{DbContext, Table};
+
+/// Label for the resume button (#171). A bare "Continue" reads like a generic
+/// proceed button; naming the pilot makes it read as "resume your save".
+/// Falls back when we have no name — first run after this change, or a token
+/// stored before we started recording the name.
+fn continue_button_label(stored_name: Option<String>) -> String {
+    match stored_name {
+        Some(name) if !name.is_empty() => format!("\n    Continue as {}    \n", name),
+        _ => "\n    Continue    \n".to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::continue_button_label;
+
+    #[test]
+    fn continue_label_names_the_pilot_or_falls_back() {
+        assert_eq!(continue_button_label(Some("Rook".into())).trim(), "Continue as Rook");
+        assert_eq!(continue_button_label(Some(String::new())).trim(), "Continue");
+        assert_eq!(continue_button_label(None).trim(), "Continue");
+    }
+}
 
 pub struct MenuAssets {
     pub rings: Vec<Texture2D>,
@@ -136,6 +162,10 @@ pub async fn login_screen() -> (bool, Option<String>) {
         }
     };
     let has_prior_token = prior_token.is_some() && !prior_token.clone().unwrap().is_empty();
+
+    // (#171) Read once here rather than per frame — the file can't change
+    // while this screen is up.
+    let continue_label = continue_button_label(pilot_name_store().load().ok().flatten());
 
     //let menu_assets = storage::get::<MenuAssets>();
     info!("Starting login screen");
@@ -258,7 +288,7 @@ pub async fn login_screen() -> (bool, Option<String>) {
                                 && ui
                                     .add(
                                         egui::Button::new(
-                                            RichText::new("\n    Continue    \n")
+                                            RichText::new(continue_label.as_str())
                                                 .size(24.0)
                                                 .color(Color32::WHITE),
                                         )
