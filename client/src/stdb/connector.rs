@@ -109,6 +109,16 @@ pub fn creds_store() -> credentials::File {
 /// token — same API, same directory, a sibling of the cred file. A pilot name
 /// is not a secret, so nothing is lost by storing it this way, and it saves
 /// inventing a second persistence path for one string.
+///
+/// **Stopgap — belongs in the client config from #29** ("Add proper
+/// configuration to store OIDC info and other things", which calls out the
+/// refresh token and last player name by name). The SDK writes under the OS
+/// user's home dir, so this is already per-OS-user, but `~/.spacetime_data/`
+/// is the SDK's private location, not a config path any OS would point you
+/// at — macOS wants `~/Library/Application Support/`, Windows `%APPDATA%`,
+/// Linux `$XDG_CONFIG_HOME`. When #29 lands, the last-played pilot name and
+/// the session token should move into that config alongside the Auth0
+/// settings and this function should go away.
 pub fn pilot_name_store() -> credentials::File {
     credentials::File::new("solarance-beginnings-test-pilot")
 }
