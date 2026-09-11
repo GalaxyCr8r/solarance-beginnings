@@ -118,10 +118,12 @@ pub async fn gameplay(connection: Option<DbConnection>) {
                 } else {
                     gui::creation_window::draw(egui_ctx, &ctx, &mut game_state);
                 }
-                return;
+                // No early return (#149): everything below is already gated on
+                // `player_ship.is_some()`, and returning here skipped the
+                // welcome-back panel for players who log in docked.
             }
 
-            if game_state.debug_window_open {
+            if game_state.debug_window_open && player_ship.is_some() {
                 gui::debug_widget::draw(egui_ctx, &mut game_state);
             }
 
