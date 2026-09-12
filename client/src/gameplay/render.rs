@@ -1,6 +1,6 @@
 use macroquad::prelude::*;
 
-use crate::{gameplay::render::star_system::render_star_system, server::bindings::*};
+use crate::server::bindings::*;
 use spacetimedb_sdk::{DbContext, Table};
 
 use crate::stdb::utils::*;
@@ -9,6 +9,7 @@ use super::{resources::Resources, state::GameState};
 
 pub mod in_sector;
 pub mod star_system;
+pub mod warp;
 
 use in_sector::*;
 
@@ -19,9 +20,9 @@ pub fn sector(game_state: &mut GameState) {
 
     let mut local_targets: Vec<(u64, glam::Vec2, StellarObjectKinds)> = Vec::new();
 
-    set_camera(&game_state.bg_camera);
-
-    render_star_system(game_state);
+    // (#203) Owns the background pass, including the ~1s warp when the
+    // player's sector just changed.
+    warp::render_background(game_state);
 
     set_camera(&game_state.camera);
 

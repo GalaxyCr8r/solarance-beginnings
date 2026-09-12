@@ -13,6 +13,26 @@ pub struct FiringEffect {
     pub effect_type: VisualEffectType,
 }
 
+/// (#203) Sector-change warp — the ~1s background transition that makes a
+/// jumpgate read as travel rather than a teleport. `last_sector` exists only
+/// to spot the change; `active` is the running effect. Driven by
+/// `render::warp`, which is where the reasoning lives.
+#[derive(Default)]
+pub struct WarpState {
+    pub last_sector: Option<u64>,
+    pub active: Option<SectorWarp>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct SectorWarp {
+    pub start_time: f64,
+    /// Where the background sat for the *previous* sector, relative to the new
+    /// one. Decays to zero across the warp, which is what slides the planets
+    /// past. Zero for inter-system jumps — see `render::warp::start_offset`.
+    pub from_offset: Vec2,
+    pub inter_system: bool,
+}
+
 pub struct GameState<'a> {
     // Game-Wide States
     pub done: bool,
@@ -56,6 +76,7 @@ pub struct GameState<'a> {
 
     // Visual Effects
     pub firing_effects: HashMap<u64, FiringEffect>,
+    pub warp: WarpState,
 }
 
 pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
@@ -99,5 +120,6 @@ pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
         movement_flags: (false, false, false, false),
 
         firing_effects: HashMap::new(),
+        warp: WarpState::default(),
     }
 }
