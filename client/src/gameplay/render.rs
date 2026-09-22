@@ -24,6 +24,16 @@ pub fn sector(game_state: &mut GameState) {
     // player's sector just changed.
     warp::render_background(game_state);
 
+    // (#203) Hold every in-sector object — ships, stations, jumpgates,
+    // asteroids, crates, nebulae, and the radar that plots them — until the
+    // warp lands. The server puts the ship at the destination gate the instant
+    // the jump commits, so drawing it over a still-moving background reads as
+    // arriving before the travel finished. Everything below this line is that
+    // pass, so one return covers it.
+    if warp::hides_in_sector(game_state) {
+        return;
+    }
+
     set_camera(&game_state.camera);
 
     let db = &game_state.ctx.db;

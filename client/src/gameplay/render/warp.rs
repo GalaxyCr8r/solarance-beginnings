@@ -13,6 +13,12 @@
 //! no continuous path between the two camera positions to slide along. Those
 //! get the blue flash instead, which covers the swap.
 //!
+//! The in-sector pass is held for the duration (`hides_in_sector`). The ship
+//! is already at the destination gate the frame the jump lands, so drawing it
+//! over a still-moving background reads as arriving before the travel
+//! finished. Holding it costs a ~1s window where the player is physically in
+//! the sector but can't see it — accepted deliberately for the effect.
+//!
 //! Cosmetic only — nothing here feeds back into server state.
 
 use macroquad::prelude::*;
@@ -61,6 +67,15 @@ pub fn render_background(game_state: &mut GameState) {
             Color::new(0.25, 0.45, 1.0, alpha),
         );
     }
+}
+
+/// Whether the in-sector pass should be held this frame (#203).
+///
+/// Only meaningful *after* `render_background` has run for the frame — that's
+/// what starts and expires the warp. Callers render the background first
+/// regardless, so this reads the current frame's answer, not the last one's.
+pub fn hides_in_sector(game_state: &GameState) -> bool {
+    game_state.warp.active.is_some()
 }
 
 /// Start a warp when the player's sector changed, then apply whichever warp is
