@@ -8,10 +8,16 @@
 //! planets past: the motion the issue asks for falls out of the renderer we
 //! already have, and the warp owns nothing but a decaying offset.
 //!
+//! Every sector change also gets a blue glow that fades over the same second.
+//! Sectors are only reachable through jumpgates, so the glow is the cue that
+//! a jump happened at all — the slide alone is too easy to miss when the
+//! nearest planet is far away.
+//!
 //! Inter-system jumps can't ease. The destination has a different `system_id`,
 //! so the background swaps to an entirely different set of objects and there is
 //! no continuous path between the two camera positions to slide along. Those
-//! get the blue flash instead, which covers the swap.
+//! get the glow with no slide, which covers the swap — still distinguishable
+//! from an intra-system jump, which glows *and* slides.
 //!
 //! The in-sector pass is held for the duration (`hides_in_sector`). The ship
 //! is already at the destination gate the frame the jump lands, so drawing it
@@ -39,8 +45,10 @@ const WARP_DURATION: f64 = 1.0;
 /// travel the wrong distance.
 const SECTOR_BG_SCALE: f32 = 100.0;
 
-/// Peak opacity of the inter-system flash. Short of 1.0 so the new system is
-/// faintly visible through it rather than the screen going flat blue.
+/// Peak opacity of the blue glow, at the instant the jump lands. Short of 1.0
+/// so the destination stays faintly visible through it rather than the screen
+/// going flat blue. Turn this down if the glow reads as too heavy — it's the
+/// only knob the effect's intensity has.
 const FLASH_PEAK_ALPHA: f32 = 0.85;
 
 /// Render the star-system background, easing through a sector change (#203).
@@ -82,8 +90,7 @@ pub fn hides_in_sector(game_state: &GameState) -> bool {
 /// Start a warp when the player's sector changed, then apply whichever warp is
 /// running to `bg_camera`.
 ///
-/// Returns the inter-system flash's alpha while one is running, `None`
-/// otherwise.
+/// Returns the blue glow's alpha while a warp is running, `None` otherwise.
 fn advance(game_state: &mut GameState) -> Option<f32> {
     let now = get_time();
 
@@ -112,8 +119,7 @@ fn advance(game_state: &mut GameState) -> Option<f32> {
     // pre-warp target if that ever becomes visible.
     game_state.bg_camera.target += warp.from_offset * offset_decay(progress);
 
-    warp.inter_system
-        .then(|| (1.0 - progress) * FLASH_PEAK_ALPHA)
+    Some(flash_alpha(progress))
 }
 
 /// Build the warp for a jump from `previous` to `current`.
@@ -135,18 +141,18 @@ fn begin(
 
     let inter_system = from.system_id != to.system_id;
 
-    // One line per jump, naming both systems and the branch taken. The two
-    // warps look nothing alike, so when one doesn't appear the first question
-    // is always "which branch did it pick?" — answer it in the log rather than
-    // by reading the sector table by hand.
+    // One line per jump, naming both systems and the branch taken. Every jump
+    // glows; only an intra-system one also slides. When something looks wrong
+    // the first question is "which branch did it pick?" — answer it in the log
+    // rather than by reading the sector table by hand.
     info!(
         "Sector warp: #{previous} (system {}) -> #{current} (system {}) — {}",
         from.system_id,
         to.system_id,
         if inter_system {
-            "inter-system, blue fade"
+            "inter-system, glow only"
         } else {
-            "intra-system, slide"
+            "intra-system, glow + slide"
         }
     );
 
@@ -157,7 +163,6 @@ fn begin(
             Vec2::new(to.x, to.y),
             inter_system,
         ),
-        inter_system,
     })
 }
 
@@ -172,6 +177,14 @@ fn start_offset(from: Vec2, to: Vec2, inter_system: bool) -> Vec2 {
     } else {
         (from - to) * SECTOR_BG_SCALE
     }
+}
+
+/// Opacity of the blue glow at `progress` through the warp.
+///
+/// Linear to zero so the sector arrives clean instead of the glow popping off
+/// on the final frame.
+fn flash_alpha(progress: f32) -> f32 {
+    (1.0 - progress) * FLASH_PEAK_ALPHA
 }
 
 /// How much of the starting offset survives at `progress` through the warp.
@@ -196,6 +209,13 @@ mod tests {
     fn inter_system_does_not_slide() {
         let offset = start_offset(Vec2::new(3.0, 1.0), Vec2::new(1.0, 1.0), true);
         assert_eq!(offset, Vec2::ZERO);
+    }
+
+    #[test]
+    fn glow_fades_to_nothing_by_the_end() {
+        assert_eq!(flash_alpha(0.0), FLASH_PEAK_ALPHA);
+        assert_eq!(flash_alpha(1.0), 0.0);
+        assert!(flash_alpha(0.25) > flash_alpha(0.75));
     }
 
     #[test]

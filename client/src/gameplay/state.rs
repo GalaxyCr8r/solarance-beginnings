@@ -30,7 +30,6 @@ pub struct SectorWarp {
     /// one. Decays to zero across the warp, which is what slides the planets
     /// past. Zero for inter-system jumps — see `render::warp::start_offset`.
     pub from_offset: Vec2,
-    pub inter_system: bool,
 }
 
 pub struct GameState<'a> {
