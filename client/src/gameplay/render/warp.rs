@@ -58,10 +58,11 @@ pub fn render_background(game_state: &mut GameState) {
     // scopes this to the background, so ships and stations stay readable
     // through the flash.
     if let Some(alpha) = flash {
+        info!("Alpha screen rect!!!");
         set_default_camera();
         draw_rectangle(
-            0.0,
-            0.0,
+            game_state.camera.target.x,
+            game_state.camera.target.y,
             screen_width(),
             screen_height(),
             Color::new(0.25, 0.45, 1.0, alpha),
@@ -126,10 +127,28 @@ fn begin(
     now: f64,
 ) -> Option<SectorWarp> {
     let sectors = game_state.ctx.db().sector();
-    let from = sectors.id().find(&previous)?;
-    let to = sectors.id().find(&current)?;
+    let (Some(from), Some(to)) = (sectors.id().find(&previous), sectors.id().find(&current))
+    else {
+        warn!("Sector warp skipped: no cached sector row for jump #{previous} -> #{current}");
+        return None;
+    };
 
     let inter_system = from.system_id != to.system_id;
+
+    // One line per jump, naming both systems and the branch taken. The two
+    // warps look nothing alike, so when one doesn't appear the first question
+    // is always "which branch did it pick?" — answer it in the log rather than
+    // by reading the sector table by hand.
+    info!(
+        "Sector warp: #{previous} (system {}) -> #{current} (system {}) — {}",
+        from.system_id,
+        to.system_id,
+        if inter_system {
+            "inter-system, blue fade"
+        } else {
+            "intra-system, slide"
+        }
+    );
 
     Some(SectorWarp {
         start_time: now,
