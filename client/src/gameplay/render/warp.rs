@@ -8,10 +8,11 @@
 //! planets past: the motion the issue asks for falls out of the renderer we
 //! already have, and the warp owns nothing but a decaying offset.
 //!
-//! Every sector change also gets a blue glow that fades over the same second.
-//! Sectors are only reachable through jumpgates, so the glow is the cue that
-//! a jump happened at all — the slide alone is too easy to miss when the
-//! nearest planet is far away.
+//! Every sector change also gets a blue glow across the same second: it flares
+//! up over the first 250ms and fades out over the remaining 750ms. Sectors are
+//! only reachable through jumpgates, so the glow is the cue that a jump
+//! happened at all — the slide alone is too easy to miss when the nearest
+//! planet is far away.
 //!
 //! Inter-system jumps can't ease. The destination has a different `system_id`,
 //! so the background swaps to an entirely different set of objects and there is
@@ -45,11 +46,16 @@ const WARP_DURATION: f64 = 1.0;
 /// travel the wrong distance.
 const SECTOR_BG_SCALE: f32 = 100.0;
 
-/// Peak opacity of the blue glow, at the instant the jump lands. Short of 1.0
-/// so the destination stays faintly visible through it rather than the screen
-/// going flat blue. Turn this down if the glow reads as too heavy — it's the
-/// only knob the effect's intensity has.
+/// Opacity the blue glow reaches at its peak. Short of 1.0 so the destination
+/// stays faintly visible through it rather than the screen going flat blue.
+/// Turn this down if the glow reads as too heavy — it's the only knob the
+/// effect's intensity has.
 const FLASH_PEAK_ALPHA: f32 = 0.85;
+
+/// Fraction of the warp spent ramping the glow up — 250ms of the 1s warp.
+/// The glow flares in rather than arriving at full strength, then spends the
+/// remaining 750ms fading out. Must stay in (0, 1).
+const FLASH_RISE: f32 = 0.25;
 
 /// Render the star-system background, easing through a sector change (#203).
 ///
@@ -180,10 +186,17 @@ fn start_offset(from: Vec2, to: Vec2, inter_system: bool) -> Vec2 {
 
 /// Opacity of the blue glow at `progress` through the warp.
 ///
-/// Linear to zero so the sector arrives clean instead of the glow popping off
-/// on the final frame.
+/// Ramps up over the first `FLASH_RISE` of the warp, then back down across the
+/// rest. Both ends are exactly zero, so the glow neither pops in on the frame
+/// the jump lands nor pops off on the final frame.
 fn flash_alpha(progress: f32) -> f32 {
-    (1.0 - progress) * FLASH_PEAK_ALPHA
+    let curve = if progress < FLASH_RISE {
+        progress / FLASH_RISE
+    } else {
+        (1.0 - progress) / (1.0 - FLASH_RISE)
+    };
+
+    curve * FLASH_PEAK_ALPHA
 }
 
 /// How much of the starting offset survives at `progress` through the warp.
@@ -211,10 +224,15 @@ mod tests {
     }
 
     #[test]
-    fn glow_fades_to_nothing_by_the_end() {
-        assert_eq!(flash_alpha(0.0), FLASH_PEAK_ALPHA);
+    fn glow_flares_in_then_fades_out() {
+        // Dark at both ends, so it neither pops in nor pops off.
+        assert_eq!(flash_alpha(0.0), 0.0);
         assert_eq!(flash_alpha(1.0), 0.0);
-        assert!(flash_alpha(0.25) > flash_alpha(0.75));
+        // Full strength 250ms into the 1s warp.
+        assert_eq!(flash_alpha(FLASH_RISE), FLASH_PEAK_ALPHA);
+        // Monotonic either side of the peak.
+        assert!(flash_alpha(0.1) < flash_alpha(0.2));
+        assert!(flash_alpha(0.5) > flash_alpha(0.9));
     }
 
     #[test]
