@@ -66,11 +66,10 @@ pub fn render_background(game_state: &mut GameState) {
     // scopes this to the background, so ships and stations stay readable
     // through the flash.
     if let Some(alpha) = flash {
-        info!("Alpha screen rect!!!");
         set_default_camera();
         draw_rectangle(
-            game_state.camera.target.x,
-            game_state.camera.target.y,
+            0.0,
+            0.0,
             screen_width(),
             screen_height(),
             Color::new(0.25, 0.45, 1.0, alpha),
