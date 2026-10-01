@@ -86,6 +86,14 @@ pub fn update_visual_effects(game_state: &mut GameState) {
 
 /// Render all active visual effects
 pub fn render_visual_effects(game_state: &GameState) {
+    // (#203) Weapon fire and explosions are in-sector visuals, so they're held
+    // with the rest of the sector while a warp eases. Only the render is
+    // skipped — `update_visual_effects` keeps running, so effects still expire
+    // on schedule rather than piling up and firing late on the far side.
+    if crate::gameplay::render::warp::hides_in_sector(game_state) {
+        return;
+    }
+
     let current_time = get_time();
 
     for effect in game_state.firing_effects.values() {
