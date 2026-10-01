@@ -51,7 +51,7 @@ impl State {
         State {
             current_tab: MapTab::System,
 
-            stroke: Stroke::new(2.0, Color32::from_rgb(25, 200, 100)),
+            stroke: Stroke::new(2.0_f32, Color32::from_rgb(25, 200, 100)),
 
             pan: egui::Vec2::ZERO,
 
@@ -182,13 +182,13 @@ impl State {
                 }
                 let stroke = match object.kind {
                     StarSystemObjectKind::Star => {
-                        Stroke::new(2.0, Color32::from_rgba_unmultiplied(255, 255, 0, 70))
+                        Stroke::new(2.0_f32, Color32::from_rgba_unmultiplied(255, 255, 0, 70))
                     }
                     StarSystemObjectKind::Planet => {
-                        Stroke::new(1.0, Color32::from_rgba_unmultiplied(173, 216, 230, 70))
+                        Stroke::new(1.0_f32, Color32::from_rgba_unmultiplied(173, 216, 230, 70))
                     }
                     StarSystemObjectKind::Moon => {
-                        Stroke::new(1.0, Color32::from_rgba_unmultiplied(128, 128, 128, 70))
+                        Stroke::new(1.0_f32, Color32::from_rgba_unmultiplied(128, 128, 128, 70))
                     }
                     StarSystemObjectKind::AsteroidBelt => Stroke::new(
                         object.rotation_or_width_km,
@@ -231,7 +231,7 @@ impl State {
             // unordered (a, b) key to avoid stacking two edges per pair.
             let positions: HashMap<u64, (f32, f32)> =
                 sectors.iter().map(|s| (s.id, (s.x, s.y))).collect();
-            let edge_stroke = Stroke::new(1.5, Color32::from_rgb(90, 160, 150));
+            let edge_stroke = Stroke::new(1.5_f32, Color32::from_rgb(90, 160, 150));
             let mut seen: HashSet<(u64, u64)> = HashSet::new();
             for gate in ctx.db().jump_gate().iter() {
                 let (a, b) = (gate.current_sector_id, gate.target_sector_id);
@@ -271,7 +271,7 @@ impl State {
                 let stroke = if current_sector.id == sector.id {
                     self.stroke // preserved green highlight for the current sector
                 } else {
-                    Stroke::new(1.5, tint)
+                    Stroke::new(1.5_f32, tint)
                 };
                 let rect = egui::Rect::from_center_size(
                     center,
@@ -289,7 +289,7 @@ impl State {
                     markers.push(Shape::rect_stroke(
                         rect.expand(3.0),
                         corners,
-                        Stroke::new(1.0, Color32::WHITE),
+                        Stroke::new(1.0_f32, Color32::WHITE),
                         StrokeKind::Middle,
                     ));
                 }
@@ -301,7 +301,7 @@ impl State {
                         center,
                         MAP_SECTOR_RADIUS + 4.0 + 3.0 * pulse,
                         Stroke::new(
-                            1.5,
+                            1.5_f32,
                             Color32::from_rgba_unmultiplied(
                                 255,
                                 176,
