@@ -2,6 +2,7 @@ use macroquad::{camera::Camera2D, prelude::*};
 use std::collections::HashMap;
 
 use crate::gameplay::gui::*;
+use crate::gameplay::hotkeys::Hotkeys;
 use crate::server::bindings::{self, DbConnection, VisualEffectType};
 
 #[derive(Debug, Clone)]
@@ -67,6 +68,9 @@ pub struct GameState<'a> {
     // Read it back through `stdb::utils::get_current_target`, which re-queries
     // fresh and clears this field when the row is gone.
     pub current_target_sobj_id: Option<u64>,
+    // Single source of truth for which key does what and how the HUD spells it
+    // (#218).
+    pub hotkeys: Hotkeys,
     // No `mining_active` here on purpose (#141): mining state is derived from
     // the server's beam row via `stdb::utils::is_player_mining`, so it survives
     // a reconnect. A local flag only knew what this client had witnessed.
@@ -114,6 +118,7 @@ pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
         map_window_open: false,
 
         current_target_sobj_id: None,
+        hotkeys: Hotkeys::default(),
         movement_flags: (false, false, false, false),
 
         firing_effects: HashMap::new(),
