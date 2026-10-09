@@ -6,7 +6,7 @@ repository = "https://github.com/GalaxyCr8r/solarance-beginnings"
 version = "0.8.0-dev"
 edition = "2021"
 authors = ["Karl Nyborg"]
-rust-version = "1.86.0"
+rust-version = "1.96.0"
 
 # Privileged "Galaxy Creator" client (issue #34). Admin/moderator-only seed
 # tool: create sectors, place construction-site stations, and connect sectors
@@ -23,4 +23,4 @@ path = "src/main.rs"
 egui = "0.31.1"
 egui-macroquad = "0.17.3"
 macroquad = { version = "0.4.14", features = ["backtrace"] }
-spacetimedb-sdk = "2.7.0"
+spacetimedb-sdk = "2.10.2"
