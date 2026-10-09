@@ -78,3 +78,89 @@ pub fn target_closest_stellar_object(
         Err("Could not find a stellar object to target.".to_string())
     }
 }
+
+/// Start mining the current target, or stop an in-progress beam.
+///
+/// The `[X]` button and the `[X]` hotkey both land here (#218) so the two can't
+/// disagree about when mining is possible. Mining state is read back from the
+/// server's beam row, never a local flag (#141).
+pub fn toggle_mining_beam(ctx: &DbConnection, game_state: &mut GameState) -> Result<(), String> {
+    if is_player_mining(ctx) {
+        ctx.reducers
+            .stop_mining_asteroid()
+            .map_err(|e| format!("Failed to stop mining: {e}"))
+    } else {
+        let target = get_current_target(ctx, &mut game_state.current_target_sobj_id)
+            .ok_or("No target selected to mine.")?;
+        if target.kind != StellarObjectKinds::Asteroid {
+            return Err(format!(
+                "Target is a {:?}, not an asteroid — nothing to mine.",
+                target.kind
+            ));
+        }
+        ctx.reducers
+            .try_mining_asteroid(StellarObjectId { value: target.id })
+            .map_err(|e| format!("Failed to start mining asteroid {}: {e}", target.id))
+    }
+}
+
+/// What the `[C]` key does right now, given where the ship is and what it has
+/// targeted. `None` means the key is inert — nothing to dock with or jump to.
+///
+/// Both the button label and the keypress read this, so the label can never
+/// promise an action the key won't take (#218).
+pub fn docking_action(ctx: &DbConnection, game_state: &mut GameState) -> Option<DockingAction> {
+    let identity = ctx.try_identity()?;
+    let ship = ctx.db().ship().iter().find(|s| s.player_id == identity)?;
+
+    match ship.location {
+        ShipLocation::Station => Some(DockingAction::Undock(ship)),
+        ShipLocation::Sector => {
+            let target = get_current_target(ctx, &mut game_state.current_target_sobj_id)?;
+            match target.kind {
+                StellarObjectKinds::Station => Some(DockingAction::Dock(target.id)),
+                StellarObjectKinds::JumpGate => Some(DockingAction::Jump(target.id)),
+                _ => None,
+            }
+        }
+        _ => None,
+    }
+}
+
+/// Where the `[C]` key sends the player. Server-side distance / energy gating
+/// still applies — this only routes the intent.
+pub enum DockingAction {
+    Dock(u64),
+    Jump(u64),
+    Undock(Ship),
+}
+
+impl DockingAction {
+    /// Verb for the button face, so `[C]`'s label follows the binding.
+    pub fn verb(&self) -> &'static str {
+        match self {
+            DockingAction::Dock(_) => "Dock",
+            DockingAction::Jump(_) => "Jump",
+            DockingAction::Undock(_) => "Undock",
+        }
+    }
+
+    pub fn perform(self, ctx: &DbConnection) -> Result<(), String> {
+        match self {
+            DockingAction::Dock(sobj_id) => ctx
+                .reducers
+                .dock_ship(sobj_id)
+                .map_err(|e| format!("Failed to dock at station sobj {sobj_id}: {e}")),
+            DockingAction::Jump(sobj_id) => ctx
+                .reducers
+                .use_jumpgate(sobj_id)
+                .map_err(|e| format!("Failed to use jumpgate sobj {sobj_id}: {e}")),
+            DockingAction::Undock(ship) => {
+                let ship_id = ship.id;
+                ctx.reducers
+                    .undock_ship(ship)
+                    .map_err(|e| format!("Failed to undock ship {ship_id}: {e}"))
+            }
+        }
+    }
+}

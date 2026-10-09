@@ -3,11 +3,12 @@ use macroquad::{math::Vec2, prelude::*, ui};
 use super::server::bindings::*;
 use spacetimedb_sdk::{DbContext, Table};
 
-use crate::{shader::*, stdb::utils::*};
+use crate::{gameplay::hotkeys::Action, shader::*, stdb::utils::*};
 
 mod gui;
 mod player;
 pub mod direct_server_messages;
+pub mod hotkeys;
 pub mod render;
 pub mod resources;
 pub mod state;
@@ -198,7 +199,7 @@ pub async fn gameplay(connection: Option<DbConnection>) {
         let _ = player::control_player_ship(&ctx, &mut game_state); // TODO Alert player of error
 
         if !game_state.chat_window.has_focus && player_ship.is_some() {
-            if is_key_pressed(KeyCode::E) {
+            if game_state.hotkeys.pressed(Action::TargetClosest) {
                 if let Ok(target) = player::target_closest_stellar_object(&ctx, &mut game_state) {
                     if game_state.current_target_sobj_id == Some(target.id) {
                         game_state.current_target_sobj_id = None;
@@ -207,23 +208,34 @@ pub async fn gameplay(connection: Option<DbConnection>) {
                     }
                 }
             }
-            if is_key_pressed(KeyCode::R) {
+            // (#218) [X] and [C] were advertised by the status bar but unbound
+            // after the movement refactor. Both call the same helpers the
+            // buttons do, so the label and the key stay in step.
+            if game_state.hotkeys.pressed(Action::ToggleMiningBeam) {
+                let _ = player::toggle_mining_beam(&ctx, &mut game_state);
+            }
+            if game_state.hotkeys.pressed(Action::DockJumpUndock) {
+                if let Some(action) = player::docking_action(&ctx, &mut game_state) {
+                    let _ = action.perform(&ctx);
+                }
+            }
+            if game_state.hotkeys.pressed(Action::ShipWindow) {
                 game_state.details_window_open = !game_state.details_window_open;
             }
-            if is_key_pressed(KeyCode::F) {
+            if game_state.hotkeys.pressed(Action::FactionWindow) {
                 game_state.faction_window_open = !game_state.faction_window_open;
             }
-            if is_key_pressed(KeyCode::T) {
+            if game_state.hotkeys.pressed(Action::AssetsWindow) {
                 game_state.assets_window_open = !game_state.assets_window_open;
             }
-            if is_key_pressed(KeyCode::M) {
+            if game_state.hotkeys.pressed(Action::MapWindow) {
                 game_state.map_window_open = !game_state.map_window_open;
             }
-            if is_key_pressed(KeyCode::B) {
+            if game_state.hotkeys.pressed(Action::BuildWindow) {
                 game_state.construction_window_open = !game_state.construction_window_open;
             }
             // (#204) Debug overlay is opt-in — hidden on fresh launch, toggled here.
-            if is_key_pressed(KeyCode::F3) {
+            if game_state.hotkeys.pressed(Action::DebugWindow) {
                 game_state.debug_window_open = !game_state.debug_window_open;
             }
         }
