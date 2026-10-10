@@ -42,7 +42,10 @@ async fn main() {
     clear_background(BLACK);
     next_frame().await;
 
-    let ctx = connect_to_spacetime(None).ok_or("Could not connect in time.").unwrap();
+    // A throwaway identity is all this visual test needs (#216).
+    let ctx = connect_to_spacetime(Session::Guest)
+        .ok_or("Could not connect in time.")
+        .unwrap();
 
     let resources = Resources::new().await.unwrap();
     storage::store(resources);

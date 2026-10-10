@@ -127,12 +127,11 @@ async fn main() -> Result<(), macroquad::Error> {
     }
 
     loop {
-        let result = login::login_screen().await;
-        if !result.0 {
+        let Some(session) = login::login_screen().await else {
             break;
-        }
+        };
 
-        let connection = login::loading_screen(result.1).await;
+        let connection = login::loading_screen(session).await;
 
         info!("Calling gameplay from main");
         gameplay::gameplay(connection).await;

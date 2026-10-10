@@ -14,7 +14,25 @@ const LOCAL_HOST: &str = "http://localhost:3000";
 /// The database name we chose when we published our module.
 const DB_NAME: &str = "solarance-beginnings";
 
-pub fn connect_to_spacetime(jwt_token: Option<String>) -> Option<DbConnection> {
+/// How the player asked to get in, which is not the same question as "do we
+/// have a token lying around" (#216).
+///
+/// The old signature was `Option<String>`, and `None` meant both "the player
+/// chose Guest" and "we have no token, use whatever is in the creds store".
+/// Those want opposite behavior, so an Auth0 handshake followed by *Play as
+/// Guest* connected with the Auth0 token — and a later *Play via Auth0*
+/// correctly resumed that "guest" ship, because it had been the Auth0 identity
+/// all along.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Session {
+    /// Mint a fresh identity. Never reuse a stored token, however convenient.
+    Guest,
+    /// Connect as exactly this token — an Auth0 id_token, or the one the
+    /// *Continue* button loaded out of the creds store.
+    Token(String),
+}
+
+pub fn connect_to_spacetime(session: Session) -> Option<DbConnection> {
     info!(" Connecting to SpacetimeDB ...");
 
     // Connect to the database
@@ -27,50 +45,32 @@ pub fn connect_to_spacetime(jwt_token: Option<String>) -> Option<DbConnection> {
         }
     };
 
-    let mut tried_loaded_token = false;
-    let mut current_token = jwt_token.clone();
+    // (#216) Guest connects with no token so SpacetimeDB mints a new identity.
+    // There is deliberately no fallback to the creds store on either branch:
+    // substituting a stored token for one the player didn't offer is the whole
+    // bug, and on the `Token` branch it also silently masked auth failures by
+    // logging the player in as whoever last used this machine.
+    let token = match &session {
+        Session::Guest => None,
+        Session::Token(token) => Some(token.clone()),
+    };
 
-    // let mut current_token  = token.clone();
-
-    loop {
-        let result = connect_to_db(host.clone(), current_token.clone());
-        if let Err(e) = result {
+    let ctx = match connect_to_db(host, token) {
+        Ok(ctx) => ctx,
+        Err(e) => {
             info!("CONNECTION ERROR : {}", e);
-            if !tried_loaded_token {
-                tried_loaded_token = true;
-                current_token = match creds_store().load() {
-                    Ok(token) => {
-                        info!("Loading token from creds store.");
-                        token
-                    }
-                    Err(e) => {
-                        info!("Failed to load token from creds_store! {:?}", e);
-                        return None;
-                    }
-                };
-                info!("Failed to connect, retrying...");
-            } else {
-                return None;
-            }
-
-            continue;
+            return None;
         }
+    };
 
-        if current_token.is_some() {
-            info!("Token connected successfully. Storing for future use.");
-            let _ = creds_store().save(current_token.unwrap());
-        }
+    // Whatever identity we end up as — guest included — `on_connected` saves
+    // its token, so the *Continue* button can resume this session next launch.
 
-        let ctx = result.unwrap();
+    // Spawn a thread, where the connection will process messages and invoke
+    // callbacks.
+    ctx.run_threaded();
 
-        // Subscribe to SQL queries in order to construct a local partial replica of the database.
-        //subscriptions::subscribe_to_tables(&ctx);
-
-        // Spawn a thread, where the connection will process messages and invoke callbacks.
-        ctx.run_threaded();
-
-        return Some(ctx);
-    }
+    Some(ctx)
 }
 
 /// Load credentials from a file and connect to the database.
