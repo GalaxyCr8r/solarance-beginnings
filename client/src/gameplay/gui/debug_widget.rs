@@ -27,6 +27,11 @@ pub fn draw(
         .movable(false)
         .anchor(Align2::LEFT_BOTTOM, egui::Vec2::new(-5.0, 5.0))
         .show(egui_ctx, |ui| {
+            // (#216) Always show the connected identity, not just when the
+            // player row is missing — an Auth0/guest mixup is invisible
+            // otherwise, and this overlay is where you'd go looking.
+            ui.label(format!("Identity: {}", ctx.identity().to_abbreviated_hex()));
+
             match ctx.db().player().id().find(&ctx.identity()) {
                 Some(player) => {
                     ui.heading(format!("Player: {}", player.username));
