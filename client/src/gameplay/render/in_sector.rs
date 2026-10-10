@@ -7,7 +7,7 @@ use crate::server::bindings::*;
 use crate::stdb::utils::*;
 use spacetimedb_sdk::Table;
 
-use crate::gameplay::{resources::Resources, state::GameState};
+use crate::gameplay::{gui::format_distance, resources::Resources, state::GameState};
 
 /// Renders every active mining beam in the player's current sector, driven
 /// straight from the public `visual_effect` table (#87 server half → this #81).
@@ -131,6 +131,19 @@ pub fn draw_radar(
                 radius * 2.0,
                 0.0,
                 Color::from_rgba(255, 255, 255, 96),
+            );
+
+            // (#241) "Selected" alone doesn't say how far — put the range next
+            // to the icon. Offset outward along the same bearing so the label
+            // sits outside the ring rather than over the icon.
+            let label = format_distance(dist);
+            let label_at = from + glam::Vec2::from_angle(angle) * (radius + 8.0);
+            draw_text(
+                &label,
+                label_at.x,
+                label_at.y,
+                20.0,
+                Color::from_rgba(255, 255, 255, 220),
             );
         }
 
