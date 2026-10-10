@@ -200,13 +200,17 @@ pub async fn gameplay(connection: Option<DbConnection>) {
 
         if !game_state.chat_window.has_focus && player_ship.is_some() {
             if game_state.hotkeys.pressed(Action::TargetClosest) {
-                if let Ok(target) = player::target_closest_stellar_object(&ctx, &mut game_state) {
-                    if game_state.current_target_sobj_id == Some(target.id) {
-                        game_state.current_target_sobj_id = None;
-                    } else {
-                        game_state.current_target_sobj_id = Some(target.id);
-                    }
-                }
+                // (#241) [E] aims — nearest object to the ship's heading, and
+                // nothing in the cone clears the target. Shift-[E] keeps the
+                // old nearest-by-distance sweep. The modifier isn't in the
+                // binding list because it selects between two meanings of one
+                // action rather than being a hotkey of its own.
+                let mode = if is_key_down(KeyCode::LeftShift) {
+                    player::TargetMode::Nearest
+                } else {
+                    player::TargetMode::Heading
+                };
+                player::acquire_target(&ctx, &mut game_state, mode);
             }
             // (#218) [X] and [C] were advertised by the status bar but unbound
             // after the movement refactor. Both call the same helpers the
