@@ -6,7 +6,7 @@ use std::{
 };
 
 use solarance_beginnings::{
-    stdb::connector::{creds_store, pilot_name_store},
+    stdb::connector::{creds_store, pilot_name_store, Session},
     *,
 };
 
@@ -35,7 +35,62 @@ fn continue_button_label(stored_name: Option<String>) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::continue_button_label;
+    use super::EndLoginScreenSelection::*;
+    use super::{continue_button_label, session_for};
+    use solarance_beginnings::stdb::connector::Session;
+
+    /// (#216) The bug itself: click *Login via Auth0*, complete the handshake,
+    /// then click *Play as Guest*. The `id_token` is sitting right there, and
+    /// the old mapping handed it over — so the "guest" session was the Auth0
+    /// identity, and a later *Play via Auth0* resumed that same ship.
+    #[test]
+    fn guest_ignores_an_auth0_token_it_already_holds() {
+        assert_eq!(
+            session_for(&PlayAsGuest, Some("auth0-id-token".into()), None),
+            Some(Session::Guest)
+        );
+    }
+
+    #[test]
+    fn guest_ignores_a_stored_token_too() {
+        assert_eq!(
+            session_for(&PlayAsGuest, None, Some("stored-token".into())),
+            Some(Session::Guest)
+        );
+    }
+
+    #[test]
+    fn auth0_and_continue_each_use_their_own_token() {
+        assert_eq!(
+            session_for(
+                &PlayViaAuth0,
+                Some("auth0-id-token".into()),
+                Some("stored-token".into())
+            ),
+            Some(Session::Token("auth0-id-token".into()))
+        );
+        assert_eq!(
+            session_for(
+                &UsePriorToken,
+                Some("auth0-id-token".into()),
+                Some("stored-token".into())
+            ),
+            Some(Session::Token("stored-token".into()))
+        );
+    }
+
+    /// Without a token these choices can't name an identity. Falling back to
+    /// the other one would resurrect the bleed by a different route.
+    #[test]
+    fn a_tokenless_login_choice_resolves_to_nothing() {
+        assert_eq!(session_for(&PlayViaAuth0, None, Some("stored".into())), None);
+        assert_eq!(session_for(&UsePriorToken, Some("auth0".into()), None), None);
+    }
+
+    #[test]
+    fn quitting_resolves_to_nothing() {
+        assert_eq!(session_for(&QuitGame, Some("auth0".into()), Some("stored".into())), None);
+    }
 
     #[test]
     fn continue_label_names_the_pilot_or_falls_back() {
@@ -51,11 +106,40 @@ pub struct MenuAssets {
 }
 
 /// Enum representing the possible exit states of the login screen
+///
+/// (#216) `PlayAsGuest` and `PlayViaAuth0` used to share one `BreakLoop`
+/// variant, so the exit mapping couldn't tell them apart and handed the Auth0
+/// token to both. They are distinct states because they want distinct
+/// identities.
+#[derive(Debug, PartialEq, Eq)]
 enum EndLoginScreenSelection {
     No,            // Continue showing login screen
-    BreakLoop,     // Exit login screen with current token
+    PlayViaAuth0,  // Enter the game as the Auth0 identity just authenticated
+    PlayAsGuest,   // Enter the game as a fresh identity, ignoring any token
     QuitGame,      // Exit the game entirely
     UsePriorToken, // Use previously stored authentication token
+}
+
+/// Which identity the player's choice resolves to, or `None` to quit.
+///
+/// Split out from `login_screen` so the #216 bleed is testable without a GUI:
+/// *Play as Guest* must come out `Guest` even when an Auth0 handshake has
+/// already stashed an `id_token`.
+fn session_for(
+    selection: &EndLoginScreenSelection,
+    id_token: Option<String>,
+    prior_token: Option<String>,
+) -> Option<Session> {
+    use EndLoginScreenSelection::*;
+    match selection {
+        // Deliberately ignores `id_token` — that's the fix.
+        PlayAsGuest => Some(Session::Guest),
+        PlayViaAuth0 => Some(Session::Token(id_token?)),
+        UsePriorToken => Some(Session::Token(prior_token?)),
+        QuitGame => None,
+        // Unreachable: the screen only exits via the variants above.
+        No => None,
+    }
 }
 
 /// Displays the EULA/welcome screen and waits for user confirmation
@@ -137,11 +221,9 @@ pub async fn confirm_eula_screen() -> bool {
 
 /// Displays the login screen and handles authentication flow
 ///
-/// Manages authentication via Auth0, guest login, or using a previously stored token
-/// Returns a tuple containing:
-/// - Boolean indicating whether to continue to the game (true) or exit (false)
-/// - Optional authentication token for SpacetimeDB connection
-pub async fn login_screen() -> (bool, Option<String>) {
+/// Manages authentication via Auth0, guest login, or using a previously stored
+/// token. Returns the identity to connect as, or `None` if the player quit.
+pub async fn login_screen() -> Option<Session> {
     info!("Entering login screen");
 
     let mut client_token_thread: Option<JoinHandle<Result<String, String>>> = None;
@@ -257,7 +339,7 @@ pub async fn login_screen() -> (bool, Option<String>) {
                                         .clicked()
                                 {
                                     info!("CLICKED!");
-                                    end_loop = BreakLoop;
+                                    end_loop = PlayViaAuth0;
                                 }
                             } else {
                                 if ui
@@ -277,7 +359,7 @@ pub async fn login_screen() -> (bool, Option<String>) {
                                 .clicked()
                             {
                                 info!("CLICKED!");
-                                end_loop = BreakLoop;
+                                end_loop = PlayAsGuest;
                             }
                             // (#172) Hide Continue once "Ready - Play via Auth0" is
                             // showing, so there's one obvious action to enter the game.
@@ -317,19 +399,12 @@ pub async fn login_screen() -> (bool, Option<String>) {
             No => {
                 // Intentionally left blank
             }
-            BreakLoop => break,
-            UsePriorToken => break,
-            QuitGame => return (false, None),
+            PlayViaAuth0 | PlayAsGuest | UsePriorToken => break,
+            QuitGame => return None,
         }
     }
 
-    match end_loop {
-        UsePriorToken => {
-            let _ = creds_store().save("");
-            (true, prior_token)
-        }
-        _ => (true, id_token),
-    }
+    session_for(&end_loop, id_token, prior_token)
 }
 
 /// Renders the animated background for the login and EULA screens
@@ -401,7 +476,7 @@ fn draw_login_screen_background() {
 /// 4. Displaying visual feedback during the loading process
 ///
 /// Returns the database connection if successful, None if connection fails
-pub async fn loading_screen(token: Option<String>) -> Option<DbConnection> {
+pub async fn loading_screen(session: Session) -> Option<DbConnection> {
     let menu_assets = storage::get::<MenuAssets>();
 
     let mut connection = None;
@@ -444,7 +519,7 @@ pub async fn loading_screen(token: Option<String>) -> Option<DbConnection> {
 
         // Do loading and connecting logic - connect first though.
         if connection.is_none() {
-            connection = connect_to_spacetime(token.clone());
+            connection = connect_to_spacetime(session.clone());
             // Check if it really IS None, and bail accordingly.
             if connection.is_none() {
                 return None;
