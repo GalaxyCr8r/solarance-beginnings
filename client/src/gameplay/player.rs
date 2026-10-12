@@ -26,9 +26,11 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
     Ok(())
 }
 
-/// How wide a cone `[E]` sweeps for a target (#241). Two degrees is tight on
-/// purpose: it should feel like aiming, not like a nearest-object search.
-const TARGETING_CONE_RADIANS: f32 = 2.0 * std::f32::consts::PI / 180.0;
+/// How wide a cone `[E]` sweeps for a target (#241). Wide enough to feel like
+/// pointing at something rather than threading a needle — 2° was punishing
+/// when a lone object sat in an otherwise empty stretch of sky. Still narrow
+/// enough to read as aiming rather than a nearest-object search.
+const TARGETING_CONE_RADIANS: f32 = 5.0 * std::f32::consts::PI / 180.0;
 
 /// Which object `[E]` should pick.
 pub enum TargetMode {
@@ -259,13 +261,20 @@ mod tests {
     }
 
     #[test]
-    fn the_cone_is_two_degrees_wide_on_each_side() {
+    fn the_cone_is_five_degrees_wide_on_each_side() {
         let origin = Vec2::ZERO;
-        let inside = (1u64, Vec2::from_angle(degrees(1.5)) * 500.0);
-        let outside = (2u64, Vec2::from_angle(degrees(2.5)) * 500.0);
+        let inside = (1u64, Vec2::from_angle(degrees(4.0)) * 500.0);
+        let outside = (2u64, Vec2::from_angle(degrees(6.0)) * 500.0);
 
         let picked = best_in_cone(EAST, origin, &[inside, outside], TARGETING_CONE_RADIANS);
-        assert_eq!(picked, Some(1), "2.5° off should be outside the cone");
+        assert_eq!(picked, Some(1), "6° off should be outside the cone");
+
+        // The cone is symmetric — 4° the other way is just as targetable.
+        let below = (3u64, Vec2::from_angle(degrees(-4.0)) * 500.0);
+        assert_eq!(
+            best_in_cone(EAST, origin, &[below], TARGETING_CONE_RADIANS),
+            Some(3)
+        );
     }
 
     /// The deselect behavior #241 asks for: nose pointed at nothing means no
