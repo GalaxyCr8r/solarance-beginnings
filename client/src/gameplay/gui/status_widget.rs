@@ -96,32 +96,12 @@ fn ship_status(ui: &mut Ui, ship_type: ShipTypeDefinition, player_ship_status: S
 
 fn ship_function_status(ctx: &DbConnection, ui: &mut Ui, game_state: &mut GameState) {
     ui.vertical(|ui| {
-        combat_mode_indicator(ui, game_state);
         mining_beam_button(ui, ctx, game_state);
         autodocking_button(ui, ctx, game_state);
-        fire_weapons_button(ui, ctx, game_state);
     });
 }
 
-fn combat_mode_indicator(ui: &mut Ui, game_state: &GameState) {
-    if game_state.combat_mode {
-        let _ = ui.button(RichText::new("[Q] Mode: Combat").color({
-            if now() % 1.0 < 0.45 {
-                Color32::RED
-            } else {
-                Color32::DARK_RED
-            }
-        }));
-    } else {
-        let _ = ui.button(RichText::new("[Q] Mode: Utility").color(Color32::LIGHT_BLUE));
-    }
-}
-
 fn mining_beam_button(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
-    if game_state.combat_mode {
-        return;
-    }
-
     // Derived from the server's mining-beam row, never a local flag, so the
     // button still reads "On" after a reconnect mid-mining (#141).
     if is_player_mining(ctx) {
@@ -158,9 +138,6 @@ fn mining_beam_button(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameStat
 }
 
 fn autodocking_button(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
-    if game_state.combat_mode {
-        return;
-    }
     let Some(identity) = ctx.try_identity() else {
         return;
     };
@@ -369,23 +346,4 @@ fn add_status_bar(ui: &mut Ui, name: &str, max: f32, current: f32, color: Color3
     } else {
         ui.vertical(contents);
     }
-}
-
-fn fire_weapons_button(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
-    if !game_state.combat_mode {
-        return;
-    }
-
-    let target = get_current_target(ctx, &mut game_state.current_target_sobj_id);
-    let enabled = target.is_some();
-    ui.add_enabled_ui(enabled, |ui| {
-        if ui
-            .button(RichText::new("[Space] Fire Weapons").color(Color32::LIGHT_GRAY))
-            .clicked()
-        {
-            if let Some(target) = &target {
-                let _ = ctx.reducers.fire_weapons(target.id);
-            }
-        }
-    });
 }

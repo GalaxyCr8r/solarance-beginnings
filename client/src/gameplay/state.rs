@@ -67,7 +67,6 @@ pub struct GameState<'a> {
     // Read it back through `stdb::utils::get_current_target`, which re-queries
     // fresh and clears this field when the row is gone.
     pub current_target_sobj_id: Option<u64>,
-    pub combat_mode: bool,
     // No `mining_active` here on purpose (#141): mining state is derived from
     // the server's beam row via `stdb::utils::is_player_mining`, so it survives
     // a reconnect. A local flag only knew what this client had witnessed.
@@ -115,7 +114,6 @@ pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
         map_window_open: false,
 
         current_target_sobj_id: None,
-        combat_mode: false,
         movement_flags: (false, false, false, false),
 
         firing_effects: HashMap::new(),

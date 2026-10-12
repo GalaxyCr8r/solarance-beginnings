@@ -12,11 +12,6 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
         return Ok(());
     }
 
-    // Combat mode toggle
-    if is_key_pressed(KeyCode::Q) {
-        game_state.combat_mode = !game_state.combat_mode;
-    }
-
     let forward  = is_key_down(KeyCode::W) || is_key_down(KeyCode::Up);
     let backward = is_key_down(KeyCode::S) || is_key_down(KeyCode::Down);
     let left     = is_key_down(KeyCode::A) || is_key_down(KeyCode::Left);
