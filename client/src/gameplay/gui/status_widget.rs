@@ -1,8 +1,12 @@
 use egui::{Align2, Color32, Context, RichText, Ui, Vec2};
 use macroquad::{miniquad::date::now, prelude::*};
-use spacetimedb_sdk::{DbContext, Table};
+use spacetimedb_sdk::DbContext;
 
-use crate::{gameplay::state::GameState, server::bindings::*, stdb::utils::*};
+use crate::{
+    gameplay::{hotkeys::Action, player, state::GameState},
+    server::bindings::*,
+    stdb::utils::*,
+};
 
 #[derive(Default)]
 pub struct WindowState {
@@ -46,8 +50,9 @@ pub fn window(
                         if let Some(target) =
                             get_current_target(ctx, &mut game_state.current_target_sobj_id)
                         {
+                            let target_hint = game_state.hotkeys.hint(Action::TargetClosest);
                             ui.vertical(|ui| {
-                                let _ = add_targeted_object_status(ui, ctx, &target);
+                                let _ = add_targeted_object_status(ui, ctx, &target, &target_hint);
                             });
                         } else {
                             ui.allocate_ui(Vec2 { x: 96.0, y: 32.0 }, |ui| {
@@ -102,11 +107,13 @@ fn ship_function_status(ctx: &DbConnection, ui: &mut Ui, game_state: &mut GameSt
 }
 
 fn mining_beam_button(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
+    let hint = game_state.hotkeys.hint(Action::ToggleMiningBeam);
+
     // Derived from the server's mining-beam row, never a local flag, so the
     // button still reads "On" after a reconnect mid-mining (#141).
     if is_player_mining(ctx) {
         if ui
-            .button(RichText::new("[X] Mining Beam: On").color({
+            .button(RichText::new(format!("{hint} Mining Beam: On")).color({
                 if now() % 1.0 < 0.45 {
                     Color32::RED
                 } else {
@@ -115,83 +122,48 @@ fn mining_beam_button(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameStat
             }))
             .clicked()
         {
-            let _ = ctx.reducers.stop_mining_asteroid();
+            let _ = player::toggle_mining_beam(ctx, game_state);
         }
     } else {
-        let target = get_current_target(ctx, &mut game_state.current_target_sobj_id);
-        let enabled = target
-            .as_ref()
+        let enabled = get_current_target(ctx, &mut game_state.current_target_sobj_id)
             .map_or(false, |t| t.kind == StellarObjectKinds::Asteroid);
         ui.add_enabled_ui(enabled, |ui| {
             if ui
-                .button(RichText::new("[X] Mining Beam: Off").color(Color32::LIGHT_GRAY))
+                .button(RichText::new(format!("{hint} Mining Beam: Off")).color(Color32::LIGHT_GRAY))
                 .clicked()
             {
-                if let Some(target) = &target {
-                    let _ = ctx
-                        .reducers
-                        .try_mining_asteroid(StellarObjectId { value: target.id });
-                }
+                let _ = player::toggle_mining_beam(ctx, game_state);
             }
         });
     }
 }
 
 fn autodocking_button(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
-    let Some(identity) = ctx.try_identity() else {
-        return;
-    };
-    let Some(ship) = ctx.db().ship().iter().find(|s| s.player_id == identity) else {
-        return;
-    };
+    let hint = game_state.hotkeys.hint(Action::DockJumpUndock);
 
-    match ship.location {
-        ShipLocation::Station => {
-            if ui
-                .button(RichText::new("[C] Undock").color(Color32::LIGHT_GRAY))
-                .clicked()
-            {
-                let _ = ctx.reducers.undock_ship(ship);
+    // One action drives both the label and the keypress, so the button can't
+    // offer "Dock" while [C] does nothing (#218). `None` = nothing in range or
+    // targeted, which shows as a disabled "Dock".
+    let action = player::docking_action(ctx, game_state);
+    let label = format!("{hint} {}", action.as_ref().map_or("Dock", |a| a.verb()));
+
+    ui.add_enabled_ui(action.is_some(), |ui| {
+        if ui
+            .button(RichText::new(label).color(Color32::LIGHT_GRAY))
+            .clicked()
+        {
+            if let Some(action) = action {
+                let _ = action.perform(ctx);
             }
         }
-        ShipLocation::Sector => {
-            // The [C] button doubles as "Dock" (station target) and "Jump"
-            // (jumpgate target). Server-side distance / energy gating still
-            // applies — this UI just routes the intent.
-            let target = get_current_target(ctx, &mut game_state.current_target_sobj_id);
-            let target_kind = target.as_ref().map(|t| t.kind);
-            let (label, enabled) = match target_kind {
-                Some(StellarObjectKinds::Station) => ("[C] Dock", true),
-                Some(StellarObjectKinds::JumpGate) => ("[C] Jump", true),
-                _ => ("[C] Dock", false),
-            };
-            ui.add_enabled_ui(enabled, |ui| {
-                if ui
-                    .button(RichText::new(label).color(Color32::LIGHT_GRAY))
-                    .clicked()
-                {
-                    if let Some(target) = &target {
-                        match target.kind {
-                            StellarObjectKinds::Station => {
-                                let _ = ctx.reducers.dock_ship(target.id);
-                            }
-                            StellarObjectKinds::JumpGate => {
-                                let _ = ctx.reducers.use_jumpgate(target.id);
-                            }
-                            _ => {}
-                        }
-                    }
-                }
-            });
-        }
-        _ => {}
-    }
+    });
 }
 
 fn add_targeted_object_status(
     ui: &mut Ui,
     ctx: &DbConnection,
     target: &StellarObject,
+    target_hint: &str,
 ) -> Result<(), String> {
     let mut kind = "Unknown Object".to_string();
     let distance = {
@@ -212,7 +184,7 @@ fn add_targeted_object_status(
         }
     };
 
-    ui.label(format!("[E] Target: {}", kind));
+    ui.label(format!("{target_hint} Target: {}", kind));
     ui.label(format!("Distance: {:.0}", distance));
 
     match target.kind {
