@@ -36,3 +36,43 @@ pub fn faction_color(faction_id: u32) -> egui::Color32 {
         _ => egui::Color32::LIGHT_GRAY,
     }
 }
+
+/// Distance readout for the HUD: metres under a kilometre, kilometres above
+/// (#241). One unit is one metre.
+///
+/// Shared by the radar ring label and the target panel so the two can't
+/// disagree about units — a raw `1234` next to a `1.2km` reads as a bug.
+pub fn format_distance(units: f32) -> String {
+    // Negative can't happen from a distance(), but clamp rather than print
+    // "-0m" if a caller ever hands us one.
+    let units = units.max(0.0);
+    // Branch on the *rounded* value: 999.5 is under a kilometre but prints as
+    // "1000m" under {:.0}, which reads as a kilometre written in metres.
+    if units.round() < 1000.0 {
+        format!("{:.0}m", units)
+    } else {
+        format!("{:.1}km", units / 1000.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::format_distance;
+
+    #[test]
+    fn metres_below_a_kilometre_kilometres_above() {
+        assert_eq!(format_distance(0.0), "0m");
+        assert_eq!(format_distance(999.4), "999m");
+        // The boundary belongs to km, so nothing ever prints "1000m".
+        assert_eq!(format_distance(1000.0), "1.0km");
+        assert_eq!(format_distance(1234.0), "1.2km");
+        assert_eq!(format_distance(45_600.0), "45.6km");
+    }
+
+    #[test]
+    fn rounding_never_prints_a_four_digit_metre_value() {
+        // 999.5 rounds to 1000 under {:.0}, which would read as a kilometre
+        // written in metres.
+        assert_eq!(format_distance(999.5), "1.0km");
+    }
+}

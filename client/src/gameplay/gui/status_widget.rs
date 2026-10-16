@@ -3,7 +3,7 @@ use macroquad::{miniquad::date::now, prelude::*};
 use spacetimedb_sdk::DbContext;
 
 use crate::{
-    gameplay::{hotkeys::Action, player, state::GameState},
+    gameplay::{gui::format_distance, hotkeys::Action, player, state::GameState},
     server::bindings::*,
     stdb::utils::*,
 };
@@ -185,7 +185,7 @@ fn add_targeted_object_status(
     };
 
     ui.label(format!("{target_hint} Target: {}", kind));
-    ui.label(format!("Distance: {:.0}", distance));
+    ui.label(format!("Distance: {}", format_distance(distance)));
 
     match target.kind {
         StellarObjectKinds::Asteroid => {
