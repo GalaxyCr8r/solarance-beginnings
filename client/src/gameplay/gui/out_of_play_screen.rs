@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 use egui::{Color32, Context, Frame, Rangef, RichText, Shadow, Ui};
 use macroquad::prelude::*;
@@ -38,6 +39,13 @@ pub struct State {
 
     /// A hashmap of station module IDs + item def IDs to the currently selected buy/sell amounts.
     buy_sell_scalars: HashMap<(u64, u32), (u32, u32)>,
+
+    /// Why the last BUY/SELL click failed, straight from the reducer (#251).
+    ///
+    /// `Arc<Mutex<_>>` because the `*_then` callback must be `Send + 'static`:
+    /// it owns its own handle to the slot the draw loop reads. Same shape as
+    /// `creation_window::State::error`.
+    trade_error: Arc<Mutex<Option<String>>>,
 }
 
 impl State {
@@ -46,6 +54,7 @@ impl State {
             currently_selected_module: None,
             selected_ship_id: None,
             buy_sell_scalars: HashMap::new(),
+            trade_error: Arc::new(Mutex::new(None)),
         }
     }
 }
@@ -361,6 +370,10 @@ fn buy_and_sell_inventory_item(
     inventory: &StationModuleInventoryItem,
     item_def: &ItemDefinition,
 ) {
+    // One handle for both buttons; cloned out of `state` up front so the
+    // closures below don't each need to reach back into it (#251).
+    let error_slot = state.trade_error.clone();
+
     ui.label(
         item_def
             .clone()
@@ -423,7 +436,15 @@ fn buy_and_sell_inventory_item(
                     egui::Slider::new(&mut sell_scalar, 0..=players_current_amount),
                 );
                 ui.label(format!("{}c", sell_scalar * inventory.cached_price));
-                sell_item_to_station(ctx, sell_scalar, ship, module, inventory, ui);
+                sell_item_to_station(
+                    ctx,
+                    sell_scalar,
+                    ship,
+                    module,
+                    inventory,
+                    &error_slot,
+                    ui,
+                );
 
                 if players_current_amount == 0 {
                     ui.label("You do not have any of this item.");
@@ -448,6 +469,7 @@ fn buy_and_sell_inventory_item(
                 }
             };
 
+            let credits = get_current_player(ctx).map_or(0, |player| player.credits);
             ui.label(RichText::new("Buy:").strong().color(Color32::RED));
             if module_can_sell_to_player {
                 ui.add_enabled(
@@ -463,8 +485,31 @@ fn buy_and_sell_inventory_item(
                         }),
                     ),
                 );
-                ui.label(format!("{}c", buy_scalar * inventory.cached_price));
-                buy_item_from_station(ctx, buy_scalar, ship, module, inventory, ui);
+                // (#251) Red total the moment the order outruns your wallet,
+                // so the dead-end is visible before the click. The slider is
+                // bounded by stock and cargo space but deliberately not by
+                // affordability — the server is the authority on price, and
+                // clamping here would silently rewrite what you asked for.
+                let total = buy_scalar * inventory.cached_price;
+                let affordable = (total as u64) <= credits;
+                let mut total_text = RichText::new(format!("{}c", total));
+                if !affordable {
+                    total_text = total_text.color(Color32::RED);
+                }
+                ui.label(total_text).on_hover_text(if affordable {
+                    format!("You have {}c", credits)
+                } else {
+                    format!("You only have {}c", credits)
+                });
+                buy_item_from_station(
+                    ctx,
+                    buy_scalar,
+                    ship,
+                    module,
+                    inventory,
+                    &error_slot,
+                    ui,
+                );
 
                 if space_available == 0 {
                     ui.label("Your ship has no space for this item.");
@@ -485,6 +530,17 @@ fn buy_and_sell_inventory_item(
         });
     });
 
+    // (#251) The reducer's own words, under the row that caused them. Shown
+    // for buy and sell alike since one slot serves both buttons.
+    if let Some(message) = state.trade_error.lock().unwrap().clone() {
+        ui.horizontal(|ui| {
+            ui.label(RichText::new(message).color(Color32::from_rgb(255, 165, 0)));
+            if ui.small_button("Dismiss").clicked() {
+                *state.trade_error.lock().unwrap() = None;
+            }
+        });
+    }
+
     state
         .buy_sell_scalars
         .insert((module.id, item_def.id), (buy_scalar, sell_scalar));
@@ -496,6 +552,7 @@ fn buy_item_from_station(
     ship: &Ship,
     module: &StationModule,
     inventory: &StationModuleInventoryItem,
+    error_slot: &Arc<Mutex<Option<String>>>,
     ui: &mut Ui,
 ) {
     if quantity == 0 {
@@ -504,22 +561,46 @@ fn buy_item_from_station(
     }
 
     if ui.button("BUY").clicked() {
-        if let Ok(_) = ctx.reducers.buy_item_from_station_module(
+        // Clear the previous verdict so a stale message can't be mistaken for
+        // this click's result while the round-trip is in flight.
+        *error_slot.lock().unwrap() = None;
+        let slot = error_slot.clone();
+
+        let sent = ctx.reducers.buy_item_from_station_module_then(
             module.id.into(),
             ship.id.into(),
             inventory.resource_item_id.into(),
             quantity,
-        ) {
-            info!(
-                "Bought {} item(s) {} from trading port",
-                quantity, inventory.resource_item_id
-            );
-        } else {
-            warn!(
-                "Failed to buy {} item(s) {} from trading port",
-                quantity, inventory.resource_item_id
-            );
+            move |_event_ctx, result| {
+                *slot.lock().unwrap() = trade_verdict(result);
+            },
+        );
+        if let Err(e) = sent {
+            // Only fires if the request couldn't be sent (connection down).
+            // Reducer-side failures arrive through the callback above.
+            *error_slot.lock().unwrap() = Some(format!("Could not reach the server: {e}"));
         }
+    }
+}
+
+/// Turn a `*_then` callback result into the message to show the player, or
+/// `None` on success.
+///
+/// The plain `buy_item_from_station_module(..)` form is fire-and-forget: it
+/// reports success as soon as the request is *sent*, so the old code logged
+/// "Bought ..." on every click including the ones that failed (#251). The
+/// `*_then` form runs a callback when the server's verdict arrives, which is
+/// the only way to see a `return Err(..)` from the reducer.
+///
+/// Outer `Result`: did the SDK round-trip with the server at all?
+/// Inner `Result`: what did the reducer itself return?
+/// Generic over the transport error so this doesn't have to name the SDK's
+/// `__codegen::InternalError`; all we ever do with it is print it.
+fn trade_verdict<E: std::fmt::Debug>(result: Result<Result<(), String>, E>) -> Option<String> {
+    match result {
+        Ok(Ok(())) => None,
+        Ok(Err(message)) => Some(message),
+        Err(internal) => Some(format!("{:?}", internal)),
     }
 }
 
@@ -529,6 +610,7 @@ fn sell_item_to_station(
     ship: &Ship,
     module: &StationModule,
     inventory: &StationModuleInventoryItem,
+    error_slot: &Arc<Mutex<Option<String>>>,
     ui: &mut Ui,
 ) {
     if quantity == 0 {
@@ -537,24 +619,20 @@ fn sell_item_to_station(
     }
 
     if ui.button("SELL").clicked() {
-        match ctx.reducers().sell_item_to_station_module(
+        *error_slot.lock().unwrap() = None;
+        let slot = error_slot.clone();
+
+        let sent = ctx.reducers.sell_item_to_station_module_then(
             module.id.into(),
             ship.id.into(),
             inventory.resource_item_id.into(),
             quantity,
-        ) {
-            Ok(_) => {
-                info!(
-                    "Sold {} item(s) {} to trading port",
-                    quantity, inventory.resource_item_id
-                );
-            }
-            Err(e) => {
-                warn!(
-                    "Failed to sell {} item(s) {} to trading port: {}",
-                    quantity, inventory.resource_item_id, e
-                );
-            }
+            move |_event_ctx, result| {
+                *slot.lock().unwrap() = trade_verdict(result);
+            },
+        );
+        if let Err(e) = sent {
+            *error_slot.lock().unwrap() = Some(format!("Could not reach the server: {e}"));
         }
     }
 }
@@ -649,4 +727,44 @@ fn left_panel(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
             });
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::trade_verdict;
+
+    #[derive(Debug)]
+    struct Transport(&'static str);
+
+    /// (#251) The reducer's `Err` string is the player's explanation — it has
+    /// to survive the two layers of `Result` intact, not get flattened into a
+    /// generic failure.
+    #[test]
+    fn a_reducer_error_becomes_the_message_shown() {
+        let verdict = trade_verdict::<Transport>(Ok(Err(
+            "Cannot buy 5x Iron Ore from station: Not enough credits. You have 10c but it costs 500c."
+                .to_string(),
+        )));
+        assert_eq!(
+            verdict.as_deref(),
+            Some("Cannot buy 5x Iron Ore from station: Not enough credits. You have 10c but it costs 500c.")
+        );
+    }
+
+    /// Success must clear the slot, or the last failure would sit under the
+    /// row forever and read as the result of a trade that worked.
+    #[test]
+    fn success_leaves_no_message() {
+        assert_eq!(trade_verdict::<Transport>(Ok(Ok(()))), None);
+    }
+
+    /// A transport failure is still worth showing — silence is the bug.
+    #[test]
+    fn a_transport_failure_still_says_something() {
+        let verdict = trade_verdict(Err(Transport("socket closed")));
+        assert!(
+            verdict.is_some_and(|m| m.contains("socket closed")),
+            "transport errors must not vanish"
+        );
+    }
 }
