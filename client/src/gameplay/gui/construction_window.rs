@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use egui::{Color32, Context, ProgressBar, RichText};
 use spacetimedb_sdk::*;
 
@@ -8,18 +10,25 @@ use crate::{server::bindings::*, stdb::utils::*};
 /// UI can grey the deposit buttons before the player tries.
 const CONTRIBUTE_RANGE_PX: f32 = 300.0;
 
-pub struct State {}
+pub struct State {
+    /// Why the last deposit was refused, straight from the reducer (#251).
+    /// `Arc<Mutex<_>>` because the `*_then` callback must be `Send + 'static`;
+    /// same shape as `out_of_play_screen::State::trade_error`.
+    deposit_error: Arc<Mutex<Option<String>>>,
+}
 
 impl State {
     pub fn new() -> Self {
-        State {}
+        State {
+            deposit_error: Arc::new(Mutex::new(None)),
+        }
     }
 }
 
 pub fn draw(
     egui_ctx: &Context,
     ctx: &DbConnection,
-    _state: &mut State,
+    state: &mut State,
     open: &mut bool,
 ) -> Option<egui::InnerResponse<Option<()>>> {
     egui::Window::new("Construction")
@@ -36,7 +45,7 @@ pub fn draw(
                 ui.label("No construction site in this sector.");
             }
             Some((station, under_construction)) => {
-                draw_site(ui, ctx, &station, &under_construction);
+                draw_site(ui, ctx, &station, &under_construction, &state.deposit_error);
             }
         })
 }
@@ -76,6 +85,7 @@ fn draw_site(
     ctx: &DbConnection,
     station: &Station,
     under_construction: &StationUnderConstruction,
+    deposit_error: &Arc<Mutex<Option<String>>>,
 ) {
     // Faction-flag affordance (#104): own-faction sites carry the faction's
     // color and a "(your faction)" tag; other factions' sites render muted.
@@ -200,12 +210,30 @@ fn draw_site(
         shown_any = true;
         ui.horizontal(|ui| {
             ui.label(format!("{}x {}", cargo.quantity, item_def.name));
-            deposit_buttons(ui, ctx, station.id, cargo.item_id, cargo.quantity, in_range);
+            deposit_buttons(
+                ui,
+                ctx,
+                station.id,
+                cargo.item_id,
+                cargo.quantity,
+                in_range,
+                deposit_error,
+            );
         });
     }
 
     if !shown_any {
         ui.label("No usable cargo on board.");
+    }
+
+    // (#251) The reducer's own words — too far, already has enough, etc.
+    if let Some(message) = deposit_error.lock().unwrap().clone() {
+        ui.horizontal(|ui| {
+            ui.label(RichText::new(message).color(Color32::from_rgb(255, 165, 0)));
+            if ui.small_button("Dismiss").clicked() {
+                *deposit_error.lock().unwrap() = None;
+            }
+        });
     }
 }
 
@@ -216,14 +244,26 @@ fn deposit_buttons(
     item_id: u32,
     cargo_qty: u16,
     enabled: bool,
+    deposit_error: &Arc<Mutex<Option<String>>>,
 ) {
     let station_id = StationId { value: station_id };
     let item_id = ItemDefinitionId { value: item_id };
 
     let deposit = |qty: u32| {
-        let _ = ctx
-            .reducers
-            .contribute_to_station(station_id.clone(), item_id.clone(), qty);
+        // Clear first so a stale refusal can't read as this click's result.
+        *deposit_error.lock().unwrap() = None;
+        let slot = deposit_error.clone();
+        let sent = ctx.reducers.contribute_to_station_then(
+            station_id.clone(),
+            item_id.clone(),
+            qty,
+            move |_event_ctx, result| {
+                *slot.lock().unwrap() = reducer_verdict(result);
+            },
+        );
+        if let Err(e) = sent {
+            *deposit_error.lock().unwrap() = Some(format!("Could not reach the server: {e}"));
+        }
     };
 
     if ui.add_enabled(enabled, egui::Button::new("+1")).clicked() {

@@ -15,7 +15,6 @@ use crate::{
         items::*,
         players::*,
         sectors::SectorId,
-        messages::*,
         ships::{CreateShipEquipmentSlot, *},
         stations::*,
         stellarobjects::*,
@@ -87,16 +86,11 @@ pub fn create_player_controlled_ship(
     let player = match dsl.get_player_by_id(&player_id) {
         Ok(p) => p,
         Err(_) => {
-            let error_message =
-                "You must register a username before creating a ship. Please use the registration system first.".to_string();
-
-            send_direct_server_warning(
-                &dsl,
-                &player_id,
-                error_message.clone(),
-            )?;
-
-            return Err("Client hasn't created a username yet!".to_string());
+            // Returned rather than DM'd: a DM followed by `Err` is rolled back
+            // with the rest of the transaction (#251).
+            return Err(
+                "You must register a username before creating a ship. Please use the registration system first.".to_string(),
+            );
         }
     };
 
@@ -163,16 +157,12 @@ pub fn create_player_controlled_ship(
         send_galaxy_chat(dsl.ctx(), format!("{} has created a ship!", username))?;
         Ok(())
     } else {
-        let error_message =
-            "Failed to create ship due to a system error. Please try again or contact support if the problem persists.".to_string();
-
-        send_direct_server_warning(
-            &dsl,
-            &player_id,
-            error_message.clone(),
-        )?;
-
-        Err("Failed to create ship!".to_string())
+        log::warn!(
+            "create_player_controlled_ship: create_sobj failed for player {} in sector {}",
+            username,
+            spawn_sector.value()
+        );
+        Err("Failed to create ship due to a system error. Please try again or contact support if the problem persists.".to_string())
     }
 }
 

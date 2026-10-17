@@ -103,16 +103,19 @@ fn create_ship(
         .button(RichText::new("> Create a 'Column-class' Mining Corvette < ").strong())
         .clicked()
     {
-        match ctx
-            .reducers
-            .create_player_controlled_ship(ctx.identity(), game_state.chat_window.text.clone())
-        {
-            Ok(_) => {
-                *game_state.creation_window.error.lock().unwrap() = None;
-            }
-            Err(e) => {
-                *game_state.creation_window.error.lock().unwrap() = Some(format!("{:?}", e));
-            }
+        // `_then` for the same reason as `register_playername_then` below: the
+        // server's refusal only reaches us through the callback (#251).
+        *game_state.creation_window.error.lock().unwrap() = None;
+        let error_slot = game_state.creation_window.error.clone();
+        if let Err(e) = ctx.reducers.create_player_controlled_ship_then(
+            ctx.identity(),
+            game_state.chat_window.text.clone(),
+            move |_event_ctx, result| {
+                *error_slot.lock().unwrap() = reducer_verdict(result);
+            },
+        ) {
+            *game_state.creation_window.error.lock().unwrap() =
+                Some(format!("Could not reach the server: {e}"));
         }
     }
 }

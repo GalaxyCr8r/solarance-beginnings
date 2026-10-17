@@ -9,6 +9,24 @@ use spacetimedb::{log::info, ReducerContext};
 ///////////////////////////////////////////////////////////
 // Reducers ///
 ///////////////////////////////////////////////////////////
+//
+// Failure feedback convention (#251)
+// ---------------------------------
+// A reducer may **commit a DM** or **return `Err`**, never both. Reducers are
+// transactional, so a `send_direct_server_*` followed by `return Err` inserts
+// the message and then rolls that insert back in the same transaction — the
+// player is never told why their click did nothing. Every error branch in this
+// file used to do exactly that.
+//
+// So: failures a player *asked for* (they clicked BUY) carry their explanation
+// in the `Err` string, which travels to the calling client outside the
+// transaction via the reducer event. The client reads it with the generated
+// `*_then` form and shows it. See `buy_item_from_station` in
+// `client/src/gameplay/gui/out_of_play_screen.rs`.
+//
+// DMs remain the right channel for *unsolicited* server→player news — things
+// that happen while the player isn't looking — and for success confirmations,
+// which commit fine because nothing rolls them back.
 
 /// Allows a docked ship to purchase items from a station's trading module.
 /// Validates player ownership, credits, and cargo space before completing the transaction.
@@ -28,21 +46,11 @@ pub fn buy_item_from_station_module(
     // Validate that the docked ship is at the same station as the module
     let station_module = dsl.get_station_module_by_id(&station_module_id)?;
     if ship.get_station_id() != station_module.get_station_id() {
-        let player_id = ship.get_player_id().clone();
-        let error_message = format!(
+        return Err(format!(
             "Cannot buy from station module: Your ship is docked at station {} but the module is at station {}.",
             ship.get_station_id(),
             station_module.get_station_id()
-        );
-
-        // Send server message for error feedback
-        send_direct_server_warning(
-            &dsl,
-            &player_id,
-            error_message.clone(),
-        )?;
-
-        return Err(error_message);
+        ));
     }
 
     // Get Trading Port Module and it's inventory item that matches the item_id
@@ -55,47 +63,20 @@ pub fn buy_item_from_station_module(
         .filter(|item| item.get_resource_item_id() == item_id)
         .next()
         .ok_or_else(|| {
-            let player_id = ship.get_player_id().clone();
-            let error_message = format!(
-                "Cannot buy item #{}: This item is not available at this station.",
-                item_id
-            );
-
-            // Send server message for error feedback
-            let _ = send_direct_server_warning(
-                &dsl,
-                &player_id,
-                error_message.clone(),
-            );
-
             format!(
-                "Cannot sell #{} to station: No matching inventory item found.",
+                "Cannot buy item #{}: This item is not available at this station.",
                 item_id
             )
         })?;
     let item_def = dsl.get_item_definition_by_id(item_id)?;
 
     if item_listing.get_quantity() < &quantity {
-        let player_id = ship.get_player_id().clone();
-        let error_message = format!(
+        return Err(format!(
             "Cannot buy {}x {} from station: Not enough items available. Station has {} but you requested {}.",
             quantity,
             item_def.get_name(),
             item_listing.get_quantity(),
             quantity
-        );
-
-        // Send server message for error feedback
-        send_direct_server_warning(
-            &dsl,
-            &player_id,
-            error_message.clone(),
-        )?;
-
-        return Err(format!(
-            "Cannot buy {}x {} from station: Not enough items.",
-            quantity,
-            item_def.get_name()
         ));
     }
 
@@ -105,22 +86,6 @@ pub fn buy_item_from_station_module(
     // Check if the player has enough credits
     let mut player = dsl.get_player_by_id(ship.get_player_id())?;
     if (total_price as u64) > *player.get_credits() {
-        let player_id = ship.get_player_id().clone();
-        let error_message = format!(
-            "Cannot buy {}x {} from station: Not enough credits. You have {}c but it costs {}c.",
-            quantity,
-            item_def.get_name(),
-            player.get_credits(),
-            total_price
-        );
-
-        // Send server message for error feedback
-        send_direct_server_warning(
-            &dsl,
-            &player_id,
-            error_message.clone(),
-        )?;
-
         return Err(format!(
             "Cannot buy {}x {} from station: Not enough credits. You have {}c but it costs {}c.",
             quantity,
@@ -139,21 +104,12 @@ pub fn buy_item_from_station_module(
         quantity as u16,
         false,
     ) {
-        let error_message = format!(
+        return Err(format!(
             "Cannot buy {}x {} from station: {}",
             quantity,
             item_def.get_name(),
             cargo_err
-        );
-
-        // Send server message for error feedback
-        send_direct_server_warning(
-            &dsl,
-            &ship.get_player_id(),
-            error_message.clone(),
-        )?;
-
-        return Err(cargo_err);
+        ));
     }
 
     player.set_credits(*player.get_credits() - (total_price as u64));
@@ -204,21 +160,11 @@ pub fn sell_item_to_station_module(
     );
 
     if ship.get_station_id() != station_module.get_station_id() {
-        let player_id = ship.get_player_id().clone();
-        let error_message = format!(
+        return Err(format!(
             "Cannot sell to station module: Your ship is docked at station {} but the module is at station {}.",
             ship.get_station_id(),
             station_module.get_station_id()
-        );
-
-        // Send server message for error feedback
-        send_direct_server_warning(
-            &dsl,
-            &player_id,
-            error_message.clone(),
-        )?;
-
-        return Err(error_message);
+        ));
     }
 
     // Get Trading Port Module and it's inventory item that matches the item_id
@@ -231,46 +177,19 @@ pub fn sell_item_to_station_module(
         .filter(|item| item.get_resource_item_id() == item_id)
         .next()
         .ok_or_else(|| {
-            let player_id = ship.get_player_id().clone();
-            let error_message = format!(
-                "Cannot sell item #{}: This station does not accept this item type.",
-                item_id
-            );
-
-            // Send server message for error feedback
-            let _ = send_direct_server_warning(
-                &dsl,
-                &player_id,
-                error_message.clone(),
-            );
-
             format!(
-                "Cannot sell #{} to station: No matching inventory item found.",
+                "Cannot sell item #{}: This station does not accept this item type.",
                 item_id
             )
         })?;
     let item_def = dsl.get_item_definition_by_id(item_id)?;
 
     if item_listing.get_quantity() + &quantity > *item_listing.get_max_quantity() {
-        let player_id = ship.get_player_id().clone();
-        let error_message = format!(
+        return Err(format!(
             "Cannot sell {}x {} to station: Not enough space left in module inventory. Station can only accept {} more items.",
             quantity,
             item_def.get_name(),
             item_listing.get_max_quantity() - item_listing.get_quantity()
-        );
-
-        // Send server message for error feedback
-        send_direct_server_warning(
-            &dsl,
-            &player_id,
-            error_message.clone(),
-        )?;
-
-        return Err(format!(
-            "Cannot sell {}x {} to station: Not enough space left in module inventory.",
-            quantity,
-            item_def.get_name()
         ));
     }
 
@@ -285,22 +204,12 @@ pub fn sell_item_to_station_module(
         &item_def,
         quantity as u16,
     ) {
-        let player_id = ship.get_player_id().clone();
-        let error_message = format!(
+        return Err(format!(
             "Cannot sell {}x {} to station: {}",
             quantity,
             item_def.get_name(),
             cargo_err
-        );
-
-        // Send server message for error feedback
-        send_direct_server_warning(
-            &dsl,
-            &player_id,
-            error_message.clone(),
-        )?;
-
-        return Err(cargo_err);
+        ));
     }
 
     let mut player = dsl.get_player_by_id(ship.get_player_id())?;

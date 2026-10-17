@@ -13,7 +13,7 @@ use crate::{
     tables::{
         jumpgates::*,
         players::{get_player_ship_and_sobj, PlayerId},
-        messages::{send_direct_server_warning, send_direct_server_info},
+        messages::send_direct_server_info,
         ships::*,
         stations::*,
         stellarobjects::*,
@@ -39,7 +39,6 @@ pub fn try_to_dock_to_station(ctx: &ReducerContext, station: &Station) -> Result
             station.get_name(),
             station.get_id().value()
         );
-        let _ = send_direct_server_warning(&dsl, &PlayerId::new(ctx.sender()), msg.clone());
         return Err(msg);
     }
 
