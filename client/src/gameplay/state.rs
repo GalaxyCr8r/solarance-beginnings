@@ -1,5 +1,6 @@
 use macroquad::{camera::Camera2D, prelude::*};
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 use crate::gameplay::gui::*;
 use crate::gameplay::hotkeys::Hotkeys;
@@ -71,6 +72,10 @@ pub struct GameState<'a> {
     // Single source of truth for which key does what and how the HUD spells it
     // (#218).
     pub hotkeys: Hotkeys,
+    // Why the last dock/jump/undock request was refused, written by the
+    // reducer's `*_then` callback (#251). Shared by the [C] key and the
+    // status-bar button, which both go through `DockingAction::perform`.
+    pub docking_error: Arc<Mutex<Option<String>>>,
     // No `mining_active` here on purpose (#141): mining state is derived from
     // the server's beam row via `stdb::utils::is_player_mining`, so it survives
     // a reconnect. A local flag only knew what this client had witnessed.
@@ -119,6 +124,7 @@ pub fn initialize<'a>(ctx: &'a DbConnection) -> GameState<'a> {
 
         current_target_sobj_id: None,
         hotkeys: Hotkeys::default(),
+        docking_error: Arc::new(Mutex::new(None)),
         movement_flags: (false, false, false, false),
 
         firing_effects: HashMap::new(),

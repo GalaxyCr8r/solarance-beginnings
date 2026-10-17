@@ -153,10 +153,22 @@ fn autodocking_button(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameStat
             .clicked()
         {
             if let Some(action) = action {
-                let _ = action.perform(ctx);
+                action.perform(ctx, &game_state.docking_error);
             }
         }
     });
+
+    // (#251) Why the last dock/jump/undock was refused, in the server's words.
+    let refusal = game_state.docking_error.lock().unwrap().clone();
+    if let Some(message) = refusal {
+        if ui
+            .small_button(RichText::new(message).color(Color32::from_rgb(255, 165, 0)))
+            .on_hover_text("Dismiss")
+            .clicked()
+        {
+            *game_state.docking_error.lock().unwrap() = None;
+        }
+    }
 }
 
 fn add_targeted_object_status(

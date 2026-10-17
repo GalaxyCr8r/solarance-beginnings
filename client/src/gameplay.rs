@@ -220,7 +220,7 @@ pub async fn gameplay(connection: Option<DbConnection>) {
             }
             if game_state.hotkeys.pressed(Action::DockJumpUndock) {
                 if let Some(action) = player::docking_action(&ctx, &mut game_state) {
-                    let _ = action.perform(&ctx);
+                    action.perform(&ctx, &game_state.docking_error);
                 }
             }
             if game_state.hotkeys.pressed(Action::ShipWindow) {

@@ -10,7 +10,7 @@ use crate::{
         factions::FactionId,
         items::*,
         messages::{
-            post_galaxy_channel, send_direct_server_info, send_direct_server_warning, MessageSender,
+            post_galaxy_channel, send_direct_server_info, MessageSender,
         },
         players::*,
         sectors::Sector,
@@ -493,8 +493,9 @@ pub fn contribute_to_station(
             station.get_name(),
             station_id.value()
         );
-        let _ = send_direct_server_warning(&dsl, &player_id, msg.clone());
-        return Err(format!("contribute_to_station rejected: {} ({})", msg, e));
+        // The lookup error is for `spacetime logs`, not the player (#251).
+        log::warn!("contribute_to_station rejected: {} ({})", msg, e);
+        return Err(msg);
     }
 
     if ship.get_sector_id().value() != station.get_sector_id().value() {
@@ -504,7 +505,6 @@ pub fn contribute_to_station(
             station_id.value(),
             station.get_sector_id().value()
         );
-        let _ = send_direct_server_warning(&dsl, &player_id, msg.clone());
         return Err(msg);
     }
 
@@ -522,7 +522,6 @@ pub fn contribute_to_station(
             station.get_name(),
             CONTRIBUTE_RANGE_PX,
         );
-        let _ = send_direct_server_warning(&dsl, &player_id, msg.clone());
         return Err(msg);
     }
 
@@ -538,7 +537,6 @@ pub fn contribute_to_station(
                 station_id.value(),
                 item_def.get_name()
             );
-            let _ = send_direct_server_warning(&dsl, &player_id, msg.clone());
             return Err(msg);
         }
     };
@@ -561,7 +559,6 @@ pub fn contribute_to_station(
             already_contributed,
             required
         );
-        let _ = send_direct_server_warning(&dsl, &player_id, msg.clone());
         return Err(msg);
     }
 
@@ -593,7 +590,6 @@ pub fn contribute_to_station(
             ship.get_id().value(),
             cargo_available
         );
-        let _ = send_direct_server_warning(&dsl, &player_id, msg.clone());
         return Err(msg);
     }
 

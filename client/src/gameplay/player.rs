@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use macroquad::prelude::*;
 use spacetimedb_sdk::{DbContext, Table};
 
@@ -206,22 +208,23 @@ impl DockingAction {
         }
     }
 
-    pub fn perform(self, ctx: &DbConnection) -> Result<(), String> {
-        match self {
-            DockingAction::Dock(sobj_id) => ctx
-                .reducers
-                .dock_ship(sobj_id)
-                .map_err(|e| format!("Failed to dock at station sobj {sobj_id}: {e}")),
-            DockingAction::Jump(sobj_id) => ctx
-                .reducers
-                .use_jumpgate(sobj_id)
-                .map_err(|e| format!("Failed to use jumpgate sobj {sobj_id}: {e}")),
-            DockingAction::Undock(ship) => {
-                let ship_id = ship.id;
-                ctx.reducers
-                    .undock_ship(ship)
-                    .map_err(|e| format!("Failed to undock ship {ship_id}: {e}"))
-            }
+    /// Send the request. The server's verdict lands in `feedback` when it
+    /// arrives — `None` on success, the reducer's own `Err` string on refusal
+    /// (e.g. docking at a site still under construction) (#251).
+    pub fn perform(self, ctx: &DbConnection, feedback: &Arc<Mutex<Option<String>>>) {
+        // Clear first so a stale refusal can't read as this press's result.
+        *feedback.lock().unwrap() = None;
+        let slot = feedback.clone();
+        let on_result = move |_event_ctx: &ReducerEventContext, result| {
+            *slot.lock().unwrap() = reducer_verdict(result);
+        };
+        let sent = match self {
+            DockingAction::Dock(sobj_id) => ctx.reducers.dock_ship_then(sobj_id, on_result),
+            DockingAction::Jump(sobj_id) => ctx.reducers.use_jumpgate_then(sobj_id, on_result),
+            DockingAction::Undock(ship) => ctx.reducers.undock_ship_then(ship, on_result),
+        };
+        if let Err(e) = sent {
+            *feedback.lock().unwrap() = Some(format!("Could not reach the server: {e}"));
         }
     }
 }

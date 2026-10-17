@@ -284,6 +284,13 @@ pub fn my_faction_chat(ctx: &ViewContext) -> Vec<FactionChannelMessage> {
 ////////////////////////////////////////////////////////////////////////////////
 
 /// Send a Direct Server Message to one player. Server is implicit sender.
+///
+/// The DM is a row insert, so it only reaches the player if the reducer
+/// commits. Never send one and then `return Err(..)`: the rollback takes the
+/// DM with it and the player is told nothing (#251). For a failure the player
+/// asked for, put the explanation in the `Err` string instead; the client
+/// shows it from the reducer's `*_then` callback. See the convention note at
+/// the top of `logic/stations/buy_and_sell.rs`.
 pub fn send_direct_server_message<T: spacetimedsl::WriteContext>(
     dsl: &DSL<T>,
     to: &PlayerId,

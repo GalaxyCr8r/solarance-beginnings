@@ -327,3 +327,65 @@ pub fn get_transform(ctx: &DbConnection, sobj_id: u64) -> Result<RenderPose, Str
 pub fn get_player_transform(ctx: &DbConnection) -> Option<RenderPose> {
     get_player_pose(ctx)
 }
+
+/// Turn a `*_then` callback result into the message to show the player, or
+/// `None` on success.
+///
+/// The plain reducer call (e.g. `buy_item_from_station_module(..)`) is
+/// fire-and-forget: it reports success as soon as the request is *sent*, so
+/// the old trade screen logged "Bought ..." on every click including the ones
+/// that failed (#251). The `*_then` form runs a callback when the server's
+/// verdict arrives, which is the only way to see a `return Err(..)` from the
+/// reducer.
+///
+/// Outer `Result`: did the SDK round-trip with the server at all?
+/// Inner `Result`: what did the reducer itself return?
+/// Generic over the transport error so this doesn't have to name the SDK's
+/// `__codegen::InternalError`; all we ever do with it is print it.
+pub fn reducer_verdict<E: std::fmt::Debug>(result: Result<Result<(), String>, E>) -> Option<String> {
+    match result {
+        Ok(Ok(())) => None,
+        Ok(Err(message)) => Some(message),
+        Err(internal) => Some(format!("{:?}", internal)),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::reducer_verdict;
+
+    #[derive(Debug)]
+    struct Transport(&'static str);
+
+    /// (#251) The reducer's `Err` string is the player's explanation — it has
+    /// to survive the two layers of `Result` intact, not get flattened into a
+    /// generic failure.
+    #[test]
+    fn a_reducer_error_becomes_the_message_shown() {
+        let verdict = reducer_verdict::<Transport>(Ok(Err(
+            "Cannot buy 5x Iron Ore from station: Not enough credits. You have 10c but it costs 500c."
+                .to_string(),
+        )));
+        assert_eq!(
+            verdict.as_deref(),
+            Some("Cannot buy 5x Iron Ore from station: Not enough credits. You have 10c but it costs 500c.")
+        );
+    }
+
+    /// Success must clear the slot, or the last failure would sit under the
+    /// row forever and read as the result of a trade that worked.
+    #[test]
+    fn success_leaves_no_message() {
+        assert_eq!(reducer_verdict::<Transport>(Ok(Ok(()))), None);
+    }
+
+    /// A transport failure is still worth showing — silence is the bug.
+    #[test]
+    fn a_transport_failure_still_says_something() {
+        let verdict = reducer_verdict(Err(Transport("socket closed")));
+        assert!(
+            verdict.is_some_and(|m| m.contains("socket closed")),
+            "transport errors must not vanish"
+        );
+    }
+}
